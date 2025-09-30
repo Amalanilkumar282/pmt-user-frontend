@@ -1,8 +1,9 @@
-import { Component, signal, ViewChild } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IssueSummaryCard } from '../issue-summary-card/issue-summary-card';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
+import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 
 interface SummaryCardData {
   type: 'completed' | 'updated' | 'created' | 'due-soon';
@@ -19,9 +20,8 @@ interface SummaryCardData {
   styleUrl: './summary-page.css'
 })
 export class SummaryPage {
-  @ViewChild(Sidebar) sidebar?: Sidebar;
-  
-  isSidebarCollapsed = signal(false);
+  private sidebarStateService = inject(SidebarStateService);
+  isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
   issueCards: SummaryCardData[] = [
     {
@@ -50,13 +50,7 @@ export class SummaryPage {
     }
   ];
 
-  onSidebarCollapsedChange(collapsed: boolean): void {
-    this.isSidebarCollapsed.set(collapsed);
-  }
-
   onToggleSidebar(): void {
-    if (this.sidebar) {
-      this.sidebar.toggleCollapse();
-    }
+    this.sidebarStateService.toggleCollapse();
   }
 }
