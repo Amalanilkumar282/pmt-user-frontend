@@ -8,13 +8,15 @@
   <!-- Main Content -->
   <div class="page-container">
     <div class="page-header">
-      <h1 class="page-title">Project Management Tool</h1>
-    <button 
-      class="create-sprint-btn"
-      (click)="handleCreateSprint()">
-      + Create Sprint
-    </button>
-  </div>
+      <div class="page-header-left">
+        <!-- Optional: Add any left-aligned content here -->
+      </div>
+      <button 
+        class="create-sprint-btn"
+        (click)="handleCreateSprint()">
+        + Create Sprint
+      </button>
+    </div>
   
   <!-- Active Sprints Section -->
   @if (activeSprints.length > 0) {
