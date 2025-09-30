@@ -2,10 +2,11 @@ import { Component } from '@angular/core';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
+import { Sidebar } from '../../shared/sidebar/sidebar';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [SprintContainer, BacklogContainer],
+  imports: [SprintContainer, BacklogContainer, Sidebar],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })

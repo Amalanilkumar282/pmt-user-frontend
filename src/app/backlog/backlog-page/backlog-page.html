@@ -1,6 +1,11 @@
-<div class="page-container">
-  <div class="page-header">
-    <h1 class="page-title">Project Management Tool</h1>
+<div class="layout-wrapper">
+  <!-- Sidebar -->
+  <app-sidebar></app-sidebar>
+
+  <!-- Main Content -->
+  <div class="page-container">
+    <div class="page-header">
+      <h1 class="page-title">Project Management Tool</h1>
     <button 
       class="create-sprint-btn"
       (click)="handleCreateSprint()">
@@ -75,4 +80,5 @@
     </h2>
     <app-backlog-container [issues]="backlogIssues"></app-backlog-container>
   </section>
+  </div>
 </div>
