@@ -87,7 +87,7 @@
 
 .action-btn {
   padding: 5px 10px;
-  background-color: #1976d2;
+  background-color: #3D62A8;
   color: white;
   border: none;
   border-radius: 5px;
@@ -100,7 +100,7 @@
 }
 
 .action-btn:hover:not(.disabled) {
-  background-color: #1565c0;
+  background-color: #2e5390;
 }
 
 .action-btn.disabled {
@@ -189,7 +189,7 @@
 
 .status-badge.active {
   background-color: #e3f2fd;
-  color: #1976d2;
+  color: #3D62A8;
 }
 
 .status-badge.completed {
