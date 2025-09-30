@@ -1,4 +1,4 @@
-<div class="sprint-card">
+<div class="sprint-card" [class.completed]="sprint.status === 'COMPLETED'">
   <div class="sprint-header">
     <div class="header-left" (click)="toggleCollapse()">
       <span class="collapse-icon">{{ isCollapsed() ? '▶' : '▼' }}</span>

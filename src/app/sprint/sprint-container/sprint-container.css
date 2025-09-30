@@ -6,6 +6,36 @@
   width: 100%;
   max-width: 900px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Completed sprint overlay */
+.sprint-card.completed {
+  background: #f5f5f5;
+  opacity: 0.75;
+}
+
+.sprint-card.completed::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(200, 200, 200, 0.1) 0%, rgba(150, 150, 150, 0.05) 100%);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.sprint-card.completed .sprint-title,
+.sprint-card.completed .sprint-date,
+.sprint-card.completed .issue-count {
+  color: #888;
+}
+
+.sprint-card.completed .collapse-icon {
+  color: #999;
 }
 
 .sprint-header {
