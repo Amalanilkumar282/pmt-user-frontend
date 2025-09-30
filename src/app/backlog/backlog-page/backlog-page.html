@@ -1,22 +1,20 @@
-<div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-    <h1 style="margin: 0; color: #1f2937;">Project Management Tool</h1>
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">Project Management Tool</h1>
     <button 
-      (click)="handleCreateSprint()"
-      style="padding: 10px 20px; background-color: #1976d2; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;"
-      onmouseover="this.style.backgroundColor='#1565c0'"
-      onmouseout="this.style.backgroundColor='#1976d2'">
+      class="create-sprint-btn"
+      (click)="handleCreateSprint()">
       + Create Sprint
     </button>
   </div>
   
   <!-- Active Sprints Section -->
   @if (activeSprints.length > 0) {
-    <section style="margin-bottom: 32px;">
-      <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">
+    <section class="section">
+      <h2 class="section-title">
         Active Sprints ({{ activeSprints.length }})
       </h2>
-      <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="sprint-list">
         @for (sprint of activeSprints; track sprint.id) {
           <app-sprint-container 
             [sprint]="sprint"
@@ -32,11 +30,11 @@
 
   <!-- Planned Sprints Section -->
   @if (plannedSprints.length > 0) {
-    <section style="margin-bottom: 32px;">
-      <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">
+    <section class="section">
+      <h2 class="section-title">
         Planned Sprints ({{ plannedSprints.length }})
       </h2>
-      <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="sprint-list">
         @for (sprint of plannedSprints; track sprint.id) {
           <app-sprint-container 
             [sprint]="sprint"
@@ -52,11 +50,11 @@
 
   <!-- Completed Sprints Section -->
   @if (completedSprints.length > 0) {
-    <section style="margin-bottom: 32px;">
-      <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">
+    <section class="section">
+      <h2 class="section-title">
         Completed Sprints ({{ completedSprints.length }})
       </h2>
-      <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="sprint-list">
         @for (sprint of completedSprints; track sprint.id) {
           <app-sprint-container 
             [sprint]="sprint"
@@ -72,7 +70,7 @@
 
   <!-- Product Backlog Section -->
   <section>
-    <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">
+    <h2 class="section-title">
       Product Backlog
     </h2>
     <app-backlog-container [issues]="backlogIssues"></app-backlog-container>
