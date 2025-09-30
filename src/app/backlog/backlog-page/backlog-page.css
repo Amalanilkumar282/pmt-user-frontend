@@ -9,7 +9,7 @@
   margin-left: 240px;
   margin-top: 121px;
   padding: 20px;
-  max-width: calc(100% - 240px);
+  width: calc(100% - 240px);
   overflow-x: hidden;
 }
 
