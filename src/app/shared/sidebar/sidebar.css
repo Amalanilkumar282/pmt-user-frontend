@@ -28,7 +28,7 @@
 .logo-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #3D62A8 0%, #5580c9 100%);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -83,7 +83,7 @@
 }
 
 .nav-item.active {
-  background-color: #3b82f6;
+  background-color: #3D62A8;
   color: white;
 }
 
@@ -147,7 +147,7 @@
 .project-dot {
   width: 6px;
   height: 6px;
-  background-color: #6366f1;
+  background-color: #3D62A8;
   border-radius: 50%;
   flex-shrink: 0;
 }

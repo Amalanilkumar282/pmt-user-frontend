@@ -34,8 +34,8 @@
 }
 
 .search-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #3D62A8;
+  box-shadow: 0 0 0 3px rgba(61, 98, 168, 0.1);
 }
 
 .search-input::placeholder {
@@ -96,9 +96,9 @@
 }
 
 .filter-chip.active {
-  background-color: #eff6ff;
-  border-color: #3b82f6;
-  color: #1d4ed8;
+  background-color: #e8eef7;
+  border-color: #3D62A8;
+  color: #2e5390;
 }
 
 .filter-chip svg {

@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IssueList } from '../../backlog/issue-list/issue-list';
 import { IssueDetailedView } from '../../backlog/issue-detailed-view/issue-detailed-view';
 import { Issue } from '../../shared/models/issue.model';
@@ -15,7 +16,7 @@ export interface Sprint {
 
 @Component({
   selector: 'app-sprint-container',
-  imports: [CommonModule, IssueList, IssueDetailedView],
+  imports: [CommonModule, DragDropModule, IssueList, IssueDetailedView],
   templateUrl: './sprint-container.html',
   styleUrl: './sprint-container.css'
 })
@@ -28,11 +29,14 @@ export class SprintContainer {
     status: 'ACTIVE',
     issues: []
   };
+  @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
+  @Input() connectedDropLists: string[] = [];
 
   @Output() completeSprint = new EventEmitter<string>();
   @Output() deleteSprint = new EventEmitter<string>();
   @Output() startSprint = new EventEmitter<string>();
   @Output() editSprint = new EventEmitter<string>();
+  @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -97,5 +101,18 @@ export class SprintContainer {
     if (this.sprint.issues) {
       this.sprint.issues = this.sprint.issues.filter(i => i.id !== issueId);
     }
+  }
+
+  onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
+    this.moveIssue.emit(event);
+  }
+
+  onDrop(event: CdkDragDrop<Issue[]>): void {
+    const issue = event.item.data as Issue;
+    // Emit move event to parent component
+    this.moveIssue.emit({
+      issueId: issue.id,
+      destinationSprintId: this.sprint.id
+    });
   }
 }
