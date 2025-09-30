@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -21,6 +21,9 @@ export interface FilterCriteria {
 })
 export class Filters {
   @Output() filtersChanged = new EventEmitter<FilterCriteria>();
+
+  // Collapse state
+  isCollapsed = signal(false);
 
   // Search
   searchText: string = '';
@@ -101,6 +104,18 @@ export class Filters {
       this.selectedSort !== 'Recently Updated');
   }
 
+  getActiveFilterCount(): number {
+    let count = 0;
+    if (this.searchText) count++;
+    if (this.activeQuickFilter) count++;
+    if (this.selectedType) count++;
+    if (this.selectedPriority) count++;
+    if (this.selectedStatus) count++;
+    if (this.selectedAssignee) count++;
+    if (this.selectedSort !== 'Recently Updated') count++;
+    return count;
+  }
+
   clearAllFilters(): void {
     this.searchText = '';
     this.activeQuickFilter = null;
@@ -110,6 +125,10 @@ export class Filters {
     this.selectedAssignee = null;
     this.selectedSort = 'Recently Updated';
     this.emitFilters();
+  }
+
+  toggleCollapse(): void {
+    this.isCollapsed.set(!this.isCollapsed());
   }
 
   private emitFilters(): void {

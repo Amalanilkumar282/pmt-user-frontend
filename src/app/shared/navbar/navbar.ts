@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -10,6 +10,8 @@ import { RouterModule } from '@angular/router';
   standalone: true
 })
 export class Navbar {
+  @Output() toggleSidebar = new EventEmitter<void>();
+
   navTabs = [
     { label: 'Summary', route: '/summary', active: false },
     { label: 'Backlog', route: '/backlog', active: true },
@@ -23,6 +25,10 @@ export class Navbar {
     type: 'Reports',
     icon: 'PA'
   };
+
+  onToggleSidebar(): void {
+    this.toggleSidebar.emit();
+  }
 
   onShare(): void {
     console.log('Share clicked');
