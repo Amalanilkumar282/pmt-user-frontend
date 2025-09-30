@@ -1,5 +1,14 @@
 <div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
-  <h1 style="margin-bottom: 24px; color: #1f2937;">Project Management Tool</h1>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h1 style="margin: 0; color: #1f2937;">Project Management Tool</h1>
+    <button 
+      (click)="handleCreateSprint()"
+      style="padding: 10px 20px; background-color: #1976d2; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;"
+      onmouseover="this.style.backgroundColor='#1565c0'"
+      onmouseout="this.style.backgroundColor='#1976d2'">
+      + Create Sprint
+    </button>
+  </div>
   
   <!-- Active Sprints Section -->
   @if (activeSprints.length > 0) {
@@ -13,6 +22,7 @@
             [sprint]="sprint"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
             (deleteSprint)="handleDelete($event)">
           </app-sprint-container>
         }
@@ -32,6 +42,7 @@
             [sprint]="sprint"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
             (deleteSprint)="handleDelete($event)">
           </app-sprint-container>
         }
@@ -51,6 +62,7 @@
             [sprint]="sprint"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
             (deleteSprint)="handleDelete($event)">
           </app-sprint-container>
         }

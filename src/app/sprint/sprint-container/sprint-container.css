@@ -43,6 +43,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  gap: 12px;
 }
 
 .header-left {
@@ -51,12 +52,16 @@
   gap: 10px;
   cursor: pointer;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .collapse-icon {
@@ -70,6 +75,9 @@
   font-size: 18px;
   font-weight: 600;
   color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .issue-count {
@@ -79,16 +87,17 @@
 }
 
 .action-btn {
-  padding: 6px 16px;
+  padding: 5px 10px;
   background-color: #1976d2;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: 5px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .action-btn:hover:not(.disabled) {
@@ -101,18 +110,60 @@
   opacity: 0.6;
 }
 
-.delete-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
+.edit-btn {
+  padding: 5px 10px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
-  padding: 4px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.delete-btn:hover {
-  opacity: 1;
+.edit-btn:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.delete-btn-text {
+  padding: 5px 10px;
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.delete-btn-text:hover {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .header-right {
+    gap: 4px;
+  }
+  
+  .action-btn,
+  .edit-btn,
+  .delete-btn-text {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  
+  .sprint-title {
+    font-size: 16px;
+  }
 }
 
 .sprint-info {

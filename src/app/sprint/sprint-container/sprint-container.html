@@ -13,8 +13,17 @@
         [class.disabled]="isActionButtonDisabled()">
         {{ getActionButtonText() }}
       </button>
-      <button class="delete-btn" (click)="onDelete()" aria-label="Delete sprint">
-        🗑️
+      <button 
+        class="edit-btn" 
+        (click)="onEdit()"
+        aria-label="Edit sprint">
+        Edit Sprint
+      </button>
+      <button 
+        class="delete-btn-text" 
+        (click)="onDelete()" 
+        aria-label="Delete sprint">
+        Delete Sprint
       </button>
     </div>
   </div>

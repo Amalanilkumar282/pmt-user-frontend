@@ -32,6 +32,7 @@ export class SprintContainer {
   @Output() completeSprint = new EventEmitter<string>();
   @Output() deleteSprint = new EventEmitter<string>();
   @Output() startSprint = new EventEmitter<string>();
+  @Output() editSprint = new EventEmitter<string>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -70,6 +71,10 @@ export class SprintContainer {
 
   isActionButtonDisabled(): boolean {
     return this.sprint.status === 'COMPLETED';
+  }
+
+  onEdit(): void {
+    this.editSprint.emit(this.sprint.id);
   }
 
   onDelete(): void {

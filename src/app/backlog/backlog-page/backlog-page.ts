@@ -393,6 +393,12 @@ export class BacklogPage {
     return this.sprints.filter(s => s.status === 'COMPLETED');
   }
 
+  handleCreateSprint(): void {
+    console.log('Create new sprint');
+    // Modal implementation will be added later
+    alert('Create Sprint functionality - Modal will be implemented later');
+  }
+
   handleStart(sprintId: string): void {
     console.log('Start sprint:', sprintId);
     // Add your start logic here
@@ -403,8 +409,17 @@ export class BacklogPage {
     // Add your completion logic here
   }
 
+  handleEdit(sprintId: string): void {
+    console.log('Edit sprint:', sprintId);
+    // Modal implementation will be added later
+    alert(`Edit Sprint ${sprintId} - Modal will be implemented later`);
+  }
+
   handleDelete(sprintId: string): void {
     console.log('Delete sprint:', sprintId);
     // Add your deletion logic here
+    if (confirm(`Are you sure you want to delete this sprint?`)) {
+      console.log('Sprint deleted');
+    }
   }
 }
