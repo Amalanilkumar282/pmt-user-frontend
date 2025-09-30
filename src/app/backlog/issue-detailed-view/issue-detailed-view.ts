@@ -20,9 +20,14 @@ export class IssueDetailedView {
   @Output() close = new EventEmitter<void>();
   @Output() updateIssue = new EventEmitter<Partial<Issue>>();
   @Output() deleteIssue = new EventEmitter<string>();
+  @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
 
   protected _issue = signal<Issue | null>(null);
   protected _isOpen = signal(false);
+  protected showMoveDropdown = signal(false);
+
+  // Available sprints for moving (will be passed as input)
+  @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
 
   protected getTypeIcon(type: string): string {
     const icons: Record<string, string> = {
@@ -80,5 +85,27 @@ export class IssueDetailedView {
       this.deleteIssue.emit(issue.id);
       this.onClose();
     }
+  }
+
+  protected toggleMoveDropdown(): void {
+    this.showMoveDropdown.set(!this.showMoveDropdown());
+  }
+
+  protected onMove(destinationSprintId: string | null, destinationName: string): void {
+    const issue = this._issue();
+    if (issue) {
+      if (confirm(`Move issue ${issue.id} to ${destinationName}?`)) {
+        this.moveIssue.emit({ 
+          issueId: issue.id, 
+          destinationSprintId 
+        });
+        this.showMoveDropdown.set(false);
+        this.onClose();
+      }
+    }
+  }
+
+  protected closeMoveDropdown(event: MouseEvent): void {
+    event.stopPropagation();
   }
 }

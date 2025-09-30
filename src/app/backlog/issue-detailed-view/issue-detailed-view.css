@@ -105,6 +105,111 @@
   background: #94a3b8;
 }
 
+/* Move Dropdown Styles */
+.move-dropdown-container {
+  position: relative;
+}
+
+.move-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 280px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 1100;
+  max-height: 400px;
+  overflow-y: auto;
+  animation: slideUpDropdown 0.2s ease-out;
+}
+
+@keyframes slideUpDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.dropdown-subheader {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #374151;
+  font-size: 14px;
+}
+
+.dropdown-item:hover:not(.dropdown-item:disabled) {
+  background-color: #f3f4f6;
+}
+
+.dropdown-item svg {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.dropdown-item:hover svg {
+  color: #3D62A8;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 8px 0;
+}
+
+.move-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.move-dropdown-menu::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 3px;
+}
+
+.move-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.move-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .modal-backdrop {
@@ -131,5 +236,11 @@
 
   .modal-footer button {
     width: 100%;
+  }
+
+  .move-dropdown-menu {
+    right: auto;
+    left: 0;
+    min-width: 100%;
   }
 }

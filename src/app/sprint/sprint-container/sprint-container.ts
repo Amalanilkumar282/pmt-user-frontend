@@ -28,11 +28,13 @@ export class SprintContainer {
     status: 'ACTIVE',
     issues: []
   };
+  @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
 
   @Output() completeSprint = new EventEmitter<string>();
   @Output() deleteSprint = new EventEmitter<string>();
   @Output() startSprint = new EventEmitter<string>();
   @Output() editSprint = new EventEmitter<string>();
+  @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -97,5 +99,9 @@ export class SprintContainer {
     if (this.sprint.issues) {
       this.sprint.issues = this.sprint.issues.filter(i => i.id !== issueId);
     }
+  }
+
+  onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
+    this.moveIssue.emit(event);
   }
 }

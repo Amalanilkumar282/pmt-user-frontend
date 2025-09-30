@@ -31,10 +31,12 @@
         @for (sprint of activeSprints; track sprint.id) {
           <app-sprint-container 
             [sprint]="sprint"
+            [availableSprints]="availableSprintsForMove"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
             (editSprint)="handleEdit($event)"
-            (deleteSprint)="handleDelete($event)">
+            (deleteSprint)="handleDelete($event)"
+            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
           </app-sprint-container>
         }
       </div>
@@ -51,10 +53,12 @@
         @for (sprint of plannedSprints; track sprint.id) {
           <app-sprint-container 
             [sprint]="sprint"
+            [availableSprints]="availableSprintsForMove"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
             (editSprint)="handleEdit($event)"
-            (deleteSprint)="handleDelete($event)">
+            (deleteSprint)="handleDelete($event)"
+            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
           </app-sprint-container>
         }
       </div>
@@ -71,10 +75,12 @@
         @for (sprint of completedSprints; track sprint.id) {
           <app-sprint-container 
             [sprint]="sprint"
+            [availableSprints]="availableSprintsForMove"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
             (editSprint)="handleEdit($event)"
-            (deleteSprint)="handleDelete($event)">
+            (deleteSprint)="handleDelete($event)"
+            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
           </app-sprint-container>
         }
       </div>
@@ -86,7 +92,11 @@
     <h2 class="section-title">
       Product Backlog
     </h2>
-    <app-backlog-container [issues]="backlogIssues"></app-backlog-container>
+    <app-backlog-container 
+      [issues]="backlogIssues"
+      [availableSprints]="availableSprintsForMove"
+      (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+    </app-backlog-container>
   </section>
   </div>
 </div>

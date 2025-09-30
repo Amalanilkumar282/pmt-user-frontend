@@ -1,4 +1,4 @@
-import { Component, Input, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IssueList } from '../issue-list/issue-list';
@@ -13,6 +13,8 @@ import { Issue } from '../../shared/models/issue.model';
 })
 export class BacklogContainer {
   @Input() issues: Issue[] = [];
+  @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
+  @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -104,5 +106,9 @@ export class BacklogContainer {
 
   goToLastPage(): void {
     this.currentPage = this.totalPages;
+  }
+
+  onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
+    this.moveIssue.emit(event);
   }
 }
