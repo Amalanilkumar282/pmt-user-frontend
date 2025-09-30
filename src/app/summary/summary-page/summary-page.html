@@ -1,0 +1,28 @@
+<div class="layout-wrapper">
+  <!-- Sidebar -->
+  <app-sidebar></app-sidebar>
+
+  <!-- Navbar -->
+  <app-navbar 
+    [class.sidebar-collapsed]="isSidebarCollapsed()"
+    (toggleSidebar)="onToggleSidebar()">
+  </app-navbar>
+
+  <!-- Main Content -->
+  <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <!-- Issues Summary Section -->
+    <section class="summary-section">
+      <h2 class="section-title">Issues</h2>
+      <div class="cards-grid">
+        @for (card of issueCards; track card.type) {
+          <app-issue-summary-card
+            [type]="card.type"
+            [count]="card.count"
+            [label]="card.label"
+            [timePeriod]="card.timePeriod">
+          </app-issue-summary-card>
+        }
+      </div>
+    </section>
+  </div>
+</div>
