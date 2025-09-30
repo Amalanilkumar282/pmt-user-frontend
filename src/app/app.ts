@@ -1,11 +1,12 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SprintContainer, Sprint } from './sprint/sprint-container/sprint-container';
+import { BacklogContainer } from './backlog/backlog-container/backlog-container';
 import { Issue } from './shared/models/issue.model';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, SprintContainer],
+  imports: [RouterOutlet, SprintContainer, BacklogContainer],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -90,6 +91,104 @@ export class App {
       sprintId: '1',
       createdAt: new Date('2025-09-29'),
       updatedAt: new Date('2025-09-29')
+    }
+  ];
+
+  // Backlog issues (not assigned to any sprint)
+  backlogIssues: Issue[] = [
+    {
+      id: 'PMT-201',
+      title: 'Implement email notifications',
+      description: 'Send email notifications for important events like task assignments and sprint completions',
+      type: 'STORY',
+      priority: 'HIGH',
+      status: 'TODO',
+      assignee: 'Emma Wilson',
+      storyPoints: 8,
+      createdAt: new Date('2025-09-15'),
+      updatedAt: new Date('2025-09-15')
+    },
+    {
+      id: 'PMT-202',
+      title: 'Create user profile page',
+      description: 'Design and implement a user profile page with edit capabilities',
+      type: 'STORY',
+      priority: 'MEDIUM',
+      status: 'TODO',
+      assignee: 'Oliver Davis',
+      storyPoints: 5,
+      createdAt: new Date('2025-09-18'),
+      updatedAt: new Date('2025-09-18')
+    },
+    {
+      id: 'PMT-203',
+      title: 'Fix memory leak in chart component',
+      description: 'Chart component is causing memory leaks when unmounted',
+      type: 'BUG',
+      priority: 'CRITICAL',
+      status: 'TODO',
+      storyPoints: 3,
+      createdAt: new Date('2025-09-22'),
+      updatedAt: new Date('2025-09-22')
+    },
+    {
+      id: 'PMT-204',
+      title: 'Add export to PDF functionality',
+      description: 'Allow users to export reports and sprint summaries to PDF format',
+      type: 'TASK',
+      priority: 'MEDIUM',
+      status: 'TODO',
+      assignee: 'Sophia Martinez',
+      storyPoints: 8,
+      createdAt: new Date('2025-09-23'),
+      updatedAt: new Date('2025-09-23')
+    },
+    {
+      id: 'PMT-205',
+      title: 'Integrate with Slack',
+      description: 'Add Slack integration for team notifications and updates',
+      type: 'EPIC',
+      priority: 'LOW',
+      status: 'TODO',
+      assignee: 'Liam Anderson',
+      storyPoints: 21,
+      createdAt: new Date('2025-09-10'),
+      updatedAt: new Date('2025-09-10')
+    },
+    {
+      id: 'PMT-206',
+      title: 'Improve search performance',
+      description: 'Optimize search functionality to handle large datasets efficiently',
+      type: 'TASK',
+      priority: 'HIGH',
+      status: 'TODO',
+      storyPoints: 5,
+      createdAt: new Date('2025-09-24'),
+      updatedAt: new Date('2025-09-24')
+    },
+    {
+      id: 'PMT-207',
+      title: 'Add file attachment support',
+      description: 'Allow users to attach files to issues and comments',
+      type: 'STORY',
+      priority: 'MEDIUM',
+      status: 'TODO',
+      assignee: 'Ava Thompson',
+      storyPoints: 13,
+      createdAt: new Date('2025-09-19'),
+      updatedAt: new Date('2025-09-19')
+    },
+    {
+      id: 'PMT-208',
+      title: 'Setup CI/CD pipeline',
+      description: 'Configure automated testing and deployment pipeline',
+      type: 'TASK',
+      priority: 'HIGH',
+      status: 'TODO',
+      assignee: 'Noah Garcia',
+      storyPoints: 8,
+      createdAt: new Date('2025-09-21'),
+      updatedAt: new Date('2025-09-21')
     }
   ];
 
