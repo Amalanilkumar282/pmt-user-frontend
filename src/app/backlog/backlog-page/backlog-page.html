@@ -7,6 +7,9 @@
 
   <!-- Main Content -->
   <div class="page-container">
+    <!-- Filters Section -->
+    <app-filters (filtersChanged)="onFiltersChanged($event)"></app-filters>
+
     <div class="page-header">
       <div class="page-header-left">
         <!-- Optional: Add any left-aligned content here -->

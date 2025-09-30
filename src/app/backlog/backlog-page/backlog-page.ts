@@ -4,10 +4,11 @@ import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
+import { Filters, FilterCriteria } from '../../shared/filters/filters';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [SprintContainer, BacklogContainer, Sidebar, Navbar],
+  imports: [SprintContainer, BacklogContainer, Sidebar, Navbar, Filters],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -423,5 +424,12 @@ export class BacklogPage {
     if (confirm(`Are you sure you want to delete this sprint?`)) {
       console.log('Sprint deleted');
     }
+  }
+
+  onFiltersChanged(criteria: FilterCriteria): void {
+    console.log('Filters changed:', criteria);
+    // Implement filter logic here
+    // You can filter sprints and backlog issues based on the criteria
+    // For now, just logging the criteria
   }
 }
