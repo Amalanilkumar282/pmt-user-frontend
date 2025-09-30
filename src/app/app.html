@@ -1,3 +1,9 @@
-<h1 class="text-3xl font-bold underline">
-  Hello world!
-</h1>
+<div style="padding: 20px;">
+  <h1>Sprint Management</h1>
+  
+  <app-sprint-container 
+    [sprint]="testSprint"
+    (completeSprint)="handleComplete($event)"
+    (deleteSprint)="handleDelete($event)">
+  </app-sprint-container>
+</div>
