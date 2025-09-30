@@ -31,10 +31,19 @@ export class SprintContainer {
 
   @Output() completeSprint = new EventEmitter<string>();
   @Output() deleteSprint = new EventEmitter<string>();
+  @Output() startSprint = new EventEmitter<string>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
   protected isModalOpen = signal(false);
+  protected isCollapsed = signal(false);
+
+  ngOnInit(): void {
+    // Collapse completed sprints by default
+    if (this.sprint.status === 'COMPLETED') {
+      this.isCollapsed.set(true);
+    }
+  }
 
   formatDate(date: Date): string {
     const month = date.toLocaleDateString('en-US', { month: 'short' });
@@ -43,8 +52,24 @@ export class SprintContainer {
     return `${month} ${day},${year}`;
   }
 
-  onComplete(): void {
-    this.completeSprint.emit(this.sprint.id);
+  toggleCollapse(): void {
+    this.isCollapsed.set(!this.isCollapsed());
+  }
+
+  onSprintAction(): void {
+    if (this.sprint.status === 'PLANNED') {
+      this.startSprint.emit(this.sprint.id);
+    } else if (this.sprint.status === 'ACTIVE') {
+      this.completeSprint.emit(this.sprint.id);
+    }
+  }
+
+  getActionButtonText(): string {
+    return this.sprint.status === 'PLANNED' ? 'Start Sprint' : 'Complete Sprint';
+  }
+
+  isActionButtonDisabled(): boolean {
+    return this.sprint.status === 'COMPLETED';
   }
 
   onDelete(): void {

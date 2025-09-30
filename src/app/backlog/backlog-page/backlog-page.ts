@@ -199,6 +199,11 @@ export class BacklogPage {
     issues: this.dummyIssues
   };
 
+  handleStart(sprintId: string): void {
+    console.log('Start sprint:', sprintId);
+    // Add your start logic here
+  }
+
   handleComplete(sprintId: string): void {
     console.log('Complete sprint:', sprintId);
     // Add your completion logic here

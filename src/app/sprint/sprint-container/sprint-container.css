@@ -4,7 +4,7 @@
   border-radius: 8px;
   padding: 20px;
   width: 100%;
-  max-width: 600px;
+  max-width: 900px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -15,11 +15,60 @@
   margin-bottom: 12px;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapse-icon {
+  font-size: 12px;
+  color: #666;
+  transition: transform 0.2s;
+}
+
 .sprint-title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: #333;
+}
+
+.issue-count {
+  font-size: 14px;
+  color: #999;
+  font-weight: 400;
+}
+
+.action-btn {
+  padding: 6px 16px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.action-btn:hover:not(.disabled) {
+  background-color: #1565c0;
+}
+
+.action-btn.disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .delete-btn {
@@ -73,39 +122,18 @@
   color: #f57c00;
 }
 
+.collapsible-content {
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  opacity: 1;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
 .issues-section {
-  margin: 20px 0;
-  padding: 16px 0;
-  border-top: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.issues-title {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.complete-btn {
-  width: 100%;
-  padding: 10px;
-  background-color: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.complete-btn:hover {
-  background-color: #1565c0;
-}
-
-.complete-btn:active {
-  background-color: #0d47a1;
+  margin-top: 16px;
 }

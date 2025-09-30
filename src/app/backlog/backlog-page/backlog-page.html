@@ -6,6 +6,7 @@
     <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">Active Sprint</h2>
     <app-sprint-container 
       [sprint]="testSprint"
+      (startSprint)="handleStart($event)"
       (completeSprint)="handleComplete($event)"
       (deleteSprint)="handleDelete($event)">
     </app-sprint-container>
