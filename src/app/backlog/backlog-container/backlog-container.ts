@@ -16,6 +16,11 @@ export class BacklogContainer {
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
   protected isModalOpen = signal(false);
+  protected isCollapsed = signal(false);
+
+  toggleCollapse(): void {
+    this.isCollapsed.set(!this.isCollapsed());
+  }
 
   onIssueClick(issue: Issue): void {
     this.selectedIssue.set(issue);
