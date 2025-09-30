@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal, ViewChild } from '@angular/core';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
@@ -13,6 +13,9 @@ import { Filters, FilterCriteria } from '../../shared/filters/filters';
   styleUrl: './backlog-page.css'
 })
 export class BacklogPage {
+  @ViewChild(Sidebar) sidebar?: Sidebar;
+  
+  isSidebarCollapsed = signal(false);
   // Completed Sprint 1 issues
   private completedSprint1Issues: Issue[] = [
     {
@@ -510,6 +513,16 @@ export class BacklogPage {
       console.log(`Issue ${issueId} moved successfully`);
     } else {
       console.error(`Issue ${issueId} not found`);
+    }
+  }
+
+  onSidebarCollapsedChange(collapsed: boolean): void {
+    this.isSidebarCollapsed.set(collapsed);
+  }
+
+  onToggleSidebar(): void {
+    if (this.sidebar) {
+      this.sidebar.toggleCollapse();
     }
   }
 }

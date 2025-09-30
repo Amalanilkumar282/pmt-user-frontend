@@ -1,6 +1,30 @@
-<div class="filters-container">
-  <!-- Search Bar -->
-  <div class="search-box">
+<div class="filters-container" [class.collapsed]="isCollapsed()">
+  <!-- Header with Toggle Button -->
+  <div class="filters-header">
+    <div class="filters-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 7h18M10 12h11M3 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Filters</span>
+      @if (hasActiveFilters() && !isCollapsed()) {
+        <span class="active-count">({{ getActiveFilterCount() }} active)</span>
+      }
+    </div>
+    <button class="collapse-toggle" (click)="toggleCollapse()" [attr.aria-label]="isCollapsed() ? 'Expand filters' : 'Collapse filters'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        @if (isCollapsed()) {
+          <path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        } @else {
+          <path d="M5 15l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        }
+      </svg>
+    </button>
+  </div>
+
+  <!-- Collapsible Content -->
+  <div class="filters-content" [class.collapsed]="isCollapsed()">
+    <!-- Search Bar -->
+    <div class="search-box">
     <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
       <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -186,5 +210,6 @@
         Clear all
       </button>
     }
+  </div>
   </div>
 </div>

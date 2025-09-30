@@ -10,6 +10,13 @@
   left: 0;
   top: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.3s ease, transform 0.3s ease;
+  z-index: 1000;
+}
+
+.sidebar.collapsed {
+  width: 70px;
 }
 
 /* Logo and Header */
@@ -17,12 +24,28 @@
   padding: 0 16px 20px 16px;
   border-bottom: 1px solid #e5e7eb;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 0 8px 20px 8px;
 }
 
 .logo-container {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar.collapsed .logo-container {
+  flex: 0;
+  justify-content: center;
 }
 
 .logo-icon {
@@ -40,6 +63,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar.collapsed .logo-text {
+  display: none;
 }
 
 .logo-title {
@@ -47,12 +76,78 @@
   font-weight: 600;
   color: #111827;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .logo-subtitle {
   font-size: 12px;
   color: #6b7280;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Toggle Button */
+.toggle-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-btn:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.sidebar.collapsed .toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 16px;
+}
+
+.desktop-only {
+  display: flex;
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* Mobile Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Navigation Menu */
@@ -75,6 +170,17 @@
   font-weight: 500;
   transition: all 0.2s;
   cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 10px;
+}
+
+.sidebar.collapsed .nav-item span {
+  display: none;
 }
 
 .nav-item:hover {
@@ -183,7 +289,26 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .sidebar {
-    width: 200px;
+    width: 240px;
+    transform: translateX(-100%);
+  }
+  
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 240px;
+  }
+  
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block;
   }
   
   .logo-title {
@@ -200,23 +325,9 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (min-width: 769px) {
+  /* Desktop: sidebar always visible but can collapse to icon-only */
   .sidebar {
-    width: 60px;
-  }
-  
-  .logo-text,
-  .nav-item span,
-  .recent-projects {
-    display: none;
-  }
-  
-  .logo-container {
-    justify-content: center;
-  }
-  
-  .nav-item {
-    justify-content: center;
-    padding: 10px;
+    transform: translateX(0) !important;
   }
 }

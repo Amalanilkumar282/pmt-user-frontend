@@ -1,12 +1,15 @@
 <div class="layout-wrapper">
   <!-- Sidebar -->
-  <app-sidebar></app-sidebar>
+  <app-sidebar (collapsedChange)="onSidebarCollapsedChange($event)"></app-sidebar>
 
   <!-- Navbar -->
-  <app-navbar></app-navbar>
+  <app-navbar 
+    [class.sidebar-collapsed]="isSidebarCollapsed()"
+    (toggleSidebar)="onToggleSidebar()">
+  </app-navbar>
 
   <!-- Main Content -->
-  <div class="page-container">
+  <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
     <!-- Filters Section -->
     <app-filters (filtersChanged)="onFiltersChanged($event)"></app-filters>
 
