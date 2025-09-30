@@ -7,6 +7,7 @@
 .page-container {
   flex: 1;
   margin-left: 240px;
+  margin-top: 121px;
   padding: 20px;
   max-width: calc(100% - 240px);
   overflow-x: hidden;
@@ -78,6 +79,7 @@
 @media (max-width: 768px) {
   .page-container {
     margin-left: 200px;
+    margin-top: 121px;
     max-width: calc(100% - 200px);
     padding: 16px;
   }
@@ -107,6 +109,7 @@
 @media (max-width: 480px) {
   .page-container {
     margin-left: 60px;
+    margin-top: 121px;
     max-width: calc(100% - 60px);
     padding: 12px;
   }

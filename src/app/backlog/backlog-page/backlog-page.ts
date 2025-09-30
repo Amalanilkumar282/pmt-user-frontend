@@ -3,10 +3,11 @@ import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-co
 import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+import { Navbar } from '../../shared/navbar/navbar';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [SprintContainer, BacklogContainer, Sidebar],
+  imports: [SprintContainer, BacklogContainer, Sidebar, Navbar],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
