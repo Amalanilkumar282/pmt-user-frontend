@@ -1,10 +1,11 @@
-import { Component, signal, ViewChild } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
+import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 
 @Component({
   selector: 'app-backlog-page',
@@ -13,9 +14,8 @@ import { Filters, FilterCriteria } from '../../shared/filters/filters';
   styleUrl: './backlog-page.css'
 })
 export class BacklogPage {
-  @ViewChild(Sidebar) sidebar?: Sidebar;
-  
-  isSidebarCollapsed = signal(false);
+  private sidebarStateService = inject(SidebarStateService);
+  isSidebarCollapsed = this.sidebarStateService.isCollapsed;
   // Completed Sprint 1 issues
   private completedSprint1Issues: Issue[] = [
     {
@@ -516,13 +516,7 @@ export class BacklogPage {
     }
   }
 
-  onSidebarCollapsedChange(collapsed: boolean): void {
-    this.isSidebarCollapsed.set(collapsed);
-  }
-
   onToggleSidebar(): void {
-    if (this.sidebar) {
-      this.sidebar.toggleCollapse();
-    }
+    this.sidebarStateService.toggleCollapse();
   }
 }

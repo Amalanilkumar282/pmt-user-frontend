@@ -1,6 +1,7 @@
-import { Component, signal, Output, EventEmitter } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { SidebarStateService } from '../services/sidebar-state.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -10,10 +11,10 @@ import { RouterModule } from '@angular/router';
   standalone: true
 })
 export class Sidebar {
-  // Collapse state
-  isCollapsed = signal(false);
+  private sidebarStateService = inject(SidebarStateService);
   
-  @Output() collapsedChange = new EventEmitter<boolean>();
+  // Use shared state from service
+  isCollapsed = this.sidebarStateService.isCollapsed;
 
   // Navigation items could be defined here if needed
   navItems = [
@@ -30,12 +31,10 @@ export class Sidebar {
   ];
 
   toggleCollapse(): void {
-    this.isCollapsed.set(!this.isCollapsed());
-    this.collapsedChange.emit(this.isCollapsed());
+    this.sidebarStateService.toggleCollapse();
   }
 
   setCollapsed(collapsed: boolean): void {
-    this.isCollapsed.set(collapsed);
-    this.collapsedChange.emit(collapsed);
+    this.sidebarStateService.setCollapsed(collapsed);
   }
 }
