@@ -1,0 +1,32 @@
+<div class="sprint-card">
+  <div class="sprint-header">
+    <h3 class="sprint-title">{{ sprint.name }}</h3>
+    <button class="delete-btn" (click)="onDelete()" aria-label="Delete sprint">
+      🗑️
+    </button>
+  </div>
+  
+  <div class="sprint-info">
+    <span class="sprint-date">{{ formatDate(sprint.startDate) }} - {{ formatDate(sprint.endDate) }}</span>
+    <span class="status-badge" [ngClass]="sprint.status.toLowerCase()">{{ sprint.status }}</span>
+  </div>
+  
+  <!-- Issues Section -->
+  <div class="issues-section">
+    <h4 class="issues-title">Issues ({{ sprint.issues?.length || 0 }})</h4>
+    <app-issue-list 
+      [issues]="sprint.issues || []"
+      (issueClick)="onIssueClick($event)">
+    </app-issue-list>
+  </div>
+  
+  <button class="complete-btn" (click)="onComplete()">Complete Sprint</button>
+</div>
+
+<!-- Issue Detailed View Modal -->
+<app-issue-detailed-view
+  [issue]="selectedIssue()"
+  [isOpen]="isModalOpen()"
+  (close)="onCloseModal()"
+  (deleteIssue)="onDeleteIssue($event)">
+</app-issue-detailed-view>

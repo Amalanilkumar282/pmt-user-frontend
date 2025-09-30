@@ -1,0 +1,19 @@
+<div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
+  <h1 style="margin-bottom: 24px; color: #1f2937;">Project Management Tool</h1>
+  
+  <!-- Active Sprint Section -->
+  <section style="margin-bottom: 32px;">
+    <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">Active Sprint</h2>
+    <app-sprint-container 
+      [sprint]="testSprint"
+      (completeSprint)="handleComplete($event)"
+      (deleteSprint)="handleDelete($event)">
+    </app-sprint-container>
+  </section>
+
+  <!-- Product Backlog Section -->
+  <section>
+    <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">Product Backlog</h2>
+    <app-backlog-container [issues]="backlogIssues"></app-backlog-container>
+  </section>
+</div>
