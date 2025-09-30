@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -10,6 +10,11 @@ import { RouterModule } from '@angular/router';
   standalone: true
 })
 export class Sidebar {
+  // Collapse state
+  isCollapsed = signal(false);
+  
+  @Output() collapsedChange = new EventEmitter<boolean>();
+
   // Navigation items could be defined here if needed
   navItems = [
     { icon: 'dashboard', label: 'Dashboard', route: '/dashboard', active: true },
@@ -23,4 +28,14 @@ export class Sidebar {
     { name: 'My Scrum Project', id: 1 },
     { name: 'My Scrum Project', id: 2 }
   ];
+
+  toggleCollapse(): void {
+    this.isCollapsed.set(!this.isCollapsed());
+    this.collapsedChange.emit(this.isCollapsed());
+  }
+
+  setCollapsed(collapsed: boolean): void {
+    this.isCollapsed.set(collapsed);
+    this.collapsedChange.emit(collapsed);
+  }
 }

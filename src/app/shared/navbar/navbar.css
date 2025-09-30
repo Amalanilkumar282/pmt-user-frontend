@@ -6,6 +6,11 @@
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   z-index: 100;
+  transition: left 0.3s ease;
+}
+
+.navbar.sidebar-collapsed {
+  left: 70px;
 }
 
 .navbar-top {
@@ -40,7 +45,33 @@
 .navbar-left {
   display: flex;
   align-items: center;
+  gap: 12px;
   flex-shrink: 0;
+}
+
+/* Hamburger Button */
+.hamburger-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #5e6c84;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.hamburger-btn:hover {
+  background-color: #f4f5f7;
+  color: #172b4d;
+}
+
+.hamburger-btn:active {
+  transform: scale(0.95);
 }
 
 .project-info {
@@ -216,7 +247,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .navbar {
-    left: 200px;
+    left: 0 !important;
   }
 
   .navbar-container {
@@ -244,37 +275,8 @@
   }
 }
 
-@media (max-width: 480px) {
-  .navbar {
-    left: 60px;
-  }
-
-  .navbar-container {
-    padding: 0 12px;
-    gap: 8px;
-  }
-
-  .project-icon {
-    width: 24px;
-    height: 24px;
-    font-size: 11px;
-  }
-
-  .project-name {
-    font-size: 13px;
-  }
-
-  .nav-tab {
-    padding: 0 10px;
-    font-size: 12px;
-  }
-
-  .btn-secondary {
-    display: none;
-  }
-
-  .btn-primary {
-    padding: 5px 8px;
-    font-size: 12px;
+@media (min-width: 769px) {
+  .hamburger-btn {
+    display: none !important;
   }
 }
