@@ -1,0 +1,25 @@
+<div class="backlog-card">
+  <div class="backlog-header">
+    <div>
+      <h3 class="backlog-title">Product Backlog</h3>
+      <p class="backlog-subtitle">Unassigned issues ready for sprint planning</p>
+    </div>
+    <span class="issue-count">{{ issues.length }} issues</span>
+  </div>
+  
+  <!-- Issues Section -->
+  <div class="issues-section">
+    <app-issue-list 
+      [issues]="issues"
+      (issueClick)="onIssueClick($event)">
+    </app-issue-list>
+  </div>
+</div>
+
+<!-- Issue Detailed View Modal -->
+<app-issue-detailed-view
+  [issue]="selectedIssue()"
+  [isOpen]="isModalOpen()"
+  (close)="onCloseModal()"
+  (deleteIssue)="onDeleteIssue($event)">
+</app-issue-detailed-view>
