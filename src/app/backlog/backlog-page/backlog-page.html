@@ -1,19 +1,78 @@
-<div style="padding: 20px; max-width: 1200px; margin: 0 auto;">
-  <h1 style="margin-bottom: 24px; color: #1f2937;">Project Management Tool</h1>
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">Project Management Tool</h1>
+    <button 
+      class="create-sprint-btn"
+      (click)="handleCreateSprint()">
+      + Create Sprint
+    </button>
+  </div>
   
-  <!-- Active Sprint Section -->
-  <section style="margin-bottom: 32px;">
-    <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">Active Sprint</h2>
-    <app-sprint-container 
-      [sprint]="testSprint"
-      (completeSprint)="handleComplete($event)"
-      (deleteSprint)="handleDelete($event)">
-    </app-sprint-container>
-  </section>
+  <!-- Active Sprints Section -->
+  @if (activeSprints.length > 0) {
+    <section class="section">
+      <h2 class="section-title">
+        Active Sprints ({{ activeSprints.length }})
+      </h2>
+      <div class="sprint-list">
+        @for (sprint of activeSprints; track sprint.id) {
+          <app-sprint-container 
+            [sprint]="sprint"
+            (startSprint)="handleStart($event)"
+            (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
+            (deleteSprint)="handleDelete($event)">
+          </app-sprint-container>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Planned Sprints Section -->
+  @if (plannedSprints.length > 0) {
+    <section class="section">
+      <h2 class="section-title">
+        Planned Sprints ({{ plannedSprints.length }})
+      </h2>
+      <div class="sprint-list">
+        @for (sprint of plannedSprints; track sprint.id) {
+          <app-sprint-container 
+            [sprint]="sprint"
+            (startSprint)="handleStart($event)"
+            (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
+            (deleteSprint)="handleDelete($event)">
+          </app-sprint-container>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Completed Sprints Section -->
+  @if (completedSprints.length > 0) {
+    <section class="section">
+      <h2 class="section-title">
+        Completed Sprints ({{ completedSprints.length }})
+      </h2>
+      <div class="sprint-list">
+        @for (sprint of completedSprints; track sprint.id) {
+          <app-sprint-container 
+            [sprint]="sprint"
+            (startSprint)="handleStart($event)"
+            (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
+            (deleteSprint)="handleDelete($event)">
+          </app-sprint-container>
+        }
+      </div>
+    </section>
+  }
 
   <!-- Product Backlog Section -->
   <section>
-    <h2 style="font-size: 14px; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px;">Product Backlog</h2>
+    <h2 class="section-title">
+      Product Backlog
+    </h2>
     <app-backlog-container [issues]="backlogIssues"></app-backlog-container>
   </section>
 </div>
