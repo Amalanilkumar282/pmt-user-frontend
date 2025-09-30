@@ -1,16 +1,29 @@
+.layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
 .page-container {
+  flex: 1;
+  margin-left: 240px;
+  margin-top: 121px;
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: calc(100% - 240px);
+  overflow-x: hidden;
 }
 
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 24px;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.page-header-left {
+  flex: 1;
 }
 
 .page-title {
@@ -69,6 +82,9 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .page-container {
+    margin-left: 200px;
+    margin-top: 121px;
+    max-width: calc(100% - 200px);
     padding: 16px;
   }
 
@@ -96,6 +112,9 @@
 
 @media (max-width: 480px) {
   .page-container {
+    margin-left: 60px;
+    margin-top: 121px;
+    max-width: calc(100% - 60px);
     padding: 12px;
   }
 
