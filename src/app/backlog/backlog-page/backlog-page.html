@@ -32,6 +32,7 @@
           <app-sprint-container 
             [sprint]="sprint"
             [availableSprints]="availableSprintsForMove"
+            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
             (editSprint)="handleEdit($event)"
@@ -54,6 +55,7 @@
           <app-sprint-container 
             [sprint]="sprint"
             [availableSprints]="availableSprintsForMove"
+            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
             (editSprint)="handleEdit($event)"
@@ -76,6 +78,7 @@
           <app-sprint-container 
             [sprint]="sprint"
             [availableSprints]="availableSprintsForMove"
+            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
             (startSprint)="handleStart($event)"
             (completeSprint)="handleComplete($event)"
             (editSprint)="handleEdit($event)"
@@ -95,6 +98,7 @@
     <app-backlog-container 
       [issues]="backlogIssues"
       [availableSprints]="availableSprintsForMove"
+      [connectedDropLists]="connectedDropListsForBacklog"
       (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
     </app-backlog-container>
   </section>

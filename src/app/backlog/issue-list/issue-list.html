@@ -7,7 +7,9 @@
   } @else {
     @for (issue of issues$(); track issue.id) {
       <div 
-        class="bg-white border border-gray-200 rounded-md p-2.5 hover:shadow-md transition-shadow cursor-pointer hover:bg-gray-50"
+        cdkDrag
+        [cdkDragData]="issue"
+        class="bg-white border border-gray-200 rounded-md p-2.5 hover:shadow-md transition-shadow cursor-move hover:bg-gray-50"
         (click)="onIssueClick(issue)">
         
         <div class="flex items-center justify-between gap-3">

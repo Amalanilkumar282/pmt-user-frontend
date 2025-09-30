@@ -442,6 +442,22 @@ export class BacklogPage {
     }));
   }
 
+  // Get list of all drop list IDs for drag-drop connections
+  get allDropListIds(): string[] {
+    const sprintIds = this.sprints.map(s => `sprint-${s.id}`);
+    return ['backlog-container', ...sprintIds];
+  }
+
+  // Get connected drop lists for a specific sprint (all except itself)
+  getConnectedDropListsForSprint(sprintId: string): string[] {
+    return this.allDropListIds.filter(id => id !== `sprint-${sprintId}`);
+  }
+
+  // Get connected drop lists for backlog (all sprints)
+  get connectedDropListsForBacklog(): string[] {
+    return this.allDropListIds.filter(id => id !== 'backlog-container');
+  }
+
   // Handle moving issue between sprints/backlog
   handleMoveIssue(issueId: string, destinationSprintId: string | null): void {
     console.log(`Moving issue ${issueId} to sprint ${destinationSprintId || 'backlog'}`);

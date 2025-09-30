@@ -1,10 +1,11 @@
 import { Component, Input, Output, EventEmitter, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { Issue } from '../../shared/models/issue.model';
 
 @Component({
   selector: 'app-issue-list',
-  imports: [CommonModule],
+  imports: [CommonModule, DragDropModule],
   templateUrl: './issue-list.html',
   styleUrl: './issue-list.css'
 })

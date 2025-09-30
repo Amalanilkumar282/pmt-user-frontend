@@ -1,19 +1,21 @@
 import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IssueList } from '../issue-list/issue-list';
 import { IssueDetailedView } from '../issue-detailed-view/issue-detailed-view';
 import { Issue } from '../../shared/models/issue.model';
 
 @Component({
   selector: 'app-backlog-container',
-  imports: [CommonModule, FormsModule, IssueList, IssueDetailedView],
+  imports: [CommonModule, FormsModule, DragDropModule, IssueList, IssueDetailedView],
   templateUrl: './backlog-container.html',
   styleUrl: './backlog-container.css'
 })
 export class BacklogContainer {
   @Input() issues: Issue[] = [];
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
+  @Input() connectedDropLists: string[] = [];
   @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
 
   // Modal state
@@ -110,5 +112,14 @@ export class BacklogContainer {
 
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
+  }
+
+  onDrop(event: CdkDragDrop<Issue[]>): void {
+    const issue = event.item.data as Issue;
+    // Emit move event to parent component with null to indicate backlog
+    this.moveIssue.emit({
+      issueId: issue.id,
+      destinationSprintId: null
+    });
   }
 }
