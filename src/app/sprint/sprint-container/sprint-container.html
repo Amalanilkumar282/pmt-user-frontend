@@ -14,8 +14,19 @@
   <!-- Issues Section -->
   <div class="issues-section">
     <h4 class="issues-title">Issues ({{ sprint.issues?.length || 0 }})</h4>
-    <app-issue-list [issues]="sprint.issues || []"></app-issue-list>
+    <app-issue-list 
+      [issues]="sprint.issues || []"
+      (issueClick)="onIssueClick($event)">
+    </app-issue-list>
   </div>
   
   <button class="complete-btn" (click)="onComplete()">Complete Sprint</button>
 </div>
+
+<!-- Issue Detailed View Modal -->
+<app-issue-detailed-view
+  [issue]="selectedIssue()"
+  [isOpen]="isModalOpen()"
+  (close)="onCloseModal()"
+  (deleteIssue)="onDeleteIssue($event)">
+</app-issue-detailed-view>
