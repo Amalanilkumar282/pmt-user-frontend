@@ -52,7 +52,7 @@
 .project-icon {
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #0052cc 0%, #0065ff 100%);
+  background: linear-gradient(135deg, #3D62A8 0%, #5580c9 100%);
   border-radius: 3px;
   display: flex;
   align-items: center;
@@ -121,9 +121,9 @@
 }
 
 .nav-tab.active {
-  color: #0052cc;
+  color: #3D62A8;
   font-weight: 500;
-  border-bottom-color: #0052cc;
+  border-bottom-color: #3D62A8;
 }
 
 .nav-tab.active:hover {
@@ -179,7 +179,7 @@
 
 .btn-primary {
   padding: 6px 12px;
-  background-color: #0052cc;
+  background-color: #3D62A8;
   color: white;
   border: none;
   border-radius: 3px;
@@ -191,7 +191,7 @@
 }
 
 .btn-primary:hover {
-  background-color: #0747a6;
+  background-color: #2e5390;
 }
 
 .btn-menu {

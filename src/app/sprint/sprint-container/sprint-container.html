@@ -36,7 +36,13 @@
   <!-- Collapsible Content -->
   <div class="collapsible-content" [class.collapsed]="isCollapsed()">
     <!-- Issues Section -->
-    <div class="issues-section">
+    <div 
+      class="issues-section"
+      cdkDropList
+      [id]="'sprint-' + sprint.id"
+      [cdkDropListData]="sprint.issues || []"
+      [cdkDropListConnectedTo]="connectedDropLists"
+      (cdkDropListDropped)="onDrop($event)">
       <app-issue-list 
         [issues]="sprint.issues || []"
         (issueClick)="onIssueClick($event)">
@@ -49,6 +55,8 @@
 <app-issue-detailed-view
   [issue]="selectedIssue()"
   [isOpen]="isModalOpen()"
+  [availableSprints]="availableSprints"
   (close)="onCloseModal()"
-  (deleteIssue)="onDeleteIssue($event)">
+  (deleteIssue)="onDeleteIssue($event)"
+  (moveIssue)="onMoveIssue($event)">
 </app-issue-detailed-view>
