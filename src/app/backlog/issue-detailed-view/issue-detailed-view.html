@@ -1,0 +1,183 @@
+@if (_isOpen() && _issue()) {
+  <div class="modal-backdrop" (click)="onBackdropClick($event)">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="flex items-start justify-between gap-4 flex-1">
+          <div class="flex items-start gap-3 flex-1">
+            <span class="text-3xl">{{ getTypeIcon(_issue()!.type) }}</span>
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm font-semibold text-gray-500">{{ _issue()!.id }}</span>
+                <span [class]="'px-2 py-1 rounded text-xs font-semibold border ' + getPriorityClass(_issue()!.priority)">
+                  {{ _issue()!.priority }}
+                </span>
+                <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                  {{ _issue()!.type }}
+                </span>
+              </div>
+              <h2 class="text-2xl font-bold text-gray-900 mb-2">{{ _issue()!.title }}</h2>
+            </div>
+          </div>
+          <button 
+            (click)="onClose()" 
+            class="text-gray-400 hover:text-gray-600 text-2xl leading-none p-1"
+            aria-label="Close">
+            ×
+          </button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <!-- Status Section -->
+        <div class="detail-section">
+          <h3 class="detail-label">Status</h3>
+          <span [class]="'inline-flex px-3 py-1.5 rounded-md text-sm font-semibold border ' + getStatusClass(_issue()!.status)">
+            {{ _issue()!.status.replace('_', ' ') }}
+          </span>
+        </div>
+
+        <!-- Description Section -->
+        @if (_issue()!.description) {
+          <div class="detail-section">
+            <h3 class="detail-label">Description</h3>
+            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ _issue()!.description }}</p>
+          </div>
+        }
+
+        <!-- Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Assignee -->
+          @if (_issue()!.assignee) {
+            <div class="detail-section">
+              <h3 class="detail-label">Assignee</h3>
+              <div class="flex items-center gap-2">
+                <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                  {{ _issue()!.assignee!.charAt(0).toUpperCase() }}
+                </span>
+                <span class="text-gray-900 font-medium">{{ _issue()!.assignee }}</span>
+              </div>
+            </div>
+          }
+
+          <!-- Story Points -->
+          @if (_issue()!.storyPoints) {
+            <div class="detail-section">
+              <h3 class="detail-label">Story Points</h3>
+              <div class="flex items-center gap-2">
+                <span class="text-2xl font-bold text-blue-600">{{ _issue()!.storyPoints }}</span>
+                <span class="text-gray-500 text-sm">points</span>
+              </div>
+            </div>
+          }
+
+          <!-- Sprint -->
+          @if (_issue()!.sprintId) {
+            <div class="detail-section">
+              <h3 class="detail-label">Sprint</h3>
+              <span class="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium border border-indigo-200">
+                Sprint #{{ _issue()!.sprintId }}
+              </span>
+            </div>
+          }
+
+          <!-- Priority -->
+          <div class="detail-section">
+            <h3 class="detail-label">Priority</h3>
+            <span [class]="'inline-flex px-3 py-1.5 rounded-md text-sm font-semibold border ' + getPriorityClass(_issue()!.priority)">
+              {{ _issue()!.priority }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Timestamps -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+          <div class="detail-section">
+            <h3 class="detail-label">Created</h3>
+            <p class="text-gray-600 text-sm">{{ formatDate(_issue()!.createdAt) }}</p>
+          </div>
+          <div class="detail-section">
+            <h3 class="detail-label">Last Updated</h3>
+            <p class="text-gray-600 text-sm">{{ formatDate(_issue()!.updatedAt) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button 
+          (click)="onDelete()" 
+          class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm border border-red-200">
+          Delete Issue
+        </button>
+        <div class="flex gap-2">
+          <!-- Move Button with Dropdown -->
+          <div class="move-dropdown-container">
+            <button 
+              (click)="toggleMoveDropdown()"
+              class="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-sm border border-purple-200 flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 10l5 5 5-5M7 14l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Move Issue
+            </button>
+            
+            @if (showMoveDropdown()) {
+              <div class="move-dropdown-menu" (click)="closeMoveDropdown($event)">
+                <div class="dropdown-header">Move to:</div>
+                
+                <!-- Move to Backlog -->
+                @if (_issue()!.sprintId) {
+                  <button 
+                    (click)="onMove(null, 'Product Backlog')"
+                    class="dropdown-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                      <path d="M3 9h18" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <span>Product Backlog</span>
+                  </button>
+                }
+                
+                <!-- Sprints List -->
+                @if (availableSprints.length > 0) {
+                  <div class="dropdown-divider"></div>
+                  <div class="dropdown-subheader">Sprints:</div>
+                  @for (sprint of availableSprints; track sprint.id) {
+                    @if (sprint.id !== _issue()!.sprintId) {
+                      <button 
+                        (click)="onMove(sprint.id, sprint.name)"
+                        class="dropdown-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                          <path d="M12 8v8m-4-4h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <div class="flex flex-col items-start">
+                          <span class="font-medium">{{ sprint.name }}</span>
+                          <span class="text-xs text-gray-500">{{ sprint.status }}</span>
+                        </div>
+                      </button>
+                    }
+                  }
+                } @else {
+                  <div class="dropdown-item text-gray-500 italic">No sprints available</div>
+                }
+              </div>
+            }
+          </div>
+
+          <button 
+            (click)="onClose()" 
+            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">
+            Close
+          </button>
+          <button 
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+            Edit Issue
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ReportDashboardModule } from './report-dashboard/report-dashboard-module';
 
@@ -9,5 +9,5 @@ import { ReportDashboardModule } from './report-dashboard/report-dashboard-modul
   styleUrl: './app.css'
 })
 export class App {
-  protected readonly title = signal('pmt-user-frontend');
+
 }

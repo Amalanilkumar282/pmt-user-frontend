@@ -1,0 +1,54 @@
+<nav class="navbar">
+  <!-- Upper section with project info and buttons -->
+  <div class="navbar-top">
+    <div class="navbar-container">
+      <!-- Left Section: Hamburger Menu + Project Info -->
+      <div class="navbar-left">
+        <button class="hamburger-btn" (click)="onToggleSidebar()" aria-label="Toggle sidebar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="project-info">
+          <div class="project-icon">PA</div>
+          <div class="project-details">
+            <div class="project-name">Project Alpha</div>
+            <div class="project-type">Reports</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Section: Action Buttons -->
+      <div class="navbar-right">
+        <button class="btn-secondary">Share</button>
+        <button class="btn-primary">Create</button>
+        <button class="btn-menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Horizontal divider -->
+  <div class="navbar-divider"></div>
+
+  <!-- Lower section with navigation tabs -->
+  <div class="navbar-bottom">
+    <div class="navbar-container">
+      <div class="navbar-center">
+        <a routerLink="/summary" routerLinkActive="active" class="nav-tab">Summary</a>
+        <a routerLink="/backlog" routerLinkActive="active" class="nav-tab">Backlog</a>
+        <a href="#" class="nav-tab">Board</a>
+        <a href="#" class="nav-tab">Timeline</a>
+        <a href="#" class="nav-tab">Reports</a>
+        <button class="nav-more">
+          <span>+</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,109 @@
+<div class="layout-wrapper">
+  <!-- Sidebar -->
+  <app-sidebar></app-sidebar>
+
+  <!-- Navbar -->
+  <app-navbar 
+    [class.sidebar-collapsed]="isSidebarCollapsed()"
+    (toggleSidebar)="onToggleSidebar()">
+  </app-navbar>
+
+  <!-- Main Content -->
+  <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <!-- Filters Section -->
+    <app-filters (filtersChanged)="onFiltersChanged($event)"></app-filters>
+
+    <div class="page-header">
+      <div class="page-header-left">
+        <!-- Optional: Add any left-aligned content here -->
+      </div>
+      <button 
+        class="create-sprint-btn"
+        (click)="handleCreateSprint()">
+        + Create Sprint
+      </button>
+    </div>
+  
+  <!-- Active Sprints Section -->
+  @if (activeSprints.length > 0) {
+    <section class="section">
+      <h2 class="section-title">
+        Active Sprints ({{ activeSprints.length }})
+      </h2>
+      <div class="sprint-list">
+        @for (sprint of activeSprints; track sprint.id) {
+          <app-sprint-container 
+            [sprint]="sprint"
+            [availableSprints]="availableSprintsForMove"
+            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
+            (startSprint)="handleStart($event)"
+            (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
+            (deleteSprint)="handleDelete($event)"
+            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+          </app-sprint-container>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Planned Sprints Section -->
+  @if (plannedSprints.length > 0) {
+    <section class="section">
+      <h2 class="section-title">
+        Planned Sprints ({{ plannedSprints.length }})
+      </h2>
+      <div class="sprint-list">
+        @for (sprint of plannedSprints; track sprint.id) {
+          <app-sprint-container 
+            [sprint]="sprint"
+            [availableSprints]="availableSprintsForMove"
+            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
+            (startSprint)="handleStart($event)"
+            (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
+            (deleteSprint)="handleDelete($event)"
+            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+          </app-sprint-container>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Completed Sprints Section -->
+  @if (completedSprints.length > 0) {
+    <section class="section">
+      <h2 class="section-title">
+        Completed Sprints ({{ completedSprints.length }})
+      </h2>
+      <div class="sprint-list">
+        @for (sprint of completedSprints; track sprint.id) {
+          <app-sprint-container 
+            [sprint]="sprint"
+            [availableSprints]="availableSprintsForMove"
+            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
+            (startSprint)="handleStart($event)"
+            (completeSprint)="handleComplete($event)"
+            (editSprint)="handleEdit($event)"
+            (deleteSprint)="handleDelete($event)"
+            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+          </app-sprint-container>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- Product Backlog Section -->
+  <section>
+    <h2 class="section-title">
+      Product Backlog
+    </h2>
+    <app-backlog-container 
+      [issues]="backlogIssues"
+      [availableSprints]="availableSprintsForMove"
+      [connectedDropLists]="connectedDropListsForBacklog"
+      (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+    </app-backlog-container>
+  </section>
+  </div>
+</div>

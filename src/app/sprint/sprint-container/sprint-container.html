@@ -1,0 +1,62 @@
+<div class="sprint-card" [class.completed]="sprint.status === 'COMPLETED'">
+  <div class="sprint-header">
+    <div class="header-left" (click)="toggleCollapse()">
+      <span class="collapse-icon">{{ isCollapsed() ? '▶' : '▼' }}</span>
+      <h3 class="sprint-title">{{ sprint.name }}</h3>
+      <span class="issue-count">({{ sprint.issues?.length || 0 }})</span>
+    </div>
+    <div class="header-right">
+      <button 
+        class="action-btn" 
+        (click)="onSprintAction()"
+        [disabled]="isActionButtonDisabled()"
+        [class.disabled]="isActionButtonDisabled()">
+        {{ getActionButtonText() }}
+      </button>
+      <button 
+        class="edit-btn" 
+        (click)="onEdit()"
+        aria-label="Edit sprint">
+        Edit Sprint
+      </button>
+      <button 
+        class="delete-btn-text" 
+        (click)="onDelete()" 
+        aria-label="Delete sprint">
+        Delete Sprint
+      </button>
+    </div>
+  </div>
+  
+  <div class="sprint-info">
+    <span class="sprint-date">{{ formatDate(sprint.startDate) }} - {{ formatDate(sprint.endDate) }}</span>
+    <span class="status-badge" [ngClass]="sprint.status.toLowerCase()">{{ sprint.status }}</span>
+  </div>
+  
+  <!-- Collapsible Content -->
+  <div class="collapsible-content" [class.collapsed]="isCollapsed()">
+    <!-- Issues Section -->
+    <div 
+      class="issues-section"
+      cdkDropList
+      [id]="'sprint-' + sprint.id"
+      [cdkDropListData]="sprint.issues || []"
+      [cdkDropListConnectedTo]="connectedDropLists"
+      (cdkDropListDropped)="onDrop($event)">
+      <app-issue-list 
+        [issues]="sprint.issues || []"
+        (issueClick)="onIssueClick($event)">
+      </app-issue-list>
+    </div>
+  </div>
+</div>
+
+<!-- Issue Detailed View Modal -->
+<app-issue-detailed-view
+  [issue]="selectedIssue()"
+  [isOpen]="isModalOpen()"
+  [availableSprints]="availableSprints"
+  (close)="onCloseModal()"
+  (deleteIssue)="onDeleteIssue($event)"
+  (moveIssue)="onMoveIssue($event)">
+</app-issue-detailed-view>

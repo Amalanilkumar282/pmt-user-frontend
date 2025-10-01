@@ -1,0 +1,107 @@
+<div class="backlog-card">
+  <div class="backlog-header">
+    <div class="header-left" (click)="toggleCollapse()">
+      <span class="collapse-icon">{{ isCollapsed() ? '▶' : '▼' }}</span>
+      <div>
+        <h3 class="backlog-title">Product Backlog <span class="issue-count-inline">({{ issues.length }})</span></h3>
+        <p class="backlog-subtitle">Unassigned issues ready for sprint planning</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Collapsible Content -->
+  <div class="collapsible-content" [class.collapsed]="isCollapsed()">
+    <!-- Issues Section -->
+    <div 
+      class="issues-section"
+      cdkDropList
+      id="backlog-container"
+      [cdkDropListData]="issues"
+      [cdkDropListConnectedTo]="connectedDropLists"
+      (cdkDropListDropped)="onDrop($event)">
+      <app-issue-list 
+        [issues]="paginatedIssues()"
+        (issueClick)="onIssueClick($event)">
+      </app-issue-list>
+    </div>
+
+    <!-- Pagination Controls -->
+    @if (issues.length > 0) {
+      <div class="pagination-controls">
+        <div class="pagination-info">
+          <div class="items-per-page">
+            <label for="itemsPerPage">Items per page:</label>
+            <select 
+              id="itemsPerPage"
+              [(ngModel)]="itemsPerPage"
+              (change)="onItemsPerPageChange()">
+              <option [value]="5">5</option>
+              <option [value]="10">10</option>
+              <option [value]="15">15</option>
+              <option [value]="20">20</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+            </select>
+          </div>
+          <div class="page-info">
+            Showing <strong>{{ startItem }}</strong> - <strong>{{ endItem }}</strong> of <strong>{{ issues.length }}</strong> issues
+          </div>
+        </div>
+
+        <div class="pagination-buttons">
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === 1"
+            (click)="goToFirstPage()">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 5l-7 7 7 7M18 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            First
+          </button>
+          
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === 1"
+            (click)="previousPage()">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Previous
+          </button>
+
+          <span class="page-number">Page {{ currentPage }} of {{ totalPages }}</span>
+
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === totalPages"
+            (click)="nextPage()">
+            Next
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === totalPages"
+            (click)="goToLastPage()">
+            Last
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 5l7 7-7 7M6 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Issue Detailed View Modal -->
+<app-issue-detailed-view
+  [issue]="selectedIssue()"
+  [isOpen]="isModalOpen()"
+  [availableSprints]="availableSprints"
+  (close)="onCloseModal()"
+  (deleteIssue)="onDeleteIssue($event)"
+  (moveIssue)="onMoveIssue($event)">
+</app-issue-detailed-view>
