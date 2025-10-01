@@ -17,7 +17,7 @@ export class Navbar {
     { label: 'Backlog', route: '/backlog', active: true },
     { label: 'Board', route: '/board', active: false },
     { label: 'Timeline', route: '/timeline', active: false },
-    { label: 'Reports', route: '/reports', active: false }
+    { label: 'Reports', route: '/report-dashboard', active: false }
   ];
 
   projectInfo = {
