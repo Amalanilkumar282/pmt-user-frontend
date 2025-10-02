@@ -7,5 +7,10 @@
   <!-- Navbar -->
   <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
   </app-navbar>
-  <p>velocity-chart works!</p>
+
+  <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
+         
+            <app-chart-header [title]="'Velocity Report'" (back)="navigateBack()"></app-chart-header>
+    </div>
 </div>

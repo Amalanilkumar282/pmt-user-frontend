@@ -2,11 +2,13 @@ import { Component,inject} from '@angular/core';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { Navbar } from '../../shared/navbar/navbar';
+import { ChartHeader } from '../chart-header/chart-header';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-velocity-chart',
   standalone:true,
-  imports: [Sidebar,Navbar],
+  imports: [Sidebar,Navbar,ChartHeader],
    providers: [SidebarStateService], 
   templateUrl: './velocity-chart.html',
   styleUrl: './velocity-chart.css'
@@ -17,6 +19,11 @@ export class VelocityChart {
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
+  }
+  constructor(private router: Router) {}
+
+  navigateBack() {
+    this.router.navigate(['/report-dashboard']);
   }
 
 }

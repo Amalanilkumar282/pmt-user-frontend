@@ -139,11 +139,11 @@
 
 /* Burndown styles */
 .chart-line-burndown {
-  stroke: #ef4444;
+  stroke: #3165a0;
 }
 
 .chart-area-burndown {
-  fill: #ef4444;
+  fill: #93c6ef;
 }
 
 /* Velocity bar styles */
