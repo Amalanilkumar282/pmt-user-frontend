@@ -4,6 +4,7 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ChartCard } from '../chart-card/chart-card';
 import { CommonModule } from '@angular/common';
+ 
 
 @Component({
   selector: 'app-report-dashboard-home',

@@ -1,0 +1,11 @@
+
+
+<div class="layout-wrapper">
+  <!-- Sidebar -->
+  <app-sidebar></app-sidebar>
+
+  <!-- Navbar -->
+  <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
+  </app-navbar>
+  <p>burndown-chart works!</p>
+</div>

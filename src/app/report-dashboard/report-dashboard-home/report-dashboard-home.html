@@ -20,16 +20,16 @@
     <div class="cards-grid"
       [ngClass]="{'sidebar-collapsed': isSidebarCollapsed(), 'sidebar-open': !isSidebarCollapsed()}">
       <app-chart-card [title]="'Burnup Report'" [subtitle]="'Track progress and scope changes throughout the sprint'"
-        [chartType]="'burnup'" [data]="chartData" [detailsLink]="'/sprint/details'">
+        [chartType]="'burnup'" [data]="chartData" [detailsLink]="'/report-dashboard/burnup-chart'">
       </app-chart-card>
 
       <app-chart-card [title]="'Burndown Report'" [subtitle]="'Monitor remaining work and sprint completion trajectory'"
-        [chartType]="'burndown'" [data]="chartData" [detailsLink]="'/burndown/details'">
+        [chartType]="'burndown'" [data]="chartData" [detailsLink]="'/report-dashboard/burndown-chart'">
       </app-chart-card>
 
       <app-chart-card [title]="'Velocity Report'"
         [subtitle]="' Analyze team delivery capacity and task completion rates'" [chartType]="'velocity'"
-        [data]="chartData" [detailsLink]="'/velocity/details'">
+        [data]="chartData" [detailsLink]="'/report-dashboard/velocity-chart'">
       </app-chart-card>
       <!-- Add more cards as needed -->
     </div>
