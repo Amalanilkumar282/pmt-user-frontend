@@ -1,0 +1,41 @@
+ <div class="chart-card">
+  <div class="header">
+    <div>
+      <h3 class="title">{{ title }}</h3>
+      <p class="subtitle">{{ subtitle }}</p>
+    </div>
+    <a [href]="detailsLink" class="details-link">View Details →</a>
+  </div>
+  
+  <div class="chart-container">
+    <svg [attr.width]="chartWidth" [attr.height]="chartHeight" class="chart">
+      <!-- For burnup and burndown charts -->
+      @if (chartType !== 'velocity') {
+        <path 
+          [attr.d]="areaPath" 
+          [class]="'chart-area chart-area-' + chartType"
+          fill-opacity="0.2"
+        />
+        <path 
+          [attr.d]="linePath" 
+          [class]="'chart-line chart-line-' + chartType"
+          fill="none" 
+          stroke-width="2"
+        />
+      }
+      
+      <!-- For velocity chart -->
+      @if (chartType === 'velocity') {
+        @for (bar of velocityBars; track $index) {
+          <rect
+            [attr.x]="bar.x"
+            [attr.y]="bar.y"
+            [attr.width]="bar.width"
+            [attr.height]="bar.height"
+            class="velocity-bar"
+          />
+        }
+      }
+    </svg>
+  </div>
+</div>
