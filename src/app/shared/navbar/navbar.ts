@@ -1,6 +1,7 @@
 import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ModalService } from '../../modal/modal-service';
 import { SidebarStateService } from '../services/sidebar-state.service';
 
 @Component({
@@ -12,6 +13,8 @@ import { SidebarStateService } from '../services/sidebar-state.service';
 })
 export class Navbar {
   @Output() toggleSidebar = new EventEmitter<void>();
+
+  constructor(private modalService: ModalService) {}
   private sidebarState = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarState.isCollapsed;
 
@@ -39,8 +42,7 @@ export class Navbar {
   }
 
   onCreate(): void {
-    console.log('Create clicked');
-    // Implement create functionality
+    this.modalService.open('createIssue'); // ✅ open by ID
   }
 
   onMenuClick(): void {

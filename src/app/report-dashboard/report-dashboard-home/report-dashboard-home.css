@@ -1,4 +1,4 @@
- .page-header {
+.page-header {
   margin-left: 20%;  /* moves the whole block to the right */
   margin-top: 13%;   /* pushes it down */
 }
@@ -7,3 +7,27 @@
   margin-left: 70px;
   width: calc(100% - 70px);
 }
+
+ 
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 cards per row */
+  gap: 12px; /* Adjust gap as needed */
+}
+
+.cards-grid.sidebar-open{
+   margin-left: 220px;
+
+} 
+ 
+.cards-grid.sidebar-collapsed{
+  margin-left: 120px;
+}
+
+ 
+app-chart-card {
+  flex: 1 1 0;
+  min-width: 250px; /* Increase this value for wider cards */
+  max-width: 600px; /* Optional: set a max width */
+}
+/* ...existing code... */
