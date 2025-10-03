@@ -1,0 +1,77 @@
+<div class="relative inline-block">
+	<button (click)="togglePanel()" class="btn-secondary">Filter ▾</button>
+
+	<div *ngIf="isOpen" class="absolute z-30 mt-2 w-96 rounded-xl border border-slate-200 bg-white p-0 shadow-lg">
+		<div class="grid grid-cols-3">
+			<!-- Left nav -->
+			<div class="col-span-1 border-r border-slate-100 p-4">
+				<nav class="flex flex-col gap-2 text-sm">
+					<button [class.font-medium]="activeField === 'assignees'" class="text-left px-3 py-2 rounded" (click)="selectField('assignees')">Assignee</button>
+					<button [class.font-medium]="activeField === 'workTypes'" class="text-left px-3 py-2 rounded" (click)="selectField('workTypes')">Work Type</button>
+					<button [class.font-medium]="activeField === 'labels'" class="text-left px-3 py-2 rounded" (click)="selectField('labels')">Labels</button>
+					<button [class.font-medium]="activeField === 'statuses'" class="text-left px-3 py-2 rounded" (click)="selectField('statuses')">Status</button>
+					<button [class.font-medium]="activeField === 'priorities'" class="text-left px-3 py-2 rounded" (click)="selectField('priorities')">Priority</button>
+				</nav>
+			</div>
+
+			<!-- Right content -->
+			<div class="col-span-2 p-4">
+				<div *ngIf="!activeField" class="text-sm text-slate-400">Select a field to start creating a filter</div>
+
+				<!-- Assignee view -->
+				<div *ngIf="activeField === 'assignees'">
+					<input class="w-full rounded-md border border-slate-100 px-3 py-2 mb-3 text-sm" placeholder="Search Assignee" />
+					<div class="flex flex-col gap-2">
+						<label *ngFor="let a of assignees()" class="flex items-center gap-2">
+							<input type="checkbox" [checked]="isSelected('assignees', a)" (change)="toggle('assignees', a)" />
+							<span class="text-sm">{{ a }}</span>
+						</label>
+					</div>
+				</div>
+
+				<!-- Work Type view -->
+				<div *ngIf="activeField === 'workTypes'">
+					<input class="w-full rounded-md border border-slate-100 px-3 py-2 mb-3 text-sm" placeholder="Search Work Type" />
+					<div class="text-sm text-slate-400">No work types found</div>
+				</div>
+
+				<!-- Labels view -->
+				<div *ngIf="activeField === 'labels'">
+					<input class="w-full rounded-md border border-slate-100 px-3 py-2 mb-3 text-sm" placeholder="Search Labels" />
+					<div class="flex flex-col gap-2">
+						<label *ngFor="let l of labels()" class="flex items-center gap-2">
+							<input type="checkbox" [checked]="isSelected('labels', l)" (change)="toggle('labels', l)" />
+							<span class="text-sm">{{ l }}</span>
+						</label>
+					</div>
+				</div>
+
+				<!-- Status view -->
+				<div *ngIf="activeField === 'statuses'">
+					<div class="flex flex-col gap-2">
+						<label *ngFor="let s of statuses()" class="flex items-center gap-2">
+							<input type="checkbox" [checked]="isSelected('statuses', s)" (change)="toggle('statuses', s)" />
+							<span class="text-sm">{{ s }}</span>
+						</label>
+					</div>
+				</div>
+
+				<!-- Priority view -->
+				<div *ngIf="activeField === 'priorities'">
+					<input class="w-full rounded-md border border-slate-100 px-3 py-2 mb-3 text-sm" placeholder="Search Priority" />
+					<div class="flex flex-col gap-2">
+						<label *ngFor="let p of priorities()" class="flex items-center gap-2">
+							<input type="checkbox" [checked]="isSelected('priorities', p)" (change)="toggle('priorities', p)" />
+							<span class="text-sm">{{ p }}</span>
+						</label>
+					</div>
+				</div>
+
+			</div>
+		</div>
+		<div class="p-3 text-right border-t border-slate-100">
+			<button class="btn-secondary" (click)="togglePanel()">Close</button>
+		</div>
+	</div>
+</div>
+

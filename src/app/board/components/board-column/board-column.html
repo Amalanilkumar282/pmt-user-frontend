@@ -1,0 +1,30 @@
+<!-- board-column.component.html -->
+<div class="rounded-2xl bg-slate-50 p-3">
+  <div class="mb-2 flex items-center justify-between">
+    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ def.title }}</div>
+    <div class="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500 shadow">{{ items.length }}</div>
+  </div>
+
+  <div
+    cdkDropList
+    [id]="def.id"
+    [cdkDropListData]="items"
+    [cdkDropListConnectedTo]="connectedTo"
+    (cdkDropListDropped)="drop($event)"
+    class="min-h-16 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+
+    <app-task-card
+      *ngFor="let issue of pageItems; trackBy: trackById"
+      cdkDrag
+      [issue]="issue"
+      [colorClass]="def.color">
+    </app-task-card>
+  </div>
+
+  <button *ngIf="items.length > pageItems.length"
+    (click)="loadMore()"
+    class="mt-3 w-full rounded-lg border border-slate-200 bg-white py-2 text-sm hover:bg-slate-50">
+    Load more
+  </button>
+</div>
+

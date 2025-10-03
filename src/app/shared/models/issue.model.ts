@@ -1,17 +1,20 @@
-export type IssueType = 'STORY' | 'TASK' | 'BUG' | 'EPIC';
+export type IssueType = 'STORY' | 'TASK' | 'BUG' | 'EPIC' | 'SUBTASK';
 export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
+export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED';
 
 export interface Issue {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   type: IssueType;
   priority: IssuePriority;
   status: IssueStatus;
   assignee?: string;
   storyPoints?: number;
   sprintId?: string;
+  labels?: string[];
   createdAt: Date;
   updatedAt: Date;
+  parentId?: string;
+  epicId?: string;
 }
