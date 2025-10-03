@@ -1,0 +1,9 @@
+<div class="flex gap-6 pt-4 h-full overflow-x-auto overflow-y-hidden">
+  <app-board-column
+    *ngFor="let bucket of buckets(); trackBy: track"
+    [def]="bucket.def"
+    [items]="bucket.items"
+    [connectedTo]="dropListIdsArray()"
+    class="flex-shrink-0 w-80">
+  </app-board-column>
+</div>

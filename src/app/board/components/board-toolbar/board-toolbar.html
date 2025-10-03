@@ -1,0 +1,24 @@
+<!-- board-toolbar.component.html -->
+<div class="flex items-center gap-3">
+  <div class="text-lg font-semibold">Board</div>
+
+  <!-- Sprint dropdown -->
+  <app-sprint-select
+    [sprints]="sprints()"
+    [selectedId]="selectedSprintId()"
+    (select)="selectSprint($event)">
+  </app-sprint-select>
+<br>
+  <div class="ml-4 flex-1">
+    <input
+      type="text"
+      placeholder="Search tasks, comments, or keywords..."
+      class="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+      [value]="search()"
+      (input)="onSearch($event)" />
+  </div>
+
+  <app-filter-panel class="ml-2"></app-filter-panel>
+  <app-group-by-menu class="ml-1"></app-group-by-menu>
+  <app-add-column-button class="ml-2"></app-add-column-button>
+</div>
