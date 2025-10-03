@@ -1,7 +1,7 @@
 .navbar {
   position: fixed;
   top: 0;
-  left: 240px;
+  left: var(--navbar-left, 240px);
   right: 0;
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
@@ -9,8 +9,9 @@
   transition: left 0.3s ease;
 }
 
-:host(.sidebar-collapsed) .navbar {
-  left: 70px;
+/* when parent/app sets a collapsed class on body or host, adjust left */
+.app-sidebar-collapsed .navbar {
+  --navbar-left: 70px;
 }
 
 .navbar-top {

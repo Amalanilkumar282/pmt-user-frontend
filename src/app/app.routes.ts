@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { BacklogPage } from './backlog/backlog-page/backlog-page';
 import { SummaryPage } from './summary/summary-page/summary-page';
 import { ReportDashboardHome } from './report-dashboard/report-dashboard-home/report-dashboard-home';
+import { BoardPage } from './board/components/board-page/board-page';
 import { TimelineComponent } from './timeline/timeline-component/timeline-component';
 import { BurnupChart } from './report-dashboard/burnup-chart/burnup-chart';
 import { BurndownChart } from './report-dashboard/burndown-chart/burndown-chart';
@@ -11,6 +12,7 @@ export const routes: Routes = [
   { path: '', redirectTo: '/summary', pathMatch: 'full' },
   { path: 'summary', component: SummaryPage },
   { path: 'backlog', component: BacklogPage },
+  { path: 'board', component: BoardPage },
   {path:'report-dashboard',component:ReportDashboardHome},
   {path:'timeline',component:TimelineComponent},
   {

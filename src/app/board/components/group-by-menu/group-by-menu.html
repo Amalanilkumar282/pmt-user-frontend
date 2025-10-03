@@ -1,0 +1,9 @@
+<div class="relative inline-block">
+	<button class="btn-secondary" (click)="toggleMenu()">Group: {{ getCurrentLabel() }} ▾</button>
+	<div *ngIf="isOpen" class="absolute z-20 mt-2 w-40 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+		<button *ngFor="let opt of groupByOptions" class="w-full text-left px-2 py-1 rounded hover:bg-slate-50" (click)="selectOption(opt.value)">
+			{{ opt.label }}
+		</button>
+	</div>
+</div>
+
