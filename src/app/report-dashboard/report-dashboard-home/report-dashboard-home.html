@@ -1,22 +1,38 @@
-  
+<!-- ...existing code... -->
 <div class="layout-wrapper">
   <!-- Sidebar -->
   <app-sidebar></app-sidebar>
 
   <!-- Navbar -->
-  <app-navbar 
-    [class.sidebar-collapsed]="isSidebarCollapsed()"
-    (toggleSidebar)="onToggleSidebar()">
+  <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
   </app-navbar>
 
   <!-- Main Content -->
   <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
-     <div class="page-header font-montserrat  text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
-  <h2 class="text-2xl text-[#172b4d] font-bold">Sprint Reports</h2>
-  <p class="text-[#6b778c] text-base mt-2">
-    Analyze your team's performance with detailed sprint reports and task analytics
-  </p>
-</div>
+    <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
+      <h2 class="text-2xl text-[#172b4d] font-bold">Sprint Reports</h2>
+      <p class="text-[#6b778c] text-base mt-2">
+        Analyze your team's performance with detailed sprint reports and task analytics
+      </p>
+    </div>
+
+
+    <div class="cards-grid"
+      [ngClass]="{'sidebar-collapsed': isSidebarCollapsed(), 'sidebar-open': !isSidebarCollapsed()}">
+      <app-chart-card [title]="'Burnup Report'" [subtitle]="'Track progress and scope changes throughout the sprint'"
+        [chartType]="'burnup'" [data]="chartData" [detailsLink]="'/report-dashboard/burnup-chart'">
+      </app-chart-card>
+
+      <app-chart-card [title]="'Burndown Report'" [subtitle]="'Monitor remaining work and sprint completion trajectory'"
+        [chartType]="'burndown'" [data]="chartData" [detailsLink]="'/report-dashboard/burndown-chart'">
+      </app-chart-card>
+
+      <app-chart-card [title]="'Velocity Report'"
+        [subtitle]="' Analyze team delivery capacity and task completion rates'" [chartType]="'velocity'"
+        [data]="chartData" [detailsLink]="'/report-dashboard/velocity-chart'">
+      </app-chart-card>
+      <!-- Add more cards as needed -->
+    </div>
+
   </div>
 </div>
-

@@ -21,7 +21,7 @@
       <!-- Right Section: Action Buttons -->
       <div class="navbar-right">
         <button class="btn-secondary">Share</button>
-        <button class="btn-primary">Create</button>
+        <button class="btn-primary" (click)="onCreate()" >Create</button>
         <button class="btn-menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
@@ -43,7 +43,7 @@
         <a routerLink="/summary" routerLinkActive="active" class="nav-tab">Summary</a>
         <a routerLink="/backlog" routerLinkActive="active" class="nav-tab">Backlog</a>
         <a href="#" class="nav-tab">Board</a>
-        <a href="#" class="nav-tab">Timeline</a>
+        <a routerLink="/timeline" routerLinkActive="active" class="nav-tab">Timeline</a>
         <a routerLink="/report-dashboard" routerLinkActive="active" class="nav-tab">Reports</a>
         <button class="nav-more">
           <span>+</span>
