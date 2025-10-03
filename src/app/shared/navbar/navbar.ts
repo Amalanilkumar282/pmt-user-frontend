@@ -1,6 +1,7 @@
 import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ModalService } from '../../modal/modal-service';
 
 @Component({
   selector: 'app-navbar',
@@ -11,6 +12,8 @@ import { RouterModule } from '@angular/router';
 })
 export class Navbar {
   @Output() toggleSidebar = new EventEmitter<void>();
+
+  constructor(private modalService: ModalService) {}
 
   navTabs = [
     { label: 'Summary', route: '/summary', active: false },
@@ -36,8 +39,7 @@ export class Navbar {
   }
 
   onCreate(): void {
-    console.log('Create clicked');
-    // Implement create functionality
+    this.modalService.open('createIssue'); // ✅ open by ID
   }
 
   onMenuClick(): void {
