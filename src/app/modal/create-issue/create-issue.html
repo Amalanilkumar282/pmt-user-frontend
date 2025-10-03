@@ -1,0 +1,19 @@
+<!-- Overlay -->
+<div class="modal-overlay" *ngIf="show" (click)="close()"></div>
+
+<!-- Modal content -->
+<div class="ui modal centered" *ngIf="show">
+  <i class="close icon" (click)="close()"></i>
+  <div class="header">Create Issue</div>
+  <div class="content">
+    <p>Issue type:</p>
+    <input type="text" placeholder="Enter issue title">
+  </div>
+  <div class="actions">
+    <div class="ui gray deny button" (click)="close()">Cancel</div>
+    <div class="ui positive icon button" (click)="close()">
+      Create Issue
+      <i class="checkmark icon"></i>
+    </div>
+  </div>
+</div>

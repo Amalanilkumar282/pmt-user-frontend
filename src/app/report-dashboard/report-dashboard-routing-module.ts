@@ -1,9 +1,12 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { ReportDashboardHome } from './report-dashboard-home/report-dashboard-home';
+import { BurnupChart } from './burnup-chart/burnup-chart';
 
 const routes: Routes = [
-  { path: '', component: ReportDashboardHome }
+  { path: '', component: ReportDashboardHome },
+  // { path: 'burnup-chart', component: BurnupChart }
+  
 ];
 
 @NgModule({
