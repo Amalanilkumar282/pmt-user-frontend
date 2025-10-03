@@ -1,0 +1,21 @@
+<!-- <p>chart-header works!</p> -->
+<div class="chart-header">
+      <div class="header-top">
+        <button class="back-button" (click)="onBack()">
+          ← Back to Reports
+        </button>
+        <h1 class="chart-title">{{ title }}</h1>
+      </div>
+      
+      <!-- <div class="filter-section">
+        <label class="filter-label">Filter by Sprint:</label>
+        <select 
+          class="sprint-select" 
+          [value]="selectedSprint" 
+          (change)="onSprintChange($event)">
+          <option *ngFor="let sprint of sprints" [value]="sprint.id">
+            {{ sprint.name }}
+          </option>
+        </select>
+      </div> -->
+    </div>

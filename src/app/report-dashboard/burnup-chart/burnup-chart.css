@@ -1,0 +1,9 @@
+.page-container {
+  margin-left: 20%;  /* moves the whole block to the right */
+  margin-top: 13%;   /* pushes it down */
+}
+
+.page-container.sidebar-collapsed {
+  margin-left: 70px;
+  width: calc(100% - 70px);
+}

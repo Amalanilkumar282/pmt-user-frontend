@@ -1,0 +1,21 @@
+<div class="layout-wrapper">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+
+    <!-- Navbar -->
+    <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
+    </app-navbar>
+    <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+        <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
+            <!-- <p>burnup-chart works!</p> -->
+
+            <!-- <div class="burnup-report-page">
+                <app-chart-header [title]="'Burnup Report'" [sprints]="sprints" [selectedSprint]="selectedSprint"
+                    (back)="navigateBack()" (sprintChange)="onSprintChange($event)">
+                </app-chart-header>
+            </div> -->
+            <app-chart-header  [title]="'Burnup Report'" (back)="navigateBack()"></app-chart-header>
+
+        </div>
+
+    </div>
