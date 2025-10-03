@@ -1,47 +1,26 @@
-<div 
-  class="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-grab active:cursor-grabbing border-l-4"
-  [class]="colorClass"
-  (click)="open.emit(issue)">
-  <div class="p-3">
-    <!-- Header: ID + Priority -->
-    <div class="flex items-center justify-between mb-2">
-      <div class="flex items-center gap-2">
-        <span [ngSwitch]="issue.type" class="text-gray-500">
-          <span *ngSwitchCase="'STORY'" class="text-blue-600">📖</span>
-          <span *ngSwitchCase="'BUG'" class="text-red-600">🐞</span>
-          <span *ngSwitchCase="'EPIC'" class="text-purple-600">🏔️</span>
-          <span *ngSwitchCase="'SUBTASK'" class="text-gray-600">📝</span>
-          <span *ngSwitchDefault class="text-gray-600">📋</span>
-        </span>
-        <span class="text-xs font-mono text-gray-500">{{ issue.id }}</span>
+<div class="task-card" [ngClass]="colorClass" (click)="open.emit(issue)">
+  <div class="content" cdkDragHandle>
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="text-xs font-mono text-slate-400">{{ issue.id }}</div>
+        <div class="title">{{ issue.title }}</div>
       </div>
-      <span class="text-xs px-2 py-0.5 rounded-full font-medium" [ngClass]="getPriorityClass(issue.priority)">
-        {{ issue.priority }}
-      </span>
+      <div class="meta text-right">
+        <div class="text-xs px-2 py-0.5 rounded-full font-medium" [ngClass]="getPriorityClass(issue.priority)">
+          {{ issue.priority }}
+        </div>
+      </div>
     </div>
 
-    <!-- Title -->
-    <h3 class="text-sm font-medium text-gray-800 mb-1">{{ issue.title }}</h3>
+    <p class="meta mt-2">{{ issue.description }}</p>
 
-    <!-- Description -->
-    <p class="text-xs text-gray-500 line-clamp-2">{{ issue.description }}</p>
-
-    <!-- Footer -->
     <div class="flex items-center justify-between mt-3 text-xs text-gray-500">
       <div class="flex items-center gap-2">
-        <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-medium text-gray-700" 
-             [title]="issue.assignee || 'Unassigned'">
-          {{ getInitials(issue.assignee) }}
-        </div>
-        <span *ngIf="issue.storyPoints" class="px-1.5 py-0.5 bg-gray-100 rounded">
-          {{ issue.storyPoints }} SP
-        </span>
+        <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center font-medium text-gray-700" [title]="issue.assignee || 'Unassigned'">{{ getInitials(issue.assignee) }}</div>
+        <span *ngIf="issue.storyPoints" class="px-1.5 py-0.5 bg-gray-100 rounded">{{ issue.storyPoints }} SP</span>
       </div>
       <div class="flex items-center gap-2">
-        <span *ngFor="let label of issue.labels" 
-              class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
-          {{ label }}
-        </span>
+        <span *ngFor="let label of issue.labels" class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">{{ label }}</span>
       </div>
     </div>
   </div>

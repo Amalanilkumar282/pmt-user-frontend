@@ -18,9 +18,8 @@ export class GroupByMenu {
   readonly groupByOptions = [
     { label: 'None', value: 'NONE' as const },
     { label: 'Assignee', value: 'ASSIGNEE' as const },
-    { label: 'Priority', value: 'PRIORITY' as const },
-    { label: 'Type', value: 'TYPE' as const },
-    { label: 'Epic', value: 'EPIC' as const }
+    { label: 'Epic', value: 'EPIC' as const },
+    { label: 'Subtask', value: 'SUBTASK' as const }
   ];
 
   getCurrentLabel(): string {

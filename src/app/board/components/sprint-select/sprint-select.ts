@@ -31,4 +31,13 @@ export class SprintSelect {
     this.select.emit(id);
     this.open = false;
   }
+
+  get selectedRange(): string {
+    if (this.selectedId === 'BACKLOG') return '';
+    const sprint = this.sprints.find(s => s.id === this.selectedId);
+    if (!sprint) return '';
+    const sd = new Date(sprint.startDate);
+    const ed = new Date(sprint.endDate);
+    return `${sd.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${ed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  }
 }

@@ -7,7 +7,7 @@ import { BoardColumn } from '../board-column/board-column';
 import { BoardStore } from '../../board-store';
 import { BoardToolbar } from '../board-toolbar/board-toolbar';
 import { BoardColumnsContainer } from '../board-columns-container/board-columns-container';
-import { DUMMY_SPRINTS, BACKLOG } from './seed';
+import { DUMMY_SPRINTS, BACKLOG } from './seed.full';
 
 @Component({
   selector: 'app-board-page',

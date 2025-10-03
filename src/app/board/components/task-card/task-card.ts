@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Issue } from '../../models';
+import { DragDropModule } from '@angular/cdk/drag-drop';
+import type { Issue } from '../../../shared/models/issue.model';
 
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DragDropModule],
   templateUrl: './task-card.html',
   styleUrls: ['./task-card.css'],
   changeDetection: ChangeDetectionStrategy.OnPush

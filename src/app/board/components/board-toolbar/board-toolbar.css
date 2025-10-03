@@ -1,6 +1,6 @@
 .btn-secondary {
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
   color: #374151;
   background-color: white;
   border: 1px solid #e5e7eb;
@@ -13,8 +13,25 @@
 
 .btn-secondary:focus {
   outline: none;
-  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-  --tw-ring-color: rgb(59 130 246 / 0.5);
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.08);
+}
+
+.btn-primary {
+  padding: 0.5rem 0.75rem;
+  background-color: #1f6feb;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.board-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.board-search {
+  width: 100%;
 }

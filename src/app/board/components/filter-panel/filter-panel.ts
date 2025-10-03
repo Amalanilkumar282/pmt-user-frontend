@@ -16,10 +16,14 @@ type FilterKey = keyof FilterState;
 export class FilterPanel {
   private store = inject(BoardStore);
   isOpen = false;
+  activeField: keyof FilterState | null = null;
 
   assignees = computed(() => {
     const issues = this.store.issues();
-    return [...new Set(issues.map(i => i.assignee))].filter(Boolean);
+    const values = issues
+      .map(i => i.assignee)
+      .filter((v): v is string => typeof v === 'string' && v.length > 0);
+    return Array.from(new Set(values));
   });
 
   statuses = computed(() => [
@@ -28,6 +32,17 @@ export class FilterPanel {
     'IN_REVIEW',
     'DONE'
   ]);
+
+  workTypes = computed(() => {
+    // derive from issues
+    const issues = this.store.issues();
+    return Array.from(new Set(issues.map(i => i.type)));
+  });
+
+  labels = computed(() => {
+    const issues = this.store.issues();
+    return Array.from(new Set(issues.flatMap(i => i.labels || [])));
+  });
 
   priorities = computed(() => [
     'HIGH',
@@ -55,5 +70,10 @@ export class FilterPanel {
 
   togglePanel(): void {
     this.isOpen = !this.isOpen;
+    if (!this.isOpen) this.activeField = null;
+  }
+
+  selectField(field: keyof FilterState): void {
+    this.activeField = field;
   }
 }

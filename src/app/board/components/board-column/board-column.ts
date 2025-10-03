@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule, CdkDropList, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { BoardColumnDef, Issue, Status } from '../../models';
+import { BoardColumnDef } from '../../models';
+import type { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardStore } from '../../board-store';
 import { TaskCard } from '../task-card/task-card';
 
@@ -34,8 +35,8 @@ export class BoardColumn {
     }
     const item = event.previousContainer.data[event.previousIndex];
     // update status in store
-    this.store.updateIssueStatus(item.id, this.def.id as Status);
-    // reflect in UI list arrays
-    transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex);
+    this.store.updateIssueStatus(item.id, this.def.id as IssueStatus);
+    // Do NOT manually transferArrayItem across containers. The store is the single source of truth
+    // and columnBuckets() will recompute the lists. Rely on the store update to re-render the columns.
   }
 }

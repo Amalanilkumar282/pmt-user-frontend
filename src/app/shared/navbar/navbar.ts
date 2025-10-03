@@ -1,6 +1,7 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { SidebarStateService } from '../services/sidebar-state.service';
 
 @Component({
   selector: 'app-navbar',
@@ -11,6 +12,8 @@ import { RouterModule } from '@angular/router';
 })
 export class Navbar {
   @Output() toggleSidebar = new EventEmitter<void>();
+  private sidebarState = inject(SidebarStateService);
+  isSidebarCollapsed = this.sidebarState.isCollapsed;
 
   navTabs = [
     { label: 'Summary', route: '/summary', active: false },
