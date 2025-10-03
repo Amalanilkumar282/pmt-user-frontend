@@ -7,10 +7,11 @@
 
   <div
     cdkDropList
+    [id]="def.id"
     [cdkDropListData]="items"
     [cdkDropListConnectedTo]="connectedTo"
     (cdkDropListDropped)="drop($event)"
-    class="min-h-16 space-y-3">
+    class="min-h-16 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
 
     <app-task-card
       *ngFor="let issue of pageItems; trackBy: trackById"

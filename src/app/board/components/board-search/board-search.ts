@@ -7,17 +7,7 @@ import { BoardStore } from '../../board-store';
   selector: 'app-board-search',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <div class="board-search">
-      <input
-        type="text"
-        placeholder="Search issues, comments, or IDs..."
-        class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-        [value]="search()"
-        (input)="onInput($event)"
-      />
-    </div>
-  `,
+  template: './board-search.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BoardSearch {

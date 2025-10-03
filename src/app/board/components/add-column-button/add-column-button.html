@@ -1,1 +1,26 @@
+<div class="relative inline-block">
+	<button class="btn-secondary" (click)="open()">+ Add Column</button>
+
+	<div *ngIf="isOpen" class="fixed inset-0 z-40 flex items-center justify-center">
+		<div class="absolute inset-0 bg-black/40" (click)="close()"></div>
+		<div class="relative w-96 rounded-lg bg-white p-6 shadow-lg">
+			<h3 class="text-lg font-semibold mb-3">Add Column</h3>
+
+			<label class="block text-sm text-slate-600 mb-2">Column name</label>
+			<input [(ngModel)]="name" class="w-full rounded-md border border-slate-200 px-3 py-2 mb-3" placeholder="e.g. QA" />
+
+			<label class="block text-sm text-slate-600 mb-2">Color</label>
+			<div class="flex gap-2 mb-4">
+				<button type="button" (click)="color='border-slate-300'" [class.border-sky-500]="color==='border-slate-300'" class="w-8 h-8 rounded border"></button>
+				<button type="button" (click)="color='border-rose-300'" [class.border-sky-500]="color==='border-rose-300'" class="w-8 h-8 rounded border bg-rose-50"></button>
+				<button type="button" (click)="color='border-emerald-300'" [class.border-sky-500]="color==='border-emerald-300'" class="w-8 h-8 rounded border bg-emerald-50"></button>
+			</div>
+
+			<div class="flex justify-end gap-2">
+				<button class="btn-secondary" (click)="close()">Cancel</button>
+				<button [disabled]="!name.trim()" (click)="addColumn()" class="btn-primary">Add</button>
+			</div>
+		</div>
+	</div>
+</div>
 

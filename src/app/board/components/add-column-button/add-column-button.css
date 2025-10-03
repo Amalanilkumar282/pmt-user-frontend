@@ -1,0 +1,32 @@
+:host {
+	display: inline-block;
+}
+
+.btn-primary {
+	background-color: #2b6cb0; /* sky-600 */
+	color: white;
+	padding: 0.5rem 0.75rem;
+	border-radius: 0.5rem;
+	font-weight: 600;
+}
+
+.btn-primary[disabled] {
+	opacity: 0.5;
+}
+
+.btn-secondary {
+	background: white;
+	border: 1px solid #e6eef8;
+	padding: 0.375rem 0.75rem;
+	border-radius: 0.5rem;
+	color: #1f2937;
+}
+
+.btn-secondary:hover {
+	background: #fbfdff;
+}
+
+.shadow-lg {
+	box-shadow: 0 10px 30px rgba(2,6,23,0.08);
+}
+
