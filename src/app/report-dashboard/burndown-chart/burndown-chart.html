@@ -1,5 +1,3 @@
-
-
 <div class="layout-wrapper">
   <!-- Sidebar -->
   <app-sidebar></app-sidebar>
@@ -7,15 +5,16 @@
   <!-- Navbar -->
   <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
   </app-navbar>
-   
-    <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+
+  <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
     <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
-          <!-- <p>burndown-chart works!</p> -->
-         <app-chart-header [title]="'Burndown Report'" (back)="navigateBack()"></app-chart-header>
-       <!-- <app-metrics-chart [issues]="issues"></app-metrics-chart> -->
-        <app-metrics-chart [chartType]="'burndown'"></app-metrics-chart>
-    
+      <!-- <p>burndown-chart works!</p> -->
+       
+        <app-chart-header [title]="'Burndown Report'" (back)="navigateBack()"></app-chart-header>
+      
+      <app-metrics-chart [chartType]="'burndown'"></app-metrics-chart>
+
     </div>
- 
-</div>
+
+  </div>
 </div>

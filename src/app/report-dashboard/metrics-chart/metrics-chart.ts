@@ -315,10 +315,11 @@ ngOnInit() {
 
   this.chartOptions = {
     series,
-    chart: { type: 'area', height: 350, toolbar: { show: false } },
+    chart: { type: 'area', height: 350
+        },
     xaxis: { 
       categories: dates, 
-      title: { text: 'Date' },
+      // title: { text: 'Date' },
       tickAmount: Math.ceil(dates.length / 3)
     },
     yaxis: { min: 0, title: { text: 'Story Points' } },
@@ -326,7 +327,7 @@ ngOnInit() {
     fill: { type: 'gradient', gradient: { shadeIntensity: 0.4, opacityFrom: 0.6, opacityTo: 0.1, stops: [0,90,100] } },
     dataLabels: { enabled: false },
     legend: { position: 'bottom' },
-    title: { text: `${sprint.name} ${this.chartType.toUpperCase()} Chart`, align: 'center' }
+    title: { text: `${sprint.name} Chart`, align: 'center' }
   };
 }
 }
