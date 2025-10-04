@@ -11,7 +11,6 @@ import { NgApexchartsModule } from 'ng-apexcharts';
   selector: 'app-report-dashboard-home',
   standalone: true,
   imports: [Navbar,Sidebar,ChartCard,CommonModule,NgApexchartsModule],
-  providers: [SidebarStateService], 
   templateUrl: './report-dashboard-home.html',
   styleUrl: './report-dashboard-home.css'
 })
