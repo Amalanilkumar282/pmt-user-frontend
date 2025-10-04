@@ -3,15 +3,18 @@ import { BehaviorSubject } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ModalService {
-  // Holds the ID of the currently open modal (or null if none)
-  private activeModalSource = new BehaviorSubject<string | null>(null);
-  activeModal$ = this.activeModalSource.asObservable();
+  private activeModalSubject = new BehaviorSubject<string | null>(null);
+  activeModal$ = this.activeModalSubject.asObservable();
 
-  open(modalId: string) {
-    this.activeModalSource.next(modalId);
+  open(id: string) {
+    this.activeModalSubject.next(id);
   }
 
   close() {
-    this.activeModalSource.next(null);
+    this.activeModalSubject.next(null);
+  }
+
+  isOpen(id: string): boolean {
+    return this.activeModalSubject.getValue() === id;
   }
 }
