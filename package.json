@@ -37,6 +37,7 @@
     "chart.js": "^4.5.0",
     "echarts": "^6.0.0",
     "express": "^5.1.0",
+    "frappe-gantt": "^1.0.3",
     "ng-apexcharts": "^2.0.1",
     "ng2-charts": "^8.0.0",
     "ngx-echarts": "^20.0.2",
