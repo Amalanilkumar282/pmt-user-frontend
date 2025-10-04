@@ -4,12 +4,13 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ChartCard } from '../chart-card/chart-card';
 import { CommonModule } from '@angular/common';
- 
+import { NgApexchartsModule } from 'ng-apexcharts';
+
 
 @Component({
   selector: 'app-report-dashboard-home',
   standalone: true,
-  imports: [Navbar,Sidebar,ChartCard,CommonModule],
+  imports: [Navbar,Sidebar,ChartCard,CommonModule,NgApexchartsModule],
   providers: [SidebarStateService], 
   templateUrl: './report-dashboard-home.html',
   styleUrl: './report-dashboard-home.css'

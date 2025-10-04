@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<div class="timeline-content">
+    <div class="timeline-section" style="display: block;">
+        <div class="timeline-header">
+            <div class="time-selector">
+                <button class="time-btn" 
+                        [class.active]="currentView === 'day'"
+                        (click)="changeTimeScale('day')">Day</button>
+                <button class="time-btn" 
+                        [class.active]="currentView === 'month'"
+                        (click)="changeTimeScale('month')">Month</button>
+                <button class="time-btn" 
+                        [class.active]="currentView === 'year'"
+                        (click)="changeTimeScale('year')">Year</button>
+            </div>
+            
+            <div class="filters">
+                <!-- Back button when viewing issues -->
+                <button *ngIf="displayMode === 'issues'" 
+                        class="back-btn" 
+                        (click)="backToEpics()">
+                    ← Back to Epics
+                </button>
+
+                <!-- Sprint Filter -->
+                <div class="filter-group">
+                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                        Sprint 
+                        <span class="filter-badge" *ngIf="getFilterCount('sprints') > 0">
+                            {{getFilterCount('sprints')}}
+                        </span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="filter-dropdown" id="sprint-dropdown">
+                        <div class="filter-option" *ngFor="let sprint of availableSprints">
+                            <input type="checkbox" 
+                                   [id]="'sprint-' + sprint"
+                                   [value]="sprint"
+                                   (change)="toggleFilter('sprints', sprint, $event)">
+                            <label [for]="'sprint-' + sprint">{{sprint}}</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Epic Filter -->
+                <div class="filter-group">
+                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                        Epic 
+                        <span class="filter-badge" *ngIf="getFilterCount('epics') > 0">
+                            {{getFilterCount('epics')}}
+                        </span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="filter-dropdown" id="epic-dropdown">
+                        <div class="filter-option" *ngFor="let epic of availableEpics">
+                            <input type="checkbox" 
+                                   [id]="'epic-' + epic"
+                                   [value]="epic"
+                                   (change)="toggleFilter('epics', epic, $event)">
+                            <label [for]="'epic-' + epic">{{epic}}</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Type Filter -->
+                <div class="filter-group">
+                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                        Type 
+                        <span class="filter-badge" *ngIf="getFilterCount('types') > 0">
+                            {{getFilterCount('types')}}
+                        </span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="filter-dropdown" id="type-dropdown">
+                        <div class="filter-option">
+                            <input type="checkbox" 
+                                   value="story" 
+                                   id="type-story"
+                                   (change)="toggleFilter('types', 'story', $event)">
+                            <label for="type-story">Story</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" 
+                                   value="task" 
+                                   id="type-task"
+                                   (change)="toggleFilter('types', 'task', $event)">
+                            <label for="type-task">Task</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" 
+                                   value="bug" 
+                                   id="type-bug"
+                                   (change)="toggleFilter('types', 'bug', $event)">
+                            <label for="type-bug">Bug</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="filter-group">
+                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                        Status 
+                        <span class="filter-badge" *ngIf="getFilterCount('status') > 0">
+                            {{getFilterCount('status')}}
+                        </span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="filter-dropdown" id="status-dropdown">
+                        <div class="filter-option">
+                            <input type="checkbox" 
+                                   value="todo" 
+                                   id="status-todo"
+                                   (change)="toggleFilter('status', 'todo', $event)">
+                            <label for="status-todo">To Do</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" 
+                                   value="progress" 
+                                   id="status-progress"
+                                   (change)="toggleFilter('status', 'progress', $event)">
+                            <label for="status-progress">In Progress</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="checkbox" 
+                                   value="done" 
+                                   id="status-done"
+                                   (change)="toggleFilter('status', 'done', $event)">
+                            <label for="status-done">Done</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="clear-filters" 
+                        (click)="clearFilters()"
+                        *ngIf="getFilterCount('sprints') > 0 || getFilterCount('epics') > 0 || 
+                               getFilterCount('types') > 0 || getFilterCount('status') > 0">
+                    Clear Filters
+                </button>
+            </div>
+        </div>
+        
+        <div class="gantt-container">
+            <div class="current-view-info" *ngIf="displayMode === 'issues' && selectedEpic">
+                <h3>{{selectedEpic.key}} - {{selectedEpic.text}}</h3>
+            </div>
+            <div #ganttTarget id="gantt_chart"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Close dropdowns when clicking outside -->
+<script>
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.filter-group')) {
+        document.querySelectorAll('.filter-dropdown').forEach(dd => {
+            dd.classList.remove('show');
+        });
+    }
+});
+</script>

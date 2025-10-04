@@ -14,7 +14,7 @@ export const completedSprint1Issues: Issue[] = [
     storyPoints: 3,
     sprintId: 'completed-1',
     createdAt: new Date('2025-08-01'),
-    updatedAt: new Date('2025-08-15')
+    updatedAt: new Date('2025-08-10')
   },
   {
     id: 'PMT-002',
