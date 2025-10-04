@@ -1,0 +1,50 @@
+.layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: #ffffff;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.page-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.page-container {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.page-container {
+  flex: 1;
+  margin-left: 240px;
+  margin-top: 121px;
+  padding: 20px;
+  width: calc(100% - 240px);
+  overflow-x: hidden;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+.page-container.sidebar-collapsed {
+  margin-left: 70px;
+  width: calc(100% - 70px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-header-left {
+  flex: 1;
+}
+
+.page-title {
+  margin: 0;
+  color: #1f2937;
+  font-size: 24px;
+}
