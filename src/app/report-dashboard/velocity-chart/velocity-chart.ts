@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
   selector: 'app-velocity-chart',
   standalone:true,
   imports: [Sidebar,Navbar,ChartHeader],
-   providers: [SidebarStateService], 
+  //  providers: [SidebarStateService], 
   templateUrl: './velocity-chart.html',
   styleUrl: './velocity-chart.css'
 })

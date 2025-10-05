@@ -12,7 +12,7 @@ import { Issue } from '../../shared/models/issue.model';
   selector: 'app-burnup-chart',
   standalone:true,
   imports: [Navbar,Sidebar,ChartHeader,MetricsChart],
-  providers:[SidebarStateService],
+  // providers:[SidebarStateService],
   templateUrl: './burnup-chart.html',
   styleUrl: './burnup-chart.css'
 })

@@ -31,14 +31,5 @@ export class ReportDashboardHome {
     this.router.navigate([path]);
   }
 
-  chartData = [
-    { x: 0, y: 20 },
-    { x: 1, y: 25 },
-    { x: 2, y: 30 },
-    { x: 3, y: 35 },
-    { x: 4, y: 45 },
-    { x: 5, y: 55 },
-    { x: 6, y: 65 },
-    { x: 7, y: 75 }
-  ];
+  
 }
