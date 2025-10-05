@@ -38,6 +38,15 @@
   max-width: 1200px;
 }
 
+/* Charts Grid - Equal width columns */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Forces 2 equal columns */
+  gap: 16px;
+  max-width: 1200px;
+  margin-bottom: 32px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .page-container,
@@ -53,6 +62,11 @@
     gap: 12px;
   }
 
+  .charts-grid {
+    grid-template-columns: 1fr; /* Stack on mobile */
+    gap: 12px;
+  }
+
   .section-title {
     font-size: 15px;
   }
@@ -65,6 +79,10 @@
 
   .cards-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .charts-grid {
     gap: 10px;
   }
 
