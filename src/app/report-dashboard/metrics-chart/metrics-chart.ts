@@ -113,7 +113,7 @@
 // }
 
 // metrics-chart.component.ts
- import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   NgApexchartsModule,
@@ -263,6 +263,13 @@ export class MetricsChart implements OnInit {
 //   }
 // }
 
+chart: any;
+
+  ngOnDestroy() {
+    if (this.chart) {
+      this.chart.destroy(); // cleanup
+    }
+  }
 ngOnInit() {
   const sprint = sprints.find(s => s.id === 'completed-1');
   if (!sprint) return;

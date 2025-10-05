@@ -5,6 +5,7 @@ import { SidebarStateService } from '../../shared/services/sidebar-state.service
 import { ChartCard } from '../chart-card/chart-card';
 import { CommonModule } from '@angular/common';
 import { NgApexchartsModule } from 'ng-apexcharts';
+import { Router } from '@angular/router';
 
 
 @Component({
@@ -22,6 +23,13 @@ export class ReportDashboardHome {
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
+  }
+
+  
+  constructor(private router: Router) {}
+
+    navigateTo(path: string) {
+    this.router.navigate([path]);
   }
 
   chartData = [
