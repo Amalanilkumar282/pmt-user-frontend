@@ -4,11 +4,12 @@ import { SidebarStateService } from '../../shared/services/sidebar-state.service
 import { Navbar } from '../../shared/navbar/navbar';
 import { ChartHeader } from '../chart-header/chart-header';
 import { Router } from '@angular/router';
+import { MetricsChart } from '../metrics-chart/metrics-chart';
 
 @Component({
   selector: 'app-velocity-chart',
   standalone:true,
-  imports: [Sidebar,Navbar,ChartHeader],
+  imports: [Sidebar,Navbar,ChartHeader,MetricsChart],
   //  providers: [SidebarStateService], 
   templateUrl: './velocity-chart.html',
   styleUrl: './velocity-chart.css'
