@@ -12,6 +12,10 @@ import { ReportDashboardModule } from './report-dashboard/report-dashboard-modul
 })
 export class App {
   private sidebarState = inject(SidebarStateService);
-  @HostBinding('class.app-sidebar-collapsed') get collapsed() { return this.sidebarState.getCollapsed(); }
+  // Bind host class to the readonly signal so Angular updates the class reactively
+  @HostBinding('class.app-sidebar-collapsed')
+  get collapsed() {
+    return this.sidebarState.isCollapsed();
+  }
 
 }

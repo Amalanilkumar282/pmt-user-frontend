@@ -9,8 +9,9 @@
   transition: left 0.3s ease;
 }
 
-/* when parent/app sets a collapsed class on body or host, adjust left */
-.app-sidebar-collapsed .navbar {
+/* when parent/app sets a collapsed class on body or host, adjust left
+   Use :host-context so this works with Angular's emulated style scoping */
+:host-context(.app-sidebar-collapsed) .navbar {
   --navbar-left: 70px;
 }
 
