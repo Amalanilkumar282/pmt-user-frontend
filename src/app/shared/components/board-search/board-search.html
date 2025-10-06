@@ -1,0 +1,11 @@
+<div class="w-full">
+      <div class="relative">
+        <input
+          type="text"
+          [(ngModel)]="q"
+          (ngModelChange)="onChange($event)"
+          placeholder="Search tasks, comments, or keywords..."
+          class="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+        <svg class="w-4 h-4 absolute right-3 top-2.5 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M8 4a4 4 0 104 4 4 4 0 00-4-4zM2 8a6 6 0 1110.9 3.549l4.286 4.286-1.414 1.414-4.286-4.286A6 6 0 012 8z"/></svg>
+      </div>
+    </div>

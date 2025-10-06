@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { GroupByMenu } from './group-by-menu';
 
 describe('GroupByMenu', () => {
@@ -9,8 +8,7 @@ describe('GroupByMenu', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [GroupByMenu]
-    })
-    .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(GroupByMenu);
     component = fixture.componentInstance;

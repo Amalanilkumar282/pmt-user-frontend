@@ -4,6 +4,7 @@
     [def]="bucket.def"
     [items]="bucket.items"
     [connectedTo]="dropListIdsArray()"
-    class="flex-shrink-0 w-80">
+    (openIssue)="onOpenIssue($event)"
+    class="flex-shrink-0 w-96">
   </app-board-column>
 </div>

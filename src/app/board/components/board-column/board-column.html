@@ -17,9 +17,10 @@
       *ngFor="let issue of pageItems; trackBy: trackById"
       cdkDrag
       [issue]="issue"
-      [colorClass]="def.color">
+      [colorClass]="def.color"
+      (open)="onOpen($event)">
     </app-task-card>
-    <div class="h-3"></div>
+    
   </div>
 
   <button *ngIf="items.length > pageItems.length"
