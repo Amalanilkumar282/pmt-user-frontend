@@ -1,0 +1,13 @@
+<div class="activity-item">
+  <div class="activity-avatar" [class]="activity.type">{{ activity.initials }}</div>
+  <div class="activity-content">
+    <p>
+      <strong>{{ activity.user }}</strong> {{ activity.action }}
+      <strong>{{ activity.task }}</strong>
+    </p>
+    <div class="activity-meta">
+      <span class="task-id">{{ activity.taskId }}</span>
+      <span class="activity-time">• {{ activity.time }}</span>
+    </div>
+  </div>
+</div>
