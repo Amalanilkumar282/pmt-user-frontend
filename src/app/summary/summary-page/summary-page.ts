@@ -28,7 +28,6 @@ interface SummaryCardData {
     Navbar,
     SprintOverview,
     SummaryBarChart,
-    ProjectSummary,
     RecenIssues,
     ProjectLead,
     ProjectInfo,
