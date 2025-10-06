@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
@@ -6,24 +7,43 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { EpicContainer } from '../../epic/epic-container/epic-container';
+import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
+import { Epic } from '../../shared/models/epic.model';
 import {
   completedSprint1Issues,
   completedSprint2Issues,
   activeSprintIssues,
   plannedSprintIssues,
   backlogIssues as sharedBacklogIssues,
-  sprints as sharedSprints
+  sprints as sharedSprints,
+  epics as sharedEpics
 } from '../../shared/data/dummy-backlog-data';
+import { FormField, ModalService } from '../../modal/modal-service';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [SprintContainer, BacklogContainer, Sidebar, Navbar, Filters],
+  imports: [CommonModule, SprintContainer, BacklogContainer, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
 export class BacklogPage {
+  constructor(private modalService: ModalService) {}
+  
   private sidebarStateService = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+  
+  // Epic panel state
+  isEpicPanelOpen = false;
+  selectedEpicFilter: string | null = null;
+  epics: Epic[] = [...sharedEpics];
+  
+  // Epic detail view state
+  selectedEpic: Epic | null = null;
+  epicDetailPanelWidth = 600; // Default width in pixels
+  private isResizing = false;
+  private startX = 0;
+  private startWidth = 0;
   // Use shared dummy data from shared/data/dummy-backlog-data.ts
   private completedSprint1Issues: Issue[] = completedSprint1Issues;
   private completedSprint2Issues: Issue[] = completedSprint2Issues;
@@ -49,11 +69,25 @@ export class BacklogPage {
     return this.sprints.filter(s => s.status === 'COMPLETED');
   }
 
-  handleCreateSprint(): void {
-    console.log('Create new sprint');
-    // Modal implementation will be added later
-    alert('Create Sprint functionality - Modal will be implemented later');
-  }
+  handleCreateSprint() {
+      const sprintFields: FormField[] = [
+        { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2 },
+        { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+        { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+        { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+        { label: 'Status', type: 'select', model: 'status', options: ['Planned','Active','Completed'], colSpan: 1 },
+        { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
+      ];
+  
+      
+        this.modalService.open({
+          id: 'sprintModal',
+          title: 'Create Sprint',
+          projectName: 'Project Alpha',
+          fields: sprintFields,
+          data: { shareWith: '', message: '' }  //optional prefilled
+        });
+    }
 
   handleStart(sprintId: string): void {
     console.log('Start sprint:', sprintId);
@@ -66,10 +100,43 @@ export class BacklogPage {
   }
 
   handleEdit(sprintId: string): void {
-    console.log('Edit sprint:', sprintId);
-    // Modal implementation will be added later
-    alert(`Edit Sprint ${sprintId} - Modal will be implemented later`);
+  const sprint = this.sprints.find(s => s.id === sprintId);
+  if (!sprint) {
+    console.error(`Sprint not found: ${sprintId}`);
+    return;
   }
+
+  // Derive extra info dynamically (goal, story points, etc.)
+  const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
+  const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+
+  const sprintFields: FormField[] = [
+    { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2 },
+    { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+    { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
+    { label: 'Story Point (Total)', type: 'number', model: 'storyPoint', colSpan: 1 },
+  ];
+
+  this.modalService.open({
+    id: 'shareModal',
+    title: 'Edit Sprint',
+    projectName: 'Project Alpha',
+    fields: sprintFields,
+    data: {
+      sprintName: sprint.name || '',
+      sprintGoal,
+      startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
+      dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
+      status: sprint.status || 'Planned',
+      storyPoint: totalStoryPoints,
+    },
+    showLabels: false
+  });
+}
+
+
 
   handleDelete(sprintId: string): void {
     console.log('Delete sprint:', sprintId);
@@ -168,5 +235,77 @@ export class BacklogPage {
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
+  }
+
+  toggleEpicPanel(): void {
+    this.isEpicPanelOpen = !this.isEpicPanelOpen;
+  }
+
+  closeEpicPanel(): void {
+    this.isEpicPanelOpen = false;
+  }
+
+  onEpicFilterChange(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    this.selectedEpicFilter = selectElement.value || null;
+    console.log('Selected epic filter:', this.selectedEpicFilter);
+    // Implement filter logic here to filter backlog issues by epic
+  }
+
+  get epicFilterOptions(): Array<{ id: string | null, name: string }> {
+    return [
+      { id: null, name: 'All epics' },
+      ...this.epics.map(epic => ({ id: epic.id, name: epic.name }))
+    ];
+  }
+
+  // Epic detail view methods
+  openEpicDetailView(epicId: string): void {
+    const epic = this.epics.find(e => e.id === epicId);
+    if (epic) {
+      this.selectedEpic = { ...epic }; // Create a copy to avoid direct mutation
+    }
+  }
+
+  closeEpicDetailView(): void {
+    this.selectedEpic = null;
+  }
+
+  onEpicUpdated(updatedEpic: Epic): void {
+    // Update the epic in the epics array
+    const index = this.epics.findIndex(e => e.id === updatedEpic.id);
+    if (index !== -1) {
+      this.epics[index] = { ...updatedEpic };
+    }
+    // Update the selected epic reference
+    this.selectedEpic = { ...updatedEpic };
+  }
+
+  // Resize methods
+  startResize(event: MouseEvent): void {
+    this.isResizing = true;
+    this.startX = event.clientX;
+    this.startWidth = this.epicDetailPanelWidth;
+    event.preventDefault();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent): void {
+    if (this.isResizing) {
+      const deltaX = this.startX - event.clientX;
+      const newWidth = this.startWidth + deltaX;
+      
+      // Set min and max width constraints
+      if (newWidth >= 400 && newWidth <= 1200) {
+        this.epicDetailPanelWidth = newWidth;
+      }
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp(): void {
+    if (this.isResizing) {
+      this.isResizing = false;
+    }
   }
 }
