@@ -12,5 +12,7 @@
     <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
          
             <app-chart-header [title]="'Velocity Report'" (back)="navigateBack()"></app-chart-header>
+            <app-metrics-chart [chartType]="'velocity'"></app-metrics-chart>
+
     </div>
 </div>

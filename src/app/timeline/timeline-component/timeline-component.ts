@@ -7,7 +7,6 @@ import { TimelineChart } from '../timeline-chart/timeline-chart';
 @Component({
   selector: 'app-timeline-component',
   imports: [Navbar,Sidebar,TimelineChart],
-  providers:[SidebarStateService],
   templateUrl: './timeline-component.html',
   styleUrl: './timeline-component.css'
 })

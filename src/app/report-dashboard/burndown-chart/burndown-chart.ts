@@ -18,7 +18,7 @@ import { NgApexchartsModule } from 'ng-apexcharts';
   selector: 'app-burndown-chart',
   standalone:true,
   imports: [Sidebar ,Navbar,ChartHeader, NgApexchartsModule,MetricsChart],
-  providers:[SidebarStateService],
+  // providers:[SidebarStateService],
   templateUrl: './burndown-chart.html',
   styleUrl: './burndown-chart.css'
 })

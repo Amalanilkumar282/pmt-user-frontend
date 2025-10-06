@@ -1,28 +1,45 @@
 <div class="layout-wrapper">
-  <!-- Sidebar -->
   <app-sidebar></app-sidebar>
 
-  <!-- Navbar -->
-  <app-navbar 
-    [class.sidebar-collapsed]="isSidebarCollapsed()"
-    (toggleSidebar)="onToggleSidebar()">
+  <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
   </app-navbar>
 
-  <!-- Main Content -->
   <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
-    <!-- Issues Summary Section -->
-    <section class="summary-section">
-      <h2 class="section-title">Issues</h2>
-      <div class="cards-grid">
-        @for (card of issueCards; track card.type) {
+    <div class="text-center mb-10">
+      <h2 class="text-text-primary text-xl font-bold leading-7 mb-2">Project Summary</h2>
+      <p class="text-text-secondary text-sm leading-[18px]">
+        Get insights into your project's current status, recent activity, and team performance
+      </p>
+    </div>
+    <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+      <section class="summary-section">
+        <h2 class="section-title">Issues</h2>
+        <div class="cards-grid">
+          @for (card of issueCards; track card.type) {
           <app-issue-summary-card
             [type]="card.type"
             [count]="card.count"
             [label]="card.label"
-            [timePeriod]="card.timePeriod">
+            [timePeriod]="card.timePeriod"
+          >
           </app-issue-summary-card>
-        }
+          }
+        </div>
+      </section>
+    </div>
+    <div class="charts-grid">
+      <app-sprint-overview [statuses]="sprintStatuses"></app-sprint-overview>
+      <app-summary-bar-chart [issues]="issueChartData"></app-summary-bar-chart>
+    </div>
+
+    <div class="charts-grid flex gap-6">
+      <div class="flex-1">
+        <app-recen-issues [issues]="RecentIssueData"></app-recen-issues>
       </div>
-    </section>
+      <div class="flex-1 flex flex-col gap-4">
+        <app-project-lead [leadData]="projectLeads[0]"></app-project-lead>
+        <app-project-info [projectDetails]="projectDetails"></app-project-info>
+      </div>
+    </div>
   </div>
 </div>
