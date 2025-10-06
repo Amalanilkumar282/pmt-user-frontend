@@ -6,8 +6,9 @@
     <!-- Header -->
     <div class="px-6 py-4 border-b border-gray-200 sticky top-0 bg-[#F1E3FC] z-10">
       <div class="flex justify-between items-center">
-        <h2 class="text-xl font-semibold text-gray-800">Create Issue</h2>
-        <span class="text-[#665872] text-lg font-medium">Project Alpha</span>
+        <h2 class="text-xl font-semibold text-gray-800">{{ modalTitle }}</h2>
+<span class="text-[#665872] text-lg font-medium">{{ projectName }}</span>
+
       </div>
       <p class="text-sm text-gray-500 mt-1 italic">Create a new issue in your project</p>
     </div>
@@ -45,7 +46,7 @@
       </div>
 
       <!-- Labels Section -->
-      <div class="mt-4">
+      <div *ngIf="showLabels" class="mt-4">
         <label class="block text-sm font-medium text-gray-700">Labels</label>
         <div class="flex gap-2 mt-1">
           <input #labelInput type="text" placeholder="Enter label"

@@ -1,0 +1,108 @@
+<div class="layout-wrapper">
+  <app-sidebar></app-sidebar>
+  <div class="dashboard-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="menu-toggle">☰</button>
+          <span class="breadcrumb">Dashboard</span>
+        </div>
+        <div class="header-right">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search projects, users, reports..." />
+          </div>
+          <div class="notification-icon">
+            <span>🔔</span>
+            <span class="badge">3</span>
+          </div>
+          <button class="settings-icon">⚙️</button>
+          <div class="user-avatar">H</div>
+        </div>
+      </header>
+
+      <!-- Welcome Section -->
+      <section class="welcome-section">
+        <h1>Welcome back, {{ userName }}!</h1>
+        <p>Here's what's happening with your projects today.</p>
+      </section>
+
+      <!-- Main Content Grid -->
+      <div class="content-grid">
+        <!-- Left Column -->
+        <div class="main-column">
+          <!-- Stats Cards -->
+          <div class="stats-grid">
+            <app-issue-summary-card
+              type="completed"
+              [count]="stats.activeProjects"
+              label="Active Projects"
+              timePeriod="currently active"
+            >
+            </app-issue-summary-card>
+
+            <app-issue-summary-card
+              type="created"
+              [count]="stats.issuesInProgress"
+              label="Issues in Progress"
+              timePeriod="in active sprints"
+            >
+            </app-issue-summary-card>
+
+            <app-issue-summary-card
+              type="updated"
+              [count]="stats.sprintsInProgress"
+              label="Active Sprints"
+              timePeriod="currently running"
+            >
+            </app-issue-summary-card>
+          </div>
+
+          <!-- Projects Section -->
+          <section class="projects-section">
+            <div class="section-header">
+              <h2>Your Projects</h2>
+              <button class="view-all-btn">View All</button>
+            </div>
+
+            <app-project-card
+              *ngFor="let project of projects"
+              [project]="project"
+              (starToggled)="toggleStar($event)"
+            ></app-project-card>
+          </section>
+        </div>
+
+        <!-- Right Column -->
+        <div class="side-column">
+          <!-- Task Status Overview -->
+          <div class="widget">
+            <app-sprint-overview
+              class="dashboard-sprint-overview"
+              title="Task Status"
+              description="Current distribution of tasks across different states"
+              [statuses]="sprintStatuses"
+            ></app-sprint-overview>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="widget">
+            <div class="widget-header">
+              <h3>🕐 Recent Activity</h3>
+              <button class="view-all-btn">View All</button>
+            </div>
+
+            <div class="activity-list">
+              <app-activity-item
+                *ngFor="let activity of recentActivities"
+                [activity]="activity"
+              ></app-activity-item>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

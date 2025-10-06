@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
@@ -6,24 +7,35 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { EpicContainer } from '../../epic/epic-container/epic-container';
+import { Epic } from '../../shared/models/epic.model';
 import {
   completedSprint1Issues,
   completedSprint2Issues,
   activeSprintIssues,
   plannedSprintIssues,
   backlogIssues as sharedBacklogIssues,
-  sprints as sharedSprints
+  sprints as sharedSprints,
+  epics as sharedEpics
 } from '../../shared/data/dummy-backlog-data';
+import { FormField, ModalService } from '../../modal/modal-service';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [SprintContainer, BacklogContainer, Sidebar, Navbar, Filters],
+  imports: [CommonModule, SprintContainer, BacklogContainer, Sidebar, Navbar, Filters, EpicContainer],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
 export class BacklogPage {
+  constructor(private modalService: ModalService) {}
+  
   private sidebarStateService = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+  
+  // Epic panel state
+  isEpicPanelOpen = false;
+  selectedEpicFilter: string | null = null;
+  epics: Epic[] = [...sharedEpics];
   // Use shared dummy data from shared/data/dummy-backlog-data.ts
   private completedSprint1Issues: Issue[] = completedSprint1Issues;
   private completedSprint2Issues: Issue[] = completedSprint2Issues;
@@ -49,11 +61,25 @@ export class BacklogPage {
     return this.sprints.filter(s => s.status === 'COMPLETED');
   }
 
-  handleCreateSprint(): void {
-    console.log('Create new sprint');
-    // Modal implementation will be added later
-    alert('Create Sprint functionality - Modal will be implemented later');
-  }
+  handleCreateSprint() {
+      const sprintFields: FormField[] = [
+        { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2 },
+        { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+        { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+        { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+        { label: 'Status', type: 'select', model: 'status', options: ['Planned','Active','Completed'], colSpan: 1 },
+        { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
+      ];
+  
+      
+        this.modalService.open({
+          id: 'shareModal',
+          title: 'Create Sprint',
+          projectName: 'Project Alpha',
+          fields: sprintFields,
+          data: { shareWith: '', message: '' }
+        });
+    }
 
   handleStart(sprintId: string): void {
     console.log('Start sprint:', sprintId);
@@ -168,5 +194,27 @@ export class BacklogPage {
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
+  }
+
+  toggleEpicPanel(): void {
+    this.isEpicPanelOpen = !this.isEpicPanelOpen;
+  }
+
+  closeEpicPanel(): void {
+    this.isEpicPanelOpen = false;
+  }
+
+  onEpicFilterChange(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    this.selectedEpicFilter = selectElement.value || null;
+    console.log('Selected epic filter:', this.selectedEpicFilter);
+    // Implement filter logic here to filter backlog issues by epic
+  }
+
+  get epicFilterOptions(): Array<{ id: string | null, name: string }> {
+    return [
+      { id: null, name: 'All epics' },
+      ...this.epics.map(epic => ({ id: epic.id, name: epic.name }))
+    ];
   }
 }

@@ -1,5 +1,6 @@
 import { Issue } from '../models/issue.model';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
+import { Epic } from '../models/epic.model';
 
 // Completed Sprint 1 issues
 export const completedSprint1Issues: Issue[] = [
@@ -368,5 +369,27 @@ export const sprints: Sprint[] = [
     endDate: new Date('2025-10-31'),
     status: 'PLANNED',
     issues: plannedSprintIssues
+  }
+];
+
+// Epics
+export const epics: Epic[] = [
+  {
+    id: 'epic-1',
+    name: 'Epic 1',
+    startDate: new Date('2025-10-07'),
+    dueDate: new Date('2025-10-23'),
+    progress: 60,
+    issueCount: 5,
+    isExpanded: false
+  },
+  {
+    id: 'epic-2',
+    name: 'Epic 2',
+    startDate: new Date('2025-10-07'),
+    dueDate: new Date('2025-10-23'),
+    progress: 30,
+    issueCount: 3,
+    isExpanded: false
   }
 ];
