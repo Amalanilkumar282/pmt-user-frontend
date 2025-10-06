@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 declare var Gantt: any; // frappe-gantt library
@@ -160,8 +160,11 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   currentTasks: any[] = [];
   displayMode: 'epics' | 'issues' = 'epics';
   selectedEpic: Epic | null = null;
+  selectedEpics: Epic[] = []; // Changed to array to support multiple epics
   availableSprints: string[] = [];
   availableEpics: string[] = [];
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.initializeFilters();
@@ -229,6 +232,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.currentTasks.length === 0) {
       this.ganttEl.nativeElement.innerHTML = '<div class="no-data">No data to display</div>';
+      // Clear the gantt chart reference
+      this.ganttChart = null;
       return;
     }
 
@@ -266,8 +271,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     const tasks: any[] = [];
     
     if (this.displayMode === 'epics') {
-      // Show epics
+      // Show epics with sprint filter
       this.projectData.forEach(sprint => {
+        // Check sprint filter first
+        if (this.selectedFilters.sprints.length > 0 && 
+            !this.selectedFilters.sprints.includes(sprint.text)) {
+          return; // Skip this sprint
+        }
+        
         const filteredEpics = this.filterEpics(sprint.epics);
         filteredEpics.forEach(epic => {
           tasks.push({
@@ -280,17 +291,43 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           });
         });
       });
-    } else if (this.displayMode === 'issues' && this.selectedEpic) {
-      // Show issues for selected epic
-      const filteredIssues = this.filterIssues(this.selectedEpic.issues);
-      filteredIssues.forEach(issue => {
-        tasks.push({
-          id: issue.id,
-          name: `${issue.key} - ${issue.text}`,
-          start: issue.start,
-          end: issue.end,
-          progress: this.getIssueProgress(issue),
-          custom_class: this.getIssueClass(issue)
+    } else if (this.displayMode === 'issues') {
+      // Show issues from selected epics or all epics based on filter
+      const epicsToShow: Epic[] = [];
+      
+      this.projectData.forEach(sprint => {
+        // Check sprint filter
+        if (this.selectedFilters.sprints.length > 0 && 
+            !this.selectedFilters.sprints.includes(sprint.text)) {
+          return;
+        }
+        
+        sprint.epics.forEach(epic => {
+          // If epic filter is active, only show issues from filtered epics
+          if (this.selectedFilters.epics.length > 0) {
+            if (this.selectedFilters.epics.includes(epic.text)) {
+              epicsToShow.push(epic);
+            }
+          } else {
+            // No epic filter, show all epics
+            epicsToShow.push(epic);
+          }
+        });
+      });
+      
+      // Collect all issues from selected epics
+      epicsToShow.forEach(epic => {
+        const filteredIssues = this.filterIssues(epic.issues);
+        filteredIssues.forEach(issue => {
+          tasks.push({
+            id: issue.id,
+            name: `${issue.key} - ${issue.text} [${epic.key}]`, // Added epic reference
+            start: issue.start,
+            end: issue.end,
+            progress: this.getIssueProgress(issue),
+            custom_class: this.getIssueClass(issue),
+            epicName: epic.text // Store epic name for reference
+          });
         });
       });
     }
@@ -300,10 +337,16 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private filterEpics(epics: Epic[]): Epic[] {
     return epics.filter(epic => {
+      let pass = true;
+      
       if (this.selectedFilters.epics.length > 0) {
-        return this.selectedFilters.epics.includes(epic.text);
+        pass = pass && this.selectedFilters.epics.includes(epic.text);
       }
-      return true;
+      
+      // Note: Sprint filtering would need to be handled at a higher level
+      // since epics don't have direct sprint reference in the filter
+      
+      return pass;
     });
   }
 
@@ -378,10 +421,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       }
     }
     
+    // Apply filters immediately
     this.applyFilters();
   }
 
   applyFilters() {
+    // Reinitialize the gantt chart with new filters
     this.initializeGantt();
   }
 
@@ -403,13 +448,24 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   drillDownToIssues(epicId: string) {
-    // Find the epic
+    // Find the epic and add its filter
     for (const sprint of this.projectData) {
       const epic = sprint.epics.find(e => e.id === epicId);
       if (epic) {
         this.selectedEpic = epic;
+        // Automatically set the epic filter to show this epic's issues
+        this.selectedFilters.epics = [epic.text];
         this.displayMode = 'issues';
-        this.initializeGantt();
+        // Force change detection
+        this.cdr.detectChanges();
+        // Check the epic checkbox
+        setTimeout(() => {
+          const epicCheckbox = document.getElementById(`epic-${epic.text}`) as HTMLInputElement;
+          if (epicCheckbox) {
+            epicCheckbox.checked = true;
+          }
+          this.initializeGantt();
+        }, 0);
         break;
       }
     }
@@ -418,6 +474,15 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   backToEpics() {
     this.displayMode = 'epics';
     this.selectedEpic = null;
+    // Clear epic filters when going back
+    this.selectedFilters.epics = [];
+    // Uncheck epic filter checkboxes
+    const epicCheckboxes = document.querySelectorAll('.filter-dropdown input[id^="epic-"]');
+    epicCheckboxes.forEach(cb => {
+      (cb as HTMLInputElement).checked = false;
+    });
+    // Force change detection
+    this.cdr.detectChanges();
     this.initializeGantt();
   }
 
