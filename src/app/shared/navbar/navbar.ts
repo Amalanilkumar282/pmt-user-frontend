@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ModalService } from '../../modal/modal-service';
 import { SidebarStateService } from '../services/sidebar-state.service';
+import { CreateIssue } from '../../modal/create-issue/create-issue';
 
 @Component({
   selector: 'app-navbar',
@@ -32,17 +33,18 @@ export class Navbar {
     icon: 'PA'
   };
 
+
+
   onToggleSidebar(): void {
     this.toggleSidebar.emit();
   }
 
-  onShare(): void {
-    console.log('Share clicked');
-    // Implement share functionality
-  }
-
   onCreate(): void {
     this.modalService.open('createIssue'); // ✅ open by ID
+  }
+
+  onShare() : void {
+    this.modalService.open('createShare');
   }
 
   onMenuClick(): void {
