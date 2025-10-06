@@ -1,12 +1,12 @@
 import { Injectable, signal } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SidebarStateService {
   // Global sidebar collapsed state
   private _isCollapsed = signal(false);
-  
+
   // Expose as readonly signal
   readonly isCollapsed = this._isCollapsed.asReadonly();
 
