@@ -1,7 +1,7 @@
 import { Component, HostBinding, inject } from '@angular/core';
 import { SidebarStateService } from './shared/services/sidebar-state.service';
 import { RouterOutlet } from '@angular/router';
-import { CreateIssue } from './modal/create-issue/create-issue';
+import { CreateIssue, FormField } from './modal/create-issue/create-issue';
 import { ReportDashboardModule } from './report-dashboard/report-dashboard-module';
 
 @Component({
@@ -10,8 +10,9 @@ import { ReportDashboardModule } from './report-dashboard/report-dashboard-modul
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
+
+
 export class App {
   private sidebarState = inject(SidebarStateService);
   @HostBinding('class.app-sidebar-collapsed') get collapsed() { return this.sidebarState.getCollapsed(); }
-
 }
