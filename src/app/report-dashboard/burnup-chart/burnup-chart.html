@@ -7,15 +7,13 @@
     </app-navbar>
     <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
         <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
-            <!-- <p>burnup-chart works!</p> -->
-
-            <!-- <div class="burnup-report-page">
-                <app-chart-header [title]="'Burnup Report'" [sprints]="sprints" [selectedSprint]="selectedSprint"
-                    (back)="navigateBack()" (sprintChange)="onSprintChange($event)">
-                </app-chart-header>
-            </div> -->
+             
+            
             <app-chart-header  [title]="'Burnup Report'" (back)="navigateBack()"></app-chart-header>
-
+            
+          
+            <app-metrics-chart [chartType]="'burnup'"></app-metrics-chart>
+        
         </div>
 
     </div>

@@ -1,19 +1,80 @@
-<!-- Overlay -->
-<div class="modal-overlay" *ngIf="show" (click)="close()"></div>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black/20 z-1500 flex items-center justify-center" *ngIf="show" (click)="close()">
+  <div class="modal-body bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto z-1600"
+       (click)="$event.stopPropagation()">
 
-<!-- Modal content -->
-<div class="ui modal centered" *ngIf="show">
-  <i class="close icon" (click)="close()"></i>
-  <div class="header">Create Issue</div>
-  <div class="content">
-    <p>Issue type:</p>
-    <input type="text" placeholder="Enter issue title">
-  </div>
-  <div class="actions">
-    <div class="ui gray deny button" (click)="close()">Cancel</div>
-    <div class="ui positive icon button" (click)="close()">
-      Create Issue
-      <i class="checkmark icon"></i>
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200 sticky top-0 bg-[#F1E3FC] z-10">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-gray-800">Create Issue</h2>
+        <span class="text-[#665872] text-lg font-medium">Project Alpha</span>
+      </div>
+      <p class="text-sm text-gray-500 mt-1 italic">Create a new issue in your project</p>
+    </div>
+
+    <!-- Form Body -->
+    <form (ngSubmit)="submit()" class="px-6 py-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ng-container *ngFor="let field of fields">
+          <div [class.col-span-2]="field.colSpan === 2">
+            <label class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+
+            <textarea *ngIf="field.type==='textarea'"
+                      [(ngModel)]="formData[field.model]"
+                      name="{{field.model}}"
+                      (ngModelChange)="handleChange($event, field)"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow shadow-slate-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-12 py-3 px-3">
+            </textarea>
+
+            <select *ngIf="field.type==='select'"
+                    [(ngModel)]="formData[field.model]"
+                    name="{{field.model}}"
+                    (ngModelChange)="handleChange($event, field)"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow shadow-slate-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-3 px-3">
+              <option *ngFor="let opt of field.options" [value]="opt">{{ opt }}</option>
+            </select>
+
+            <input *ngIf="field.type==='text' || field.type==='number' || field.type==='date' || field.type==='file'"
+                   [(ngModel)]="formData[field.model]"
+                   name="{{field.model}}"
+                   [type]="field.type"
+                   (change)="field.type==='file' && handleFileSelect($event, field); field.type!=='file' && handleChange($event.target.value, field)"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow shadow-slate-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-3 px-3" />
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Labels Section -->
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700">Labels</label>
+        <div class="flex gap-2 mt-1">
+          <input #labelInput type="text" placeholder="Enter label"
+                 class="flex-1 rounded-md border-gray-300 shadow shadow-slate-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-3 px-3" />
+          <button type="button"
+                  (click)="addLabel(labelInput.value); labelInput.value=''"
+                  class="px-3 py-1 bg-black text-white rounded-md text-sm border border-2 border-transparent hover:bg-white hover:text-black hover:border-black">
+            Add
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <span *ngFor="let label of formData.labels" class="inline-flex items-center px-2 py-1 rounded bg-gray-200 text-gray-700 text-sm">
+            {{ label }}
+            <button type="button" (click)="removeLabel(label)" class="ml-2 text-gray-500 hover:text-gray-700">&times;</button>
+          </span>
+        </div>
+      </div>
+    </form>
+
+    <!-- Footer -->
+    <div class="px-6 py-3 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 bg-[#F1E3FC] z-10">
+      <button type="button" (click)="close()"
+              class="px-2 py-1 bg-gray-400 text-white rounded-md hover:bg-[#F6997E] hover:text-white">
+        Cancel
+      </button>
+      <button type="button" (click)="submit()"
+              class="px-2 py-1 bg-[#665872] text-white rounded-md hover:bg-[#3E3545]">
+        Create Issue
+      </button>
     </div>
   </div>
 </div>
