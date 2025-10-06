@@ -3,16 +3,19 @@
   <canvas #burnupCanvas></canvas>
 </div> -->
 
-<div style="max-width: 800px; margin: auto;">
-  <apx-chart
-    [series]="chartOptions.series"
-    [chart]="chartOptions.chart"
-    [xaxis]="chartOptions.xaxis"
-    [yaxis]="chartOptions.yaxis"
-    [stroke]="chartOptions.stroke"
-    [dataLabels]="chartOptions.dataLabels"
-    [legend]="chartOptions.legend"
-    [title]="chartOptions.title">
-  </apx-chart>
+<div class="chart-container">
+   <apx-chart
+  [series]="chartOptions.series"
+  [chart]="chartOptions.chart"
+  [xaxis]="chartOptions.xaxis"
+  [yaxis]="chartOptions.yaxis"
+  [plotOptions]="chartOptions.plotOptions"
+  [dataLabels]="chartOptions.dataLabels"
+  [fill]="chartOptions.fill"
+  [stroke]="chartOptions.stroke"
+  [legend]="chartOptions.legend"
+  [title]="chartOptions.title">
+</apx-chart>
+
 </div>
 

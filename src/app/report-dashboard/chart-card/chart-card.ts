@@ -1,4 +1,5 @@
  import { Component, Input } from '@angular/core';
+ import { Router } from '@angular/router';
 
 export interface ChartDataPoint {
   x: number;
@@ -138,6 +139,14 @@ export class ChartCard {
           { x: 8, y: 85 },
           { x: 9, y: 95 }
         ];
+    }
+  }
+
+  constructor(private router: Router) {}
+
+  goToDetails() {
+    if (this.detailsLink) {
+      this.router.navigate([this.detailsLink]);
     }
   }
 }

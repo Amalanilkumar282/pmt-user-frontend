@@ -2,11 +2,11 @@ import { Component,inject } from '@angular/core';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { TimelineChart } from '../timeline-chart/timeline-chart';
 
 @Component({
   selector: 'app-timeline-component',
-  imports: [Navbar,Sidebar],
-  providers:[SidebarStateService],
+  imports: [Navbar,Sidebar,TimelineChart],
   templateUrl: './timeline-component.html',
   styleUrl: './timeline-component.css'
 })
