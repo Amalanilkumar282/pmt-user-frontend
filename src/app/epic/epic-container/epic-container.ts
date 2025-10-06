@@ -19,6 +19,7 @@ export class EpicContainer {
 
   @Output() epicSelected = new EventEmitter<string>();
   @Output() closeEpicPanel = new EventEmitter<void>();
+  @Output() viewDetails = new EventEmitter<string>();
 
   onToggleExpand(epicId: string): void {
     this.epics = this.epics.map(epic => 
@@ -29,8 +30,7 @@ export class EpicContainer {
   }
 
   onViewDetails(epicId: string): void {
-    console.log('View details for epic:', epicId);
-    // Navigate to epic detailed view or open modal
+    this.viewDetails.emit(epicId);
   }
 
   startCreatingEpic(): void {
@@ -55,11 +55,20 @@ export class EpicContainer {
       const newEpic: Epic = {
         id: `epic-${Date.now()}`,
         name: this.newEpicName.trim(),
+        description: '',
         startDate: null,
         dueDate: null,
         progress: 0,
         issueCount: 0,
-        isExpanded: true
+        isExpanded: true,
+        assignee: 'Unassigned',
+        labels: [],
+        parent: 'None',
+        team: 'None',
+        sprint: 'None',
+        storyPoints: 0,
+        reporter: 'Unknown',
+        childWorkItems: []
       };
       this.epics.push(newEpic);
       this.isCreating = false;
