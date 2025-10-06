@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
@@ -8,6 +8,7 @@ import { Navbar } from '../../shared/navbar/navbar';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { EpicContainer } from '../../epic/epic-container/epic-container';
+import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
 import { Epic } from '../../shared/models/epic.model';
 import {
   completedSprint1Issues,
@@ -22,7 +23,7 @@ import { FormField, ModalService } from '../../modal/modal-service';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, Sidebar, Navbar, Filters, EpicContainer],
+  imports: [CommonModule, SprintContainer, BacklogContainer, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -36,6 +37,13 @@ export class BacklogPage {
   isEpicPanelOpen = false;
   selectedEpicFilter: string | null = null;
   epics: Epic[] = [...sharedEpics];
+  
+  // Epic detail view state
+  selectedEpic: Epic | null = null;
+  epicDetailPanelWidth = 600; // Default width in pixels
+  private isResizing = false;
+  private startX = 0;
+  private startWidth = 0;
   // Use shared dummy data from shared/data/dummy-backlog-data.ts
   private completedSprint1Issues: Issue[] = completedSprint1Issues;
   private completedSprint2Issues: Issue[] = completedSprint2Issues;
@@ -249,5 +257,55 @@ export class BacklogPage {
       { id: null, name: 'All epics' },
       ...this.epics.map(epic => ({ id: epic.id, name: epic.name }))
     ];
+  }
+
+  // Epic detail view methods
+  openEpicDetailView(epicId: string): void {
+    const epic = this.epics.find(e => e.id === epicId);
+    if (epic) {
+      this.selectedEpic = { ...epic }; // Create a copy to avoid direct mutation
+    }
+  }
+
+  closeEpicDetailView(): void {
+    this.selectedEpic = null;
+  }
+
+  onEpicUpdated(updatedEpic: Epic): void {
+    // Update the epic in the epics array
+    const index = this.epics.findIndex(e => e.id === updatedEpic.id);
+    if (index !== -1) {
+      this.epics[index] = { ...updatedEpic };
+    }
+    // Update the selected epic reference
+    this.selectedEpic = { ...updatedEpic };
+  }
+
+  // Resize methods
+  startResize(event: MouseEvent): void {
+    this.isResizing = true;
+    this.startX = event.clientX;
+    this.startWidth = this.epicDetailPanelWidth;
+    event.preventDefault();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent): void {
+    if (this.isResizing) {
+      const deltaX = this.startX - event.clientX;
+      const newWidth = this.startWidth + deltaX;
+      
+      // Set min and max width constraints
+      if (newWidth >= 400 && newWidth <= 1200) {
+        this.epicDetailPanelWidth = newWidth;
+      }
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp(): void {
+    if (this.isResizing) {
+      this.isResizing = false;
+    }
   }
 }
