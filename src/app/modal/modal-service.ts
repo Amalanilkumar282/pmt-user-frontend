@@ -1,20 +1,41 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
+export interface ModalConfig {
+  id: string;                 // modal identifier
+  title?: string;             // modal header
+  projectName?: string;       // optional project label
+  fields?: FormField[];       // dynamic fields
+  data?: any;                 // pre-filled form values
+  showLabels?: boolean;
+}
+
+export interface FormField {
+  label: string;
+  type: 'text' | 'number' | 'textarea' | 'select' | 'date' | 'file';
+  model: string;
+  options?: string[];
+  colSpan?: 1 | 2;
+  onChange?: (value: any, formData: any) => void;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ModalService {
   private activeModalSubject = new BehaviorSubject<string | null>(null);
   activeModal$ = this.activeModalSubject.asObservable();
 
-  open(id: string) {
-    this.activeModalSubject.next(id);
+  private modalData: Record<string, ModalConfig> = {};
+
+  open(config: ModalConfig) {
+    this.modalData[config.id] = config;
+    this.activeModalSubject.next(config.id);
   }
 
   close() {
     this.activeModalSubject.next(null);
   }
 
-  isOpen(id: string): boolean {
-    return this.activeModalSubject.getValue() === id;
+  getConfig(modalId: string): ModalConfig | undefined {
+    return this.modalData[modalId];
   }
 }
