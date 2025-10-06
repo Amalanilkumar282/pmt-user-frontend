@@ -1,1 +1,475 @@
-<p>epic-detailed-view works!</p>
+<div class="epic-detail-panel">
+  <!-- Header -->
+  <div class="epic-header">
+    <div class="epic-header-left">
+      <div class="epic-icon-wrapper">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect width="20" height="20" rx="2" fill="#8B5CF6"/>
+          <rect x="4" y="4" width="12" height="12" rx="1" fill="white"/>
+        </svg>
+      </div>
+      <div class="epic-title-section">
+        <div class="epic-id">{{ epic.name }}</div>
+      </div>
+    </div>
+    <div class="epic-header-actions">
+      <button class="action-btn" title="Share">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M15 6.5C16.3807 6.5 17.5 5.38071 17.5 4C17.5 2.61929 16.3807 1.5 15 1.5C13.6193 1.5 12.5 2.61929 12.5 4C12.5 5.38071 13.6193 6.5 15 6.5Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M5 12.5C6.38071 12.5 7.5 11.3807 7.5 10C7.5 8.61929 6.38071 7.5 5 7.5C3.61929 7.5 2.5 8.61929 2.5 10C2.5 11.3807 3.61929 12.5 5 12.5Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M15 18.5C16.3807 18.5 17.5 17.3807 17.5 16C17.5 14.6193 16.3807 13.5 15 13.5C13.6193 13.5 12.5 14.6193 12.5 16C12.5 17.3807 13.6193 18.5 15 18.5Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M7.08 11.18L12.92 14.82M12.92 5.18L7.08 8.82" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+      <button class="action-btn" title="Copy link">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 5H7C5.34315 5 4 6.34315 4 8V13C4 14.6569 5.34315 16 7 16H12C13.6569 16 15 14.6569 15 13V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M10 10L16 4M16 4H12M16 4V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="action-btn" title="More options">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="4" r="1.5" fill="currentColor"/>
+          <circle cx="10" cy="10" r="1.5" fill="currentColor"/>
+          <circle cx="10" cy="16" r="1.5" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="close-btn" (click)="onClose()">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="epic-content">
+    <!-- To Do Section -->
+    <div class="section todo-section">
+      <div class="section-header">
+        <span class="todo-label">To Do</span>
+        <div class="todo-actions">
+          <button class="icon-btn" title="Add task">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <span class="todo-text">Improve work item</span>
+          <button class="icon-btn" title="Options">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="4" r="1" fill="currentColor"/>
+              <circle cx="8" cy="8" r="1" fill="currentColor"/>
+              <circle cx="8" cy="12" r="1" fill="currentColor"/>
+            </svg>
+          </button>
+          <button class="icon-btn" title="Add">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description Section -->
+    <div class="section description-section">
+      <div class="section-title">Description</div>
+      @if (!editingDescription) {
+        <div class="description-text" (click)="startEditingDescription()">
+          {{ epic.description || 'Add a description...' }}
+        </div>
+      } @else {
+        <div class="edit-container">
+          <textarea 
+            class="edit-textarea"
+            [(ngModel)]="tempDescription"
+            rows="3"
+            placeholder="Add a description...">
+          </textarea>
+          <div class="edit-actions">
+            <button class="btn-save" (click)="saveDescription()">Save</button>
+            <button class="btn-cancel" (click)="cancelDescription()">Cancel</button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Child Work Items Section -->
+    <div class="section work-items-section">
+      <div class="section-header-with-count">
+        <div class="section-title">Child work items</div>
+        <div class="work-items-progress">
+          <div class="progress-bar-small">
+            <div class="progress-fill" [style.width]="getProgressPercentage()"></div>
+          </div>
+          <span class="progress-text">{{ getProgressPercentage() }} Done</span>
+        </div>
+      </div>
+
+      <div class="work-items-table">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-checkbox">
+                <input type="checkbox" />
+              </th>
+              <th class="col-work">Work</th>
+              <th class="col-priority">Priority</th>
+              <th class="col-assignee">Assignee</th>
+              <th class="col-status">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of workItems; track item.id) {
+              <tr class="work-item-row">
+                <td class="col-checkbox">
+                  <input type="checkbox" />
+                </td>
+                <td class="col-work">
+                  <div class="work-info">
+                    <span class="work-icon" [class]="'type-' + item.type.toLowerCase()">
+                      @if (item.type === 'TASK') {
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <rect width="16" height="16" rx="2" fill="#4BADE8"/>
+                          <path d="M5 8L7 10L11 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      } @else if (item.type === 'STORY') {
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <rect width="16" height="16" rx="2" fill="#63BA3C"/>
+                        </svg>
+                      } @else if (item.type === 'BUG') {
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <circle cx="8" cy="8" r="7" fill="#E5493A"/>
+                        </svg>
+                      }
+                    </span>
+                    <span class="work-id">{{ item.id }}</span>
+                  </div>
+                </td>
+                <td class="col-priority">
+                  <span class="priority-badge" [class]="getPriorityClass(item.priority)">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M6 2L7 6L6 10M6 2L5 6L6 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    {{ item.priority }}
+                  </span>
+                </td>
+                <td class="col-assignee">
+                  <div class="assignee-info">
+                    <div class="avatar">{{ item.assignee?.charAt(0) || 'U' }}</div>
+                    <span>{{ item.assignee || 'Unassigned' }}</span>
+                  </div>
+                </td>
+                <td class="col-status">
+                  <span class="status-badge" [class]="getStatusClass(item.status)">
+                    {{ getStatusLabel(item.status) }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Add Related Work Item Link -->
+      <div class="add-related-item">
+        <button class="link-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Add related work item
+        </button>
+      </div>
+    </div>
+
+    <!-- What Needs to be Done Section -->
+    <div class="section needs-done-section">
+      <div class="input-with-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="input-icon">
+          <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" placeholder="What needs to be done?" class="needs-input" />
+      </div>
+      <div class="choose-existing">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M5 7L8 10L11 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Choose existing</span>
+      </div>
+      <button class="task-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect width="16" height="16" rx="2" fill="#4BADE8"/>
+        </svg>
+        <span>Task</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="cancel-btn-link">Cancel</button>
+    </div>
+
+    <!-- Related Work Items Section -->
+    <div class="section related-items-section">
+      <div class="section-title">Related work items</div>
+      <button class="link-btn">
+        Add related work item
+      </button>
+    </div>
+
+    <!-- Details Section -->
+    <div class="section details-section">
+      <div class="details-header">
+        <span class="details-title">Details</span>
+        <button class="icon-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8H13M8 3V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 8H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="details-grid">
+        <!-- Assignee -->
+        <div class="detail-row">
+          <div class="detail-label">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M3 13C3 10.7909 5.68629 9 9 9C10.7 9 12.2 9.5 13 10.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            Assignee
+          </div>
+          <div class="detail-value">
+            @if (!editingAssignee) {
+              <span (click)="startEditingAssignee()" class="editable-text">
+                {{ epic.assignee || 'Unassigned' }}
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <input 
+                  type="text" 
+                  [(ngModel)]="tempAssignee"
+                  class="inline-input"
+                  (keyup.enter)="saveAssignee()"
+                  (keyup.escape)="cancelAssignee()"
+                />
+                <button class="btn-save-small" (click)="saveAssignee()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelAssignee()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Labels -->
+        <div class="detail-row">
+          <div class="detail-label">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M2 8L8 2L14 8L8 14L2 8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <circle cx="10" cy="6" r="1" fill="currentColor"/>
+            </svg>
+            Labels
+          </div>
+          <div class="detail-value">
+            <div class="labels-container">
+              @if (epic.labels && epic.labels.length > 0) {
+                @for (label of epic.labels; track label) {
+                  <span class="label-tag">
+                    {{ label }}
+                    <button class="label-remove" (click)="removeLabel(label)">×</button>
+                  </span>
+                }
+              } @else {
+                <span class="empty-value">Click to add</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Parent -->
+        <div class="detail-row">
+          <div class="detail-label">Parent</div>
+          <div class="detail-value">
+            @if (!editingParent) {
+              <span (click)="startEditingParent()" class="editable-text">
+                {{ epic.parent || 'None' }}
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <input 
+                  type="text" 
+                  [(ngModel)]="tempParent"
+                  class="inline-input"
+                  (keyup.enter)="saveParent()"
+                  (keyup.escape)="cancelParent()"
+                />
+                <button class="btn-save-small" (click)="saveParent()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelParent()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Team -->
+        <div class="detail-row">
+          <div class="detail-label">Team</div>
+          <div class="detail-value">
+            @if (!editingTeam) {
+              <span (click)="startEditingTeam()" class="editable-text">
+                {{ epic.team || 'None' }}
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <input 
+                  type="text" 
+                  [(ngModel)]="tempTeam"
+                  class="inline-input"
+                  (keyup.enter)="saveTeam()"
+                  (keyup.escape)="cancelTeam()"
+                />
+                <button class="btn-save-small" (click)="saveTeam()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelTeam()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Due Date -->
+        <div class="detail-row">
+          <div class="detail-label">Due date</div>
+          <div class="detail-value">
+            @if (!editingDueDate) {
+              <span (click)="startEditingDueDate()" class="editable-text date-text">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="2" width="12" height="11" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M1 5H13M4 1V3M10 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                {{ formatDate(epic.dueDate) || 'Not set' }}
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <input 
+                  type="date" 
+                  [(ngModel)]="tempDueDate"
+                  class="inline-input"
+                  (keyup.enter)="saveDueDate()"
+                  (keyup.escape)="cancelDueDate()"
+                />
+                <button class="btn-save-small" (click)="saveDueDate()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelDueDate()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Start Date -->
+        <div class="detail-row">
+          <div class="detail-label">Start date</div>
+          <div class="detail-value">
+            @if (!editingStartDate) {
+              <span (click)="startEditingStartDate()" class="editable-text date-text">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <rect x="1" y="2" width="12" height="11" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M1 5H13M4 1V3M10 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                {{ formatDate(epic.startDate) || 'Not set' }}
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <input 
+                  type="date" 
+                  [(ngModel)]="tempStartDate"
+                  class="inline-input"
+                  (keyup.enter)="saveStartDate()"
+                  (keyup.escape)="cancelStartDate()"
+                />
+                <button class="btn-save-small" (click)="saveStartDate()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelStartDate()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Sprint -->
+        <div class="detail-row">
+          <div class="detail-label">Sprint</div>
+          <div class="detail-value">
+            @if (!editingSprint) {
+              <span (click)="startEditingSprint()" class="editable-text">
+                {{ epic.sprint || 'None' }}
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <input 
+                  type="text" 
+                  [(ngModel)]="tempSprint"
+                  class="inline-input"
+                  (keyup.enter)="saveSprint()"
+                  (keyup.escape)="cancelSprint()"
+                />
+                <button class="btn-save-small" (click)="saveSprint()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelSprint()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Story Point Estimate -->
+        <div class="detail-row">
+          <div class="detail-label">Story point estimate</div>
+          <div class="detail-value">
+            @if (!editingStoryPoints) {
+              <span (click)="startEditingStoryPoints()" class="editable-text">
+                {{ epic.storyPoints || '0' }}
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <input 
+                  type="number" 
+                  [(ngModel)]="tempStoryPoints"
+                  class="inline-input"
+                  (keyup.enter)="saveStoryPoints()"
+                  (keyup.escape)="cancelStoryPoints()"
+                />
+                <button class="btn-save-small" (click)="saveStoryPoints()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelStoryPoints()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Development -->
+        <div class="detail-row">
+          <div class="detail-label">Development</div>
+          <div class="detail-value">
+            <button class="link-btn-small">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M4 7L6 9L10 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Create branch
+            </button>
+            <button class="link-btn-small">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Create commit
+            </button>
+          </div>
+        </div>
+
+        <!-- Reporter -->
+        <div class="detail-row">
+          <div class="detail-label">Reporter</div>
+          <div class="detail-value">
+            <div class="assignee-info">
+              <div class="avatar-small">{{ epic.reporter?.charAt(0) || 'U' }}</div>
+              <span>{{ epic.reporter || 'Unknown' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
