@@ -81,11 +81,11 @@ export class BacklogPage {
   
       
         this.modalService.open({
-          id: 'shareModal',
+          id: 'sprintModal',
           title: 'Create Sprint',
           projectName: 'Project Alpha',
           fields: sprintFields,
-          data: { shareWith: '', message: '' }
+          data: { shareWith: '', message: '' }  //optional prefilled
         });
     }
 
@@ -100,10 +100,43 @@ export class BacklogPage {
   }
 
   handleEdit(sprintId: string): void {
-    console.log('Edit sprint:', sprintId);
-    // Modal implementation will be added later
-    alert(`Edit Sprint ${sprintId} - Modal will be implemented later`);
+  const sprint = this.sprints.find(s => s.id === sprintId);
+  if (!sprint) {
+    console.error(`Sprint not found: ${sprintId}`);
+    return;
   }
+
+  // Derive extra info dynamically (goal, story points, etc.)
+  const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
+  const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+
+  const sprintFields: FormField[] = [
+    { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2 },
+    { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+    { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
+    { label: 'Story Point (Total)', type: 'number', model: 'storyPoint', colSpan: 1 },
+  ];
+
+  this.modalService.open({
+    id: 'shareModal',
+    title: 'Edit Sprint',
+    projectName: 'Project Alpha',
+    fields: sprintFields,
+    data: {
+      sprintName: sprint.name || '',
+      sprintGoal,
+      startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
+      dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
+      status: sprint.status || 'Planned',
+      storyPoint: totalStoryPoints,
+    },
+    showLabels: false
+  });
+}
+
+
 
   handleDelete(sprintId: string): void {
     console.log('Delete sprint:', sprintId);
