@@ -5,13 +5,16 @@
   </app-navbar>
 
   <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
-    <div class="text-center mb-10">
-      <h2 class="text-text-primary text-xl font-bold leading-7 mb-2">Project Summary</h2>
-      <p class="text-text-secondary text-sm leading-[18px]">
-        Get insights into your project's current status, recent activity, and team performance
-      </p>
-    </div>
+    <app-project-summary></app-project-summary>
+
     <div class="bg-white shadow-md rounded-lg p-6 mb-8">
+      <!-- Sprint Filter Component Added Here -->
+      <app-sprint-filter
+        [sprints]="sprints"
+        [selectedSprint]="selectedSprintId || 'all'"
+        (sprintChange)="onSprintFilterChange($event)"
+      ></app-sprint-filter>
+
       <section class="summary-section">
         <h2 class="section-title">Issues</h2>
         <div class="cards-grid">
@@ -27,6 +30,7 @@
         </div>
       </section>
     </div>
+
     <div class="charts-grid">
       <app-sprint-overview [statuses]="sprintStatuses"></app-sprint-overview>
       <app-summary-bar-chart [issues]="issueChartData"></app-summary-bar-chart>

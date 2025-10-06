@@ -1,0 +1,53 @@
+<div class="epic-list-item">
+  <div class="epic-header" (click)="onToggleExpand()">
+    <div class="epic-header-left">
+      <span class="expand-icon" [class.expanded]="epic.isExpanded">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="epic-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect width="16" height="16" rx="2" fill="#8B5CF6"/>
+          <rect x="3" y="3" width="10" height="10" rx="1" fill="white"/>
+        </svg>
+      </span>
+      <span class="epic-name">{{ epic.name }}</span>
+    </div>
+    <button class="more-options" (click)="$event.stopPropagation(); onViewDetails()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
+        <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+        <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
+      </svg>
+    </button>
+  </div>
+
+  @if (epic.isExpanded) {
+    <div class="epic-details">
+      <div class="progress-section">
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" [style.width.%]="epic.progress"></div>
+        </div>
+      </div>
+
+      @if (epic.startDate) {
+        <div class="date-info">
+          <span class="date-label">Start date</span>
+          <span class="date-value">{{ formatDate(epic.startDate) }}</span>
+        </div>
+      }
+
+      @if (epic.dueDate) {
+        <div class="date-info">
+          <span class="date-label">Due date</span>
+          <span class="date-value">{{ formatDate(epic.dueDate) }}</span>
+        </div>
+      }
+
+      <button class="view-details-btn" (click)="onViewDetails()">
+        View all details
+      </button>
+    </div>
+  }
+</div>

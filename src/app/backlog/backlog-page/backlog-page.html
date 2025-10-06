@@ -8,14 +8,64 @@
     (toggleSidebar)="onToggleSidebar()">
   </app-navbar>
 
+  <!-- Epic Panel -->
+  @if (isEpicPanelOpen) {
+    <app-epic-container 
+      [class.sidebar-collapsed]="isSidebarCollapsed()"
+      (closeEpicPanel)="closeEpicPanel()"
+      (viewDetails)="openEpicDetailView($event)">
+    </app-epic-container>
+  }
+
+  <!-- Epic Detail View Panel -->
+  @if (selectedEpic) {
+    <div class="epic-detail-panel-wrapper" 
+         [class.sidebar-collapsed]="isSidebarCollapsed()"
+         [class.epic-panel-open]="isEpicPanelOpen"
+         [style.width.px]="epicDetailPanelWidth">
+      <app-epic-detailed-view 
+        [epic]="selectedEpic"
+        (close)="closeEpicDetailView()"
+        (epicUpdated)="onEpicUpdated($event)">
+      </app-epic-detailed-view>
+      <div class="resize-handle" 
+           (mousedown)="startResize($event)">
+      </div>
+    </div>
+  }
+
   <!-- Main Content -->
-  <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+  <div class="page-container" 
+       [class.sidebar-collapsed]="isSidebarCollapsed()"
+       [class.epic-panel-open]="isEpicPanelOpen"
+       [class.epic-detail-open]="selectedEpic"
+       [style.margin-right.px]="selectedEpic ? epicDetailPanelWidth : 0">
     <!-- Filters Section -->
     <app-filters (filtersChanged)="onFiltersChanged($event)"></app-filters>
 
     <div class="page-header">
       <div class="page-header-left">
-        <!-- Optional: Add any left-aligned content here -->
+        <div class="epic-controls">
+          <button 
+            class="epic-toggle-btn"
+            [class.active]="isEpicPanelOpen"
+            (click)="toggleEpicPanel()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect width="16" height="16" rx="2" fill="#8B5CF6"/>
+              <rect x="3" y="3" width="10" height="10" rx="1" fill="white"/>
+            </svg>
+            <span>Epic</span>
+          </button>
+
+          <select 
+            class="epic-filter-select"
+            [value]="selectedEpicFilter || ''"
+            (change)="onEpicFilterChange($event)">
+            @for (option of epicFilterOptions; track option.id) {
+              <option [value]="option.id || ''">{{ option.name }}</option>
+            }
+          </select>
+        </div>
       </div>
       <button 
         class="create-sprint-btn"
