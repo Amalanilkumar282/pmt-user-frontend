@@ -1,0 +1,19 @@
+<div class="bg-white rounded-[14px] shadow-[0_0.7px_2.1px_0_rgba(0,0,0,0.1)] flex flex-col h-full">
+  <div class="w-full h-1 bg-gradient-primary rounded-t-[8.417px]"></div>
+  <h3 class="text-text-tertiary font-sans text-[17px] font-bold leading-normal p-4 pb-0">
+    Issue Types
+  </h3>
+  <div class="px-4 pb-4">
+    <apx-chart
+      #chart
+      [series]="chartOptions.series!"
+      [chart]="chartOptions.chart!"
+      [xaxis]="chartOptions.xaxis!"
+      [yaxis]="chartOptions.yaxis!"
+      [dataLabels]="chartOptions.dataLabels!"
+      [plotOptions]="chartOptions.plotOptions!"
+      [colors]="chartOptions.colors!"
+      [grid]="chartOptions.grid!"
+    ></apx-chart>
+  </div>
+</div>

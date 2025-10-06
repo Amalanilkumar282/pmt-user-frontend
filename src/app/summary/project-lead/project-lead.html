@@ -1,0 +1,32 @@
+<div class="bg-white rounded-[14px] shadow-[0_0.7px_2.1px_0_rgba(0,0,0,0.1)] p-4 w-full">
+  <!-- Gradient Top Border -->
+  <div
+    class="h-1 bg-gradient-to-r from-primary-gradient-start to-primary-gradient-end rounded-t-[14px] -mx-4 -mt-4 mb-4"
+  ></div>
+
+  <!-- Title -->
+  <h3 class="text-text-primary text-[17px] font-bold leading-4 mb-4 font-sans">Project Lead</h3>
+
+  <!-- Lead Info -->
+  <div class="flex items-center gap-3">
+    <!-- Avatar -->
+    <div
+      class="w-[22px] h-[22px] rounded-[11px] bg-status-accent flex items-center justify-center"
+      [ngClass]="leadData.bgColor"
+    >
+      <span class="text-white text-[8px] font-bold font-roboto">
+        {{ leadData.initials }}
+      </span>
+    </div>
+
+    <!-- Info -->
+    <div>
+      <h4 class="text-text-primary text-sm font-medium leading-[25px] font-sans">
+        {{ leadData.name }}
+      </h4>
+      <p class="text-text-secondary text-[12px] leading-3 font-sans">
+        {{ leadData.role }}
+      </p>
+    </div>
+  </div>
+</div>
