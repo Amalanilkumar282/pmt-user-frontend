@@ -1,7 +1,7 @@
 import { Component, HostBinding, inject } from '@angular/core';
 import { SidebarStateService } from './shared/services/sidebar-state.service';
 import { RouterOutlet } from '@angular/router';
-import { CreateIssue, FormField } from './modal/create-issue/create-issue';
+import { CreateIssue} from './modal/create-issue/create-issue';
 import { ReportDashboardModule } from './report-dashboard/report-dashboard-module';
 
 @Component({
