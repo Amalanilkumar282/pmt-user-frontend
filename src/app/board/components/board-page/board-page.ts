@@ -46,7 +46,7 @@ export class BoardPage implements OnInit {
   ngOnInit(): void {
     this.store.loadData(sprints);
     this.store.addBacklog(backlogIssues);
-    this.store.selectSprint('1');
+    this.store.selectSprint('active-1');
   }
 
   // open issue detailed view from task card
