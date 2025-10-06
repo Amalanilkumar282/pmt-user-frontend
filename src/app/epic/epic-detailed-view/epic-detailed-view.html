@@ -8,6 +8,27 @@
           <rect x="4" y="4" width="12" height="12" rx="1" fill="white"/>
         </svg>
       </div>
+      <div class="detail-value">
+        @if (!editingSprint) {
+          <span (click)="startEditingSprint()" class="editable-text">
+            {{ epic.sprint || 'None' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <select 
+              [(ngModel)]="tempSprint"
+              class="inline-select"
+              (keyup.escape)="cancelSprint()">
+              <option value="None">None</option>
+              @for (sprint of availableSprints; track sprint.id) {
+                <option [value]="sprint.name">{{ sprint.name }}</option>
+              }
+            </select>
+            <button class="btn-save-small" (click)="saveSprint()">✓</button>
+            <button class="btn-cancel-small" (click)="cancelSprint()">✕</button>
+          </div>
+        }
+      </div>
       <div class="epic-title-section">
         <div class="epic-id">{{ epic.name }}</div>
       </div>
@@ -117,6 +138,7 @@
               <th class="col-priority">Priority</th>
               <th class="col-assignee">Assignee</th>
               <th class="col-status">Status</th>
+              <th class="col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -128,42 +150,82 @@
                 <td class="col-work">
                   <div class="work-info">
                     <span class="work-icon" [class]="'type-' + item.type.toLowerCase()">
-                      @if (item.type === 'TASK') {
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <rect width="16" height="16" rx="2" fill="#4BADE8"/>
-                          <path d="M5 8L7 10L11 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      } @else if (item.type === 'STORY') {
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <rect width="16" height="16" rx="2" fill="#63BA3C"/>
-                        </svg>
-                      } @else if (item.type === 'BUG') {
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <circle cx="8" cy="8" r="7" fill="#E5493A"/>
-                        </svg>
-                      }
+                      {{ getTypeIcon(item.type) }}
                     </span>
-                    <span class="work-id">{{ item.id }}</span>
+                    @if (!isEditingWorkItem(item.id, 'title')) {
+                      <span class="work-id editable-cell" (click)="startEditingWorkItem(item.id, 'title')">{{ item.title || item.id }}</span>
+                    } @else {
+                      <input 
+                        type="text" 
+                        [(ngModel)]="tempWorkItemValues[item.id]['title']"
+                        class="inline-input-small"
+                        (keyup.enter)="saveWorkItem(item.id, 'title')"
+                        (keyup.escape)="cancelWorkItemEdit(item.id, 'title')"
+                      />
+                      <button class="btn-save-tiny" (click)="saveWorkItem(item.id, 'title')">✓</button>
+                      <button class="btn-cancel-tiny" (click)="cancelWorkItemEdit(item.id, 'title')">✕</button>
+                    }
                   </div>
                 </td>
                 <td class="col-priority">
-                  <span class="priority-badge" [class]="getPriorityClass(item.priority)">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path d="M6 2L7 6L6 10M6 2L5 6L6 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    </svg>
-                    {{ item.priority }}
-                  </span>
+                  @if (!isEditingWorkItem(item.id, 'priority')) {
+                    <span class="priority-badge editable-cell" [class]="getPriorityClass(item.priority)" (click)="startEditingWorkItem(item.id, 'priority')">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M6 2L7 6L6 10M6 2L5 6L6 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      </svg>
+                      {{ item.priority }}
+                    </span>
+                  } @else {
+                    <select 
+                      [(ngModel)]="tempWorkItemValues[item.id]['priority']"
+                      class="inline-select-small"
+                      (change)="saveWorkItem(item.id, 'priority')">
+                      @for (priority of priorities; track priority) {
+                        <option [value]="priority">{{ priority }}</option>
+                      }
+                    </select>
+                  }
                 </td>
                 <td class="col-assignee">
-                  <div class="assignee-info">
-                    <div class="avatar">{{ item.assignee?.charAt(0) || 'U' }}</div>
-                    <span>{{ item.assignee || 'Unassigned' }}</span>
-                  </div>
+                  @if (!isEditingWorkItem(item.id, 'assignee')) {
+                    <div class="assignee-info editable-cell" (click)="startEditingWorkItem(item.id, 'assignee')">
+                      <div class="avatar">{{ item.assignee?.charAt(0) || 'U' }}</div>
+                      <span>{{ item.assignee || 'Unassigned' }}</span>
+                    </div>
+                  } @else {
+                    <select 
+                      [(ngModel)]="tempWorkItemValues[item.id]['assignee']"
+                      class="inline-select-small"
+                      (change)="saveWorkItem(item.id, 'assignee')">
+                      <option value="Unassigned">Unassigned</option>
+                      @for (user of availableUsers; track user.id) {
+                        <option [value]="user.name">{{ user.name }}</option>
+                      }
+                    </select>
+                  }
                 </td>
                 <td class="col-status">
-                  <span class="status-badge" [class]="getStatusClass(item.status)">
-                    {{ getStatusLabel(item.status) }}
-                  </span>
+                  @if (!isEditingWorkItem(item.id, 'status')) {
+                    <span class="status-badge editable-cell" [class]="getStatusClass(item.status)" (click)="startEditingWorkItem(item.id, 'status')">
+                      {{ getStatusLabel(item.status) }}
+                    </span>
+                  } @else {
+                    <select 
+                      [(ngModel)]="tempWorkItemValues[item.id]['status']"
+                      class="inline-select-small"
+                      (change)="saveWorkItem(item.id, 'status')">
+                      @for (status of statuses; track status) {
+                        <option [value]="status">{{ getStatusLabel(status) }}</option>
+                      }
+                    </select>
+                  }
+                </td>
+                <td class="col-actions">
+                  <button class="btn-delete" (click)="deleteWorkItem(item.id)" title="Delete work item">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M3 4H11M5 4V3C5 2.44772 5.44772 2 6 2H8C8.55228 2 9 2.44772 9 3V4M6 7V10M8 7V10M4 4L4.5 11C4.5 11.5523 4.94772 12 5.5 12H8.5C9.05228 12 9.5 11.5523 9.5 11L10 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
                 </td>
               </tr>
             }
@@ -188,7 +250,13 @@
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="input-icon">
           <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        <input type="text" placeholder="What needs to be done?" class="needs-input" />
+        <input 
+          type="text" 
+          placeholder="What needs to be done?" 
+          class="needs-input" 
+          [(ngModel)]="newWorkItemTitle"
+          (keyup.enter)="addNewWorkItem()"
+        />
       </div>
       <div class="choose-existing">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -196,16 +264,26 @@
         </svg>
         <span>Choose existing</span>
       </div>
-      <button class="task-btn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <rect width="16" height="16" rx="2" fill="#4BADE8"/>
-        </svg>
-        <span>Task</span>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button class="cancel-btn-link">Cancel</button>
+      <div class="task-btn-wrapper">
+        <button class="task-btn" (click)="toggleWorkItemTypeDropdown()">
+          <span class="task-icon">{{ getTypeIcon(newWorkItemType) }}</span>
+          <span>{{ newWorkItemType }}</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        @if (showWorkItemTypeDropdown) {
+          <div class="type-dropdown">
+            @for (type of issueTypes; track type) {
+              <div class="type-option" (click)="selectWorkItemType(type)">
+                <span>{{ getTypeIcon(type) }}</span>
+                <span>{{ type }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <button class="btn-add-work-item" (click)="addNewWorkItem()" [disabled]="!newWorkItemTitle.trim()">Add</button>
     </div>
 
     <!-- Related Work Items Section -->
@@ -249,13 +327,15 @@
               </span>
             } @else {
               <div class="inline-edit">
-                <input 
-                  type="text" 
+                <select 
                   [(ngModel)]="tempAssignee"
-                  class="inline-input"
-                  (keyup.enter)="saveAssignee()"
-                  (keyup.escape)="cancelAssignee()"
-                />
+                  class="inline-select"
+                  (keyup.escape)="cancelAssignee()">
+                  <option value="Unassigned">Unassigned</option>
+                  @for (user of availableUsers; track user.id) {
+                    <option [value]="user.name">{{ user.name }}</option>
+                  }
+                </select>
                 <button class="btn-save-small" (click)="saveAssignee()">✓</button>
                 <button class="btn-cancel-small" (click)="cancelAssignee()">✕</button>
               </div>
@@ -281,8 +361,22 @@
                     <button class="label-remove" (click)="removeLabel(label)">×</button>
                   </span>
                 }
+              }
+              @if (addingLabel) {
+                <div class="inline-edit inline-label-edit">
+                  <input 
+                    type="text" 
+                    [(ngModel)]="newLabelInput"
+                    class="inline-input"
+                    placeholder="Enter label"
+                    (keyup.enter)="addLabel()"
+                    (keyup.escape)="cancelAddLabel()"
+                  />
+                  <button class="btn-save-small" (click)="addLabel()">✓</button>
+                  <button class="btn-cancel-small" (click)="cancelAddLabel()">✕</button>
+                </div>
               } @else {
-                <span class="empty-value">Click to add</span>
+                <button class="link-btn-small" (click)="startAddingLabel()">+ Add label</button>
               }
             </div>
           </div>
@@ -298,13 +392,15 @@
               </span>
             } @else {
               <div class="inline-edit">
-                <input 
-                  type="text" 
+                <select 
                   [(ngModel)]="tempParent"
-                  class="inline-input"
-                  (keyup.enter)="saveParent()"
-                  (keyup.escape)="cancelParent()"
-                />
+                  class="inline-select"
+                  (keyup.escape)="cancelParent()">
+                  <option value="None">None</option>
+                  @for (parentEpic of availableEpics; track parentEpic.id) {
+                    <option [value]="parentEpic.name">{{ parentEpic.name }}</option>
+                  }
+                </select>
                 <button class="btn-save-small" (click)="saveParent()">✓</button>
                 <button class="btn-cancel-small" (click)="cancelParent()">✕</button>
               </div>
@@ -440,33 +536,57 @@
           </div>
         </div>
 
-        <!-- Development -->
-        <div class="detail-row">
-          <div class="detail-label">Development</div>
-          <div class="detail-value">
-            <button class="link-btn-small">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M4 7L6 9L10 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Create branch
-            </button>
-            <button class="link-btn-small">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 3V11M3 7H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-              Create commit
-            </button>
-          </div>
-        </div>
-
         <!-- Reporter -->
         <div class="detail-row">
           <div class="detail-label">Reporter</div>
           <div class="detail-value">
-            <div class="assignee-info">
-              <div class="avatar-small">{{ epic.reporter?.charAt(0) || 'U' }}</div>
-              <span>{{ epic.reporter || 'Unknown' }}</span>
-            </div>
+            @if (!editingReporter) {
+              <div (click)="startEditingReporter()" class="editable-text assignee-info">
+                <div class="avatar-small">{{ epic.reporter?.charAt(0) || 'U' }}</div>
+                <span>{{ epic.reporter || 'Unassigned' }}</span>
+              </div>
+            } @else {
+              <div class="inline-edit">
+                <select 
+                  [(ngModel)]="tempReporter"
+                  class="inline-select"
+                  (keyup.escape)="cancelReporter()">
+                  <option value="Unassigned">Unassigned</option>
+                  @for (user of availableUsers; track user.id) {
+                    <option [value]="user.name">{{ user.name }}</option>
+                  }
+                </select>
+                <button class="btn-save-small" (click)="saveReporter()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelReporter()">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="detail-row">
+          <div class="detail-label">Status</div>
+          <div class="detail-value">
+            @if (!editingStatus) {
+              <span (click)="startEditingStatus()" class="editable-text">
+                <span class="status-badge" [class]="getStatusClass(epic.status || 'TODO')">
+                  {{ getStatusLabel(epic.status || 'TODO') }}
+                </span>
+              </span>
+            } @else {
+              <div class="inline-edit">
+                <select 
+                  [(ngModel)]="tempStatus"
+                  class="inline-select"
+                  (keyup.escape)="cancelStatus()">
+                  @for (status of epicStatuses; track status) {
+                    <option [value]="status">{{ getStatusLabel(status) }}</option>
+                  }
+                </select>
+                <button class="btn-save-small" (click)="saveStatus()">✓</button>
+                <button class="btn-cancel-small" (click)="cancelStatus()">✕</button>
+              </div>
+            }
           </div>
         </div>
       </div>

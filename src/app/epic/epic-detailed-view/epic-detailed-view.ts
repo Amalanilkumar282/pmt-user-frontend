@@ -1,9 +1,9 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Epic } from '../../shared/models/epic.model';
-import { Issue } from '../../shared/models/issue.model';
-import { epic1WorkItems, epic2WorkItems } from '../../shared/data/dummy-backlog-data';
+import { Epic, EpicStatus } from '../../shared/models/epic.model';
+import { Issue, IssueType, IssuePriority, IssueStatus } from '../../shared/models/issue.model';
+import { epic1WorkItems, epic2WorkItems, users, User, sprints, epics as allEpics } from '../../shared/data/dummy-backlog-data';
 
 @Component({
   selector: 'app-epic-detailed-view',
@@ -18,37 +18,68 @@ export class EpicDetailedView implements OnInit {
   @Output() epicUpdated = new EventEmitter<Epic>();
 
   workItems: Issue[] = [];
+  availableUsers: User[] = users;
+  availableSprints = sprints;
+  availableEpics: Epic[] = [];
   
-  // Edit states
   editingDescription = false;
   editingAssignee = false;
+  editingReporter = false;
   editingParent = false;
   editingTeam = false;
   editingDueDate = false;
   editingStartDate = false;
   editingSprint = false;
   editingStoryPoints = false;
+  editingStatus = false;
+  addingLabel = false;
 
-  // Temp values for editing
   tempDescription = '';
   tempAssignee = '';
+  tempReporter = '';
   tempParent = '';
   tempTeam = '';
   tempDueDate = '';
   tempStartDate = '';
   tempSprint = '';
   tempStoryPoints: number | undefined;
+  tempStatus: EpicStatus = 'TODO';
+  newLabelInput = '';
+
+  newWorkItemTitle = '';
+  newWorkItemType: IssueType = 'TASK';
+  showWorkItemTypeDropdown = false;
+
+  editingWorkItems: { [key: string]: { [field: string]: boolean } } = {};
+  tempWorkItemValues: { [key: string]: any } = {};
+
+  issueTypes: IssueType[] = ['TASK', 'STORY', 'BUG', 'EPIC', 'SUBTASK'];
+  priorities: IssuePriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+  statuses: IssueStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'BLOCKED'];
+  epicStatuses: EpicStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'BLOCKED'];
 
   ngOnInit() {
     this.loadWorkItems();
+    this.availableEpics = allEpics.filter(e => e.id !== this.epic.id);
+    if (!this.epic.assignee) this.epic.assignee = 'Unassigned';
+    if (!this.epic.reporter) this.epic.reporter = 'Unassigned';
+    if (!this.epic.parent) this.epic.parent = 'None';
+    if (!this.epic.team) this.epic.team = 'None';
+    if (!this.epic.sprint) this.epic.sprint = 'None';
+    if (!this.epic.labels) this.epic.labels = [];
+    if (!this.epic.childWorkItems) this.epic.childWorkItems = [];
+    if (!this.epic.status) this.epic.status = 'TODO';
+    if (this.epic.storyPoints === undefined) this.epic.storyPoints = 0;
+    if (!this.epic.description) this.epic.description = '';
   }
 
   loadWorkItems() {
-    // Load work items based on epic ID
     if (this.epic.id === 'epic-1') {
       this.workItems = [...epic1WorkItems];
     } else if (this.epic.id === 'epic-2') {
       this.workItems = [...epic2WorkItems];
+    } else {
+      this.workItems = [];
     }
   }
 
@@ -56,23 +87,21 @@ export class EpicDetailedView implements OnInit {
     this.close.emit();
   }
 
-  // Description editing
   startEditingDescription() {
     this.editingDescription = true;
-    this.tempDescription = this.epic.description;
+    this.tempDescription = this.epic.description || '';
   }
 
   saveDescription() {
     this.epic.description = this.tempDescription;
     this.editingDescription = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelDescription() {
     this.editingDescription = false;
   }
 
-  // Assignee editing
   startEditingAssignee() {
     this.editingAssignee = true;
     this.tempAssignee = this.epic.assignee || 'Unassigned';
@@ -81,14 +110,28 @@ export class EpicDetailedView implements OnInit {
   saveAssignee() {
     this.epic.assignee = this.tempAssignee;
     this.editingAssignee = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelAssignee() {
     this.editingAssignee = false;
   }
 
-  // Parent editing
+  startEditingReporter() {
+    this.editingReporter = true;
+    this.tempReporter = this.epic.reporter || 'Unassigned';
+  }
+
+  saveReporter() {
+    this.epic.reporter = this.tempReporter;
+    this.editingReporter = false;
+    this.emitUpdate();
+  }
+
+  cancelReporter() {
+    this.editingReporter = false;
+  }
+
   startEditingParent() {
     this.editingParent = true;
     this.tempParent = this.epic.parent || 'None';
@@ -97,14 +140,13 @@ export class EpicDetailedView implements OnInit {
   saveParent() {
     this.epic.parent = this.tempParent;
     this.editingParent = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelParent() {
     this.editingParent = false;
   }
 
-  // Team editing
   startEditingTeam() {
     this.editingTeam = true;
     this.tempTeam = this.epic.team || 'None';
@@ -113,14 +155,13 @@ export class EpicDetailedView implements OnInit {
   saveTeam() {
     this.epic.team = this.tempTeam;
     this.editingTeam = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelTeam() {
     this.editingTeam = false;
   }
 
-  // Due Date editing
   startEditingDueDate() {
     this.editingDueDate = true;
     this.tempDueDate = this.epic.dueDate ? this.formatDateForInput(this.epic.dueDate) : '';
@@ -129,14 +170,13 @@ export class EpicDetailedView implements OnInit {
   saveDueDate() {
     this.epic.dueDate = this.tempDueDate ? new Date(this.tempDueDate) : null;
     this.editingDueDate = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelDueDate() {
     this.editingDueDate = false;
   }
 
-  // Start Date editing
   startEditingStartDate() {
     this.editingStartDate = true;
     this.tempStartDate = this.epic.startDate ? this.formatDateForInput(this.epic.startDate) : '';
@@ -145,14 +185,13 @@ export class EpicDetailedView implements OnInit {
   saveStartDate() {
     this.epic.startDate = this.tempStartDate ? new Date(this.tempStartDate) : null;
     this.editingStartDate = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelStartDate() {
     this.editingStartDate = false;
   }
 
-  // Sprint editing
   startEditingSprint() {
     this.editingSprint = true;
     this.tempSprint = this.epic.sprint || 'None';
@@ -161,14 +200,13 @@ export class EpicDetailedView implements OnInit {
   saveSprint() {
     this.epic.sprint = this.tempSprint;
     this.editingSprint = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelSprint() {
     this.editingSprint = false;
   }
 
-  // Story Points editing
   startEditingStoryPoints() {
     this.editingStoryPoints = true;
     this.tempStoryPoints = this.epic.storyPoints;
@@ -177,22 +215,139 @@ export class EpicDetailedView implements OnInit {
   saveStoryPoints() {
     this.epic.storyPoints = this.tempStoryPoints;
     this.editingStoryPoints = false;
-    this.epicUpdated.emit(this.epic);
+    this.emitUpdate();
   }
 
   cancelStoryPoints() {
     this.editingStoryPoints = false;
   }
 
-  // Label management
-  removeLabel(label: string) {
-    if (this.epic.labels) {
-      this.epic.labels = this.epic.labels.filter(l => l !== label);
-      this.epicUpdated.emit(this.epic);
+  startEditingStatus() {
+    this.editingStatus = true;
+    this.tempStatus = this.epic.status || 'TODO';
+  }
+
+  saveStatus() {
+    this.epic.status = this.tempStatus;
+    this.editingStatus = false;
+    this.emitUpdate();
+  }
+
+  cancelStatus() {
+    this.editingStatus = false;
+  }
+
+  startAddingLabel() {
+    this.addingLabel = true;
+    this.newLabelInput = '';
+  }
+
+  addLabel() {
+    if (this.newLabelInput.trim() && this.epic.labels) {
+      if (!this.epic.labels.includes(this.newLabelInput.trim())) {
+        this.epic.labels.push(this.newLabelInput.trim());
+        this.emitUpdate();
+      }
+      this.newLabelInput = '';
+      this.addingLabel = false;
     }
   }
 
-  // Utility methods
+  cancelAddLabel() {
+    this.addingLabel = false;
+    this.newLabelInput = '';
+  }
+
+  removeLabel(label: string) {
+    if (this.epic.labels) {
+      this.epic.labels = this.epic.labels.filter(l => l !== label);
+      this.emitUpdate();
+    }
+  }
+
+  startEditingWorkItem(itemId: string, field: string) {
+    if (!this.editingWorkItems[itemId]) {
+      this.editingWorkItems[itemId] = {};
+    }
+    this.editingWorkItems[itemId][field] = true;
+    const item = this.workItems.find(i => i.id === itemId);
+    if (item) {
+      if (!this.tempWorkItemValues[itemId]) {
+        this.tempWorkItemValues[itemId] = {};
+      }
+      this.tempWorkItemValues[itemId][field] = (item as any)[field];
+    }
+  }
+
+  saveWorkItem(itemId: string, field: string) {
+    const item = this.workItems.find(i => i.id === itemId);
+    if (item && this.tempWorkItemValues[itemId]) {
+      (item as any)[field] = this.tempWorkItemValues[itemId][field];
+      item.updatedAt = new Date();
+    }
+    if (this.editingWorkItems[itemId]) {
+      this.editingWorkItems[itemId][field] = false;
+    }
+    this.emitUpdate();
+  }
+
+  cancelWorkItemEdit(itemId: string, field: string) {
+    if (this.editingWorkItems[itemId]) {
+      this.editingWorkItems[itemId][field] = false;
+    }
+  }
+
+  isEditingWorkItem(itemId: string, field: string): boolean {
+    return this.editingWorkItems[itemId]?.[field] || false;
+  }
+
+  deleteWorkItem(itemId: string) {
+    if (confirm('Are you sure you want to delete this work item?')) {
+      this.workItems = this.workItems.filter(i => i.id !== itemId);
+      if (this.epic.childWorkItems) {
+        this.epic.childWorkItems = this.epic.childWorkItems.filter(id => id !== itemId);
+      }
+      this.emitUpdate();
+    }
+  }
+
+  addNewWorkItem() {
+    if (this.newWorkItemTitle.trim()) {
+      const newId = `SCRUM-${Date.now()}`;
+      const newWorkItem: Issue = {
+        id: newId,
+        title: this.newWorkItemTitle.trim(),
+        description: '',
+        type: this.newWorkItemType,
+        priority: 'MEDIUM',
+        status: 'TODO',
+        assignee: 'Unassigned',
+        storyPoints: 0,
+        epicId: this.epic.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      this.workItems.push(newWorkItem);
+      if (!this.epic.childWorkItems) {
+        this.epic.childWorkItems = [];
+      }
+      this.epic.childWorkItems.push(newId);
+      this.epic.issueCount = this.workItems.length;
+      this.newWorkItemTitle = '';
+      this.showWorkItemTypeDropdown = false;
+      this.emitUpdate();
+    }
+  }
+
+  toggleWorkItemTypeDropdown() {
+    this.showWorkItemTypeDropdown = !this.showWorkItemTypeDropdown;
+  }
+
+  selectWorkItemType(type: IssueType) {
+    this.newWorkItemType = type;
+    this.showWorkItemTypeDropdown = false;
+  }
+
   formatDate(date: Date | null): string {
     if (!date) return '';
     const d = new Date(date);
@@ -233,5 +388,20 @@ export class EpicDetailedView implements OnInit {
 
   getStatusLabel(status: string): string {
     return status.replace('_', ' ');
+  }
+
+  getTypeIcon(type: IssueType): string {
+    const iconMap: { [key: string]: string } = {
+      'TASK': '',
+      'STORY': '',
+      'BUG': '',
+      'EPIC': '',
+      'SUBTASK': ''
+    };
+    return iconMap[type] || '';
+  }
+
+  private emitUpdate() {
+    this.epicUpdated.emit(this.epic);
   }
 }

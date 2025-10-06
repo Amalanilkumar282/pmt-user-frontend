@@ -2,6 +2,26 @@ import { Issue } from '../models/issue.model';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { Epic } from '../models/epic.model';
 
+// User interface
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+// Available users
+export const users: User[] = [
+  { id: 'user-1', name: 'Amal A', email: 'amal@example.com' },
+  { id: 'user-2', name: 'John Doe', email: 'john@example.com' },
+  { id: 'user-3', name: 'Jane Smith', email: 'jane@example.com' },
+  { id: 'user-4', name: 'Alex Johnson', email: 'alex@example.com' },
+  { id: 'user-5', name: 'Sarah Lee', email: 'sarah@example.com' },
+  { id: 'user-6', name: 'Mike Brown', email: 'mike@example.com' },
+  { id: 'user-7', name: 'Emma Wilson', email: 'emma@example.com' },
+  { id: 'user-8', name: 'Unassigned', email: '' }
+];
+
 // Completed Sprint 1 issues
 export const completedSprint1Issues: Issue[] = [
   {
@@ -456,14 +476,15 @@ export const epics: Epic[] = [
     progress: 60,
     issueCount: 3,
     isExpanded: false,
-    assignee: 'Unassigned',
+    assignee: 'Amal A',
     labels: ['internal', 'now'],
     parent: 'None',
     team: 'None',
     sprint: 'SCRUM Sprint 1',
     storyPoints: 40,
     reporter: 'Amal A',
-    childWorkItems: ['SCRUM-3', 'SCRUM-5', 'SCRUM-3']
+    childWorkItems: ['SCRUM-3', 'SCRUM-5', 'SCRUM-3'],
+    status: 'IN_PROGRESS'
   },
   {
     id: 'epic-2',
@@ -481,6 +502,7 @@ export const epics: Epic[] = [
     sprint: 'None',
     storyPoints: 0,
     reporter: 'Amal A',
-    childWorkItems: ['SCRUM-7', 'SCRUM-8']
+    childWorkItems: ['SCRUM-7', 'SCRUM-8'],
+    status: 'TODO'
   }
 ];

@@ -718,6 +718,330 @@
   background: #eff6ff;
 }
 
+/* Dropdown Select */
+.inline-select {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  min-width: 150px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.inline-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.inline-select option {
+  padding: 8px;
+}
+
+/* Label Management */
+.labels-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.inline-label-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Work Item Actions Column */
+.col-actions {
+  width: 80px;
+  text-align: center;
+}
+
+.work-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.work-item-row:hover .work-item-actions {
+  opacity: 1;
+}
+
+.action-icon-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.action-icon-btn:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.action-icon-btn.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Editable Table Cells */
+.editable-cell {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.editable-cell:hover {
+  background: #f9fafb;
+}
+
+.cell-edit-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cell-select {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  cursor: pointer;
+}
+
+.cell-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.cell-input {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  width: 100%;
+}
+
+.cell-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Work Item Type Dropdown */
+.work-item-type-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.type-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  min-width: 150px;
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.type-dropdown-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+  transition: background 0.2s ease;
+}
+
+.type-dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+/* Small inline inputs and buttons for table editing */
+.inline-input-small {
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  min-width: 120px;
+}
+
+.inline-input-small:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.inline-select-small {
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  font-size: 12px;
+  color: #374151;
+  background: #ffffff;
+  outline: none;
+  cursor: pointer;
+}
+
+.inline-select-small:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.btn-save-tiny,
+.btn-cancel-tiny {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 2px;
+}
+
+.btn-save-tiny {
+  background: #10b981;
+  color: white;
+}
+
+.btn-save-tiny:hover {
+  background: #059669;
+}
+
+.btn-cancel-tiny {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-cancel-tiny:hover {
+  background: #dc2626;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* What needs to be done section */
+.task-btn-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.task-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.task-icon {
+  font-size: 16px;
+}
+
+.type-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  min-width: 150px;
+  z-index: 100;
+  margin-top: 4px;
+}
+
+.type-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+  transition: background 0.2s ease;
+}
+
+.type-option:hover {
+  background: #f3f4f6;
+}
+
+.btn-add-work-item {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-add-work-item:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-add-work-item:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .epic-header {
@@ -741,7 +1065,8 @@
     overflow-x: auto;
   }
 
-  .inline-input {
+  .inline-input,
+  .inline-select {
     min-width: 100px;
   }
 }
