@@ -1,94 +1,75 @@
-import { NgFor, NgIf } from '@angular/common';
 import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
-import { Subscription } from 'rxjs';
-import { ModalService } from '../modal-service';
+import { NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-interface FormField {
-  label: string;
-  type: 'text' | 'number' | 'textarea' | 'select' | 'date' | 'file';
-  model: string;
-  options?: string[];
-  required?: boolean;
-  colSpan?: 1 | 2; // 1 = single column, 2 = full width
-}
+import { Subscription } from 'rxjs';
+import { ModalService, FormField } from '../modal-service';
+import { isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'app-create-issue',
   templateUrl: './create-issue.html',
   styleUrls: ['./create-issue.css'],
   standalone: true,
-  imports:[NgIf, FormsModule, NgFor]
+  imports: [NgIf, NgFor, FormsModule]
 })
 export class CreateIssue implements OnInit, OnDestroy {
   @Input() modalId = 'createIssue';
+  
   show = false;
   private sub!: Subscription;
   private isBrowser: boolean;
 
-  // Form data object
-  formData: any = {
-    issueType: '',
-    summary: '',
-    description: '',
-    priority: 'medium',
-    assignee: '',
-    startDate: '',
-    dueDate: '',
-    sprint: '',
-    storyPoints: null,
-    parentEpic: '',
-    reporter: '',
-    labels: [],
-    attachments: []
-  };
+  // Form
+  formData: any = { labels: [], attachments: [] };
+  fields: FormField[] = [];
 
-  // Fields configuration
-  fields: FormField[] = [
-  { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic', 'Bug','Task','Story'], colSpan: 2 },
-  { label: 'Summary', type: 'text', model: 'summary', colSpan: 2 },
-  { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
-  { label: 'Priority', type: 'select', model: 'priority', options: ['High','Medium','Low'], colSpan: 1 },
-  { label: 'Assignee', type: 'select', model: 'assignee', options: ['Jacob','Clara','Zac'], colSpan: 1 },
-  { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-  { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-  { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
-  { label: 'Story Point', type: 'number', model: 'storyPoints',  colSpan: 1 },
-  { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3','Epic 4'], colSpan: 1 },
-  { label: 'Reporter', type: 'select', model: 'reporter', options: ['Jacob','Clara','Zac'], colSpan: 1 }
-];
+  // Dynamic title/project
+  modalTitle = 'Create Issue';
+  projectName = 'Project Alpha';
+  showLabels = false;
+
 
   constructor(
     private modalService: ModalService,
     @Inject(PLATFORM_ID) platformId: Object
-  ) {
-    this.isBrowser = isPlatformBrowser(platformId);
-  }
+  ) { this.isBrowser = isPlatformBrowser(platformId); }
 
   ngOnInit() {
-    this.sub = this.modalService.activeModal$.subscribe(id => {
-      this.show = id === this.modalId;
-      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
-    });
-  }
+  this.sub = this.modalService.activeModal$.subscribe(id => {
+    const cfg = this.modalService.getConfig(id ?? '');
+    this.show = !!cfg; // show only if config exists
+    if (cfg) {
+      this.fields = cfg.fields ?? [];
+      this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
+      this.modalTitle = cfg.title ?? 'Modal';
+      this.projectName = cfg.projectName ?? '';
+      this.showLabels = cfg.showLabels ?? false;
+    }
+
+    if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
+  });
+}
+
 
   ngOnDestroy() {
     this.sub.unsubscribe();
     if (this.isBrowser) document.body.style.overflow = '';
   }
 
-  close() {
-    this.modalService.close();
-  }
+  close() { this.modalService.close(); }
 
   submit() {
     console.log('Form submitted:', this.formData);
     this.close();
   }
 
-  handleFileSelect(event: any) {
-    this.formData.attachments = Array.from(event.target.files);
+  handleChange(value: any, field: FormField) {
+    if(field.onChange) field.onChange(value, this.formData);
+  }
+
+  handleFileSelect(event: any, field: FormField) {
+    this.formData[field.model] = Array.from(event.target.files);
+    field.onChange?.(this.formData[field.model], this.formData);
   }
 
   addLabel(label: string) {
