@@ -12,14 +12,34 @@
   @if (isEpicPanelOpen) {
     <app-epic-container 
       [class.sidebar-collapsed]="isSidebarCollapsed()"
-      (closeEpicPanel)="closeEpicPanel()">
+      (closeEpicPanel)="closeEpicPanel()"
+      (viewDetails)="openEpicDetailView($event)">
     </app-epic-container>
+  }
+
+  <!-- Epic Detail View Panel -->
+  @if (selectedEpic) {
+    <div class="epic-detail-panel-wrapper" 
+         [class.sidebar-collapsed]="isSidebarCollapsed()"
+         [class.epic-panel-open]="isEpicPanelOpen"
+         [style.width.px]="epicDetailPanelWidth">
+      <app-epic-detailed-view 
+        [epic]="selectedEpic"
+        (close)="closeEpicDetailView()"
+        (epicUpdated)="onEpicUpdated($event)">
+      </app-epic-detailed-view>
+      <div class="resize-handle" 
+           (mousedown)="startResize($event)">
+      </div>
+    </div>
   }
 
   <!-- Main Content -->
   <div class="page-container" 
        [class.sidebar-collapsed]="isSidebarCollapsed()"
-       [class.epic-panel-open]="isEpicPanelOpen">
+       [class.epic-panel-open]="isEpicPanelOpen"
+       [class.epic-detail-open]="selectedEpic"
+       [style.margin-right.px]="selectedEpic ? epicDetailPanelWidth : 0">
     <!-- Filters Section -->
     <app-filters (filtersChanged)="onFiltersChanged($event)"></app-filters>
 

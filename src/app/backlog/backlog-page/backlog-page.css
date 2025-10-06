@@ -40,6 +40,38 @@
   width: calc(100% - 350px);
 }
 
+/* Epic Detail Panel */
+.epic-detail-panel-wrapper {
+  position: fixed;
+  right: 0;
+  top: 121px;
+  height: calc(100vh - 121px);
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  transition: width 0.1s ease;
+}
+
+.resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.resize-handle:hover {
+  background: #3b82f6;
+}
+
+.resize-handle:active {
+  background: #2563eb;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

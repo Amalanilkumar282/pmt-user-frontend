@@ -372,24 +372,114 @@ export const sprints: Sprint[] = [
   }
 ];
 
+// Epic Work Items
+export const epic1WorkItems: Issue[] = [
+  {
+    id: 'SCRUM-3',
+    title: 'SCRUM-3',
+    description: 'Improve work item functionality',
+    type: 'TASK',
+    priority: 'MEDIUM',
+    status: 'DONE',
+    assignee: 'Amal A',
+    storyPoints: 8,
+    epicId: 'epic-1',
+    createdAt: new Date('2025-09-15'),
+    updatedAt: new Date('2025-10-01')
+  },
+  {
+    id: 'SCRUM-5',
+    title: 'SCRUM-5',
+    description: 'Implement advanced search features',
+    type: 'STORY',
+    priority: 'MEDIUM',
+    status: 'IN_PROGRESS',
+    assignee: 'Amal A',
+    storyPoints: 13,
+    epicId: 'epic-1',
+    createdAt: new Date('2025-09-20'),
+    updatedAt: new Date('2025-10-02')
+  },
+  {
+    id: 'SCRUM-3',
+    title: 'SCRUM-3',
+    description: 'Fix navigation issues',
+    type: 'BUG',
+    priority: 'HIGH',
+    status: 'TODO',
+    assignee: 'Unassigned',
+    storyPoints: 5,
+    epicId: 'epic-1',
+    createdAt: new Date('2025-09-25'),
+    updatedAt: new Date('2025-09-25')
+  }
+];
+
+export const epic2WorkItems: Issue[] = [
+  {
+    id: 'SCRUM-7',
+    title: 'SCRUM-7',
+    description: 'Add dashboard analytics',
+    type: 'STORY',
+    priority: 'HIGH',
+    status: 'IN_PROGRESS',
+    assignee: 'John Doe',
+    storyPoints: 8,
+    epicId: 'epic-2',
+    createdAt: new Date('2025-09-28'),
+    updatedAt: new Date('2025-10-03')
+  },
+  {
+    id: 'SCRUM-8',
+    title: 'SCRUM-8',
+    description: 'Implement user permissions',
+    type: 'TASK',
+    priority: 'CRITICAL',
+    status: 'TODO',
+    assignee: 'Jane Smith',
+    storyPoints: 5,
+    epicId: 'epic-2',
+    createdAt: new Date('2025-09-30'),
+    updatedAt: new Date('2025-09-30')
+  }
+];
+
 // Epics
 export const epics: Epic[] = [
   {
     id: 'epic-1',
-    name: 'Epic 1',
+    name: 'epic 1',
+    description: 'Sample description',
     startDate: new Date('2025-10-07'),
     dueDate: new Date('2025-10-23'),
     progress: 60,
-    issueCount: 5,
-    isExpanded: false
+    issueCount: 3,
+    isExpanded: false,
+    assignee: 'Unassigned',
+    labels: ['internal', 'now'],
+    parent: 'None',
+    team: 'None',
+    sprint: 'SCRUM Sprint 1',
+    storyPoints: 40,
+    reporter: 'Amal A',
+    childWorkItems: ['SCRUM-3', 'SCRUM-5', 'SCRUM-3']
   },
   {
     id: 'epic-2',
-    name: 'Epic 2',
+    name: 'epic 2',
+    description: 'Another epic description',
     startDate: new Date('2025-10-07'),
     dueDate: new Date('2025-10-23'),
     progress: 30,
-    issueCount: 3,
-    isExpanded: false
+    issueCount: 2,
+    isExpanded: false,
+    assignee: 'Unassigned',
+    labels: [],
+    parent: 'None',
+    team: 'None',
+    sprint: 'None',
+    storyPoints: 0,
+    reporter: 'Amal A',
+    childWorkItems: ['SCRUM-7', 'SCRUM-8']
   }
 ];
