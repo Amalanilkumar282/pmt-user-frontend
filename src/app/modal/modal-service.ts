@@ -5,6 +5,7 @@ export interface ModalConfig {
   id: string;                 // modal identifier
   title?: string;             // modal header
   projectName?: string;       // optional project label
+  modalDesc? : string;
   fields?: FormField[];       // dynamic fields
   data?: any;                 // pre-filled form values
   showLabels?: boolean;

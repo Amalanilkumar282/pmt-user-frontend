@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Issue } from '../../shared/models/issue.model';
 import { FormField, ModalService } from '../../modal/modal-service';
+import { users } from '../../shared/data/dummy-backlog-data';
 
 @Component({
   selector: 'app-issue-detailed-view',
@@ -36,20 +37,24 @@ export class IssueDetailedView {
   const issue = this._issue();
   if (!issue) return;
 
+  // Dynamically map user names
+  const userOptions = users.map(u => u.name);
+
   const fields: FormField[] = [
     { label: 'Title', type: 'text', model: 'title', colSpan: 2, required:true },
     { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
     { label: 'Priority', type: 'select', model: 'priority', options: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
     { label: 'Status', type: 'select', model: 'status', options: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] },
     { label: 'Story Points', type: 'number', model: 'storyPoints' },
-    { label: 'Assignee', type: 'text', model: 'assignee' },
-    { label: 'Sprint', type: 'select', model: 'sprintId', options: this.availableSprints.map(s => s.name),  colSpan: 2 }
+    { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions },
+    { label: 'Sprint', type: 'select', model: 'sprintId', options: this.availableSprints.map(s => s.name), colSpan: 2 }
   ];
 
   this.modalService.open({
     id: 'editIssueModal',
     title: `Edit Issue`,
     projectName: 'Project Alpha',
+    modalDesc : 'Edit an existing issue in your project',
     fields,
     data: {
       title: issue.title,
@@ -64,6 +69,7 @@ export class IssueDetailedView {
     submitText: 'Save Changes'
   });
 }
+
 
 
   protected getTypeIcon(type: string): string {
