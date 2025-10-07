@@ -35,7 +35,8 @@ export class BoardColumn {
   }
 
   drop(event: CdkDragDrop<Issue[]>) {
-    if (event.previousContainer === event.container) {
+    // Consider containers the same when they are the same object or share the same data array
+    if (event.previousContainer === event.container || event.previousContainer?.data === event.container?.data) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       return;
     }
@@ -43,4 +44,15 @@ export class BoardColumn {
     // update status in store
     this.store.updateIssueStatus(item.id, this.def.id as IssueStatus);
     }
+
+  onDeleteColumn() {
+    // if there are items in the column, ask user to move them first
+    if ((this.items ?? []).length > 0) {
+      const ok = confirm('This column is not empty. Please move or remove the issues before deleting the column.');
+      return ok; // returns true/false for possible callers, but we don't delete unless empty
+    }
+    // delete column via store
+    this.store.removeColumn(this.def.id as any);
+    return true;
+  }
 }
