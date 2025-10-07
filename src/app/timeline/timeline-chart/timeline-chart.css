@@ -1,193 +1,11 @@
-.timeline-content {
-    padding: 20px;
-    background: #f5f5f5;
-    min-height: 100vh;
-}
+/* Custom styles for features not covered by Tailwind */
 
-.timeline-section {
-    margin-top: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.timeline-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    background: #fafafa;
-    border-bottom: 1px solid #e0e0e0;
-    border-radius: 8px 8px 0 0;
-}
-
-.time-selector {
-    display: flex;
-    gap: 8px;
-}
-
-.time-btn {
-    padding: 8px 16px;
-    border: 1px solid #ddd;
-    background: white;
-    cursor: pointer;
-    font-size: 14px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-}
-
-.time-btn:hover {
-    background: #f5f5f5;
-}
-
-.time-btn.active {
-    background: #5e72e4;
-    color: white;
-    border-color: #5e72e4;
-}
-
-.filters {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-}
-
-.filter-group {
-    position: relative;
-}
-
-.filter-btn {
-    padding: 8px 16px;
-    border: 1px solid #ddd;
-    background: white;
-    cursor: pointer;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover {
-    background: #f5f5f5;
-}
-
-.filter-btn .arrow {
-    font-size: 10px;
-    margin-left: 5px;
-}
-
-.filter-dropdown {
-    display: none;
-    position: absolute;
-    top: calc(100% + 5px);
-    left: 0;
-    background: white;
-    border: 1px solid #ddd;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    z-index: 1000;
-    border-radius: 4px;
-    min-width: 200px;
-    padding: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
+/* Show dropdown when toggled */
 .filter-dropdown.show {
-    display: block;
+    display: block !important;
 }
 
-.filter-option {
-    padding: 8px 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.filter-option:hover {
-    background: #f5f5f5;
-    border-radius: 4px;
-}
-
-.filter-option input[type="checkbox"] {
-    cursor: pointer;
-}
-
-.filter-option label {
-    cursor: pointer;
-    flex: 1;
-    margin: 0;
-}
-
-.filter-badge {
-    background: #f44336;
-    color: white;
-    border-radius: 10px;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-weight: bold;
-}
-
-.clear-filters {
-    padding: 8px 16px;
-    border: none;
-    background: #f44336;
-    color: white;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.clear-filters:hover {
-    background: #d32f2f;
-}
-
-.back-btn {
-    padding: 8px 16px;
-    border: 1px solid #5e72e4;
-    background: white;
-    color: #5e72e4;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.back-btn:hover {
-    background: #5e72e4;
-    color: white;
-}
-
-.gantt-container {
-    padding: 20px;
-    min-height: 600px;
-}
-
-.current-view-info {
-    margin-bottom: 15px;
-    padding: 10px 15px;
-    background: #f0f4ff;
-    border-left: 4px solid #5e72e4;
-    border-radius: 4px;
-}
-
-.current-view-info h3 {
-    margin: 0;
-    color: #333;
-    font-size: 16px;
-}
-
-#gantt_chart {
-    width: 100%;
-    min-height: 500px;
-    overflow: auto;
-}
-
-/* Frappe Gantt customization */
+/* Frappe Gantt customization - Light Pink Colors */
 .gantt .bar {
     cursor: pointer;
     transition: all 0.3s ease;
@@ -197,27 +15,87 @@
     opacity: 0.8;
 }
 
+/* Sprint bar styling - Blue color */
+.gantt .bar-sprint {
+    fill: #60a5fa !important; /* Blue for sprint */
+}
+
+.gantt .bar-sprint rect {
+    fill: #60a5fa !important;
+}
+
+/* Epic bar styling - Light Pink */
 .gantt .bar-epic {
-    fill: #7e57c2 !important;
+    fill: #ffc0cb !important; /* Light pink for epics */
 }
 
-.gantt .bar-story {
-    fill: #66bb6a !important;
+.gantt .bar-epic rect {
+    fill: #ffc0cb !important;
 }
 
-.gantt .bar-task {
-    fill: #ffa726 !important;
-}
-
+/* Issue type colors - Light Pink for all */
+.gantt .bar-story,
+.gantt .bar-task,
 .gantt .bar-bug {
-    fill: #ef5350 !important;
+    fill: #ffc0cb !important; /* Light pink for all issues */
 }
 
+.gantt .bar-story rect,
+.gantt .bar-task rect,
+.gantt .bar-bug rect {
+    fill: #ffc0cb !important;
+}
+
+/* Alternative approach - target the bar-wrapper */
+.gantt .bar-wrapper.bar-sprint .bar {
+    fill: #60a5fa !important;
+}
+
+.gantt .bar-wrapper.bar-sprint .bar rect {
+    fill: #60a5fa !important;
+}
+
+.gantt .bar-wrapper.bar-epic .bar {
+    fill: #ffc0cb !important;
+}
+
+.gantt .bar-wrapper.bar-epic .bar rect {
+    fill: #ffc0cb !important;
+}
+
+.gantt .bar-wrapper.bar-story .bar,
+.gantt .bar-wrapper.bar-task .bar,
+.gantt .bar-wrapper.bar-bug .bar {
+    fill: #ffc0cb !important;
+}
+
+.gantt .bar-wrapper.bar-story .bar rect,
+.gantt .bar-wrapper.bar-task .bar rect,
+.gantt .bar-wrapper.bar-bug .bar rect {
+    fill: #ffc0cb !important;
+}
+
+/* Direct SVG element targeting */
+svg .bar-sprint,
+svg .bar-epic,
+svg .bar-story,
+svg .bar-task,
+svg .bar-bug {
+    fill: #ffc0cb !important;
+}
+
+svg .bar-sprint {
+    fill: #60a5fa !important;
+}
+
+/* Bar labels */
 .gantt .bar-label {
     font-size: 12px;
     font-weight: 500;
+    fill: #333 !important;
 }
 
+/* Progress overlay */
 .gantt .bar-progress {
     fill: rgba(0, 0, 0, 0.2) !important;
 }
@@ -237,8 +115,14 @@
 }
 
 .gantt .today-highlight {
-    fill: #fef3c7;
-    opacity: 0.5;
+    fill: #ffd700 !important; /* Gold/yellow color for today */
+    opacity: 0.3 !important;
+}
+
+/* Make sure today highlight is visible in all view modes */
+.gantt .grid-row.today-highlight {
+    fill: #ffd700 !important;
+    opacity: 0.3 !important;
 }
 
 /* Gantt popup */
@@ -258,6 +142,7 @@
     color: #666;
 }
 
+/* No data state */
 .no-data {
     text-align: center;
     padding: 60px 20px;
@@ -282,38 +167,6 @@
     border-left: 4px solid #f44336;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .timeline-header {
-        flex-direction: column;
-        gap: 15px;
-        align-items: stretch;
-    }
-    
-    .time-selector {
-        justify-content: center;
-    }
-    
-    .filters {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    .filter-dropdown {
-        left: 50%;
-        transform: translateX(-50%);
-    }
-    
-    .gantt-container {
-        padding: 10px;
-        overflow-x: auto;
-    }
-    
-    #gantt_chart {
-        min-width: 800px;
-    }
-}
-
 /* Custom scrollbar for Gantt chart */
 #gantt_chart::-webkit-scrollbar {
     height: 8px;
@@ -332,4 +185,17 @@
 
 #gantt_chart::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+/* Force color application after chart load */
+.gantt .bar rect[fill]:not([fill="none"]) {
+    fill: #ffc0cb !important;
+}
+
+.gantt .bar-wrapper[data-id*="sprint"] .bar rect {
+    fill: #60a5fa !important;
+}
+
+.gantt .bar-wrapper[data-id*="epic"] .bar rect {
+    fill: #ffc0cb !important;
 }

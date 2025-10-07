@@ -1,160 +1,180 @@
-<!DOCTYPE html>
-<div class="timeline-content">
-    <div class="timeline-section" style="display: block;">
-        <div class="timeline-header">
-            <div class="time-selector">
-                <button class="time-btn" 
-                        [class.active]="currentView === 'day'"
+<div class="p-5 bg-gray-100 min-h-screen flex justify-center">
+    <div class="mt-5 bg-white rounded-lg shadow-md w-full max-w-7xl">
+        <!-- Timeline Header -->
+        <div class="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+            <!-- Time Selector -->
+            <div class="flex gap-2">
+                <button class="px-4 py-2 border border-gray-300 bg-white rounded transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
+                        [class.!bg-indigo-600]="currentView === 'day'"
+                        [class.!text-white]="currentView === 'day'"
+                        [class.!border-indigo-600]="currentView === 'day'"
                         (click)="changeTimeScale('day')">Day</button>
-                <button class="time-btn" 
-                        [class.active]="currentView === 'month'"
+                <button class="px-4 py-2 border border-gray-300 bg-white rounded transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
+                        [class.!bg-indigo-600]="currentView === 'month'"
+                        [class.!text-white]="currentView === 'month'"
+                        [class.!border-indigo-600]="currentView === 'month'"
                         (click)="changeTimeScale('month')">Month</button>
-                <button class="time-btn" 
-                        [class.active]="currentView === 'year'"
+                <button class="px-4 py-2 border border-gray-300 bg-white rounded transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
+                        [class.!bg-indigo-600]="currentView === 'year'"
+                        [class.!text-white]="currentView === 'year'"
+                        [class.!border-indigo-600]="currentView === 'year'"
                         (click)="changeTimeScale('year')">Year</button>
             </div>
             
-            <div class="filters">
+            <!-- Filters Container -->
+            <div class="flex items-center gap-3">
                 <!-- Back button when viewing issues -->
                 <button *ngIf="displayMode === 'issues'" 
-                        class="back-btn" 
+                        class="px-4 py-2 border border-indigo-600 bg-white text-indigo-600 rounded text-sm font-medium transition-all duration-300 hover:bg-indigo-600 hover:text-white"
                         (click)="backToEpics()">
                     ← Back to Epics
                 </button>
 
                 <!-- Sprint Filter -->
-                <div class="filter-group">
-                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                <div class="relative">
+                    <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+                            (click)="toggleDropdown($event)">
                         Sprint 
-                        <span class="filter-badge" *ngIf="getFilterCount('sprints') > 0">
+                        <span class="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold" 
+                              *ngIf="getFilterCount('sprints') > 0">
                             {{getFilterCount('sprints')}}
                         </span>
-                        <span class="arrow">▼</span>
+                        <span class="text-xs ml-1">▼</span>
                     </button>
-                    <div class="filter-dropdown" id="sprint-dropdown">
-                        <div class="filter-option" *ngFor="let sprint of availableSprints">
+                    <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
+                         id="sprint-dropdown">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer" 
+                             *ngFor="let sprint of availableSprints">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    [id]="'sprint-' + sprint"
                                    [value]="sprint"
                                    (change)="toggleFilter('sprints', sprint, $event)">
-                            <label [for]="'sprint-' + sprint">{{sprint}}</label>
+                            <label class="cursor-pointer flex-1 m-0" [for]="'sprint-' + sprint">{{sprint}}</label>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Epic Filter -->
-                <div class="filter-group">
-                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                <div class="relative">
+                    <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+                            (click)="toggleDropdown($event)">
                         Epic 
-                        <span class="filter-badge" *ngIf="getFilterCount('epics') > 0">
+                        <span class="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold" 
+                              *ngIf="getFilterCount('epics') > 0">
                             {{getFilterCount('epics')}}
                         </span>
-                        <span class="arrow">▼</span>
+                        <span class="text-xs ml-1">▼</span>
                     </button>
-                    <div class="filter-dropdown" id="epic-dropdown">
-                        <div class="filter-option" *ngFor="let epic of availableEpics">
+                    <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
+                         id="epic-dropdown">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer" 
+                             *ngFor="let epic of availableEpics">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    [id]="'epic-' + epic"
                                    [value]="epic"
                                    (change)="toggleFilter('epics', epic, $event)">
-                            <label [for]="'epic-' + epic">{{epic}}</label>
+                            <label class="cursor-pointer flex-1 m-0" [for]="'epic-' + epic">{{epic}}</label>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Type Filter -->
-                <div class="filter-group">
-                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                <div class="relative">
+                    <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+                            (click)="toggleDropdown($event)">
                         Type 
-                        <span class="filter-badge" *ngIf="getFilterCount('types') > 0">
+                        <span class="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold" 
+                              *ngIf="getFilterCount('types') > 0">
                             {{getFilterCount('types')}}
                         </span>
-                        <span class="arrow">▼</span>
+                        <span class="text-xs ml-1">▼</span>
                     </button>
-                    <div class="filter-dropdown" id="type-dropdown">
-                        <div class="filter-option">
+                    <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
+                         id="type-dropdown">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    value="story" 
                                    id="type-story"
                                    (change)="toggleFilter('types', 'story', $event)">
-                            <label for="type-story">Story</label>
+                            <label class="cursor-pointer flex-1 m-0" for="type-story">Story</label>
                         </div>
-                        <div class="filter-option">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    value="task" 
                                    id="type-task"
                                    (change)="toggleFilter('types', 'task', $event)">
-                            <label for="type-task">Task</label>
+                            <label class="cursor-pointer flex-1 m-0" for="type-task">Task</label>
                         </div>
-                        <div class="filter-option">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    value="bug" 
                                    id="type-bug"
                                    (change)="toggleFilter('types', 'bug', $event)">
-                            <label for="type-bug">Bug</label>
+                            <label class="cursor-pointer flex-1 m-0" for="type-bug">Bug</label>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Status Filter -->
-                <div class="filter-group">
-                    <button class="filter-btn" (click)="toggleDropdown($event)">
+                <div class="relative">
+                    <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+                            (click)="toggleDropdown($event)">
                         Status 
-                        <span class="filter-badge" *ngIf="getFilterCount('status') > 0">
+                        <span class="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold" 
+                              *ngIf="getFilterCount('status') > 0">
                             {{getFilterCount('status')}}
                         </span>
-                        <span class="arrow">▼</span>
+                        <span class="text-xs ml-1">▼</span>
                     </button>
-                    <div class="filter-dropdown" id="status-dropdown">
-                        <div class="filter-option">
+                    <div class="hidden absolute top-full right-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
+                         id="status-dropdown">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    value="todo" 
                                    id="status-todo"
                                    (change)="toggleFilter('status', 'todo', $event)">
-                            <label for="status-todo">To Do</label>
+                            <label class="cursor-pointer flex-1 m-0" for="status-todo">To Do</label>
                         </div>
-                        <div class="filter-option">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    value="progress" 
                                    id="status-progress"
                                    (change)="toggleFilter('status', 'progress', $event)">
-                            <label for="status-progress">In Progress</label>
+                            <label class="cursor-pointer flex-1 m-0" for="status-progress">In Progress</label>
                         </div>
-                        <div class="filter-option">
+                        <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
                             <input type="checkbox" 
+                                   class="cursor-pointer"
                                    value="done" 
                                    id="status-done"
                                    (change)="toggleFilter('status', 'done', $event)">
-                            <label for="status-done">Done</label>
+                            <label class="cursor-pointer flex-1 m-0" for="status-done">Done</label>
                         </div>
                     </div>
                 </div>
-                
-                <button class="clear-filters" 
-                        (click)="clearFilters()"
-                        *ngIf="getFilterCount('sprints') > 0 || getFilterCount('epics') > 0 || 
-                               getFilterCount('types') > 0 || getFilterCount('status') > 0">
+
+                <!-- Clear Filters Button - ALWAYS VISIBLE, RIGHT SIDE -->
+                <button class="px-4 py-2 border-0 bg-red-500 text-white rounded text-sm font-medium transition-all duration-300 hover:bg-red-600"
+                        (click)="clearFilters()">
                     Clear Filters
                 </button>
             </div>
         </div>
         
-        <div class="gantt-container">
-            <div class="current-view-info" *ngIf="displayMode === 'issues' && selectedEpic">
-                <h3>Issue List</h3>
+        <!-- Gantt Container -->
+        <div class="p-5 min-h-[600px]">
+            <div class="mb-4 p-3 bg-blue-50 border-l-4 border-indigo-600 rounded" 
+                 *ngIf="displayMode === 'issues' && selectedEpic">
+                <h3 class="m-0 text-gray-800 text-base font-semibold">Issue List</h3>
             </div>
-            <div #ganttTarget id="gantt_chart"></div>
+            <div #ganttTarget id="gantt_chart" class="w-full min-h-[500px] overflow-auto"></div>
         </div>
     </div>
 </div>
-
-<!-- Close dropdowns when clicking outside -->
-<script>
-document.addEventListener('click', function(event) {
-    if (!event.target.closest('.filter-group')) {
-        document.querySelectorAll('.filter-dropdown').forEach(dd => {
-            dd.classList.remove('show');
-        });
-    }
-});
-</script>

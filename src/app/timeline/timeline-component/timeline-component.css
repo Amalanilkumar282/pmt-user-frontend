@@ -1,6 +1,6 @@
- .page-header {
-  margin-left: 20%;  /* moves the whole block to the right */
-  margin-top: 13%;   /* pushes it down */
+.page-header {
+  margin-left: 240px;
+  margin-top: 121px;
 }
 
 .page-header.sidebar-collapsed {
