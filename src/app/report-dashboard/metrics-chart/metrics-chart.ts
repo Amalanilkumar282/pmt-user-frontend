@@ -244,16 +244,37 @@ export class MetricsChart implements OnInit {
 //   } as ChartOptions;
 // }
 //  }
-ngOnInit() {
-  const sprint = sprints.find(s => s.id === 'completed-1');
-  if (!sprint) return;
+ ngOnInit() {
+  const today = new Date();
+
+  // Try to find ongoing sprint first
+  let sprint = sprints.find(s =>
+    new Date(s.startDate) <= today && today <= new Date(s.endDate)
+  );
+
+  // If no ongoing sprint, pick the most recently completed one
+  if (!sprint) {
+    const completedSprints = sprints
+      .filter(s => new Date(s.endDate) < today)
+      .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
+    sprint = completedSprints[0];
+  }
+
+  if (!sprint) {
+    console.warn('No ongoing or recently completed sprint found.');
+    return;
+  }
 
   const issues: Issue[] = sprint.issues || [];
   const totalScopePoints = issues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
 
   // Prepare date labels
   const dates: string[] = [];
-  for (let d = new Date(sprint.startDate); d <= sprint.endDate; d.setDate(d.getDate() + 1)) {
+  for (
+    let d = new Date(sprint.startDate);
+    d <= new Date(sprint.endDate);
+    d.setDate(d.getDate() + 1)
+  ) {
     dates.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
   }
 
