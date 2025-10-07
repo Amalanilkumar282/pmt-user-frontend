@@ -5,6 +5,7 @@ import type { Issue } from '../../../shared/models/issue.model';
 
 class StoreMock {
   updateIssueStatus = jasmine.createSpy('updateIssueStatus');
+  removeColumn = jasmine.createSpy('removeColumn');
 }
 
 describe('BoardColumn', () => {
@@ -65,5 +66,33 @@ describe('BoardColumn', () => {
     expect(store.updateIssueStatus).toHaveBeenCalledWith('a', 'DONE' as any);
     // Ensure we did not push into cmp.items directly (single source of truth is store)
     expect(cmp.items.length).toBe(0);
+  });
+
+  it('onDeleteColumn prompts if column not empty and does not delete', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+    const store = TestBed.inject(BoardStore) as any as StoreMock;
+
+    // populate items
+    cmp.items = [{id:'a'} as any];
+    cmp.def = { id: 'TODO' as any, title: 'To Do', color: '' } as any;
+    spyOn(window, 'confirm').and.returnValue(false);
+
+    const res = cmp.onDeleteColumn();
+    expect(window.confirm).toHaveBeenCalled();
+    expect(res).toBeFalse();
+    expect(store.removeColumn).not.toHaveBeenCalled();
+  });
+
+  it('onDeleteColumn deletes when empty', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+    const store = TestBed.inject(BoardStore) as any as StoreMock;
+
+    cmp.items = [];
+    cmp.def = { id: 'DONE' as any, title: 'Done', color: '' } as any;
+    const res = cmp.onDeleteColumn();
+    expect(store.removeColumn).toHaveBeenCalledWith('DONE');
+    expect(res).toBeTrue();
   });
 });

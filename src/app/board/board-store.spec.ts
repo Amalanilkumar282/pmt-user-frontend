@@ -144,5 +144,15 @@ describe('BoardStore', () => {
     store.setGroupBy('ASSIGNEE');
     expect(store.groupBy()).toBe('ASSIGNEE');
   });
+
+  it('removeColumn removes a column by id', () => {
+    const before = store.columns().map(c => c.id);
+    store.addColumn({ id: 'QA' as any, title: 'QA', color: '' });
+    expect(store.columns().map(c => c.id)).toContain('QA' as any);
+    store.removeColumn('QA' as any);
+    expect(store.columns().map(c => c.id)).not.toContain('QA' as any);
+    // ensure other columns remain
+    expect(store.columns().length).toBe(before.length);
+  });
 });
 

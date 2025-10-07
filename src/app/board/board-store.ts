@@ -90,4 +90,8 @@ export class BoardStore {
   addColumn(def: BoardColumnDef) {
     this.columns.update(cols => [...cols, def]);
   }
+
+  removeColumn(id: string) {
+    this.columns.update(cols => cols.filter(c => c.id !== id));
+  }
 }
