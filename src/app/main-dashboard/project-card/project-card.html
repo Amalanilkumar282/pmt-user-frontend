@@ -1,73 +1,75 @@
-<div class="project-card">
-  <div class="project-header">
-    <div class="project-info">
-      <div class="project-avatar">{{ project.name.charAt(0) }}</div>
-      <div>
-        <h3>{{ project.name }}</h3>
-        <p>{{ project.type }}</p>
+<a routerLink="/summary">
+  <div class="project-card">
+    <div class="project-header">
+      <div class="project-info">
+        <div class="project-avatar">{{ project.name.charAt(0) }}</div>
+        <div>
+          <h3>{{ project.name }}</h3>
+          <p>{{ project.type }}</p>
+        </div>
+      </div>
+      <div class="project-actions">
+        <span class="status-badge" [class.completed]="project.status === 'Completed'">
+          {{ project.status }}
+        </span>
+        <button
+          class="star-btn"
+          (click)="$event.preventDefault(); $event.stopPropagation(); toggleStar()"
+          [class.starred]="project.starred"
+          aria-pressed="{{ project.starred }}"
+          [attr.aria-label]="project.starred ? 'Unstar project' : 'Star project'"
+          title="{{ project.starred ? 'Unstar' : 'Star' }}"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              *ngIf="!project.starred"
+              d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+              fill="#cbd5e1"
+            />
+            <path
+              *ngIf="project.starred"
+              d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+              fill="#f59e0b"
+            />
+          </svg>
+        </button>
       </div>
     </div>
-    <div class="project-actions">
-      <span class="status-badge" [class.completed]="project.status === 'Completed'">
-        {{ project.status }}
-      </span>
-      <button
-        class="star-btn"
-        (click)="toggleStar()"
-        [class.starred]="project.starred"
-        aria-pressed="{{ project.starred }}"
-        [attr.aria-label]="project.starred ? 'Unstar project' : 'Star project'"
-        title="{{ project.starred ? 'Unstar' : 'Star' }}"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            *ngIf="!project.starred"
-            d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-            fill="#cbd5e1"
-          />
-          <path
-            *ngIf="project.starred"
-            d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-            fill="#f59e0b"
-          />
-        </svg>
-      </button>
-    </div>
-  </div>
 
-  <div class="sprint-info">
-    <span class="sprint-badge">Active Sprint: {{ project.sprint }}</span>
-  </div>
+    <div class="sprint-info">
+      <span class="sprint-badge">Active Sprint: {{ project.sprint }}</span>
+    </div>
 
-  <div class="task-stats">
-    <div class="task-stat">
-      <span class="task-number">{{ project.tasks.toDo }}</span>
-      <span class="task-label">To Do</span>
+    <div class="task-stats">
+      <div class="task-stat">
+        <span class="task-number">{{ project.tasks.toDo }}</span>
+        <span class="task-label">To Do</span>
+      </div>
+      <div class="task-stat">
+        <span class="task-number">{{ project.tasks.inProgress }}</span>
+        <span class="task-label">In Progress</span>
+      </div>
+      <div class="task-stat">
+        <span class="task-number">{{ project.tasks.done }}</span>
+        <span class="task-label">Done</span>
+      </div>
     </div>
-    <div class="task-stat">
-      <span class="task-number">{{ project.tasks.inProgress }}</span>
-      <span class="task-label">In Progress</span>
-    </div>
-    <div class="task-stat">
-      <span class="task-number">{{ project.tasks.done }}</span>
-      <span class="task-label">Done</span>
-    </div>
-  </div>
 
-  <div class="project-footer">
-    <div class="team-members">
-      <span class="member-avatar" *ngFor="let member of project.teamMembers">{{ member }}</span>
-    </div>
-    <div class="project-meta">
-      <p><strong>Deadline:</strong> {{ project.deadline }}</p>
-      <p class="text-muted">Updated {{ project.updated }}</p>
+    <div class="project-footer">
+      <div class="team-members">
+        <span class="member-avatar" *ngFor="let member of project.teamMembers">{{ member }}</span>
+      </div>
+      <div class="project-meta">
+        <p><strong>Deadline:</strong> {{ project.deadline }}</p>
+        <p class="text-muted">Updated {{ project.updated }}</p>
+      </div>
     </div>
   </div>
-</div>
+</a>

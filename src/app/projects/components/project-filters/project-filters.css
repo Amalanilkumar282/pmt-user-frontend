@@ -1,0 +1,99 @@
+.filters-container {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgb(226, 232, 240);
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.search-box {
+  flex: 1;
+  max-width: 28rem;
+}
+
+.search-input-wrapper {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgb(148, 163, 184);
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.625rem 1rem 0.625rem 2.5rem;
+  background-color: rgb(248, 250, 252);
+  border: 1px solid rgb(226, 232, 240);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(15, 23, 42);
+}
+
+.search-input::placeholder {
+  color: rgb(148, 163, 184);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: transparent;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background-color: white;
+  border: 1px solid rgb(226, 232, 240);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(51, 65, 85);
+  transition: background-color 0.2s;
+}
+
+.filter-button:hover {
+  background-color: rgb(248, 250, 252);
+}
+
+.filter-dropdown {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: rgb(248, 250, 252);
+  border: 1px solid rgb(226, 232, 240);
+  border-radius: 0.5rem;
+}
+
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.type-filter-button {
+  padding: 0.5rem 0.75rem;
+  background-color: white;
+  border: 1px solid rgb(226, 232, 240);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: rgb(51, 65, 85);
+  transition: all 0.2s;
+}
+
+.type-filter-button:hover {
+  background-color: rgb(241, 245, 249);
+  border-color: rgb(203, 213, 225);
+}
+
+.type-filter-button.active {
+  background-color: rgb(59, 130, 246);
+  border-color: rgb(37, 99, 235);
+  color: white;
+}

@@ -4,24 +4,7 @@
     <!-- Main Content -->
     <main class="main-content">
       <!-- Header -->
-      <header class="header">
-        <div class="header-left">
-          <button class="menu-toggle">☰</button>
-          <span class="breadcrumb">Dashboard</span>
-        </div>
-        <div class="header-right">
-          <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" placeholder="Search projects, users, reports..." />
-          </div>
-          <div class="notification-icon">
-            <span>🔔</span>
-            <span class="badge">3</span>
-          </div>
-          <button class="settings-icon">⚙️</button>
-          <div class="user-avatar">H</div>
-        </div>
-      </header>
+      <app-header></app-header>
 
       <!-- Welcome Section -->
       <section class="welcome-section">
@@ -36,6 +19,7 @@
           <!-- Stats Cards -->
           <div class="stats-grid">
             <app-issue-summary-card
+              class="stat-card"
               type="completed"
               [count]="stats.activeProjects"
               label="Active Projects"
@@ -44,6 +28,7 @@
             </app-issue-summary-card>
 
             <app-issue-summary-card
+              class="stat-card"
               type="created"
               [count]="stats.issuesInProgress"
               label="Issues in Progress"
@@ -52,6 +37,7 @@
             </app-issue-summary-card>
 
             <app-issue-summary-card
+              class="stat-card"
               type="updated"
               [count]="stats.sprintsInProgress"
               label="Active Sprints"
@@ -64,7 +50,7 @@
           <section class="projects-section">
             <div class="section-header">
               <h2>Your Projects</h2>
-              <button class="view-all-btn">View All</button>
+              <a routerLink="/projects"><button class="view-all-btn">View All</button></a>
             </div>
 
             <app-project-card
