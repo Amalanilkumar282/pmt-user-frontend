@@ -20,6 +20,7 @@ export class EpicContainer {
   @Output() epicSelected = new EventEmitter<string>();
   @Output() closeEpicPanel = new EventEmitter<void>();
   @Output() viewDetails = new EventEmitter<string>();
+  @Output() epicCreated = new EventEmitter<Epic>();
 
   onToggleExpand(epicId: string): void {
     this.epics = this.epics.map(epic => 
@@ -67,10 +68,12 @@ export class EpicContainer {
         team: 'None',
         sprint: 'None',
         storyPoints: 0,
-        reporter: 'Unknown',
+        reporter: 'Unassigned',
+        status: 'TODO',
         childWorkItems: []
       };
       this.epics.push(newEpic);
+      this.epicCreated.emit(newEpic);
       this.isCreating = false;
       this.newEpicName = '';
     }

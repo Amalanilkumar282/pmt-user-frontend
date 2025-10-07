@@ -267,6 +267,13 @@ export class BacklogPage {
     }
   }
 
+  onEpicCreated(newEpic: Epic): void {
+    // Add the new epic to the list
+    this.epics.push(newEpic);
+    // Immediately open the detail view for the newly created epic
+    this.selectedEpic = { ...newEpic };
+  }
+
   closeEpicDetailView(): void {
     this.selectedEpic = null;
   }
