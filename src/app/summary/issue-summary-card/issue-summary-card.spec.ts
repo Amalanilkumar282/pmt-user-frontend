@@ -81,8 +81,8 @@ describe('IssueSummaryCard', () => {
       expect(allSvgs.length).toBe(1);
 
       // A simple check to ensure the correct SVG is present.
-      // In the HTML, SVGs are conditionally rendered with *ngIf="type === '...'"
-      const correctSvg = fixture.debugElement.query(By.css(`svg[ng-reflect-ng-if="${cardType}"]`));
+      // MODIFIED: Query using the reliable data-testid attribute instead of ng-reflect-ng-if
+      const correctSvg = fixture.debugElement.query(By.css(`svg[data-testid="icon-${cardType}"]`));
       expect(correctSvg).toBeTruthy(`Expected SVG for type ${cardType} to be present`);
     });
   });
