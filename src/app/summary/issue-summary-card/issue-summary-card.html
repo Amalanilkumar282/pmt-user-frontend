@@ -2,6 +2,7 @@
   <div class="card-icon" [style.color]="getIconColor()">
     <svg
       *ngIf="type === 'completed'"
+      data-testid="icon-completed"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -20,6 +21,7 @@
 
     <svg
       *ngIf="type === 'updated'"
+      data-testid="icon-updated"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -36,6 +38,7 @@
 
     <svg
       *ngIf="type === 'created'"
+      data-testid="icon-created"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -48,6 +51,7 @@
 
     <svg
       *ngIf="type === 'due-soon'"
+      data-testid="icon-due-soon"
       width="24"
       height="24"
       viewBox="0 0 24 24"

@@ -37,7 +37,7 @@ export class IssueDetailedView {
   if (!issue) return;
 
   const fields: FormField[] = [
-    { label: 'Title', type: 'text', model: 'title', colSpan: 2 },
+    { label: 'Title', type: 'text', model: 'title', colSpan: 2, required:true },
     { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
     { label: 'Priority', type: 'select', model: 'priority', options: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
     { label: 'Status', type: 'select', model: 'status', options: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] },
