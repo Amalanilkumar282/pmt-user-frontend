@@ -111,7 +111,7 @@ export class BacklogPage {
   const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
 
   const sprintFields: FormField[] = [
-    { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2 },
+    { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required:true },
     { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
     { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
     { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },

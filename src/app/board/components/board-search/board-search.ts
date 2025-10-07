@@ -7,7 +7,7 @@ import { BoardStore } from '../../board-store';
   selector: 'app-board-search',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: './board-search.html',
+  templateUrl: './board-search.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BoardSearch {

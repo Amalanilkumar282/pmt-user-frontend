@@ -1,16 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { GroupByMenu } from './group-by-menu';
 
-describe('GroupByMenu', () => {
-  let component: GroupByMenu;
-  let fixture: ComponentFixture<GroupByMenu>;
+import { ChartTable } from './chart-table';
+
+describe('ChartTable', () => {
+  let component: ChartTable;
+  let fixture: ComponentFixture<ChartTable>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GroupByMenu]
-    }).compileComponents();
+      imports: [ChartTable]
+    })
+    .compileComponents();
 
-    fixture = TestBed.createComponent(GroupByMenu);
+    fixture = TestBed.createComponent(ChartTable);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

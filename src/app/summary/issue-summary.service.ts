@@ -39,7 +39,7 @@ interface RecentIssue {
   providedIn: 'root',
 })
 export class IssueSummaryService {
-  private readonly CURRENT_DATE = new Date('2025-10-06'); // Current date from context
+  private readonly CURRENT_DATE = new Date();
   private readonly MS_PER_DAY = 1000 * 60 * 60 * 24;
 
   private readonly ISSUE_TYPE_COLOR_MAP: { [key: string]: string } = {

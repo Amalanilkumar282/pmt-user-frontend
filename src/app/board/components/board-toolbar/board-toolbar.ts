@@ -7,6 +7,7 @@ import { SprintSelect } from '../sprint-select/sprint-select';
 import { FilterPanel } from '../filter-panel/filter-panel';
 import { GroupByMenu } from '../group-by-menu/group-by-menu';
 import { AddColumnButton } from '../add-column-button/add-column-button';
+import { BoardSearch } from '../../../shared/components/board-search/board-search';
 
 @Component({
   selector: 'app-board-toolbar',
@@ -17,7 +18,8 @@ import { AddColumnButton } from '../add-column-button/add-column-button';
     SprintSelect,
     FilterPanel,
     GroupByMenu,
-    AddColumnButton
+    AddColumnButton,
+    BoardSearch
   ],
   templateUrl: './board-toolbar.html',
   styleUrls: ['./board-toolbar.css'],

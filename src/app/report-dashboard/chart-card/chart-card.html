@@ -6,36 +6,30 @@
     </div>
     <a [href]="detailsLink" class="details-link">View Details →</a>
   </div>
-  
+
   <div class="chart-container">
     <svg [attr.width]="chartWidth" [attr.height]="chartHeight" class="chart">
-      <!-- For burnup and burndown charts -->
-      @if (chartType !== 'velocity') {
-        <path 
-          [attr.d]="areaPath" 
-          [class]="'chart-area chart-area-' + chartType"
-          fill-opacity="0.2"
-        />
-        <path 
-          [attr.d]="linePath" 
-          [class]="'chart-line chart-line-' + chartType"
-          fill="none" 
-          stroke-width="2"
-        />
-      }
-      
-      <!-- For velocity chart -->
-      @if (chartType === 'velocity') {
-        @for (bar of velocityBars; track $index) {
-          <rect
-            [attr.x]="bar.x"
-            [attr.y]="bar.y"
-            [attr.width]="bar.width"
-            [attr.height]="bar.height"
-            class="velocity-bar"
-          />
-        }
-      }
+
+      <!-- Burnup / Burndown -->
+      <ng-container *ngIf="chartType !== 'velocity'">
+        <path [attr.d]="areaPath"
+              [class]="'chart-area chart-area-' + chartType"
+              fill-opacity="0.2" fill="#4CAF50"/>
+        <path [attr.d]="linePath"
+              [class]="'chart-line chart-line-' + chartType"
+              fill="none" stroke="#388E3C" stroke-width="2"/>
+      </ng-container>
+
+      <!-- Velocity -->
+      <ng-container *ngIf="chartType === 'velocity'">
+        <rect *ngFor="let bar of velocityBars"
+              [attr.x]="bar.x"
+              [attr.y]="bar.y"
+              [attr.width]="bar.width"
+              [attr.height]="bar.height"
+              fill="#3498db"/>
+      </ng-container>
+
     </svg>
   </div>
 </div>

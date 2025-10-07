@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Issue } from '../../shared/models/issue.model';
+import { FormField, ModalService } from '../../modal/modal-service';
 
 @Component({
   selector: 'app-issue-detailed-view',
@@ -9,6 +10,8 @@ import { Issue } from '../../shared/models/issue.model';
   styleUrl: './issue-detailed-view.css'
 })
 export class IssueDetailedView {
+  constructor(private modalService: ModalService) {} 
+  
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
   }
@@ -28,6 +31,39 @@ export class IssueDetailedView {
 
   // Available sprints for moving (will be passed as input)
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
+
+  protected onEditIssue(): void {
+  const issue = this._issue();
+  if (!issue) return;
+
+  const fields: FormField[] = [
+    { label: 'Title', type: 'text', model: 'title', colSpan: 2, required:true },
+    { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
+    { label: 'Priority', type: 'select', model: 'priority', options: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+    { label: 'Status', type: 'select', model: 'status', options: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] },
+    { label: 'Story Points', type: 'number', model: 'storyPoints' },
+    { label: 'Assignee', type: 'text', model: 'assignee' },
+    { label: 'Sprint', type: 'select', model: 'sprintId', options: this.availableSprints.map(s => s.name),  colSpan: 2 }
+  ];
+
+  this.modalService.open({
+    id: 'editIssueModal',
+    title: `Edit Issue - ${issue.title}`,
+    projectName: 'Project Alpha',
+    fields,
+    data: {
+      title: issue.title,
+      description: issue.description,
+      priority: issue.priority,
+      status: issue.status,
+      storyPoints: issue.storyPoints,
+      assignee: issue.assignee,
+      sprintId: issue.sprintId
+    },
+    showLabels: false
+  });
+}
+
 
   protected getTypeIcon(type: string): string {
     const icons: Record<string, string> = {
