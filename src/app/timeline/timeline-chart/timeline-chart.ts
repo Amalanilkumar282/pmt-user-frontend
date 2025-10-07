@@ -1,5 +1,5 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef, HostListener, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { sprints as sharedSprints, epics as sharedEpics } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
@@ -54,10 +54,15 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   availableSprints: string[] = [];
   availableEpics: string[] = [];
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  isBrowser = false;
+
+  constructor(private cdr: ChangeDetectorRef, @Inject(PLATFORM_ID) private platformId: Object) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
+    if (!this.isBrowser) return;
     const target = event.target as HTMLElement;
     // Check if click is outside dropdown
     if (!target.closest('.relative')) {
@@ -71,6 +76,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    // Only run client-only code in browser
+    if (!this.isBrowser) return;
     // Load frappe-gantt library
     this.loadGanttLibrary().then(() => {
       setTimeout(() => {
@@ -87,6 +94,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private loadGanttLibrary(): Promise<void> {
     return new Promise((resolve) => {
+      if (!this.isBrowser) {
+        // Nothing to load on server
+        resolve();
+        return;
+      }
+
       // Check if already loaded
       if (typeof Gantt !== 'undefined') {
         resolve();
@@ -144,12 +157,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       this.selectedFilters.sprints = [latestSprint.name];
       
       // Check the checkbox after a brief delay to ensure DOM is ready
-      setTimeout(() => {
-        const checkbox = document.getElementById(`sprint-${latestSprint.name}`) as HTMLInputElement;
-        if (checkbox) {
-          checkbox.checked = true;
-        }
-      }, 100);
+      if (this.isBrowser) {
+        setTimeout(() => {
+          const checkbox = document.getElementById(`sprint-${latestSprint.name}`) as HTMLInputElement;
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+        }, 100);
+      }
     }
   }
 

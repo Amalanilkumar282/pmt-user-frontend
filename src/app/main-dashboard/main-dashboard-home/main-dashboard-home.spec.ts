@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ActivatedRoute } from '@angular/router';
 
 import { MainDashboardHome } from './main-dashboard-home';
 
@@ -8,7 +10,10 @@ describe('MainDashboardHome', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MainDashboardHome]
+      imports: [MainDashboardHome, RouterTestingModule],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: new Map() } } }
+      ]
     })
     .compileComponents();
 
