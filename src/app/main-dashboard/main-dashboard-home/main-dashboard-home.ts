@@ -7,6 +7,7 @@ import { SprintOverview } from '../../summary/sprint-overview/sprint-overview';
 import { ProjectCard } from '../project-card/project-card';
 import { ActivityItem } from '../activity-item/activity-item';
 import { Header } from '../../shared/header/header';
+import { RouterModule } from '@angular/router';
 
 interface Project {
   id: string;
@@ -49,6 +50,7 @@ interface Activity {
     ActivityItem,
     SprintOverview,
     Header,
+    RouterModule,
   ],
 })
 export class MainDashboardHome {

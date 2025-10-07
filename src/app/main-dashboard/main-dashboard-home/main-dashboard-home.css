@@ -429,7 +429,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 8px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -458,7 +458,7 @@ app-sprint-overview {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  height: 248px;
+  height: 272px;
   overflow: scroll;
 }
 

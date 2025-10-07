@@ -1,0 +1,25 @@
+<div class="page-container">
+  <app-sidebar></app-sidebar>
+
+  <div class="main-content" [class.collapsed]="isCollapsed()">
+    <app-header></app-header>
+
+    <main class="p-8">
+      <app-project-header (createProject)="createProject()"></app-project-header>
+
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <app-project-filters
+          [searchQuery]="searchQuery"
+          (searchQueryChange)="searchQuery = $event; filterProjects()"
+        ></app-project-filters>
+
+        <app-project-list
+          [projects]="projects()"
+          [filteredProjects]="filteredProjects()"
+          [sortBy]="currentSort"
+          (projectAction)="toggleProjectStar($event.projectId)"
+        ></app-project-list>
+      </div>
+    </main>
+  </div>
+</div>
