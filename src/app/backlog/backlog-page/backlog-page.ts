@@ -31,7 +31,14 @@ export class BacklogPage {
   constructor(private modalService: ModalService) {}
   
   private sidebarStateService = inject(SidebarStateService);
-  isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+  // Template calls isSidebarCollapsed() as a method; expose it here.
+  isSidebarCollapsed(): boolean {
+    const svc: any = this.sidebarStateService as any;
+    if (typeof svc.isCollapsed === 'function') {
+      return svc.isCollapsed();
+    }
+    return !!svc.isCollapsed;
+  }
   
   // Epic panel state
   isEpicPanelOpen = false;
