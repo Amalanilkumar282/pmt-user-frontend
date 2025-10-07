@@ -1,0 +1,248 @@
+<div class="section details-section">
+  <div class="details-header">
+    <span class="details-title">Details</span>
+  </div>
+
+  <div class="details-grid">
+    <!-- Assignee -->
+    <div class="detail-row">
+      <div class="detail-label">Assignee</div>
+      <div class="detail-value">
+        @if (!editing['assignee']) {
+          <span (click)="startEdit('assignee', epic.assignee)" class="editable-text">
+            {{ epic.assignee || 'Unassigned' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <select [(ngModel)]="temp['assignee']" class="inline-select">
+              <option value="Unassigned">Unassigned</option>
+              @for (user of availableUsers; track user.id) {
+                <option [value]="user.name">{{ user.name }}</option>
+              }
+            </select>
+            <button class="btn-sm" (click)="save('assignee')">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('assignee')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Labels -->
+    <div class="detail-row">
+      <div class="detail-label">Labels</div>
+      <div class="detail-value">
+        <div class="labels-container">
+          @if (epic.labels && epic.labels.length > 0) {
+            @for (label of epic.labels; track label) {
+              <span class="label-tag">
+                {{ label }}
+                <button class="label-remove" (click)="removeLabel(label)">×</button>
+              </span>
+            }
+          }
+          @if (editing['labels']) {
+            <div class="inline-edit">
+              <input 
+                type="text" 
+                [(ngModel)]="temp['newLabel']"
+                class="inline-input"
+                placeholder="Enter label"
+                (keyup.enter)="addLabel()"
+                (keyup.escape)="cancel('labels')"
+              />
+              <button class="btn-sm" (click)="addLabel()">✓</button>
+              <button class="btn-sm cancel" (click)="cancel('labels')">✕</button>
+            </div>
+          } @else {
+            <button class="link-btn-sm" (click)="editing['labels'] = true">+ Add label</button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Parent -->
+    <div class="detail-row">
+      <div class="detail-label">Parent</div>
+      <div class="detail-value">
+        @if (!editing['parent']) {
+          <span (click)="startEdit('parent', epic.parent)" class="editable-text">
+            {{ epic.parent || 'None' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <select [(ngModel)]="temp['parent']" class="inline-select">
+              <option value="None">None</option>
+              @for (parentEpic of availableEpics; track parentEpic.id) {
+                <option [value]="parentEpic.name">{{ parentEpic.name }}</option>
+              }
+            </select>
+            <button class="btn-sm" (click)="save('parent')">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('parent')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Team -->
+    <div class="detail-row">
+      <div class="detail-label">Team</div>
+      <div class="detail-value">
+        @if (!editing['team']) {
+          <span (click)="startEdit('team', epic.team)" class="editable-text">
+            {{ epic.team || 'None' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <input 
+              type="text" 
+              [(ngModel)]="temp['team']"
+              class="inline-input"
+              (keyup.enter)="save('team')"
+              (keyup.escape)="cancel('team')"
+            />
+            <button class="btn-sm" (click)="save('team')">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('team')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Due Date -->
+    <div class="detail-row">
+      <div class="detail-label">Due date</div>
+      <div class="detail-value">
+        @if (!editing['dueDate']) {
+          <span (click)="startEdit('dueDate', epic.dueDate ? formatDateForInput(epic.dueDate) : '')" class="editable-text">
+            {{ formatDate(epic.dueDate) || 'Not set' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <input 
+              type="date" 
+              [(ngModel)]="temp['dueDate']"
+              class="inline-input"
+            />
+            <button class="btn-sm" (click)="saveDueDate()">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('dueDate')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Start Date -->
+    <div class="detail-row">
+      <div class="detail-label">Start date</div>
+      <div class="detail-value">
+        @if (!editing['startDate']) {
+          <span (click)="startEdit('startDate', epic.startDate ? formatDateForInput(epic.startDate) : '')" class="editable-text">
+            {{ formatDate(epic.startDate) || 'Not set' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <input 
+              type="date" 
+              [(ngModel)]="temp['startDate']"
+              class="inline-input"
+            />
+            <button class="btn-sm" (click)="saveStartDate()">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('startDate')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Sprint -->
+    <div class="detail-row">
+      <div class="detail-label">Sprint</div>
+      <div class="detail-value">
+        @if (!editing['sprint']) {
+          <span (click)="startEdit('sprint', epic.sprint)" class="editable-text">
+            {{ epic.sprint || 'None' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <select [(ngModel)]="temp['sprint']" class="inline-select">
+              <option value="None">None</option>
+              @for (sprint of availableSprints; track sprint.id) {
+                <option [value]="sprint.name">{{ sprint.name }}</option>
+              }
+            </select>
+            <button class="btn-sm" (click)="save('sprint')">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('sprint')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Story Points -->
+    <div class="detail-row">
+      <div class="detail-label">Story points</div>
+      <div class="detail-value">
+        @if (!editing['storyPoints']) {
+          <span (click)="startEdit('storyPoints', epic.storyPoints)" class="editable-text">
+            {{ epic.storyPoints || '0' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <input 
+              type="number" 
+              [(ngModel)]="temp['storyPoints']"
+              class="inline-input"
+              (keyup.enter)="save('storyPoints')"
+              (keyup.escape)="cancel('storyPoints')"
+            />
+            <button class="btn-sm" (click)="save('storyPoints')">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('storyPoints')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Reporter -->
+    <div class="detail-row">
+      <div class="detail-label">Reporter</div>
+      <div class="detail-value">
+        @if (!editing['reporter']) {
+          <span (click)="startEdit('reporter', epic.reporter)" class="editable-text">
+            {{ epic.reporter || 'Unassigned' }}
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <select [(ngModel)]="temp['reporter']" class="inline-select">
+              <option value="Unassigned">Unassigned</option>
+              @for (user of availableUsers; track user.id) {
+                <option [value]="user.name">{{ user.name }}</option>
+              }
+            </select>
+            <button class="btn-sm" (click)="save('reporter')">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('reporter')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="detail-row">
+      <div class="detail-label">Status</div>
+      <div class="detail-value">
+        @if (!editing['status']) {
+          <span (click)="startEdit('status', epic.status)" class="editable-text">
+            <span class="status-badge" [class]="getStatusClass(epic.status || 'TODO')">
+              {{ getStatusLabel(epic.status || 'TODO') }}
+            </span>
+          </span>
+        } @else {
+          <div class="inline-edit">
+            <select [(ngModel)]="temp['status']" class="inline-select">
+              @for (status of epicStatuses; track status) {
+                <option [value]="status">{{ getStatusLabel(status) }}</option>
+              }
+            </select>
+            <button class="btn-sm" (click)="save('status')">✓</button>
+            <button class="btn-sm cancel" (click)="cancel('status')">✕</button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

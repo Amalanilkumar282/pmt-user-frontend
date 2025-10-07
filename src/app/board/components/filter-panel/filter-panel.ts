@@ -2,13 +2,14 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { BoardStore } from '../../board-store';
 import { FilterState } from '../../models';
+import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 
 type FilterKey = keyof FilterState;
 
 @Component({
   selector: 'app-filter-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ClickOutsideDirective],
   templateUrl: './filter-panel.html',
   styleUrl: './filter-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush

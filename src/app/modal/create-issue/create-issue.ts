@@ -1,78 +1,70 @@
 import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser, NgFor, NgIf } from '@angular/common';
-import { Subscription } from 'rxjs';
-import { ModalService } from '../modal-service';
+import { NgIf, NgFor, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface FormField {
-  label: string;
-  type: 'text' | 'number' | 'textarea' | 'select' | 'date' | 'file';
-  model: string;
-  options?: string[];
-  required?: boolean;
-  colSpan?: 1 | 2;
-  onChange?: (value: any, formData: any) => void; // optional callback
-}
+import { Subscription } from 'rxjs';
+import { ModalService, FormField } from '../modal-service';
+import { isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'app-create-issue',
   templateUrl: './create-issue.html',
   styleUrls: ['./create-issue.css'],
   standalone: true,
-  imports: [NgIf, FormsModule, NgFor]
+  imports: [NgIf, NgFor, FormsModule, NgClass]
 })
 export class CreateIssue implements OnInit, OnDestroy {
-  @Input() modalId = 'createIssue';
-
+  
   show = false;
   private sub!: Subscription;
   private isBrowser: boolean;
 
-  formData: any = {
-  issueType: '',
-  summary: '',
-  description: '',
-  priority: 'medium',
-  assignee: '',
-  startDate: '',
-  dueDate: '',
-  sprint: '',
-  storyPoints: null,
-  parentEpic: '',
-  reporter: '',
-  labels: [],
-  attachments: []
-};
+  // Form
+  formData: any = { labels: [], attachments: [] };
+  fields: FormField[] = [];
+  invalidFields: Set<string> = new Set();
 
+  // Dynamic title/project
+  modalTitle = '';
+  projectName = '';
+  showLabels = false;
 
-  fields: FormField[] = [
-    { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic', 'Bug','Task','Story'], colSpan: 2 },
-    { label: 'Summary', type: 'text', model: 'summary', colSpan: 2 },
-    { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
-    { label: 'Priority', type: 'select', model: 'priority', options: ['High','Medium','Low'], colSpan: 1 },
-    { label: 'Assignee', type: 'select', model: 'assignee', options: ['Jacob','Clara','Zac'], colSpan: 1 },
-    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-    { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
-    { label: 'Story Point', type: 'number', model: 'storyPoints', colSpan: 1 },
-    { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3','Epic 4'], colSpan: 1 },
-    { label: 'Reporter', type: 'select', model: 'reporter', options: ['Jacob','Clara','Zac'], colSpan: 1 }
-  ];
+  formError: string = '';
+  showErrorToast = false;
+
+showToast(message: string, duration: number = 3000) {
+  this.formError = message;
+  this.showErrorToast = true;
+
+  setTimeout(() => {
+    this.showErrorToast = false;
+    this.formError = '';
+  }, duration);
+}
+
 
   constructor(
     private modalService: ModalService,
     @Inject(PLATFORM_ID) platformId: Object
-  ) {
-    this.isBrowser = isPlatformBrowser(platformId);
-  }
+  ) { this.isBrowser = isPlatformBrowser(platformId); }
 
   ngOnInit() {
-  this.sub = this.modalService.activeModal$.subscribe(id => {
-      this.show = id === this.modalId;
-      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
+    // 🧠 Listen for modal open/close changes
+    this.sub = this.modalService.activeModal$.subscribe((id) => {
+      const cfg = this.modalService.getConfig(id ?? '');
+      this.show = !!cfg;
 
-  });
-}
+      if (cfg) {
+        this.fields = cfg.fields ?? [];
+        this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
+        this.modalTitle = cfg.title ?? 'Modal';
+        this.projectName = cfg.projectName ?? '';
+        this.showLabels = cfg.showLabels ?? false;
+      }
+
+      // 🧩 Lock body scroll while modal is open
+      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
+    });
+  }
 
 
   ngOnDestroy() {
@@ -80,27 +72,66 @@ export class CreateIssue implements OnInit, OnDestroy {
     if (this.isBrowser) document.body.style.overflow = '';
   }
 
-  close() { this.modalService.close(); }
+close() { 
+  this.formError = ''; // reset error
+  this.invalidFields.clear(); // also clear invalid highlights
+  this.modalService.close(); 
+}
 
-  submit() {
-    console.log('Form submitted:', this.formData);
-    this.close();
+shakeFields: Set<string> = new Set();
+
+submit() {
+  this.invalidFields.clear();
+  this.shakeFields.clear(); // reset shakes
+
+  // Validate required fields
+  for (const field of this.fields) {
+    const value = this.formData[field.model];
+    if (field.required && (value === null || value === undefined || value === '')) {
+      this.invalidFields.add(field.model);
+      this.shakeFields.add(field.model); // mark for shake
+    }
+  }
+
+  if (this.invalidFields.size > 0) {
+    // Remove shake class after animation ends (so it can trigger again next submit)
+    setTimeout(() => this.shakeFields.clear(), 500);
+
+    // Scroll to first invalid field
+    setTimeout(() => {
+      const firstInvalid = document.querySelector('.input-error');
+      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+
+    // Show toast
+    this.showToast('Please fill all required fields before submitting.');
+    return;
+  }
+
+  console.log('Form submitted successfully:', this.formData);
+  this.close();
+}
+
+
+
+  handleChange(value: any, field: FormField) {
+    this.formData[field.model] = value;
+
+    // ✅ If field is required and filled, remove from invalid list
+    if (field.required && value) {
+      this.invalidFields.delete(field.model);
+    }
+
+    field.onChange?.(value, this.formData);
   }
 
   handleFileSelect(event: any, field: FormField) {
     this.formData[field.model] = Array.from(event.target.files);
-    field.onChange?.(this.formData[field.model], this.formData); // trigger custom callback
-  }
-
-  handleChange(value: any, field: FormField) {
-    if(field.onChange) field.onChange(value, this.formData); // optional per-field custom logic
+    field.onChange?.(this.formData[field.model], this.formData);
   }
 
   addLabel(label: string) {
-    if (label && !this.formData.labels?.includes(label)) {
-      this.formData.labels = this.formData.labels || [];
-      this.formData.labels.push(label);
-    }
+    if (label && !this.formData.labels.includes(label)) this.formData.labels.push(label);
   }
 
   removeLabel(label: string) {

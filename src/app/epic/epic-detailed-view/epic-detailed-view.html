@@ -1,0 +1,41 @@
+﻿<div class="epic-detail-panel">
+  <!-- Header Component -->
+  <app-epic-header 
+    [epic]="epic" 
+    (close)="onClose()">
+  </app-epic-header>
+
+  <!-- Content -->
+  <div class="epic-content">
+    <!-- Description Component -->
+    <app-epic-description 
+      [epic]="epic" 
+      (epicUpdated)="onEpicUpdated($event)">
+    </app-epic-description>
+
+    <!-- Work Items Section -->
+    <div class="section">
+      <div class="section-header">
+        <h3 class="section-title">Child Issues</h3>
+        <span class="issue-count">{{ workItems.length }} issues</span>
+      </div>
+      
+      <!-- Work Item Form Component -->
+      <app-work-item-form 
+        (workItemCreated)="onWorkItemCreated($event)">
+      </app-work-item-form>
+
+      <!-- Work Items Table Component -->
+      <app-work-items-table 
+        [workItems]="workItems" 
+        (workItemsChanged)="onWorkItemsChanged($event)">
+      </app-work-items-table>
+    </div>
+
+    <!-- Details Component -->
+    <app-epic-details 
+      [epic]="epic" 
+      (epicUpdated)="onEpicUpdated($event)">
+    </app-epic-details>
+  </div>
+</div>

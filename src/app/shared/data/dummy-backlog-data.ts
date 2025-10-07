@@ -1,5 +1,26 @@
 import { Issue } from '../models/issue.model';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
+import { Epic } from '../models/epic.model';
+
+// User interface
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+// Available users
+export const users: User[] = [
+  { id: 'user-1', name: 'Amal A', email: 'amal@example.com' },
+  { id: 'user-2', name: 'Kiran Paulson', email: 'kiran@example.com' },
+  { id: 'user-3', name: 'Kavya S', email: 'kavya@example.com' },
+  { id: 'user-4', name: 'Harrel Alex', email: 'harrelalex@example.com' },
+  { id: 'user-5', name: 'Sharath Shony', email: 'sharath@example.com' },
+  { id: 'user-6', name: 'Samasya P Promod', email: 'samasya@example.com' },
+  { id: 'user-7', name: 'Nadim Naisam', email: 'nadim@example.com' },
+  { id: 'user-8', name: 'Unassigned', email: '' }
+];
 
 // Completed Sprint 1 issues
 export const completedSprint1Issues: Issue[] = [
@@ -13,8 +34,9 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'John Doe',
     storyPoints: 3,
     sprintId: 'completed-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-08-01'),
-    updatedAt: new Date('2025-08-10')
+    updatedAt: new Date('2025-08-10'),
   },
   {
     id: 'PMT-002',
@@ -26,8 +48,9 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Jane Smith',
     storyPoints: 5,
     sprintId: 'completed-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-08-02'),
-    updatedAt: new Date('2025-08-14')
+    updatedAt: new Date('2025-08-14'),
   },
   {
     id: 'PMT-003',
@@ -39,8 +62,9 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Alex Johnson',
     storyPoints: 8,
     sprintId: 'completed-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-08-03'),
-    updatedAt: new Date('2025-08-16')
+    updatedAt: new Date('2025-08-16'),
   },
   {
     id: 'PMT-004',
@@ -52,9 +76,10 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Mike Brown',
     storyPoints: 5,
     sprintId: 'completed-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-08-05'),
-    updatedAt: new Date('2025-08-13')
-  }
+    updatedAt: new Date('2025-08-13'),
+  },
 ];
 
 // Completed Sprint 2 issues
@@ -69,8 +94,9 @@ export const completedSprint2Issues: Issue[] = [
     assignee: 'Sarah Lee',
     storyPoints: 5,
     sprintId: 'completed-2',
+    epicId: 'epic-2',
     createdAt: new Date('2025-08-20'),
-    updatedAt: new Date('2025-09-01')
+    updatedAt: new Date('2025-09-01'),
   },
   {
     id: 'PMT-022',
@@ -82,8 +108,9 @@ export const completedSprint2Issues: Issue[] = [
     assignee: 'John Doe',
     storyPoints: 3,
     sprintId: 'completed-2',
+    epicId: 'epic-2',
     createdAt: new Date('2025-08-21'),
-    updatedAt: new Date('2025-08-30')
+    updatedAt: new Date('2025-08-30'),
   },
   {
     id: 'PMT-023',
@@ -95,9 +122,10 @@ export const completedSprint2Issues: Issue[] = [
     assignee: 'Emma Wilson',
     storyPoints: 8,
     sprintId: 'completed-2',
+    epicId: 'epic-2',
     createdAt: new Date('2025-08-22'),
-    updatedAt: new Date('2025-09-02')
-  }
+    updatedAt: new Date('2025-09-02'),
+  },
 ];
 
 // Active Sprint issues
@@ -111,9 +139,10 @@ export const activeSprintIssues: Issue[] = [
     status: 'IN_PROGRESS',
     assignee: 'John Doe',
     storyPoints: 8,
-    sprintId: '1',
+    sprintId: 'active-1',
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-25'),
-    updatedAt: new Date('2025-09-28')
+    updatedAt: new Date('2025-09-28'),
   },
   {
     id: 'PMT-102',
@@ -124,9 +153,10 @@ export const activeSprintIssues: Issue[] = [
     status: 'TODO',
     assignee: 'Jane Smith',
     storyPoints: 5,
-    sprintId: '1',
+    sprintId: 'active-1',
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-26'),
-    updatedAt: new Date('2025-09-26')
+    updatedAt: new Date('2025-09-26'),
   },
   {
     id: 'PMT-103',
@@ -137,9 +167,10 @@ export const activeSprintIssues: Issue[] = [
     status: 'DONE',
     assignee: 'Alex Johnson',
     storyPoints: 3,
-    sprintId: '1',
+    sprintId: 'active-1',
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-20'),
-    updatedAt: new Date('2025-09-24')
+    updatedAt: new Date('2025-09-24'),
   },
   {
     id: 'PMT-104',
@@ -150,9 +181,10 @@ export const activeSprintIssues: Issue[] = [
     status: 'IN_REVIEW',
     assignee: 'Sarah Lee',
     storyPoints: 5,
-    sprintId: '1',
+    sprintId: 'active-1',
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-27'),
-    updatedAt: new Date('2025-09-29')
+    updatedAt: new Date('2025-09-29'),
   },
   {
     id: 'PMT-105',
@@ -163,9 +195,10 @@ export const activeSprintIssues: Issue[] = [
     status: 'TODO',
     assignee: 'Mike Brown',
     storyPoints: 13,
-    sprintId: '1',
+    sprintId: 'active-1',
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-28'),
-    updatedAt: new Date('2025-09-28')
+    updatedAt: new Date('2025-09-28'),
   },
   {
     id: 'PMT-106',
@@ -175,10 +208,11 @@ export const activeSprintIssues: Issue[] = [
     priority: 'LOW',
     status: 'TODO',
     storyPoints: 2,
-    sprintId: '1',
+    sprintId: 'active-1',
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-29'),
-    updatedAt: new Date('2025-09-29')
-  }
+    updatedAt: new Date('2025-09-29'),
+  },
 ];
 
 // Planned Sprint issues
@@ -193,8 +227,9 @@ export const plannedSprintIssues: Issue[] = [
     assignee: 'Oliver Davis',
     storyPoints: 13,
     sprintId: 'planned-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-28'),
-    updatedAt: new Date('2025-09-28')
+    updatedAt: new Date('2025-09-28'),
   },
   {
     id: 'PMT-302',
@@ -206,8 +241,9 @@ export const plannedSprintIssues: Issue[] = [
     assignee: 'Sophia Martinez',
     storyPoints: 8,
     sprintId: 'planned-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-29'),
-    updatedAt: new Date('2025-09-29')
+    updatedAt: new Date('2025-09-29'),
   },
   {
     id: 'PMT-303',
@@ -219,8 +255,9 @@ export const plannedSprintIssues: Issue[] = [
     assignee: 'Liam Anderson',
     storyPoints: 13,
     sprintId: 'planned-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-30'),
-    updatedAt: new Date('2025-09-30')
+    updatedAt: new Date('2025-09-30'),
   },
   {
     id: 'PMT-304',
@@ -232,9 +269,10 @@ export const plannedSprintIssues: Issue[] = [
     assignee: 'Noah Garcia',
     storyPoints: 5,
     sprintId: 'planned-1',
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-30'),
-    updatedAt: new Date('2025-09-30')
-  }
+    updatedAt: new Date('2025-09-30'),
+  },
 ];
 
 // Backlog issues (not assigned to any sprint)
@@ -242,14 +280,16 @@ export const backlogIssues: Issue[] = [
   {
     id: 'PMT-201',
     title: 'Implement email notifications',
-    description: 'Send email notifications for important events like task assignments and sprint completions',
+    description:
+      'Send email notifications for important events like task assignments and sprint completions',
     type: 'STORY',
     priority: 'HIGH',
     status: 'TODO',
     assignee: 'Emma Wilson',
     storyPoints: 8,
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-15'),
-    updatedAt: new Date('2025-09-15')
+    updatedAt: new Date('2025-09-15'),
   },
   {
     id: 'PMT-202',
@@ -260,8 +300,9 @@ export const backlogIssues: Issue[] = [
     status: 'TODO',
     assignee: 'Oliver Davis',
     storyPoints: 5,
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-18'),
-    updatedAt: new Date('2025-09-18')
+    updatedAt: new Date('2025-09-18'),
   },
   {
     id: 'PMT-203',
@@ -271,8 +312,9 @@ export const backlogIssues: Issue[] = [
     priority: 'CRITICAL',
     status: 'TODO',
     storyPoints: 3,
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-22'),
-    updatedAt: new Date('2025-09-22')
+    updatedAt: new Date('2025-09-22'),
   },
   {
     id: 'PMT-204',
@@ -284,7 +326,7 @@ export const backlogIssues: Issue[] = [
     assignee: 'Sophia Martinez',
     storyPoints: 8,
     createdAt: new Date('2025-09-23'),
-    updatedAt: new Date('2025-09-23')
+    updatedAt: new Date('2025-09-23'),
   },
   {
     id: 'PMT-205',
@@ -295,8 +337,9 @@ export const backlogIssues: Issue[] = [
     status: 'TODO',
     assignee: 'Liam Anderson',
     storyPoints: 21,
+    epicId: 'epic-2',
     createdAt: new Date('2025-09-10'),
-    updatedAt: new Date('2025-09-10')
+    updatedAt: new Date('2025-09-10'),
   },
   {
     id: 'PMT-206',
@@ -306,8 +349,9 @@ export const backlogIssues: Issue[] = [
     priority: 'HIGH',
     status: 'TODO',
     storyPoints: 5,
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-24'),
-    updatedAt: new Date('2025-09-24')
+    updatedAt: new Date('2025-09-24'),
   },
   {
     id: 'PMT-207',
@@ -319,7 +363,7 @@ export const backlogIssues: Issue[] = [
     assignee: 'Ava Thompson',
     storyPoints: 13,
     createdAt: new Date('2025-09-19'),
-    updatedAt: new Date('2025-09-19')
+    updatedAt: new Date('2025-09-19'),
   },
   {
     id: 'PMT-208',
@@ -330,9 +374,11 @@ export const backlogIssues: Issue[] = [
     status: 'TODO',
     assignee: 'Noah Garcia',
     storyPoints: 8,
+    epicId: 'epic-1',
     createdAt: new Date('2025-09-21'),
-    updatedAt: new Date('2025-09-21')
-  }
+    updatedAt: new Date('2025-09-21'),
+  },
+  
 ];
 
 // All sprints
@@ -343,7 +389,7 @@ export const sprints: Sprint[] = [
     startDate: new Date('2025-08-01'),
     endDate: new Date('2025-08-15'),
     status: 'COMPLETED',
-    issues: completedSprint1Issues
+    issues: completedSprint1Issues,
   },
   {
     id: 'completed-2',
@@ -351,7 +397,7 @@ export const sprints: Sprint[] = [
     startDate: new Date('2025-08-20'),
     endDate: new Date('2025-09-05'),
     status: 'COMPLETED',
-    issues: completedSprint2Issues
+    issues: completedSprint2Issues,
   },
   {
     id: 'active-1',
@@ -359,7 +405,7 @@ export const sprints: Sprint[] = [
     startDate: new Date('2025-10-04'),
     endDate: new Date('2025-10-13'),
     status: 'ACTIVE',
-    issues: activeSprintIssues
+    issues: activeSprintIssues,
   },
   {
     id: 'planned-1',
@@ -367,6 +413,120 @@ export const sprints: Sprint[] = [
     startDate: new Date('2025-10-18'),
     endDate: new Date('2025-10-31'),
     status: 'PLANNED',
-    issues: plannedSprintIssues
+    issues: plannedSprintIssues,
+  },
+];
+
+// Epic Work Items
+export const epic1WorkItems: Issue[] = [
+  {
+    id: 'SCRUM-3',
+    title: 'SCRUM-3',
+    description: 'Improve work item functionality',
+    type: 'TASK',
+    priority: 'MEDIUM',
+    status: 'DONE',
+    assignee: 'Amal A',
+    storyPoints: 8,
+    epicId: 'epic-1',
+    createdAt: new Date('2025-09-15'),
+    updatedAt: new Date('2025-10-01')
+  },
+  {
+    id: 'SCRUM-5',
+    title: 'SCRUM-5',
+    description: 'Implement advanced search features',
+    type: 'STORY',
+    priority: 'MEDIUM',
+    status: 'IN_PROGRESS',
+    assignee: 'Noah Garcia',
+    storyPoints: 13,
+    epicId: 'epic-1',
+    createdAt: new Date('2025-09-20'),
+    updatedAt: new Date('2025-10-02'),
+  },
+  {
+    id: 'SCRUM-9',
+    title: 'SCRUM-9',
+    description: 'Fix navigation issues',
+    type: 'BUG',
+    priority: 'HIGH',
+    status: 'TODO',
+    assignee: 'Unassigned',
+    storyPoints: 5,
+    epicId: 'epic-1',
+    createdAt: new Date('2025-09-25'),
+    updatedAt: new Date('2025-09-25')
+  }
+];
+
+export const epic2WorkItems: Issue[] = [
+  {
+    id: 'SCRUM-7',
+    title: 'SCRUM-7',
+    description: 'Add dashboard analytics',
+    type: 'STORY',
+    priority: 'HIGH',
+    status: 'IN_PROGRESS',
+    assignee: 'John Doe',
+    storyPoints: 8,
+    epicId: 'epic-2',
+    createdAt: new Date('2025-09-28'),
+    updatedAt: new Date('2025-10-03')
+  },
+  {
+    id: 'SCRUM-8',
+    title: 'SCRUM-8',
+    description: 'Implement user permissions',
+    type: 'TASK',
+    priority: 'CRITICAL',
+    status: 'TODO',
+    assignee: 'Jane Smith',
+    storyPoints: 5,
+    epicId: 'epic-2',
+    createdAt: new Date('2025-09-30'),
+    updatedAt: new Date('2025-09-30')
+  }
+];
+
+// Epics
+export const epics: Epic[] = [
+  {
+    id: 'epic-1',
+    name: 'epic 1',
+    description: 'Sample description',
+    startDate: new Date('2025-10-07'),
+    dueDate: new Date('2025-10-23'),
+    progress: 60,
+    issueCount: 3,
+    isExpanded: false,
+    assignee: 'Amal A',
+    labels: ['internal', 'now'],
+    parent: 'None',
+    team: 'None',
+    sprint: 'SCRUM Sprint 1',
+    storyPoints: 40,
+    reporter: 'Amal A',
+    childWorkItems: ['SCRUM-3', 'SCRUM-5', 'SCRUM-3'],
+    status: 'IN_PROGRESS'
+  },
+  {
+    id: 'epic-2',
+    name: 'epic 2',
+    description: 'Another epic description',
+    startDate: new Date('2025-10-07'),
+    dueDate: new Date('2025-10-23'),
+    progress: 30,
+    issueCount: 2,
+    isExpanded: false,
+    assignee: 'Unassigned',
+    labels: [],
+    parent: 'None',
+    team: 'None',
+    sprint: 'None',
+    storyPoints: 0,
+    reporter: 'Amal A',
+    childWorkItems: ['SCRUM-7', 'SCRUM-8'],
+    status: 'TODO'
   }
 ];

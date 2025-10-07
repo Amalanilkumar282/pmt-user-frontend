@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+ import { provideRouter } from '@angular/router';
 import { BurnupChart } from './burnup-chart';
 
 describe('BurnupChart', () => {
@@ -8,7 +8,10 @@ describe('BurnupChart', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BurnupChart]
+      imports: [BurnupChart],
+      providers: [
+    provideRouter([])  
+  ]
     })
     .compileComponents();
 
