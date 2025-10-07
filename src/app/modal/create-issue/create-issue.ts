@@ -13,7 +13,6 @@ import { isPlatformBrowser } from '@angular/common';
   imports: [NgIf, NgFor, FormsModule]
 })
 export class CreateIssue implements OnInit, OnDestroy {
-  @Input() modalId = 'createIssue';
   
   show = false;
   private sub!: Subscription;
@@ -24,8 +23,8 @@ export class CreateIssue implements OnInit, OnDestroy {
   fields: FormField[] = [];
 
   // Dynamic title/project
-  modalTitle = 'Create Issue';
-  projectName = 'Project Alpha';
+  modalTitle = '';
+  projectName = '';
   showLabels = false;
 
 

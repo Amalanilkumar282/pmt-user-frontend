@@ -13,18 +13,13 @@ export interface SprintOption {
 
 export class ChartHeader {
   @Input() title: string = '';
-  @Input() sprints: SprintOption[] = [];
-  @Input() selectedSprint: string = '';
   @Output() back = new EventEmitter<void>();
-  @Output() sprintChange = new EventEmitter<string>();
+  
 
   onBack() {
     this.back.emit();
   }
 
-  onSprintChange(event: Event) {
-    const select = event.target as HTMLSelectElement;
-    this.sprintChange.emit(select.value);
-  }
+   
 
 }

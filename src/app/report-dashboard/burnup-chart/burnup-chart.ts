@@ -7,11 +7,12 @@ import { Router } from '@angular/router';
 import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
+import { ChartTable } from '../chart-table/chart-table';
 
 @Component({
   selector: 'app-burnup-chart',
   standalone:true,
-  imports: [Navbar,Sidebar,ChartHeader,MetricsChart],
+  imports: [Navbar,Sidebar,ChartHeader,MetricsChart,ChartTable],
   // providers:[SidebarStateService],
   templateUrl: './burnup-chart.html',
   styleUrl: './burnup-chart.css'

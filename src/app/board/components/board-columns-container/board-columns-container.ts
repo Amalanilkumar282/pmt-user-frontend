@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, Output, EventEmitter } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { BoardStore } from '../../board-store';
@@ -17,6 +17,7 @@ import { BoardColumnDef } from '../../models';
 export class BoardColumnsContainer {
   private store = inject(BoardStore);
   readonly buckets = this.store.columnBuckets;
+  @Output() openIssue = new EventEmitter<any>();
 
   readonly dropListIds = computed(() => 
     this.buckets().map(b => b.def.id)
@@ -29,6 +30,10 @@ export class BoardColumnsContainer {
 
   track(_: number, item: { def: BoardColumnDef; items: Issue[] }): string {
     return item.def.id;
+  }
+
+  onOpenIssue(issue: Issue) {
+    this.openIssue.emit(issue);
   }
 
   onDrop(event: CdkDragDrop<Issue[]>) {
