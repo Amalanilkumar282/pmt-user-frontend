@@ -1,7 +1,7 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { Component, Input } from '@angular/core';
 
-interface Issue {
+export interface Issue {
   title: string;
   code: string;
   statusBg: string;

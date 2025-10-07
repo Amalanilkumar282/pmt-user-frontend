@@ -1,12 +1,12 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef, HostListener, Inject, PLATFORM_ID } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { TimelineHeaderComponent, FilterState } from '../timeline-header/timeline-header';
 import { sprints as sharedSprints, epics as sharedEpics } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
 
-declare var Gantt: any; // frappe-gantt library
+declare var Gantt: any;
 
-// Sprint interface (matching the structure from dummy-backlog-data)
 interface Sprint {
   id: string;
   name: string;
@@ -29,7 +29,7 @@ interface GanttTask {
 @Component({
   selector: 'app-timeline-chart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TimelineHeaderComponent],
   templateUrl: './timeline-chart.html',
   styleUrls: ['./timeline-chart.css']
 })
@@ -37,15 +37,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('ganttTarget', { static: false }) ganttEl!: ElementRef;
   
   ganttChart: any;
-  currentView: 'day' | 'month' | 'year' = 'month';
-  selectedFilters = {
-    sprints: [] as string[],
-    epics: [] as string[],
-    types: [] as string[],
-    status: [] as string[]
+  currentView: 'day' | 'month' | 'year' = 'day';
+  selectedFilters: FilterState = {
+    sprints: [],
+    epics: [],
+    types: [],
+    status: []
   };
   
-  // Data from dummy-backlog-data
   projectData: Sprint[] = sharedSprints;
   epicsData: Epic[] = sharedEpics;
   currentTasks: GanttTask[] = [];
@@ -54,31 +53,15 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   availableSprints: string[] = [];
   availableEpics: string[] = [];
 
-  isBrowser = false;
-
-  constructor(private cdr: ChangeDetectorRef, @Inject(PLATFORM_ID) private platformId: Object) {
-    this.isBrowser = isPlatformBrowser(this.platformId);
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    if (!this.isBrowser) return;
-    const target = event.target as HTMLElement;
-    // Check if click is outside dropdown
-    if (!target.closest('.relative')) {
-      this.closeAllDropdowns();
-    }
-  }
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.initializeFilters();
     this.setLatestSprintAsDefault();
+    this.availableEpics = this.getUniqueEpics();
   }
 
   ngAfterViewInit() {
-    // Only run client-only code in browser
-    if (!this.isBrowser) return;
-    // Load frappe-gantt library
     this.loadGanttLibrary().then(() => {
       setTimeout(() => {
         this.initializeGantt();
@@ -92,27 +75,99 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  // Event handlers from header
+  onViewChanged(view: 'day' | 'month' | 'year') {
+    this.currentView = view;
+    if (this.ganttChart) {
+      this.ganttChart.change_view_mode(this.getViewMode());
+      setTimeout(() => {
+        this.scrollToCurrentDate();
+      }, 500);
+    }
+  }
+
+  onFilterToggled(event: { type: string; value: string; checked: boolean }) {
+    const filterArray = (this.selectedFilters as any)[event.type] as string[];
+    
+    if (event.checked) {
+      if (!filterArray.includes(event.value)) {
+        filterArray.push(event.value);
+      }
+    } else {
+      const index = filterArray.indexOf(event.value);
+      if (index > -1) {
+        filterArray.splice(index, 1);
+      }
+    }
+    
+    if (event.type === 'sprints') {
+      this.availableEpics = this.getUniqueEpics();
+      
+      if (this.selectedFilters.epics.length > 0) {
+        this.selectedFilters.epics = this.selectedFilters.epics.filter(epic => 
+          this.availableEpics.includes(epic)
+        );
+        
+        setTimeout(() => {
+          const epicCheckboxes = document.querySelectorAll('.filter-dropdown input[id^="epic-"]');
+          epicCheckboxes.forEach(cb => {
+            const epicCheckbox = cb as HTMLInputElement;
+            const epicValue = epicCheckbox.value;
+            epicCheckbox.checked = this.selectedFilters.epics.includes(epicValue);
+          });
+        }, 0);
+      }
+    }
+    
+    this.applyFilters();
+  }
+
+  onFiltersCleared() {
+    this.selectedFilters = {
+      sprints: [],
+      epics: [],
+      types: [],
+      status: []
+    };
+    
+    const checkboxes = document.querySelectorAll('.filter-dropdown input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+      (cb as HTMLInputElement).checked = false;
+    });
+    
+    this.setLatestSprintAsDefault();
+    this.availableEpics = this.getUniqueEpics();
+    this.applyFilters();
+  }
+
+  onBackToEpics() {
+    this.displayMode = 'epics';
+    this.selectedEpic = null;
+    this.selectedFilters.epics = [];
+    
+    const epicCheckboxes = document.querySelectorAll('.filter-dropdown input[id^="epic-"]');
+    epicCheckboxes.forEach(cb => {
+      (cb as HTMLInputElement).checked = false;
+    });
+    
+    this.availableEpics = this.getUniqueEpics();
+    this.cdr.detectChanges();
+    this.initializeGantt();
+  }
+
+  // Private methods
   private loadGanttLibrary(): Promise<void> {
     return new Promise((resolve) => {
-      if (!this.isBrowser) {
-        // Nothing to load on server
-        resolve();
-        return;
-      }
-
-      // Check if already loaded
       if (typeof Gantt !== 'undefined') {
         resolve();
         return;
       }
 
-      // Load CSS
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = 'https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.css';
       document.head.appendChild(link);
 
-      // Load JS
       const script = document.createElement('script');
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js';
       script.onload = () => resolve();
@@ -121,9 +176,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private initializeFilters() {
-    // Extract unique sprints and epics
     this.availableSprints = this.projectData.map(s => s.name);
-    this.availableEpics = this.getUniqueEpics();
   }
 
   private getUniqueEpics(): string[] {
@@ -135,7 +188,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     filteredSprints.forEach(sprint => {
       if (sprint.issues && sprint.issues.length > 0) {
         sprint.issues.forEach((issue: Issue) => {
-          // Get epic by epicId
           if (issue.epicId) {
             const epic = this.epicsData.find(e => e.id === issue.epicId);
             if (epic) {
@@ -149,22 +201,18 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private setLatestSprintAsDefault() {
-    // Find the active or latest sprint
     const activeSprint = this.projectData.find(s => s.status === 'ACTIVE');
     const latestSprint = activeSprint || this.projectData[this.projectData.length - 1];
     
     if (latestSprint) {
       this.selectedFilters.sprints = [latestSprint.name];
       
-      // Check the checkbox after a brief delay to ensure DOM is ready
-      if (this.isBrowser) {
-        setTimeout(() => {
-          const checkbox = document.getElementById(`sprint-${latestSprint.name}`) as HTMLInputElement;
-          if (checkbox) {
-            checkbox.checked = true;
-          }
-        }, 100);
-      }
+      setTimeout(() => {
+        const checkbox = document.getElementById(`sprint-${latestSprint.name}`) as HTMLInputElement;
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      }, 100);
     }
   }
 
@@ -174,10 +222,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // Clear previous chart
     this.ganttEl.nativeElement.innerHTML = '';
-
-    // Prepare tasks based on current mode
     this.prepareTasksData();
 
     if (this.currentTasks.length === 0) {
@@ -186,17 +231,16 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // Create new gantt instance
     this.ganttChart = new Gantt(this.ganttEl.nativeElement, this.currentTasks, {
       view_mode: this.getViewMode(),
       date_format: 'YYYY-MM-DD',
-      header_height: 50,
-      column_width: 30,
+      header_height: 65,
+      column_width: 40,
       step: 24,
-      bar_height: 30,
-      bar_corner_radius: 3,
+      bar_height: 40,
+      bar_corner_radius: 4,
       arrow_curve: 5,
-      padding: 18,
+      padding: 20,
       view_modes: ['Day', 'Week', 'Month', 'Year'],
       popup_trigger: 'click',
       custom_popup_html: (task: any) => {
@@ -217,16 +261,9 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
             this.drillDownToIssues(epic.name);
           }
         }
-      },
-      on_date_change: (task: any, start: Date, end: Date) => {
-        console.log('Task date changed:', task, start, end);
-      },
-      on_progress_change: (task: any, progress: number) => {
-        console.log('Task progress changed:', task, progress);
       }
     });
 
-    // Scroll to current date after chart is rendered
     setTimeout(() => {
       this.scrollToCurrentDate();
     }, 500);
@@ -236,33 +273,28 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     const tasks: GanttTask[] = [];
     
     if (this.displayMode === 'epics') {
-      // Get filtered sprints
       const filteredSprints = this.getFilteredSprints();
       
       filteredSprints.forEach(sprint => {
-        // Add sprint row first
         tasks.push({
           id: `sprint-${sprint.id}`,
-          name: `📅 ${sprint.name}`,
+          name: `${sprint.name}`,
           start: this.formatDate(sprint.startDate),
           end: this.formatDate(sprint.endDate),
           progress: this.calculateSprintProgress(sprint),
           custom_class: 'bar-sprint'
         });
 
-        // Only process epics if sprint has issues
         if (!sprint.issues || sprint.issues.length === 0) {
           return;
         }
 
-        // Group issues by epicId
         const epicGroups = this.groupIssuesByEpicId(sprint.issues);
         
         Object.entries(epicGroups).forEach(([epicId, issues]) => {
           const epic = this.epicsData.find(e => e.id === epicId);
           if (!epic) return;
           
-          // Apply epic filter if active
           if (this.selectedFilters.epics.length > 0 && 
               !this.selectedFilters.epics.includes(epic.name)) {
             return;
@@ -273,7 +305,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           
           tasks.push({
             id: `epic-${epic.id}`,
-            name: `📦 ${epic.name}`,
+            name: `${epic.name}`,
             start: this.formatDate(epicStart),
             end: this.formatDate(epicEnd),
             progress: this.calculateEpicProgress(issues),
@@ -285,7 +317,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       const allFiltersCleared = this.areAllFiltersCleared();
       
       if (allFiltersCleared) {
-        // Show all issues from all sprints when filters are cleared
         this.projectData.forEach(sprint => {
           if (!sprint.issues || sprint.issues.length === 0) {
             return;
@@ -303,7 +334,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           });
         });
       } else {
-        // Show only issues from selected sprints and epics with type/status filters
         const filteredSprints = this.getFilteredSprints();
         
         filteredSprints.forEach(sprint => {
@@ -312,24 +342,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           }
           
           sprint.issues.forEach(issue => {
-            // Apply epic filter if active
             if (this.selectedFilters.epics.length > 0 && issue.epicId) {
               const epic = this.epicsData.find(e => e.id === issue.epicId);
               if (!epic || !this.selectedFilters.epics.includes(epic.name)) {
                 return;
               }
             } else if (this.selectedFilters.epics.length > 0 && !issue.epicId) {
-              // Skip issues without epicId if epic filter is active
               return;
             }
             
-            // Apply type filter
             if (this.selectedFilters.types.length > 0 && 
                 !this.selectedFilters.types.includes(issue.type.toLowerCase())) {
               return;
             }
             
-            // Apply status filter
             if (this.selectedFilters.status.length > 0) {
               const statusMap: Record<string, string> = {
                 'TODO': 'todo',
@@ -437,17 +463,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       case 'day': return 'Day';
       case 'month': return 'Month';
       case 'year': return 'Year';
-      default: return 'Month';
-    }
-  }
-
-  changeTimeScale(scale: 'day' | 'month' | 'year') {
-    this.currentView = scale;
-    if (this.ganttChart) {
-      this.ganttChart.change_view_mode(this.getViewMode());
-      setTimeout(() => {
-        this.scrollToCurrentDate();
-      }, 500);
+      default: return 'Day';
     }
   }
 
@@ -469,7 +485,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       }
 
       let targetHeader: Element | null = null;
-      const todayStr = today.toISOString().split('T')[0];
       
       gridHeaders.forEach((header: Element) => {
         const textElement = header.querySelector('text');
@@ -500,87 +515,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private isDateMatch(headerText: string, targetDate: Date): boolean {
-    const targetStr = targetDate.toISOString().split('T')[0];
     const targetDay = targetDate.getDate().toString();
     const targetMonth = (targetDate.getMonth() + 1).toString();
     const targetYear = targetDate.getFullYear().toString();
     
     return headerText.includes(targetDay) || 
            headerText.includes(targetMonth) || 
-           headerText.includes(targetYear) ||
-           headerText.includes(targetStr);
+           headerText.includes(targetYear);
   }
 
-  toggleFilter(type: string, value: string, event: Event) {
-    const checkbox = event.target as HTMLInputElement;
-    const filterArray = (this.selectedFilters as any)[type] as string[];
-    
-    if (checkbox.checked) {
-      if (!filterArray.includes(value)) {
-        filterArray.push(value);
-      }
-    } else {
-      const index = filterArray.indexOf(value);
-      if (index > -1) {
-        filterArray.splice(index, 1);
-      }
-    }
-    
-    // Update available epics when sprint filter changes
-    if (type === 'sprints') {
-      this.availableEpics = this.getUniqueEpics();
-      
-      // Clear epic filter if selected epics are no longer available
-      if (this.selectedFilters.epics.length > 0) {
-        this.selectedFilters.epics = this.selectedFilters.epics.filter(epic => 
-          this.availableEpics.includes(epic)
-        );
-        
-        // Update epic checkboxes
-        setTimeout(() => {
-          const epicCheckboxes = document.querySelectorAll('.filter-dropdown input[id^="epic-"]');
-          epicCheckboxes.forEach(cb => {
-            const epicCheckbox = cb as HTMLInputElement;
-            const epicValue = epicCheckbox.value;
-            epicCheckbox.checked = this.selectedFilters.epics.includes(epicValue);
-          });
-        }, 0);
-      }
-    }
-    
-    this.applyFilters();
-  }
-
-  applyFilters() {
+  private applyFilters() {
     this.initializeGantt();
   }
 
-  clearFilters() {
-    this.selectedFilters = {
-      sprints: [],
-      epics: [],
-      types: [],
-      status: []
-    };
-    
-    const checkboxes = document.querySelectorAll('.filter-dropdown input[type="checkbox"]');
-    checkboxes.forEach(cb => {
-      (cb as HTMLInputElement).checked = false;
-    });
-    
-    // Update available epics
-    this.availableEpics = this.getUniqueEpics();
-    
-    // Only reset to default sprint if in epics view
-    if (this.displayMode === 'epics') {
-      this.setLatestSprintAsDefault();
-    } else {
-      // In issues view, apply filters to show all
-      this.applyFilters();
-    }
-  }
-
-  drillDownToIssues(epicName: string) {
+  private drillDownToIssues(epicName: string) {
     console.log('Drilling down to epic:', epicName);
     
     this.selectedEpic = epicName;
@@ -597,47 +545,5 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       console.log('Calling initializeGantt for issues view');
       this.initializeGantt();
     }, 0);
-  }
-
-  backToEpics() {
-    this.displayMode = 'epics';
-    this.selectedEpic = null;
-    this.selectedFilters.epics = [];
-    
-    const epicCheckboxes = document.querySelectorAll('.filter-dropdown input[id^="epic-"]');
-    epicCheckboxes.forEach(cb => {
-      (cb as HTMLInputElement).checked = false;
-    });
-    
-    // Update available epics based on selected sprints
-    this.availableEpics = this.getUniqueEpics();
-    
-    this.cdr.detectChanges();
-    this.initializeGantt();
-  }
-
-  getFilterCount(type: string): number {
-    return (this.selectedFilters as any)[type].length;
-  }
-
-  toggleDropdown(event: Event) {
-    event.stopPropagation();
-    const button = event.currentTarget as HTMLElement;
-    const dropdown = button.nextElementSibling as HTMLElement;
-    
-    // Close all other dropdowns
-    document.querySelectorAll('.filter-dropdown').forEach(dd => {
-      if (dd !== dropdown) {
-        dd.classList.remove('show');
-      }
-    });
-    
-    dropdown.classList.toggle('show');
-  }
-
-  private closeAllDropdowns() {
-    document.querySelectorAll('.filter-dropdown').forEach(dd => {
-      dd.classList.remove('show');
-    });
   }
 }
