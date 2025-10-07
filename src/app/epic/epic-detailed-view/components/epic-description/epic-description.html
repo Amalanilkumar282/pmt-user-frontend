@@ -1,0 +1,21 @@
+<div class="section description-section">
+  <div class="section-title">Description</div>
+  @if (!editing) {
+    <div class="description-text" (click)="startEditing()">
+      {{ epic.description || 'Add a description...' }}
+    </div>
+  } @else {
+    <div class="edit-container">
+      <textarea 
+        class="edit-textarea"
+        [(ngModel)]="tempDescription"
+        rows="3"
+        placeholder="Add a description...">
+      </textarea>
+      <div class="edit-actions">
+        <button class="btn-save" (click)="save()">Save</button>
+        <button class="btn-cancel" (click)="cancel()">Cancel</button>
+      </div>
+    </div>
+  }
+</div>

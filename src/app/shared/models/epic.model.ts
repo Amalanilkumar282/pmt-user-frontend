@@ -1,3 +1,5 @@
+export type EpicStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED';
+
 export interface Epic {
   id: string;
   name: string;
@@ -15,4 +17,5 @@ export interface Epic {
   storyPoints?: number;
   reporter?: string;
   childWorkItems?: string[]; // Array of issue IDs
+  status?: EpicStatus;
 }

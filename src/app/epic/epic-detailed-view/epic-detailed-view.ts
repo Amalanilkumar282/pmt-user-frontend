@@ -1,14 +1,18 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Epic } from '../../shared/models/epic.model';
 import { Issue } from '../../shared/models/issue.model';
 import { epic1WorkItems, epic2WorkItems } from '../../shared/data/dummy-backlog-data';
+import { EpicHeader } from './components/epic-header/epic-header';
+import { EpicDescription } from './components/epic-description/epic-description';
+import { WorkItemsTable } from './components/work-items-table/work-items-table';
+import { WorkItemForm } from './components/work-item-form/work-item-form';
+import { EpicDetails } from './components/epic-details/epic-details';
 
 @Component({
   selector: 'app-epic-detailed-view',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, EpicHeader, EpicDescription, WorkItemsTable, WorkItemForm, EpicDetails],
   templateUrl: './epic-detailed-view.html',
   styleUrl: './epic-detailed-view.css'
 })
@@ -18,37 +22,32 @@ export class EpicDetailedView implements OnInit {
   @Output() epicUpdated = new EventEmitter<Epic>();
 
   workItems: Issue[] = [];
-  
-  // Edit states
-  editingDescription = false;
-  editingAssignee = false;
-  editingParent = false;
-  editingTeam = false;
-  editingDueDate = false;
-  editingStartDate = false;
-  editingSprint = false;
-  editingStoryPoints = false;
-
-  // Temp values for editing
-  tempDescription = '';
-  tempAssignee = '';
-  tempParent = '';
-  tempTeam = '';
-  tempDueDate = '';
-  tempStartDate = '';
-  tempSprint = '';
-  tempStoryPoints: number | undefined;
 
   ngOnInit() {
     this.loadWorkItems();
+    this.initializeEpicDefaults();
   }
 
-  loadWorkItems() {
-    // Load work items based on epic ID
+  private initializeEpicDefaults() {
+    if (!this.epic.assignee) this.epic.assignee = 'Unassigned';
+    if (!this.epic.reporter) this.epic.reporter = 'Unassigned';
+    if (!this.epic.parent) this.epic.parent = 'None';
+    if (!this.epic.team) this.epic.team = 'None';
+    if (!this.epic.sprint) this.epic.sprint = 'None';
+    if (!this.epic.labels) this.epic.labels = [];
+    if (!this.epic.childWorkItems) this.epic.childWorkItems = [];
+    if (!this.epic.status) this.epic.status = 'TODO';
+    if (this.epic.storyPoints === undefined) this.epic.storyPoints = 0;
+    if (!this.epic.description) this.epic.description = '';
+  }
+
+  private loadWorkItems() {
     if (this.epic.id === 'epic-1') {
       this.workItems = [...epic1WorkItems];
     } else if (this.epic.id === 'epic-2') {
       this.workItems = [...epic2WorkItems];
+    } else {
+      this.workItems = [];
     }
   }
 
@@ -56,182 +55,38 @@ export class EpicDetailedView implements OnInit {
     this.close.emit();
   }
 
-  // Description editing
-  startEditingDescription() {
-    this.editingDescription = true;
-    this.tempDescription = this.epic.description;
-  }
-
-  saveDescription() {
-    this.epic.description = this.tempDescription;
-    this.editingDescription = false;
+  onEpicUpdated(updatedEpic: Epic) {
+    this.epic = updatedEpic;
     this.epicUpdated.emit(this.epic);
   }
 
-  cancelDescription() {
-    this.editingDescription = false;
-  }
-
-  // Assignee editing
-  startEditingAssignee() {
-    this.editingAssignee = true;
-    this.tempAssignee = this.epic.assignee || 'Unassigned';
-  }
-
-  saveAssignee() {
-    this.epic.assignee = this.tempAssignee;
-    this.editingAssignee = false;
+  onWorkItemsChanged(updatedWorkItems: Issue[]) {
+    this.workItems = updatedWorkItems;
+    this.epic.childWorkItems = updatedWorkItems.map(item => item.id);
+    this.epic.issueCount = updatedWorkItems.length;
     this.epicUpdated.emit(this.epic);
   }
 
-  cancelAssignee() {
-    this.editingAssignee = false;
-  }
-
-  // Parent editing
-  startEditingParent() {
-    this.editingParent = true;
-    this.tempParent = this.epic.parent || 'None';
-  }
-
-  saveParent() {
-    this.epic.parent = this.tempParent;
-    this.editingParent = false;
-    this.epicUpdated.emit(this.epic);
-  }
-
-  cancelParent() {
-    this.editingParent = false;
-  }
-
-  // Team editing
-  startEditingTeam() {
-    this.editingTeam = true;
-    this.tempTeam = this.epic.team || 'None';
-  }
-
-  saveTeam() {
-    this.epic.team = this.tempTeam;
-    this.editingTeam = false;
-    this.epicUpdated.emit(this.epic);
-  }
-
-  cancelTeam() {
-    this.editingTeam = false;
-  }
-
-  // Due Date editing
-  startEditingDueDate() {
-    this.editingDueDate = true;
-    this.tempDueDate = this.epic.dueDate ? this.formatDateForInput(this.epic.dueDate) : '';
-  }
-
-  saveDueDate() {
-    this.epic.dueDate = this.tempDueDate ? new Date(this.tempDueDate) : null;
-    this.editingDueDate = false;
-    this.epicUpdated.emit(this.epic);
-  }
-
-  cancelDueDate() {
-    this.editingDueDate = false;
-  }
-
-  // Start Date editing
-  startEditingStartDate() {
-    this.editingStartDate = true;
-    this.tempStartDate = this.epic.startDate ? this.formatDateForInput(this.epic.startDate) : '';
-  }
-
-  saveStartDate() {
-    this.epic.startDate = this.tempStartDate ? new Date(this.tempStartDate) : null;
-    this.editingStartDate = false;
-    this.epicUpdated.emit(this.epic);
-  }
-
-  cancelStartDate() {
-    this.editingStartDate = false;
-  }
-
-  // Sprint editing
-  startEditingSprint() {
-    this.editingSprint = true;
-    this.tempSprint = this.epic.sprint || 'None';
-  }
-
-  saveSprint() {
-    this.epic.sprint = this.tempSprint;
-    this.editingSprint = false;
-    this.epicUpdated.emit(this.epic);
-  }
-
-  cancelSprint() {
-    this.editingSprint = false;
-  }
-
-  // Story Points editing
-  startEditingStoryPoints() {
-    this.editingStoryPoints = true;
-    this.tempStoryPoints = this.epic.storyPoints;
-  }
-
-  saveStoryPoints() {
-    this.epic.storyPoints = this.tempStoryPoints;
-    this.editingStoryPoints = false;
-    this.epicUpdated.emit(this.epic);
-  }
-
-  cancelStoryPoints() {
-    this.editingStoryPoints = false;
-  }
-
-  // Label management
-  removeLabel(label: string) {
-    if (this.epic.labels) {
-      this.epic.labels = this.epic.labels.filter(l => l !== label);
-      this.epicUpdated.emit(this.epic);
+  onWorkItemCreated(newWorkItem: Issue) {
+    const newId = `SCRUM-${Date.now()}`;
+    const workItem: Issue = {
+      ...newWorkItem,
+      id: newId,
+      epicId: this.epic.id,
+      priority: 'MEDIUM',
+      status: 'TODO',
+      assignee: 'Unassigned',
+      storyPoints: 0,
+      description: '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.workItems.push(workItem);
+    if (!this.epic.childWorkItems) {
+      this.epic.childWorkItems = [];
     }
-  }
-
-  // Utility methods
-  formatDate(date: Date | null): string {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-
-  formatDateForInput(date: Date): string {
-    const d = new Date(date);
-    return d.toISOString().split('T')[0];
-  }
-
-  getProgressPercentage(): string {
-    const completed = this.workItems.filter(item => item.status === 'DONE').length;
-    const total = this.workItems.length;
-    return total > 0 ? `${Math.round((completed / total) * 100)}%` : '0%';
-  }
-
-  getPriorityClass(priority: string): string {
-    const priorityMap: { [key: string]: string } = {
-      'LOW': 'priority-low',
-      'MEDIUM': 'priority-medium',
-      'HIGH': 'priority-high',
-      'CRITICAL': 'priority-critical'
-    };
-    return priorityMap[priority] || '';
-  }
-
-  getStatusClass(status: string): string {
-    const statusMap: { [key: string]: string } = {
-      'TODO': 'status-todo',
-      'IN_PROGRESS': 'status-in-progress',
-      'IN_REVIEW': 'status-in-review',
-      'DONE': 'status-done',
-      'BLOCKED': 'status-blocked'
-    };
-    return statusMap[status] || '';
-  }
-
-  getStatusLabel(status: string): string {
-    return status.replace('_', ' ');
+    this.epic.childWorkItems.push(newId);
+    this.epic.issueCount = this.workItems.length;
+    this.epicUpdated.emit(this.epic);
   }
 }

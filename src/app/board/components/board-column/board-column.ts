@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule, CdkDropList, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { BoardColumnDef } from '../../models';
@@ -15,6 +15,7 @@ import { TaskCard } from '../task-card/task-card';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BoardColumn {
+  @Output() openIssue = new EventEmitter<Issue>();
   @Input() def!: BoardColumnDef;
   @Input() items: Issue[] = [];
   @Input() connectedTo: string[] = [];
@@ -28,6 +29,10 @@ export class BoardColumn {
 
   constructor(private store: BoardStore) {}
 
+  onOpen(issue: Issue) {
+    this.openIssue.emit(issue);
+  }
+
   drop(event: CdkDragDrop<Issue[]>) {
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
@@ -36,7 +41,5 @@ export class BoardColumn {
     const item = event.previousContainer.data[event.previousIndex];
     // update status in store
     this.store.updateIssueStatus(item.id, this.def.id as IssueStatus);
-    // Do NOT manually transferArrayItem across containers. The store is the single source of truth
-    // and columnBuckets() will recompute the lists. Rely on the store update to re-render the columns.
-  }
+    }
 }
