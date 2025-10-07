@@ -13,7 +13,8 @@
     <app-epic-container 
       [class.sidebar-collapsed]="isSidebarCollapsed()"
       (closeEpicPanel)="closeEpicPanel()"
-      (viewDetails)="openEpicDetailView($event)">
+      (viewDetails)="openEpicDetailView($event)"
+      (epicCreated)="onEpicCreated($event)">
     </app-epic-container>
   }
 

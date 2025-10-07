@@ -40,6 +40,19 @@
   width: calc(100% - 350px);
 }
 
+/* Adjust right margin when epic detail panel is open */
+.page-container.epic-detail-open {
+  margin-right: 0;
+}
+
+.page-container.epic-panel-open.epic-detail-open {
+  width: calc(100% - 520px);
+}
+
+.page-container.sidebar-collapsed.epic-panel-open.epic-detail-open {
+  width: calc(100% - 350px);
+}
+
 /* Epic Detail Panel */
 .epic-detail-panel-wrapper {
   position: fixed;

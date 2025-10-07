@@ -1,12 +1,15 @@
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 4px;
 }
 
 .activity-item {
   display: flex;
+  align-items: center;
   gap: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
 }
 
 .activity-avatar {

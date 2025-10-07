@@ -3,10 +3,19 @@
     class="h-1 bg-gradient-to-r from-primary-gradient-start to-primary-gradient-end rounded-t-[14px] -mx-4 -mt-4 mb-4"
   ></div>
 
-  <h3 class="text-text-primary text-[17px] font-bold leading-4 mb-4">Project Info</h3>
+  <h3
+    class="text-text-primary text-[17px] font-bold leading-4 mb-4"
+    data-testid="project-info-title"
+  >
+    Project Info
+  </h3>
 
   <div class="space-y-4">
-    <p class="text-text-secondary text-sm leading-[13px]" *ngFor="let detail of projectDetails">
+    <p
+      class="text-text-secondary text-sm leading-[13px]"
+      *ngFor="let detail of projectDetails"
+      data-testid="project-detail"
+    >
       <span class="text-text-primary font-bold">{{ detail.label }}:</span>
       <span class="text-text-secondary"> {{ detail.value }} </span>
     </p>
