@@ -15,7 +15,7 @@ export interface Issue {
 
 @Component({
   selector: 'app-recen-issues',
-  imports: [NgFor, NgClass, NgIf],
+  imports: [NgFor],
   templateUrl: './recen-issues.html',
   styleUrl: './recen-issues.css',
 })
