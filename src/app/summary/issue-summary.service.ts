@@ -193,9 +193,9 @@ export class IssueSummaryService {
     );
 
     return [
-      { label: 'To Do', count: counts.todo, colorClass: 'bg-status-green' },
-      { label: 'In Progress', count: counts.inProgress, colorClass: 'bg-status-yellow' },
-      { label: 'Done', count: counts.done, colorClass: 'bg-status-blue' },
+      { label: 'To Do', count: counts.todo, colorClass: 'bg-green-500' },
+      { label: 'In Progress', count: counts.inProgress, colorClass: 'bg-yellow-500' },
+      { label: 'Done', count: counts.done, colorClass: 'bg-blue-500' },
     ];
   }
 
@@ -245,7 +245,7 @@ export class IssueSummaryService {
           assigneeBg: assigneeBg,
           assigneeInitials: assigneeInitials,
           description: issue.description,
-          status: this.STATUS_DISPLAY_MAP[issue.status] || issue.status,
+          status: issue.status,
           priority: issue.priority.charAt(0) + issue.priority.slice(1).toLowerCase(),
         };
       });
