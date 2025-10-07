@@ -17,15 +17,36 @@ import { EpicDetails } from './components/epic-details/epic-details';
   styleUrl: './epic-detailed-view.css'
 })
 export class EpicDetailedView implements OnInit {
-  @Input() epic!: Epic;
+  // provide a safe default so unit tests that instantiate the component without inputs
+  // don't run into `Cannot read properties of undefined` when accessing epic fields
+  @Input() epic: Epic = {
+    id: '',
+    name: '',
+    description: '',
+    startDate: null,
+    dueDate: null,
+    progress: 0,
+    issueCount: 0,
+    isExpanded: false,
+    assignee: 'Unassigned',
+    labels: [],
+    parent: 'None',
+    team: 'None',
+    sprint: 'None',
+    storyPoints: 0,
+    reporter: 'Unassigned',
+    childWorkItems: [],
+    status: 'TODO'
+  };
   @Output() close = new EventEmitter<void>();
   @Output() epicUpdated = new EventEmitter<Epic>();
 
   workItems: Issue[] = [];
 
   ngOnInit() {
-    this.loadWorkItems();
+    // ensure defaults are set before any code reads epic properties
     this.initializeEpicDefaults();
+    this.loadWorkItems();
   }
 
   private initializeEpicDefaults() {
