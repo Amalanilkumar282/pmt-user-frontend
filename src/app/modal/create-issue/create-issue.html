@@ -10,7 +10,7 @@
 <span class="text-[#665872] text-lg font-medium">{{ projectName }}</span>
 
       </div>
-      <p class="text-sm text-gray-500 mt-1 italic">Create a new issue in your project</p>
+      <p class="text-sm text-gray-500 mt-1 italic">{{modalDesc}}</p>
       <!-- Error Banner -->
       <!-- Floating Toast -->
 <div *ngIf="showErrorToast" 
@@ -104,7 +104,7 @@
       </button>
       <button type="button" (click)="submit()"
               class="px-2 py-1 bg-[#665872] text-white rounded-md hover:bg-[#3E3545]">
-        Create Issue
+        {{ submitButtonText }}
       </button>
     </div>
   </div>

@@ -26,7 +26,10 @@ export class CreateIssue implements OnInit, OnDestroy {
   // Dynamic title/project
   modalTitle = '';
   projectName = '';
+  modalDesc = '';
   showLabels = false;
+  submitButtonText = '';
+
 
   formError: string = '';
   showErrorToast = false;
@@ -48,23 +51,30 @@ showToast(message: string, duration: number = 3000) {
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
   ngOnInit() {
-    // 🧠 Listen for modal open/close changes
-    this.sub = this.modalService.activeModal$.subscribe((id) => {
-      const cfg = this.modalService.getConfig(id ?? '');
-      this.show = !!cfg;
+  this.sub = this.modalService.activeModal$.subscribe((id) => {
+    if (!id) {
+      this.show = false;
+      if (this.isBrowser) document.body.style.overflow = '';
+      return;
+    }
 
-      if (cfg) {
-        this.fields = cfg.fields ?? [];
-        this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
-        this.modalTitle = cfg.title ?? 'Modal';
-        this.projectName = cfg.projectName ?? '';
-        this.showLabels = cfg.showLabels ?? false;
-      }
+    const cfg = this.modalService.getConfig(id);
+    this.show = !!cfg;
 
-      // 🧩 Lock body scroll while modal is open
-      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
-    });
-  }
+    if (cfg) {
+      this.fields = cfg.fields ?? [];
+      this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
+      this.modalTitle = cfg.title ?? 'Modal';
+      this.projectName = cfg.projectName ?? '';
+      this.modalDesc = cfg.modalDesc ?? '';
+      this.showLabels = cfg.showLabels ?? false;
+      this.submitButtonText = cfg.submitText ?? 'Create Issue';
+    }
+
+    if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
+  });
+}
+
 
 
   ngOnDestroy() {

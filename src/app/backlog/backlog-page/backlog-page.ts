@@ -5,6 +5,7 @@ import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
+import { users } from '../../shared/data/dummy-backlog-data';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { EpicContainer } from '../../epic/epic-container/epic-container';
@@ -76,6 +77,8 @@ export class BacklogPage {
     return this.sprints.filter(s => s.status === 'COMPLETED');
   }
 
+  
+
   handleCreateSprint() {
       const sprintFields: FormField[] = [
         { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2 },
@@ -91,8 +94,10 @@ export class BacklogPage {
           id: 'sprintModal',
           title: 'Create Sprint',
           projectName: 'Project Alpha',
+          modalDesc : 'Create a new sprint in your project',
           fields: sprintFields,
-          data: { shareWith: '', message: '' }  //optional prefilled
+          data: { shareWith: '', message: '' },  //optional prefilled,
+          submitText: 'Create Sprint'
         });
     }
 
@@ -112,6 +117,7 @@ export class BacklogPage {
     console.error(`Sprint not found: ${sprintId}`);
     return;
   }
+  
 
   // Derive extra info dynamically (goal, story points, etc.)
   const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
@@ -130,6 +136,7 @@ export class BacklogPage {
     id: 'shareModal',
     title: 'Edit Sprint',
     projectName: 'Project Alpha',
+    modalDesc : 'Edit an existing sprint in your project',
     fields: sprintFields,
     data: {
       sprintName: sprint.name || '',
@@ -139,7 +146,8 @@ export class BacklogPage {
       status: sprint.status || 'Planned',
       storyPoint: totalStoryPoints,
     },
-    showLabels: false
+    showLabels: false,
+    submitText: 'Save Changes'
   });
 }
 
