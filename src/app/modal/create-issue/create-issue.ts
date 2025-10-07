@@ -71,7 +71,10 @@ showToast(message: string, duration: number = 3000) {
 
 
   ngOnDestroy() {
-    this.sub.unsubscribe();
+    // subscription may not have been created in some tests; guard before unsubscribing
+    if (this.sub) {
+      this.sub.unsubscribe();
+    }
     if (this.isBrowser) document.body.style.overflow = '';
   }
 

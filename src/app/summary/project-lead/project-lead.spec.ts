@@ -65,29 +65,19 @@ describe('ProjectLead', () => {
 
     // 3. Query and assert the rendered values using their specific CSS classes
 
-    // Select the Name using its class
-    const nameElement = fixture.debugElement.query(By.css('.card-content h4'))
-      .nativeElement as HTMLElement;
-    // Select the Role using its class
-    const roleElement = fixture.debugElement.query(By.css('.card-content p'))
-      .nativeElement as HTMLElement;
-    // Wait, let's use the explicit classes from the HTML:
+  // Use the compiled DOM for simpler, more robust queries
+  const compiled = fixture.nativeElement as HTMLElement;
+  const nameEl = compiled.querySelector('h4');
+  const roleEl = compiled.querySelector('p');
+  const initialsEl = compiled.querySelector('div > span');
 
-    const nameElement_v2 = fixture.debugElement.query(By.css('.text-sm.font-medium'))
-      .nativeElement as HTMLElement;
-    const roleElement_v2 = fixture.debugElement.query(By.css('.text-\\[12px\\]'))
-      .nativeElement as HTMLElement;
+  expect(nameEl).withContext('Name element should exist').toBeTruthy();
+  expect(roleEl).withContext('Role element should exist').toBeTruthy();
+  expect(initialsEl).withContext('Initials element should exist').toBeTruthy();
 
-    // Avatar Initials selection (already good, but made more specific)
-    const initialsElement = fixture.debugElement.query(By.css('.w-\\[22px\\] > span'))
-      .nativeElement as HTMLElement;
-
-    expect(nameElement_v2.textContent?.trim()).toBe(mockLeadData.name, 'Name should match input');
-    expect(roleElement_v2.textContent?.trim()).toBe(mockLeadData.role, 'Role should match input');
-    expect(initialsElement.textContent?.trim()).toBe(
-      mockLeadData.initials,
-      'Initials should match input'
-    );
+  expect(nameEl?.textContent?.trim()).toBe(mockLeadData.name, 'Name should match input');
+  expect(roleEl?.textContent?.trim()).toBe(mockLeadData.role, 'Role should match input');
+  expect(initialsEl?.textContent?.trim()).toBe(mockLeadData.initials, 'Initials should match input');
   });
 
   it('should apply the correct background class to the avatar element (testing NgClass)', () => {
