@@ -20,4 +20,18 @@ describe('TaskCard', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('getPriorityClass returns expected classes', () => {
+    expect(component.getPriorityClass('CRITICAL')).toContain('bg-red');
+    expect(component.getPriorityClass('HIGH')).toContain('bg-orange');
+    expect(component.getPriorityClass('MEDIUM')).toContain('bg-yellow');
+    expect(component.getPriorityClass('LOW')).toContain('bg-green');
+    expect(component.getPriorityClass('UNKNOWN')).toContain('bg-gray');
+  });
+
+  it('getInitials works for names and undefined', () => {
+    expect(component.getInitials('John Doe')).toBe('JD');
+    expect(component.getInitials('Single')).toBe('S');
+    expect(component.getInitials(undefined)).toBe('?');
+  });
 });

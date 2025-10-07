@@ -20,4 +20,10 @@ describe('ChartHeader', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should emit back event when onBack is called', () => {
+    spyOn(component.back, 'emit');
+    component.onBack();
+    expect(component.back.emit).toHaveBeenCalled();
+  });
 });
