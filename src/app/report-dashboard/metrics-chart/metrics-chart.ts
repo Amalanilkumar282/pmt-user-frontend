@@ -27,6 +27,7 @@ type ChartOptions = {
   legend: ApexLegend;
   stroke: ApexStroke;
   fill: ApexFill;
+  colors?: string[];
 };
 
 

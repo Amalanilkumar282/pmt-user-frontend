@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BoardStore } from '../../board-store';
 import { GroupBy } from '../../models';
+import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 
 @Component({
   selector: 'app-group-by-menu',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ClickOutsideDirective],
   templateUrl: './group-by-menu.html',
   styleUrl: './group-by-menu.css',
   changeDetection: ChangeDetectionStrategy.OnPush
