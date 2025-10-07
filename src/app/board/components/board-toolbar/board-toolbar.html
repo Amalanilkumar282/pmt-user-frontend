@@ -1,14 +1,14 @@
 <!-- board-toolbar.component.html -->
 <div class="flex flex-col gap-3">
   <div class="flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="text-lg font-semibold">Board</div>
-      <!-- Sprint dropdown -->
-      <app-sprint-select
+    <div class="flex h-8 gap-5">
+      <div class="text-lg font-semibold pl-4 pt-1">Board</div>
+      <!-- Sprint filter (from summary) -->
+      <app-sprint-filter
         [sprints]="sprints()"
-        [selectedId]="selectedSprintId()"
-        (select)="selectSprint($event)">
-      </app-sprint-select>
+        [selectedSprint]="selectedSprintId()"
+        (sprintChange)="selectSprint($event)">
+      </app-sprint-filter>
     </div>
 
     <div class="hidden md:flex items-center gap-2">
