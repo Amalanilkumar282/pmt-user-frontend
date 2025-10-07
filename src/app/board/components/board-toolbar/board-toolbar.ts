@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BoardStore } from '../../board-store';
 import { GroupBy } from '../../models';
-import { SprintFilterComponent } from '../../../summary/sprint-filter/sprint-filter';
+import { SprintFilterComponent } from '../../../shared/sprint-filter/sprint-filter';
 import { FilterPanel } from '../filter-panel/filter-panel';
 import { GroupByMenu } from '../group-by-menu/group-by-menu';
 import { AddColumnButton } from '../add-column-button/add-column-button';
