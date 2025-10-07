@@ -13,6 +13,8 @@
          
             <app-chart-header [title]="'Velocity Report'" (back)="navigateBack()"></app-chart-header>
             <app-metrics-chart [chartType]="'velocity'"></app-metrics-chart>
-            <app-chart-table></app-chart-table>
+            <!-- <app-chart-table></app-chart-table> -->
+             <app-chart-table type="velocity" [showPaginator]="false"></app-chart-table>
+
     </div>
 </div>

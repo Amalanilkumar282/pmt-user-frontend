@@ -9,6 +9,47 @@ export interface User {
   email: string;
   avatar?: string;
 }
+// Dashboard interfaces
+export interface DashboardProject {
+  id: string;
+  name: string;
+  type: string;
+  status: 'Active' | 'Completed';
+  sprint: string;
+  tasks: {
+    toDo: number;
+    inProgress: number;
+    done: number;
+  };
+  teamMembers: string[];
+  deadline: string;
+  updated: string;
+  starred?: boolean;
+}
+
+export interface DashboardActivity {
+  id: string;
+  user: string;
+  initials: string;
+  action: string;
+  task: string;
+  taskId: string;
+  time: string;
+  type: 'completed' | 'commented' | 'assigned';
+}
+
+export interface DashboardStats {
+  activeProjects: number;
+  issuesInProgress: number;
+  sprintsInProgress: number;
+}
+
+export interface TaskStatus {
+  toDo: number;
+  inProgress: number;
+  completed: number;
+  onHold: number;
+}
 
 // Available users
 export const users: User[] = [
@@ -19,7 +60,7 @@ export const users: User[] = [
   { id: 'user-5', name: 'Sharath Shony', email: 'sharath@example.com' },
   { id: 'user-6', name: 'Samasya P Promod', email: 'samasya@example.com' },
   { id: 'user-7', name: 'Nadim Naisam', email: 'nadim@example.com' },
-  { id: 'user-8', name: 'Unassigned', email: '' }
+  { id: 'user-8', name: 'Unassigned', email: '' },
 ];
 
 // Completed Sprint 1 issues
@@ -48,6 +89,7 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Jane Smith',
     storyPoints: 5,
     sprintId: 'completed-1',
+    createdAt: new Date('2025-08-01'),
     epicId: 'epic-1',
     createdAt: new Date('2025-08-02'),
     updatedAt: new Date('2025-08-14'),
@@ -62,6 +104,7 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Alex Johnson',
     storyPoints: 8,
     sprintId: 'completed-1',
+    createdAt: new Date('2025-08-01'),
     epicId: 'epic-1',
     createdAt: new Date('2025-08-03'),
     updatedAt: new Date('2025-08-16'),
@@ -76,6 +119,7 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Mike Brown',
     storyPoints: 5,
     sprintId: 'completed-1',
+    createdAt: new Date('2025-08-01'),
     epicId: 'epic-1',
     createdAt: new Date('2025-08-05'),
     updatedAt: new Date('2025-08-13'),
@@ -142,7 +186,7 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     epicId: 'epic-2',
     createdAt: new Date('2025-09-25'),
-    updatedAt: new Date('2025-09-28'),
+    updatedAt: new Date('2025-10-08'),
   },
   {
     id: 'PMT-102',
@@ -156,7 +200,7 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     epicId: 'epic-2',
     createdAt: new Date('2025-09-26'),
-    updatedAt: new Date('2025-09-26'),
+    updatedAt: new Date('2025-10-07'),
   },
   {
     id: 'PMT-103',
@@ -170,7 +214,7 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     epicId: 'epic-2',
     createdAt: new Date('2025-09-20'),
-    updatedAt: new Date('2025-09-24'),
+    updatedAt: new Date('2025-10-06'),
   },
   {
     id: 'PMT-104',
@@ -184,7 +228,7 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     epicId: 'epic-2',
     createdAt: new Date('2025-09-27'),
-    updatedAt: new Date('2025-09-29'),
+    updatedAt: new Date('2025-10-05'),
   },
   {
     id: 'PMT-105',
@@ -198,7 +242,7 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     epicId: 'epic-2',
     createdAt: new Date('2025-09-28'),
-    updatedAt: new Date('2025-09-28'),
+    updatedAt: new Date('2025-10-13'),
   },
   {
     id: 'PMT-106',
@@ -209,6 +253,8 @@ export const activeSprintIssues: Issue[] = [
     status: 'TODO',
     storyPoints: 2,
     sprintId: 'active-1',
+    createdAt: new Date('2025-10-04'),
+    updatedAt: new Date('2025-10-05'),
     epicId: 'epic-2',
     createdAt: new Date('2025-09-29'),
     updatedAt: new Date('2025-09-29'),
@@ -378,7 +424,6 @@ export const backlogIssues: Issue[] = [
     createdAt: new Date('2025-09-21'),
     updatedAt: new Date('2025-09-21'),
   },
-  
 ];
 
 // All sprints
@@ -430,7 +475,7 @@ export const epic1WorkItems: Issue[] = [
     storyPoints: 8,
     epicId: 'epic-1',
     createdAt: new Date('2025-09-15'),
-    updatedAt: new Date('2025-10-01')
+    updatedAt: new Date('2025-10-01'),
   },
   {
     id: 'SCRUM-5',
@@ -456,8 +501,8 @@ export const epic1WorkItems: Issue[] = [
     storyPoints: 5,
     epicId: 'epic-1',
     createdAt: new Date('2025-09-25'),
-    updatedAt: new Date('2025-09-25')
-  }
+    updatedAt: new Date('2025-09-25'),
+  },
 ];
 
 export const epic2WorkItems: Issue[] = [
@@ -472,7 +517,7 @@ export const epic2WorkItems: Issue[] = [
     storyPoints: 8,
     epicId: 'epic-2',
     createdAt: new Date('2025-09-28'),
-    updatedAt: new Date('2025-10-03')
+    updatedAt: new Date('2025-10-03'),
   },
   {
     id: 'SCRUM-8',
@@ -485,8 +530,8 @@ export const epic2WorkItems: Issue[] = [
     storyPoints: 5,
     epicId: 'epic-2',
     createdAt: new Date('2025-09-30'),
-    updatedAt: new Date('2025-09-30')
-  }
+    updatedAt: new Date('2025-09-30'),
+  },
 ];
 
 // Epics
@@ -508,7 +553,7 @@ export const epics: Epic[] = [
     storyPoints: 40,
     reporter: 'Amal A',
     childWorkItems: ['SCRUM-3', 'SCRUM-5', 'SCRUM-3'],
-    status: 'IN_PROGRESS'
+    status: 'IN_PROGRESS',
   },
   {
     id: 'epic-2',
@@ -527,6 +572,90 @@ export const epics: Epic[] = [
     storyPoints: 0,
     reporter: 'Amal A',
     childWorkItems: ['SCRUM-7', 'SCRUM-8'],
-    status: 'TODO'
-  }
+    status: 'TODO',
+  },
+];
+
+// Dashboard data
+export const dashboardStats: DashboardStats = {
+  activeProjects: 2,
+  issuesInProgress: 12,
+  sprintsInProgress: 3,
+};
+
+export const dashboardTaskStatus: TaskStatus = {
+  toDo: 8,
+  inProgress: 6,
+  completed: 7,
+  onHold: 3,
+};
+
+export const dashboardProjects: DashboardProject[] = [
+  {
+    id: '1',
+    name: 'Mobile App Revamp',
+    type: 'Scrum Project',
+    status: 'Active',
+    sprint: 'Sprint Alpha',
+    tasks: { toDo: 15, inProgress: 8, done: 25 },
+    teamMembers: ['A', 'B', 'C', '+2'],
+    deadline: 'Oct 5, 2025',
+    updated: '2h ago',
+    starred: true,
+  },
+  {
+    id: '2',
+    name: 'Web Dashboard',
+    type: 'Scrum Project',
+    status: 'Completed',
+    sprint: 'Sprint Beta',
+    tasks: { toDo: 8, inProgress: 4, done: 32 },
+    teamMembers: ['D', 'E', 'F', '+3'],
+    deadline: 'Oct 12, 2025',
+    updated: '5h ago',
+    starred: false,
+  },
+];
+
+export const dashboardActivities: DashboardActivity[] = [
+  {
+    id: '1',
+    user: 'You',
+    initials: 'SC',
+    action: 'completed task',
+    task: 'User authentication flow',
+    taskId: 'ECOM-123',
+    time: '2 minutes ago',
+    type: 'completed',
+  },
+  {
+    id: '2',
+    user: 'Mike Johnson',
+    initials: 'MJ',
+    action: 'commented on',
+    task: 'Mobile responsive design',
+    taskId: 'MAR-45',
+    time: '15 minutes ago',
+    type: 'commented',
+  },
+  {
+    id: '3',
+    user: 'Emily Davis',
+    initials: 'ED',
+    action: 'assigned you to',
+    task: 'Database optimization',
+    taskId: 'DAT-78',
+    time: '1 hour ago',
+    type: 'assigned',
+  },
+  {
+    id: '4',
+    user: 'You',
+    initials: 'HA',
+    action: 'completed task',
+    task: 'Process flow',
+    taskId: 'ECOM-124',
+    time: '2 hours ago',
+    type: 'completed',
+  },
 ];
