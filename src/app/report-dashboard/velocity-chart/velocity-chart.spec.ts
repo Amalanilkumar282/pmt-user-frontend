@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
+import { provideRouter } from '@angular/router';
 import { VelocityChart } from './velocity-chart';
 
 describe('VelocityChart', () => {
@@ -8,7 +8,8 @@ describe('VelocityChart', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VelocityChart]
+      imports: [VelocityChart],
+      providers: [provideRouter([])]
     })
     .compileComponents();
 
