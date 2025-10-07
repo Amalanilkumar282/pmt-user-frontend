@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-
+import { signal } from '@angular/core';
 import { BoardPage } from './board-page';
 import { BoardStore } from '../../board-store';
 import { sprints, backlogIssues } from '../../../shared/data/dummy-backlog-data';
+import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 
 describe('BoardPage', () => {
   let component: BoardPage;
@@ -37,3 +38,4 @@ describe('BoardPage', () => {
     expect(selectSpy).toHaveBeenCalled();
   });
 });
+

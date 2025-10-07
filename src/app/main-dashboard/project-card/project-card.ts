@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 export interface ProjectCardModel {
   id: string;
@@ -17,7 +18,7 @@ export interface ProjectCardModel {
 @Component({
   selector: 'app-project-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './project-card.html',
   styleUrls: ['./project-card.css'],
 })
