@@ -1,8 +1,7 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { MatTableDataSource } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { Issue } from '../../shared/models/issue.model';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
@@ -27,7 +26,7 @@ export interface BurndownRow {
 @Component({
   selector: 'app-chart-table',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginatorModule, MatPaginator],
+  imports: [CommonModule, MatTableModule, MatPaginatorModule],
   templateUrl: './chart-table.html',
   styleUrls: ['./chart-table.css'],
 })
