@@ -9,7 +9,7 @@ import { CreateIssue } from '../../modal/create-issue/create-issue';
   selector: 'app-navbar',
   imports: [CommonModule, RouterModule],
   templateUrl: './navbar.html',
-  styleUrl: './navbar.css',
+  styleUrls: ['./navbar.css'],
   standalone: true
 })
 export class Navbar {

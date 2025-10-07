@@ -7,14 +7,29 @@ import { SidebarStateService } from '../services/sidebar-state.service';
   selector: 'app-sidebar',
   imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.html',
-  styleUrl: './sidebar.css',
+  styleUrls: ['./sidebar.css'],
   standalone: true
 })
 export class Sidebar {
   private sidebarStateService = inject(SidebarStateService);
   
   // Use shared state from service
-  isCollapsed = this.sidebarStateService.isCollapsed;
+  // provide a tolerant isCollapsed callable that supports multiple shapes
+  // of the SidebarStateService used across tests and app code:
+  // - a signal/callable `isCollapsed()`
+  // - a `getCollapsed()` method
+  // - or a boolean property `isCollapsed`
+  isCollapsed: () => boolean = (() => {
+    const svc: any = this.sidebarStateService;
+    if (typeof svc.isCollapsed === 'function') {
+      return svc.isCollapsed.bind(svc);
+    }
+    if (typeof svc.getCollapsed === 'function') {
+      return () => svc.getCollapsed();
+    }
+    // fallback: coerce truthiness
+    return () => !!svc.isCollapsed;
+  })();
 
   // Navigation items could be defined here if needed
   navItems = [
