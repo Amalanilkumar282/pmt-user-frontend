@@ -11,13 +11,21 @@
     <app-navbar (toggleSidebar)="onToggleSidebar()"></app-navbar>
 
     <!-- Board Content -->
-    <div class="flex-1 flex flex-col overflow-hidden bg-gray-100">
+    <div class="flex-1 flex flex-col overflow-hidden bg-white">
       <!-- Board Toolbar -->
       <app-board-toolbar class="px-6 pt-4"></app-board-toolbar>
 
       <!-- Board Columns -->
-      <app-board-columns-container class="flex-1 overflow-auto px-6 pb-6">
+      <app-board-columns-container class="flex-1 overflow-auto px-6 pb-6" (openIssue)="onOpenIssue($event)">
       </app-board-columns-container>
+
+      <app-issue-detailed-view
+        [issue]="selectedIssue()"
+        [isOpen]="isModalOpen()"
+        [availableSprints]="sprints()"
+        (close)="isModalOpen.set(false)"
+        (moveIssue)="onMoveIssue($event)"
+      ></app-issue-detailed-view>
     </div>
   </div>
 </div>

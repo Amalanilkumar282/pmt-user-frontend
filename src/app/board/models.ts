@@ -10,7 +10,7 @@ export interface Sprint {
   startDate: Date;
   endDate: Date;
   status: 'PLANNED' | 'ACTIVE' | 'COMPLETED';
-  issues: Issue[];
+  issues?: Issue[];
 }
 
 export interface BoardColumnDef {

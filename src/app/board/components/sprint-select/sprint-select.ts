@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Sprint } from '../../models';
+import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
+import { Sprint } from '../../../sprint/sprint-container/sprint-container';
 
 @Component({
   selector: 'app-sprint-select',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ClickOutsideDirective],
   templateUrl: './sprint-select.html',
   styleUrls: ['./sprint-select.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
