@@ -27,6 +27,8 @@ export class CreateIssue implements OnInit, OnDestroy {
   modalTitle = '';
   projectName = '';
   showLabels = false;
+  submitButtonText = '';
+
 
   formError: string = '';
   showErrorToast = false;
@@ -59,6 +61,7 @@ showToast(message: string, duration: number = 3000) {
         this.modalTitle = cfg.title ?? 'Modal';
         this.projectName = cfg.projectName ?? '';
         this.showLabels = cfg.showLabels ?? false;
+        this.submitButtonText = cfg.submitText ?? 'Create Issue';
       }
 
       // 🧩 Lock body scroll while modal is open

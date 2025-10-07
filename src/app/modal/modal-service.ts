@@ -8,6 +8,7 @@ export interface ModalConfig {
   fields?: FormField[];       // dynamic fields
   data?: any;                 // pre-filled form values
   showLabels?: boolean;
+  submitText?: string;   
 }
 
 export interface FormField {

@@ -48,7 +48,7 @@ export class IssueDetailedView {
 
   this.modalService.open({
     id: 'editIssueModal',
-    title: `Edit Issue - ${issue.title}`,
+    title: `Edit Issue`,
     projectName: 'Project Alpha',
     fields,
     data: {
@@ -60,7 +60,8 @@ export class IssueDetailedView {
       assignee: issue.assignee,
       sprintId: issue.sprintId
     },
-    showLabels: false
+    showLabels: false,
+    submitText: 'Save Changes'
   });
 }
 

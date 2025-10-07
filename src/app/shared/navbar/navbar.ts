@@ -60,7 +60,8 @@ export class Navbar {
     projectName: 'Project Beta',// optional project label
     fields,                     // dynamic fields
     data: { priority: 'Medium', labels: [] }, // optional pre-filled data
-    showLabels: true
+    showLabels: true,
+    submitText: 'Create Issue'
   });
 }
 

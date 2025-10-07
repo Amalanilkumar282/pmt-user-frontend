@@ -85,7 +85,8 @@ export class BacklogPage {
           title: 'Create Sprint',
           projectName: 'Project Alpha',
           fields: sprintFields,
-          data: { shareWith: '', message: '' }  //optional prefilled
+          data: { shareWith: '', message: '' },  //optional prefilled,
+          submitText: 'Create Sprint'
         });
     }
 
@@ -132,7 +133,8 @@ export class BacklogPage {
       status: sprint.status || 'Planned',
       storyPoint: totalStoryPoints,
     },
-    showLabels: false
+    showLabels: false,
+    submitText: 'Save Changes'
   });
 }
 
