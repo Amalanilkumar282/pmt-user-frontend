@@ -6,6 +6,8 @@ import { IssueSummaryCard } from '../../summary/issue-summary-card/issue-summary
 import { SprintOverview } from '../../summary/sprint-overview/sprint-overview';
 import { ProjectCard } from '../project-card/project-card';
 import { ActivityItem } from '../activity-item/activity-item';
+import { Header } from '../../shared/header/header';
+import { RouterModule } from '@angular/router';
 
 interface Project {
   id: string;
@@ -40,7 +42,16 @@ interface Activity {
   templateUrl: './main-dashboard-home.html',
   styleUrls: ['./main-dashboard-home.css'],
   standalone: true,
-  imports: [CommonModule, Sidebar, IssueSummaryCard, ProjectCard, ActivityItem, SprintOverview],
+  imports: [
+    CommonModule,
+    Sidebar,
+    IssueSummaryCard,
+    ProjectCard,
+    ActivityItem,
+    SprintOverview,
+    Header,
+    RouterModule,
+  ],
 })
 export class MainDashboardHome {
   userName = 'Harrel';

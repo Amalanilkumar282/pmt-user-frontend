@@ -16,7 +16,8 @@ import { TaskCard } from '../task-card/task-card';
 })
 export class BoardColumn {
   @Output() openIssue = new EventEmitter<Issue>();
-  @Input() def!: BoardColumnDef;
+  // safe default to avoid undefined accesses in tests
+  @Input() def: BoardColumnDef = { id: 'TODO', title: '', color: 'border-slate-200' };
   @Input() items: Issue[] = [];
   @Input() connectedTo: string[] = [];
 
