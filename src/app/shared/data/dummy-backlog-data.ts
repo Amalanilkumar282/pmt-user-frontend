@@ -27,7 +27,7 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Jane Smith',
     storyPoints: 5,
     sprintId: 'completed-1',
-    createdAt: new Date('2025-08-02'),
+    createdAt: new Date('2025-08-01'),
     updatedAt: new Date('2025-08-14'),
   },
   {
@@ -40,7 +40,7 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Alex Johnson',
     storyPoints: 8,
     sprintId: 'completed-1',
-    createdAt: new Date('2025-08-03'),
+    createdAt: new Date('2025-08-01'),
     updatedAt: new Date('2025-08-16'),
   },
   {
@@ -53,7 +53,7 @@ export const completedSprint1Issues: Issue[] = [
     assignee: 'Mike Brown',
     storyPoints: 5,
     sprintId: 'completed-1',
-    createdAt: new Date('2025-08-05'),
+    createdAt: new Date('2025-08-01'),
     updatedAt: new Date('2025-08-13'),
   },
 ];
