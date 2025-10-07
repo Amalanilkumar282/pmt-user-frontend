@@ -12,7 +12,17 @@ import type { Issue } from '../../../shared/models/issue.model';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskCard {
-  @Input() issue!: Issue;
+  // allow tests to create the component without providing an issue
+  @Input() issue: Issue = {
+    id: '',
+    title: '',
+    description: '',
+    type: 'TASK',
+    priority: 'LOW',
+    status: 'TODO',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
   @Input() colorClass = 'border-slate-200';
   @Output() open = new EventEmitter<Issue>();
 

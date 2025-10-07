@@ -10,7 +10,25 @@ import { Epic } from '../../shared/models/epic.model';
   styleUrl: './epic-list.css'
 })
 export class EpicList {
-  @Input() epic!: Epic;
+  @Input() epic: Epic = {
+    id: '',
+    name: '',
+    description: '',
+    startDate: null,
+    dueDate: null,
+    progress: 0,
+    issueCount: 0,
+    isExpanded: false,
+    assignee: 'Unassigned',
+    labels: [],
+    parent: 'None',
+    team: 'None',
+    sprint: 'None',
+    storyPoints: 0,
+    reporter: 'Unassigned',
+    childWorkItems: [],
+    status: 'TODO'
+  };
   @Output() toggleExpand = new EventEmitter<string>();
   @Output() viewDetails = new EventEmitter<string>();
 
