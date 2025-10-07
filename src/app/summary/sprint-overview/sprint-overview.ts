@@ -112,14 +112,14 @@ export class SprintOverview implements AfterViewInit, OnChanges, OnDestroy {
 
   private getColors(): string[] {
     const colorMap: { [key: string]: string } = {
-      'bg-status-green': '#10B981',
-      'bg-status-yellow': '#F59E0B',
-      'bg-status-blue': '#3B82F6',
-      'bg-status-red': '#EF4444',
-      'bg-status-purple': '#8B5CF6',
-      'bg-status-pink': '#EC4899',
-      'bg-status-indigo': '#6366F1',
-      'bg-status-teal': '#14B8A6',
+      'bg-green-500': '#10B981',
+      'bg-yellow-500': '#F59E0B',
+      'bg-blue-500': '#3B82F6',
+      'bg-red-500': '#EF4444',
+      'bg-purple-500': '#8B5CF6',
+      'bg-pink-500': '#EC4899',
+      'bg-indigo-500': '#6366F1',
+      'bg-teal-500': '#14B8A6',
     };
 
     return this.statuses.map((s) => colorMap[s.colorClass] || '#6B7280');

@@ -7,32 +7,54 @@
   ></div>
 
   <!-- Title -->
-  <h3 class="text-text-primary text-[17px] font-bold leading-[18px] mb-2">
+  <h3
+    class="text-text-primary text-[17px] font-bold leading-[18px] mb-2"
+    data-test-id="sprint-overview-title"
+  >
     {{ title }}
   </h3>
 
   <!-- Description -->
-  <p class="text-text-secondary text-sm leading-[15px] mb-15">
+  <p
+    class="text-text-secondary text-sm leading-[15px] mb-15"
+    data-test-id="sprint-overview-description"
+  >
     {{ description }}
   </p>
 
   <!-- Chart and Statuses -->
   <div class="flex items-center gap-15 flex-1">
     <!-- Donut Chart -->
-    <div #chartContainer class="w-40 h-40 flex items-center justify-center -mt-6"></div>
-
-    <!-- Status List -->
+    <div
+      #chartContainer
+      class="w-40 h-40 flex items-center justify-center -mt-6"
+      data-test-id="sprint-overview-chart-container"
+    ></div>
 
     <!-- Status List -->
     <div class="flex flex-col gap-4 justify-center -mt-6">
-      <div class="flex items-center gap-3" *ngFor="let status of statuses">
-        <div class="w-4 h-4 rounded" [ngClass]="status.colorClass"></div>
+      <div
+        class="flex items-center gap-3"
+        *ngFor="let status of statuses; let i = index"
+        [attr.data-test-id]="'status-item-' + i"
+      >
+        <div
+          class="w-4 h-4 rounded"
+          [ngClass]="status.colorClass"
+          [attr.data-test-id]="'status-color-' + i"
+        ></div>
 
-        <span class="text-text-primary text-sm leading-[15px] flex-1">
+        <span
+          class="text-text-primary text-sm leading-[15px] flex-1"
+          [attr.data-test-id]="'status-label-' + i"
+        >
           {{ status.label }}
         </span>
 
-        <span class="text-text-primary text-sm font-bold leading-[15px]">
+        <span
+          class="text-text-primary text-sm font-bold leading-[15px]"
+          [attr.data-test-id]="'status-count-' + i"
+        >
           {{ status.count }}
         </span>
       </div>

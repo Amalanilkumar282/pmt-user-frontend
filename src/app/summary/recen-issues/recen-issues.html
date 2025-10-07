@@ -2,63 +2,75 @@
   <div
     class="h-1 bg-gradient-to-r from-primary-gradient-start to-primary-gradient-end rounded-t-[14px] -mx-4 -mt-4 mb-4"
   ></div>
-  <h3 class="text-text-primary text-[17px] font-bold leading-[18px] mb-4">Recent Issues</h3>
+
+  <h3
+    class="text-text-primary text-[17px] font-bold leading-[18px] mb-4"
+    data-testid="issues-title"
+  >
+    Recent Issues
+  </h3>
 
   <div class="space-y-0">
     <div
-      *ngFor="let issue of issues; let last = last"
+      *ngFor="let issue of issues; let last = last; let i = index"
       [class.border-b]="!last"
       class="py-3 flex items-center justify-between border-gray-200 relative group"
+      [attr.data-testid]="'issue-row-' + i"
     >
-      <!-- Wrap issue content in a relative box -->
       <div class="flex w-full items-center justify-between relative">
-        <!-- Left icon + title -->
         <div class="flex flex-col">
           <div class="flex items-center gap-2 mb-1">
-            <!-- Status icon (rectangle) -->
             <div
               [style.background-color]="issue.statusBg"
               class="rounded-sm w-4 h-4 flex items-center justify-center"
+              data-testid="status-icon"
             >
               <span class="text-white text-[6px] font-bold font-roboto">
                 {{ issue.statusLetter }}
               </span>
             </div>
-            <!-- Issue title -->
-            <span class="text-status-blue text-sm">{{ issue.title }}</span>
+
+            <span class="text-status-blue text-sm font-medium leading-4" data-testid="issue-title">
+              {{ issue.title }}
+            </span>
           </div>
-          <span class="text-text-secondary text-[9px] leading-3">{{ issue.code }}</span>
+
+          <span class="text-text-secondary text-[9px] leading-3 ml-6" data-testid="issue-code">
+            {{ issue.code }}
+          </span>
         </div>
 
-        <!-- Right icon (assignee circle) -->
         <div
           [style.background-color]="issue.assigneeBg"
           class="w-[17px] h-[17px] rounded-full flex items-center justify-center"
+          data-testid="assignee-icon"
         >
           <span class="text-white text-[7px] font-bold font-roboto">
             {{ issue.assigneeInitials }}
           </span>
         </div>
 
-        <!-- Tooltip (bound to THIS issue only) -->
         <div
           class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-64 p-3 rounded-md bg-gray-800 text-white text-xs shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20"
+          data-testid="issue-tooltip"
         >
-          <!-- Title -->
-          <p class="font-semibold text-sm mb-1">{{ issue.title }}</p>
+          <p class="font-semibold text-sm mb-1" data-testid="tooltip-title">{{ issue.title }}</p>
 
-          <!-- Description -->
-          <p class="text-gray-200 mb-2">{{ issue.description }}</p>
+          <p class="text-gray-200 mb-2" data-testid="tooltip-description">
+            {{ issue.description }}
+          </p>
 
-          <!-- Inline status + priority -->
           <div class="flex justify-between text-gray-300">
-            <span><span class="font-semibold">Status:</span> {{ issue.status }}</span>
-            <span><span class="font-semibold">Priority:</span> {{ issue.priority }}</span>
+            <span data-testid="tooltip-status"
+              ><span class="font-semibold">Status:</span> {{ issue.status }}</span
+            >
+            <span data-testid="tooltip-priority"
+              ><span class="font-semibold">Priority:</span> {{ issue.priority }}</span
+            >
           </div>
 
-          <!-- Arrow -->
           <div
-            class="absolute left-1/2 top-full -translate-x-1/2 w-0 h-0 border-l-6 border-l-transparent border-r-6 border-r-transparent border-t-6 border-t-gray-800"
+            class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-8 border-transparent border-t-gray-800"
           ></div>
         </div>
       </div>

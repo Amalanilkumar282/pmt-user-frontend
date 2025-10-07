@@ -9,9 +9,8 @@ describe('SummaryPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SummaryPage, RouterTestingModule]
-    })
-    .compileComponents();
+      imports: [SummaryPage, RouterTestingModule],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(SummaryPage);
     component = fixture.componentInstance;
