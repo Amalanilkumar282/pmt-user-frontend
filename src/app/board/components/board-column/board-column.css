@@ -1,9 +1,10 @@
 .board-column {
-  /* no left border to keep columns visually clean */
-  border-left: none;
-  background: white;
+  /* force no left border and a very subtle shadow to avoid a dark line */
+  border-left: none !important;
+  background: rgb(249, 249, 249);
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
 }
 
 .cdk-drag-preview {
@@ -39,26 +40,3 @@
   height: 0px;
 }
 
-/* Reveal thin modern scrollbar on hover or focus within the column */
-.board-column:hover [cdkDropList],
-.board-column [cdkDropList]:focus-within {
-  scrollbar-width: thin; /* Firefox */
-  -ms-overflow-style: auto; /* IE/Edge */
-}
-
-.board-column:hover [cdkDropList]::-webkit-scrollbar,
-.board-column [cdkDropList]:focus-within::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.board-column:hover [cdkDropList]::-webkit-scrollbar-thumb,
-.board-column [cdkDropList]:focus-within::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.18);
-  border-radius: 999px;
-}
-
-.board-column:hover [cdkDropList]::-webkit-scrollbar-track,
-.board-column [cdkDropList]:focus-within::-webkit-scrollbar-track {
-  background: transparent;
-}
