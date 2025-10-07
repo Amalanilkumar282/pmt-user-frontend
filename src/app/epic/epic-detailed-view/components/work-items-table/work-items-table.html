@@ -1,0 +1,116 @@
+<div class="section work-items-section">
+  <div class="section-header-with-count">
+    <div class="section-title">Child work items</div>
+    <div class="work-items-progress">
+      <div class="progress-bar-small">
+        <div class="progress-fill" [style.width]="getProgressPercentage()"></div>
+      </div>
+      <span class="progress-text">{{ getProgressPercentage() }} Done</span>
+    </div>
+  </div>
+
+  <div class="work-items-table">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-checkbox">
+            <input type="checkbox" />
+          </th>
+          <th class="col-work">Work</th>
+          <th class="col-priority">Priority</th>
+          <th class="col-assignee">Assignee</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of workItems; track item.id) {
+          <tr class="work-item-row">
+            <td class="col-checkbox">
+              <input type="checkbox" />
+            </td>
+            <td class="col-work">
+              <div class="work-info">
+                <span class="work-icon">{{ getTypeIcon(item.type) }}</span>
+                @if (!isEditing(item.id, 'title')) {
+                  <span class="work-id editable-cell" (click)="startEditing(item.id, 'title')">
+                    {{ item.title || item.id }}
+                  </span>
+                } @else {
+                  <input 
+                    type="text" 
+                    [(ngModel)]="tempValues[item.id]['title']"
+                    class="inline-input-small"
+                    (keyup.enter)="saveItem(item.id, 'title')"
+                    (keyup.escape)="cancelEdit(item.id, 'title')"
+                  />
+                  <button class="btn-save-tiny" (click)="saveItem(item.id, 'title')">✓</button>
+                  <button class="btn-cancel-tiny" (click)="cancelEdit(item.id, 'title')">✕</button>
+                }
+              </div>
+            </td>
+            <td class="col-priority">
+              @if (!isEditing(item.id, 'priority')) {
+                <span class="priority-badge editable-cell" [class]="getPriorityClass(item.priority)" 
+                      (click)="startEditing(item.id, 'priority')">
+                  {{ item.priority }}
+                </span>
+              } @else {
+                <select 
+                  [(ngModel)]="tempValues[item.id]['priority']"
+                  class="inline-select-small"
+                  (change)="saveItem(item.id, 'priority')">
+                  @for (priority of priorities; track priority) {
+                    <option [value]="priority">{{ priority }}</option>
+                  }
+                </select>
+              }
+            </td>
+            <td class="col-assignee">
+              @if (!isEditing(item.id, 'assignee')) {
+                <div class="assignee-info editable-cell" (click)="startEditing(item.id, 'assignee')">
+                  <div class="avatar">{{ item.assignee?.charAt(0) || 'U' }}</div>
+                  <span>{{ item.assignee || 'Unassigned' }}</span>
+                </div>
+              } @else {
+                <select 
+                  [(ngModel)]="tempValues[item.id]['assignee']"
+                  class="inline-select-small"
+                  (change)="saveItem(item.id, 'assignee')">
+                  <option value="Unassigned">Unassigned</option>
+                  @for (user of availableUsers; track user.id) {
+                    <option [value]="user.name">{{ user.name }}</option>
+                  }
+                </select>
+              }
+            </td>
+            <td class="col-status">
+              @if (!isEditing(item.id, 'status')) {
+                <span class="status-badge editable-cell" [class]="getStatusClass(item.status)" 
+                      (click)="startEditing(item.id, 'status')">
+                  {{ getStatusLabel(item.status) }}
+                </span>
+              } @else {
+                <select 
+                  [(ngModel)]="tempValues[item.id]['status']"
+                  class="inline-select-small"
+                  (change)="saveItem(item.id, 'status')">
+                  @for (status of statuses; track status) {
+                    <option [value]="status">{{ getStatusLabel(status) }}</option>
+                  }
+                </select>
+              }
+            </td>
+            <td class="col-actions">
+              <button class="btn-delete" (click)="deleteItem(item.id)" title="Delete work item">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 4H11M5 4V3C5 2.44772 5.44772 2 6 2H8C8.55228 2 9 2.44772 9 3V4M6 7V10M8 7V10M4 4L4.5 11C4.5 11.5523 4.94772 12 5.5 12H8.5C9.05228 12 9.5 11.5523 9.5 11L10 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
