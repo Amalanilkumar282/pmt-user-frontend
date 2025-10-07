@@ -1,9 +1,9 @@
- import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
-import { Issue} from '../../shared/models/issue.model';
+import { Issue } from '../../shared/models/issue.model';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { ViewChild, AfterViewInit } from '@angular/core';
@@ -14,28 +14,50 @@ interface BurnupRow {
   completed: number;
   scope: number;
 }
+export interface BurndownRow {
+  key: string;
+  summary: string;
+  workType: string;
+  epic: string;
+  status: string;
+  assignee: string;
+  storyPoints: number;
+}
 
 @Component({
   selector: 'app-chart-table',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginatorModule,MatPaginator],
+  imports: [CommonModule, MatTableModule, MatPaginatorModule, MatPaginator],
   templateUrl: './chart-table.html',
   styleUrls: ['./chart-table.css'],
 })
 export class ChartTable implements OnInit, AfterViewInit {
-  dataSource!: MatTableDataSource<BurnupRow>;
-  displayedColumns: string[] = ['date', 'event', 'workItem', 'scope', 'completed'];
+  @Input() type: 'burnup' | 'burndown' | 'velocity' = 'burnup';
+  @Input() statusFilter?: 'DONE' | 'INCOMPLETE';
+  @Input() showPaginator: boolean = true;
+  
+  dataSource!: MatTableDataSource<any>;
+  displayedColumns: string[] = [];
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   ngOnInit(): void {
-    this.generateBurnupTable();
+    if (this.type === 'burnup') {
+      this.displayedColumns = ['date', 'event', 'workItem', 'completed', 'scope'];
+      this.loadBurnupData();
+    } else if (this.type === 'burndown') {
+      this.displayedColumns = ['key', 'summary', 'workType', 'epic', 'status', 'assignee', 'storyPoints'];
+      this.loadBurndownData();
+    } else if (this.type === 'velocity') {
+      this.displayedColumns = ['sprint', 'commitment', 'completed'];
+      this.loadVelocityData();
+    }
   }
   ngAfterViewInit(): void {
     if (this.dataSource) {
       this.dataSource.paginator = this.paginator;
     }
   }
-  private generateBurnupTable(): void {
+  private loadBurnupData(): void {
     // Automatically pick the latest completed sprint
     const sprint: Sprint | undefined = sprints
       .filter((s: Sprint) => s.status === 'COMPLETED' || s.status === 'ACTIVE')
@@ -44,8 +66,8 @@ export class ChartTable implements OnInit, AfterViewInit {
     if (!sprint) return;
 
     // Filter issues completed within sprint end date
- const sprintIssues: Issue[] = sprint?.issues
-  ?.filter(issue => issue.updatedAt.getTime() <= (sprint?.endDate.getTime() ?? 0)) ?? [];
+    const sprintIssues: Issue[] = sprint?.issues
+      ?.filter(issue => issue.updatedAt.getTime() <= (sprint?.endDate.getTime() ?? 0)) ?? [];
 
 
 
@@ -99,4 +121,103 @@ export class ChartTable implements OnInit, AfterViewInit {
 
     this.dataSource = new MatTableDataSource<BurnupRow>(chartData);
   }
+  // loadBurndownData() {
+  //   const sprint = sprints
+  //     .filter(s => s.status === 'COMPLETED' || s.status === 'ACTIVE')
+  //     .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
+
+  //   let sprintIssues: Issue[] = (sprint?.issues ?? [])
+  //     .filter(i => i.updatedAt && i.updatedAt.getTime() <= sprint.endDate.getTime());
+
+  //   if (this.statusFilter === 'DONE') {
+  //   sprintIssues = sprintIssues.filter(i => i.status === 'DONE');
+  // } else if (this.statusFilter === 'INCOMPLETE') {
+  //   sprintIssues = sprintIssues.filter(i => i.status !== 'DONE');
+  // }
+
+  //   const burndownRows: BurndownRow[] = sprintIssues.map(i => ({
+  //     key: i.id,
+  //     summary: i.title,
+  //     workType: i.type,
+  //     // epic: i.epic || 'N/A',
+  //     epic:'N/A',
+  //     status: i.status,
+  //     assignee: i.assignee || 'Unassigned',
+  //     storyPoints: i.storyPoints ?? 0
+  //   }));
+
+  //   this.dataSource = new MatTableDataSource(burndownRows);
+  // }
+
+  loadBurndownData() {
+    const sprint = sprints
+      .filter(s => s.status === 'COMPLETED' || s.status === 'ACTIVE')
+      .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
+
+    if (!sprint?.issues) return;
+
+    // Filter issues by updated date first
+    let sprintIssues: Issue[] = sprint.issues.filter(
+      i => i.updatedAt && i.updatedAt.getTime() <= sprint.endDate.getTime()
+    );
+
+    // Apply status filter before mapping to rows
+    if (this.statusFilter === 'DONE') {
+      sprintIssues = sprintIssues.filter(i => i.status === 'DONE');
+    } else if (this.statusFilter === 'INCOMPLETE') {
+      sprintIssues = sprintIssues.filter(i => i.status !== 'DONE');
+    }
+
+    // Map filtered issues to table rows
+    const burndownRows: BurndownRow[] = sprintIssues.map(i => ({
+      key: i.id,
+      summary: i.title,
+      workType: i.type,
+      // epic: i.epic || 'N/A',
+      epic: 'N/A',
+      status: i.status,
+      assignee: i.assignee || 'Undefined',
+      storyPoints: i.storyPoints ?? 0
+    }));
+
+    this.dataSource = new MatTableDataSource(burndownRows);
+  }
+
+   loadVelocityData() {
+  // Get the latest sprint (either ACTIVE or most recently COMPLETED)
+  const latestSprint = sprints
+    .filter(s => s.status === 'ACTIVE' || s.status === 'COMPLETED')
+    .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
+
+  if (!latestSprint?.issues) return;
+
+  // Total story points committed in the sprint
+  const totalCommitted = latestSprint.issues.reduce(
+    (sum, i) => sum + (i.storyPoints ?? 0),
+    0
+  );
+
+  // Total completed story points (status === DONE)
+  const completedPoints = latestSprint.issues
+    .filter(i => i.status === 'DONE')
+    .reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
+
+  // Prepare single-row table
+  const velocityRows = [
+    {
+      sprint: latestSprint.name,
+      commitment: totalCommitted,
+      completed: completedPoints
+    }
+  ];
+
+  // Define table columns
+  this.displayedColumns = ['sprint', 'commitment', 'completed'];
+  this.dataSource = new MatTableDataSource(velocityRows);
 }
+
+}
+
+
+
+
