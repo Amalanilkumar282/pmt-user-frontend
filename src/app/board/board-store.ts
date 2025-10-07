@@ -69,7 +69,7 @@ export class BoardStore {
   loadData(allSprints: Sprint[]) {
     this._sprints.set(allSprints);
     // flatten issues for store; keep sprintId on each issue (already present)
-    const flattened = allSprints.flatMap(s => s.issues.map(i => ({...i, sprintId: i.sprintId ?? s.id })));
+  const flattened = allSprints.flatMap(s => (s.issues ?? []).map(i => ({...i, sprintId: i.sprintId ?? s.id })));
     this._issues.set([...flattened]); // backlog can be injected separately by caller
   }
 
