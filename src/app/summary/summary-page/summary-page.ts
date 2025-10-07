@@ -12,7 +12,7 @@ import { ProjectLead } from '../project-lead/project-lead';
 import { ProjectInfo } from '../project-info/project-info';
 import { IssueSummaryService } from '../issue-summary.service';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
-import { SprintFilterComponent } from '../sprint-filter/sprint-filter';
+import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
 
 interface SummaryCardData {
   type: 'completed' | 'updated' | 'created' | 'due-soon';
