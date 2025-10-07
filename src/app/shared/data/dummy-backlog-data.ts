@@ -114,7 +114,7 @@ export const activeSprintIssues: Issue[] = [
     storyPoints: 8,
     sprintId: 'active-1',
     createdAt: new Date('2025-09-25'),
-    updatedAt: new Date('2025-09-28'),
+    updatedAt: new Date('2025-10-08'),
   },
   {
     id: 'PMT-102',
@@ -127,7 +127,7 @@ export const activeSprintIssues: Issue[] = [
     storyPoints: 5,
     sprintId: 'active-1',
     createdAt: new Date('2025-09-26'),
-    updatedAt: new Date('2025-09-26'),
+    updatedAt: new Date('2025-10-07'),
   },
   {
     id: 'PMT-103',
@@ -140,7 +140,7 @@ export const activeSprintIssues: Issue[] = [
     storyPoints: 3,
     sprintId: 'active-1',
     createdAt: new Date('2025-09-20'),
-    updatedAt: new Date('2025-09-24'),
+    updatedAt: new Date('2025-10-06'),
   },
   {
     id: 'PMT-104',
@@ -153,7 +153,7 @@ export const activeSprintIssues: Issue[] = [
     storyPoints: 5,
     sprintId: 'active-1',
     createdAt: new Date('2025-09-27'),
-    updatedAt: new Date('2025-09-29'),
+    updatedAt: new Date('2025-10-05'),
   },
   {
     id: 'PMT-105',
@@ -166,7 +166,7 @@ export const activeSprintIssues: Issue[] = [
     storyPoints: 13,
     sprintId: 'active-1',
     createdAt: new Date('2025-09-28'),
-    updatedAt: new Date('2025-09-28'),
+    updatedAt: new Date('2025-10-13'),
   },
   {
     id: 'PMT-106',
@@ -177,8 +177,8 @@ export const activeSprintIssues: Issue[] = [
     status: 'TODO',
     storyPoints: 2,
     sprintId: 'active-1',
-    createdAt: new Date('2025-09-29'),
-    updatedAt: new Date('2025-09-29'),
+    createdAt: new Date('2025-10-04'),
+    updatedAt: new Date('2025-10-05'),
   },
 ];
 

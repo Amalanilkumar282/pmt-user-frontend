@@ -35,7 +35,7 @@ export class ChartTable implements OnInit, AfterViewInit {
   @Input() type: 'burnup' | 'burndown' | 'velocity' = 'burnup';
   @Input() statusFilter?: 'DONE' | 'INCOMPLETE';
   @Input() showPaginator: boolean = true;
-  
+
   dataSource!: MatTableDataSource<any>;
   displayedColumns: string[] = [];
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -57,97 +57,135 @@ export class ChartTable implements OnInit, AfterViewInit {
       this.dataSource.paginator = this.paginator;
     }
   }
+  // private loadBurnupData(): void {
+  //   // Automatically pick the latest completed sprint
+  //   const sprint: Sprint | undefined = sprints
+  //     .filter((s: Sprint) => s.status === 'COMPLETED' || s.status === 'ACTIVE')
+  //     .sort((a: Sprint, b: Sprint) => b.endDate.getTime() - a.endDate.getTime())[0];
+
+  //   if (!sprint) return;
+
+  //   // Filter issues completed within sprint end date
+  //   const sprintIssues: Issue[] = sprint?.issues
+  //     ?.filter(issue => issue.updatedAt.getTime() <= (sprint?.endDate.getTime() ?? 0)) ?? [];
+
+
+
+  //   // Sort issues by completion date
+  //   const sortedIssues: Issue[] = [...sprintIssues].sort(
+  //     (a: Issue, b: Issue) => a.updatedAt.getTime() - b.updatedAt.getTime()
+  //   );
+
+  //   // Total scope (safe handling of optional storyPoints)
+  //   const totalScope: number = sortedIssues.reduce(
+  //     (sum: number, i: Issue) => sum + (i.storyPoints || 0),
+  //     0
+  //   );
+
+  //   const chartData: BurnupRow[] = [];
+
+  //   // Sprint Start row
+  //   chartData.push({
+  //     date: sprint.startDate.toISOString().split('T')[0],
+  //     event: 'Sprint Start',
+  //     workItem: sortedIssues.map((i: Issue) => i.id).join(', '),
+  //     completed: 0,
+  //     scope: totalScope,
+  //   });
+
+  //   // Group issues by updated date
+  //   const issuesByDate: Record<string, Issue[]> = {};
+  //   sortedIssues.forEach((issue: Issue) => {
+  //     const dateStr: string = issue.updatedAt.toISOString().split('T')[0];
+  //     if (!issuesByDate[dateStr]) issuesByDate[dateStr] = [];
+  //     issuesByDate[dateStr].push(issue);
+  //   });
+
+  //   // Add rows for each date with cumulative completed
+  //   let cumulativeCompleted: number = 0;
+  //   Object.keys(issuesByDate)
+  //     .sort()
+  //     .forEach((date: string) => {
+  //       const issues: Issue[] = issuesByDate[date];
+  //       const workItems: string = issues.map((i: Issue) => i.id).join(', ');
+  //       cumulativeCompleted += issues.reduce((sum: number, i: Issue) => sum + (i.storyPoints || 0), 0);
+
+  //       chartData.push({
+  //         date,
+  //         event: 'Workitem Completed',
+  //         workItem: workItems,
+  //         completed: cumulativeCompleted,
+  //         scope: totalScope,
+  //       });
+  //     });
+
+  //   this.dataSource = new MatTableDataSource<BurnupRow>(chartData);
+  // }
+
   private loadBurnupData(): void {
-    // Automatically pick the latest completed sprint
-    const sprint: Sprint | undefined = sprints
-      .filter((s: Sprint) => s.status === 'COMPLETED' || s.status === 'ACTIVE')
-      .sort((a: Sprint, b: Sprint) => b.endDate.getTime() - a.endDate.getTime())[0];
+  // Automatically pick the latest completed or active sprint
+  const sprint: Sprint | undefined = sprints
+    .filter(s => s.status === 'COMPLETED' || s.status === 'ACTIVE')
+    .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
 
-    if (!sprint) return;
+  if (!sprint) return;
 
-    // Filter issues completed within sprint end date
-    const sprintIssues: Issue[] = sprint?.issues
-      ?.filter(issue => issue.updatedAt.getTime() <= (sprint?.endDate.getTime() ?? 0)) ?? [];
+  // Only include issues that are completed (status DONE) and updated before sprint end
+  const completedIssues: Issue[] = sprint.issues
+    ?.filter(issue => issue.status === 'DONE' && issue.updatedAt.getTime() <= sprint.endDate.getTime()) ?? [];
 
+  // Sort completed issues by updated date
+  const sortedIssues: Issue[] = [...completedIssues].sort(
+    (a, b) => a.updatedAt.getTime() - b.updatedAt.getTime()
+  );
 
+  // Total scope (all completed issues)
+  const totalScope: number = sortedIssues.reduce(
+    (sum, i) => sum + (i.storyPoints || 0),
+    0
+  );
 
-    // Sort issues by completion date
-    const sortedIssues: Issue[] = [...sprintIssues].sort(
-      (a: Issue, b: Issue) => a.updatedAt.getTime() - b.updatedAt.getTime()
-    );
+  const chartData: BurnupRow[] = [];
 
-    // Total scope (safe handling of optional storyPoints)
-    const totalScope: number = sortedIssues.reduce(
-      (sum: number, i: Issue) => sum + (i.storyPoints || 0),
-      0
-    );
+  // Sprint Start row
+  chartData.push({
+    date: sprint.startDate.toISOString().split('T')[0],
+    event: 'Sprint Start',
+    workItem: '',
+    completed: 0,
+    scope: totalScope,
+  });
 
-    const chartData: BurnupRow[] = [];
+  // Group completed issues by updated date
+  const issuesByDate: Record<string, Issue[]> = {};
+  sortedIssues.forEach(issue => {
+    const dateStr = issue.updatedAt.toISOString().split('T')[0];
+    if (!issuesByDate[dateStr]) issuesByDate[dateStr] = [];
+    issuesByDate[dateStr].push(issue);
+  });
 
-    // Sprint Start row
-    chartData.push({
-      date: sprint.startDate.toISOString().split('T')[0],
-      event: 'Sprint Start',
-      workItem: sortedIssues.map((i: Issue) => i.id).join(', '),
-      completed: 0,
-      scope: totalScope,
-    });
+  // Add rows for each date with cumulative completed
+  let cumulativeCompleted = 0;
+  Object.keys(issuesByDate)
+    .sort()
+    .forEach(date => {
+      const issues = issuesByDate[date];
+      const workItems = issues.map(i => i.id).join(', ');
+      cumulativeCompleted += issues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
 
-    // Group issues by updated date
-    const issuesByDate: Record<string, Issue[]> = {};
-    sortedIssues.forEach((issue: Issue) => {
-      const dateStr: string = issue.updatedAt.toISOString().split('T')[0];
-      if (!issuesByDate[dateStr]) issuesByDate[dateStr] = [];
-      issuesByDate[dateStr].push(issue);
-    });
-
-    // Add rows for each date with cumulative completed
-    let cumulativeCompleted: number = 0;
-    Object.keys(issuesByDate)
-      .sort()
-      .forEach((date: string) => {
-        const issues: Issue[] = issuesByDate[date];
-        const workItems: string = issues.map((i: Issue) => i.id).join(', ');
-        cumulativeCompleted += issues.reduce((sum: number, i: Issue) => sum + (i.storyPoints || 0), 0);
-
-        chartData.push({
-          date,
-          event: 'Workitem Completed',
-          workItem: workItems,
-          completed: cumulativeCompleted,
-          scope: totalScope,
-        });
+      chartData.push({
+        date,
+        event: 'Workitem Completed',
+        workItem: workItems,
+        completed: cumulativeCompleted,
+        scope: totalScope,
       });
+    });
 
-    this.dataSource = new MatTableDataSource<BurnupRow>(chartData);
-  }
-  // loadBurndownData() {
-  //   const sprint = sprints
-  //     .filter(s => s.status === 'COMPLETED' || s.status === 'ACTIVE')
-  //     .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
+  this.dataSource = new MatTableDataSource<BurnupRow>(chartData);
+}
 
-  //   let sprintIssues: Issue[] = (sprint?.issues ?? [])
-  //     .filter(i => i.updatedAt && i.updatedAt.getTime() <= sprint.endDate.getTime());
-
-  //   if (this.statusFilter === 'DONE') {
-  //   sprintIssues = sprintIssues.filter(i => i.status === 'DONE');
-  // } else if (this.statusFilter === 'INCOMPLETE') {
-  //   sprintIssues = sprintIssues.filter(i => i.status !== 'DONE');
-  // }
-
-  //   const burndownRows: BurndownRow[] = sprintIssues.map(i => ({
-  //     key: i.id,
-  //     summary: i.title,
-  //     workType: i.type,
-  //     // epic: i.epic || 'N/A',
-  //     epic:'N/A',
-  //     status: i.status,
-  //     assignee: i.assignee || 'Unassigned',
-  //     storyPoints: i.storyPoints ?? 0
-  //   }));
-
-  //   this.dataSource = new MatTableDataSource(burndownRows);
-  // }
+   
 
   loadBurndownData() {
     const sprint = sprints
