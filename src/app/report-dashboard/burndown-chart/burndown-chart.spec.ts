@@ -8,7 +8,7 @@ import { Navbar } from '../../shared/navbar/navbar';
 import { ChartHeader } from '../chart-header/chart-header';
 import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { NgApexchartsModule } from 'ng-apexcharts';
-import { inject } from '@angular/core';
+ 
 
 describe('BurndownChart', () => {
   let component: BurndownChart;

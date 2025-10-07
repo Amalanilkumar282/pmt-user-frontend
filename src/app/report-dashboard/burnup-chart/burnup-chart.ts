@@ -8,11 +8,13 @@ import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { ChartTable } from '../chart-table/chart-table';
+import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
+import { Sprint } from '../../sprint/sprint-container/sprint-container';
 
 @Component({
   selector: 'app-burnup-chart',
   standalone:true,
-  imports: [Navbar,Sidebar,ChartHeader,MetricsChart,ChartTable],
+  imports: [Navbar,Sidebar,ChartHeader,MetricsChart,ChartTable,SprintFilterComponent],
   // providers:[SidebarStateService],
   templateUrl: './burnup-chart.html',
   styleUrl: './burnup-chart.css'
@@ -21,6 +23,10 @@ export class BurnupChart {
   private sidebarStateService = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
+    sprints: Sprint[] = [];
+    selectedSprintId: string | null = 'all';
+
+    
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }

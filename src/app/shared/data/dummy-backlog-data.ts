@@ -91,7 +91,6 @@ export const completedSprint1Issues: Issue[] = [
     sprintId: 'completed-1',
     createdAt: new Date('2025-08-01'),
     epicId: 'epic-1',
-    createdAt: new Date('2025-08-02'),
     updatedAt: new Date('2025-08-14'),
   },
   {
@@ -106,7 +105,6 @@ export const completedSprint1Issues: Issue[] = [
     sprintId: 'completed-1',
     createdAt: new Date('2025-08-01'),
     epicId: 'epic-1',
-    createdAt: new Date('2025-08-03'),
     updatedAt: new Date('2025-08-16'),
   },
   {
@@ -121,7 +119,6 @@ export const completedSprint1Issues: Issue[] = [
     sprintId: 'completed-1',
     createdAt: new Date('2025-08-01'),
     epicId: 'epic-1',
-    createdAt: new Date('2025-08-05'),
     updatedAt: new Date('2025-08-13'),
   },
 ];
@@ -256,8 +253,7 @@ export const activeSprintIssues: Issue[] = [
     createdAt: new Date('2025-10-04'),
     updatedAt: new Date('2025-10-05'),
     epicId: 'epic-2',
-    createdAt: new Date('2025-09-29'),
-    updatedAt: new Date('2025-09-29'),
+     
   },
 ];
 

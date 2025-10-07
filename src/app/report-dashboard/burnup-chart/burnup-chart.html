@@ -7,14 +7,18 @@
     </app-navbar>
     <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
         <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
-             
-            
-            <app-chart-header  [title]="'Burnup Report'" (back)="navigateBack()"></app-chart-header>
-            
-          
+
+
+            <app-chart-header [title]="'Burnup Report'" (back)="navigateBack()"></app-chart-header>
+
+            <app-sprint-filter [sprints]="sprints" [selectedSprint]="selectedSprintId || 'all'"
+                
+                ></app-sprint-filter>
+                <!-- (sprintChange)="onSprintFilterChange($event)" -->
+
             <app-metrics-chart [chartType]="'burnup'"></app-metrics-chart>
             <br><br>
-           <app-chart-table type="burnup" [showPaginator]="true"></app-chart-table>
+            <app-chart-table type="burnup" [showPaginator]="true"></app-chart-table>
 
         </div>
 
