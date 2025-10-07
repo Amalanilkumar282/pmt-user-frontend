@@ -1,11 +1,12 @@
  import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { Issue} from '../../shared/models/issue.model';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
+import { ViewChild, AfterViewInit } from '@angular/core';
 interface BurnupRow {
   date: string;
   event: string;
@@ -17,18 +18,23 @@ interface BurnupRow {
 @Component({
   selector: 'app-chart-table',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginatorModule],
+  imports: [CommonModule, MatTableModule, MatPaginatorModule,MatPaginator],
   templateUrl: './chart-table.html',
   styleUrls: ['./chart-table.css'],
 })
-export class ChartTable implements OnInit {
+export class ChartTable implements OnInit, AfterViewInit {
   dataSource!: MatTableDataSource<BurnupRow>;
   displayedColumns: string[] = ['date', 'event', 'workItem', 'scope', 'completed'];
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   ngOnInit(): void {
     this.generateBurnupTable();
   }
-
+  ngAfterViewInit(): void {
+    if (this.dataSource) {
+      this.dataSource.paginator = this.paginator;
+    }
+  }
   private generateBurnupTable(): void {
     // Automatically pick the latest completed sprint
     const sprint: Sprint | undefined = sprints

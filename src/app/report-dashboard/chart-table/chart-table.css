@@ -29,3 +29,27 @@
     border-bottom: none;
   }
 }
+
+
+  .paginator-wrapper {
+  display: flex;
+  justify-content: center; /* center paginator */
+  margin-top: 12px;
+}
+
+/* Style page-size dropdown */
+.mat-paginator .mat-select-trigger {
+  background-color: #e0e0e0; /* light gray background */
+  border-radius: 4px;
+  text-align: center; /* center the number */
+  padding: 0 8px;
+  min-width: 40px;
+}
+
+/* Optional: style the dropdown arrow */
+.mat-paginator .mat-select-arrow {
+  color: #424242; /* darker arrow */
+}
+
+
+
