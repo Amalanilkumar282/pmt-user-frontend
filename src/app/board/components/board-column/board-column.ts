@@ -35,7 +35,8 @@ export class BoardColumn {
   }
 
   drop(event: CdkDragDrop<Issue[]>) {
-    if (event.previousContainer === event.container) {
+    // Consider containers the same when they are the same object or share the same data array
+    if (event.previousContainer === event.container || event.previousContainer?.data === event.container?.data) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       return;
     }
