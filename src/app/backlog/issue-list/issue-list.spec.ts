@@ -1,11 +1,46 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SimpleChange, EventEmitter } from '@angular/core';
-
 import { IssueList } from './issue-list';
+import { Issue } from '../../shared/models/issue.model';
 
 describe('IssueList', () => {
   let component: IssueList;
   let fixture: ComponentFixture<IssueList>;
+
+  const mockIssues: Issue[] = [
+    {
+      id: 'issue-1',
+      title: 'Todo Issue',
+      description: 'Test',
+      type: 'STORY',
+      priority: 'HIGH',
+      status: 'TODO',
+      labels: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: 'issue-2',
+      title: 'In Progress Issue',
+      description: 'Test',
+      type: 'TASK',
+      priority: 'MEDIUM',
+      status: 'IN_PROGRESS',
+      labels: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      id: 'issue-3',
+      title: 'Done Issue',
+      description: 'Test',
+      type: 'BUG',
+      priority: 'LOW',
+      status: 'DONE',
+      labels: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  ];
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -22,58 +57,101 @@ describe('IssueList', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should run change detection without throwing', () => {
-    expect(() => fixture.detectChanges()).not.toThrow();
+  it('should accept issues input', () => {
+    component.issues = mockIssues;
+    expect(component['_issues']()).toEqual(mockIssues);
   });
 
-  it('should handle ngOnInit safely if implemented', () => {
-    const anyComp = component as any;
-    if (typeof anyComp.ngOnInit === 'function') {
-      const spy = spyOn<any>(anyComp, 'ngOnInit').and.callThrough();
-      anyComp.ngOnInit();
-      expect(spy).toHaveBeenCalled();
-    } else {
-      expect(true).toBeTrue();
-    }
+  it('should compute issues$ signal', () => {
+    component.issues = mockIssues;
+    expect(component['issues$']()).toEqual(mockIssues);
   });
 
-  it('should accept ngOnChanges without throwing', () => {
-    const anyComp = component as any;
-    if (typeof anyComp.ngOnChanges === 'function') {
-      expect(() => anyComp.ngOnChanges({
-        items: new SimpleChange(undefined, [], false)
-      })).not.toThrow();
-    } else {
-      expect(true).toBeTrue();
-    }
+  it('should group issues by status', () => {
+    component.issues = mockIssues;
+    const grouped = component['issuesByStatus']();
+    
+    expect(grouped.todo.length).toBe(1);
+    expect(grouped.inProgress.length).toBe(1);
+    expect(grouped.done.length).toBe(1);
+    expect(grouped.inReview.length).toBe(0);
   });
 
-  it('should expose EventEmitters as EventEmitter instances when present', () => {
-    const anyComp = component as any;
-    const keys = Object.keys(anyComp);
-    const emitterKeys = keys.filter(k => anyComp[k] instanceof EventEmitter);
-    emitterKeys.forEach(k => {
-      expect(anyComp[k] instanceof EventEmitter).toBeTrue();
-    });
+  it('should return correct type icon for STORY', () => {
+    const icon = component['getTypeIcon']('STORY');
+    expect(icon).toBe('📖');
   });
 
-  it('should call zero-arg prototype methods without throwing (skip getters)', () => {
-    const proto = Object.getPrototypeOf(component) as any;
-    const methodNames = Object.getOwnPropertyNames(proto)
-      .filter(n => {
-        if (n === 'constructor') return false;
-        const desc = Object.getOwnPropertyDescriptor(proto, n);
-        return !!desc && typeof desc.value === 'function' && desc.value.length === 0;
-      });
-
-    methodNames.forEach(name => {
-      expect(() => (component as any)[name]()).not.toThrow();
-    });
+  it('should return correct type icon for TASK', () => {
+    const icon = component['getTypeIcon']('TASK');
+    expect(icon).toBe('✓');
   });
 
-  it('should render a host element', () => {
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el).toBeTruthy();
-    expect(el.nodeType).toBe(1);
+  it('should return correct type icon for BUG', () => {
+    const icon = component['getTypeIcon']('BUG');
+    expect(icon).toBe('🐛');
+  });
+
+  it('should return correct type icon for EPIC', () => {
+    const icon = component['getTypeIcon']('EPIC');
+    expect(icon).toBe('⚡');
+  });
+
+  it('should return default icon for unknown type', () => {
+    const icon = component['getTypeIcon']('UNKNOWN');
+    expect(icon).toBe('📝');
+  });
+
+  it('should return correct priority class for LOW', () => {
+    const className = component['getPriorityClass']('LOW');
+    expect(className).toContain('gray');
+  });
+
+  it('should return correct priority class for MEDIUM', () => {
+    const className = component['getPriorityClass']('MEDIUM');
+    expect(className).toContain('blue');
+  });
+
+  it('should return correct priority class for HIGH', () => {
+    const className = component['getPriorityClass']('HIGH');
+    expect(className).toContain('orange');
+  });
+
+  it('should return correct priority class for CRITICAL', () => {
+    const className = component['getPriorityClass']('CRITICAL');
+    expect(className).toContain('red');
+  });
+
+  it('should return default class for unknown priority', () => {
+    const className = component['getPriorityClass']('UNKNOWN');
+    expect(className).toContain('gray');
+  });
+
+  it('should emit issueClick event when onIssueClick is called', () => {
+    spyOn(component.issueClick, 'emit');
+    const issue = mockIssues[0];
+    
+    component['onIssueClick'](issue);
+    
+    expect(component.issueClick.emit).toHaveBeenCalledWith(issue);
+  });
+
+  it('should handle empty issues array', () => {
+    component.issues = [];
+    const grouped = component['issuesByStatus']();
+    
+    expect(grouped.todo.length).toBe(0);
+    expect(grouped.inProgress.length).toBe(0);
+    expect(grouped.inReview.length).toBe(0);
+    expect(grouped.done.length).toBe(0);
+  });
+
+  it('should update when issues input changes', () => {
+    component.issues = mockIssues;
+    expect(component['issues$']().length).toBe(3);
+    
+    const newIssues: Issue[] = [mockIssues[0]];
+    component.issues = newIssues;
+    expect(component['issues$']().length).toBe(1);
   });
 });
