@@ -5,7 +5,12 @@
   </app-navbar>
 
   <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
-    <app-project-summary></app-project-summary>
+    <app-project-summary>
+      <h2 class="text-text-primary text-xl font-bold leading-7 mb-2">Project Summary</h2>
+      <p class="text-text-secondary text-sm leading-[18px]">
+        Get insights into your project's current status, recent activity, and team performance
+      </p>
+    </app-project-summary>
 
     <div class="bg-white shadow-md rounded-lg p-6 mb-8">
       <!-- Sprint Filter Component Added Here -->

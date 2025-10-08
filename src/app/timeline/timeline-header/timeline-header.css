@@ -1,0 +1,4 @@
+/* Show dropdown when toggled */
+.filter-dropdown.show {
+    display: block !important;
+}

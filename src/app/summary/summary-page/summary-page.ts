@@ -109,6 +109,7 @@ export class SummaryPage implements OnInit {
 
     // UPDATED: Load Recent Issues data from the service, filtered by the selected sprint ID
     this.RecentIssueData = this.issueSummaryService.getRecentIssues(this.selectedSprintId);
+    console.log(this.RecentIssueData);
   }
 
   onToggleSidebar(): void {

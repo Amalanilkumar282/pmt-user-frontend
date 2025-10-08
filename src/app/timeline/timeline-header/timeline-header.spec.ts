@@ -1,0 +1,214 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TimelineHeaderComponent, FilterState } from './timeline-header';
+
+describe('TimelineHeaderComponent', () => {
+  let component: TimelineHeaderComponent;
+  let fixture: ComponentFixture<TimelineHeaderComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [TimelineHeaderComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(TimelineHeaderComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create the component successfully', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should initialize with correct default values', () => {
+    expect(component.currentView).toBe('day');
+    expect(component.displayMode).toBe('epics');
+    expect(component.selectedEpic).toBeNull();
+    expect(component.availableSprints).toEqual([]);
+    expect(component.availableEpics).toEqual([]);
+    expect(component.selectedFilters).toEqual({
+      sprints: [],
+      epics: [],
+      types: [],
+      status: []
+    });
+  });
+
+  it('should emit viewChanged event when time scale buttons are clicked', () => {
+    spyOn(component.viewChanged, 'emit');
+
+    component.changeTimeScale('month');
+    expect(component.viewChanged.emit).toHaveBeenCalledWith('month');
+
+    component.changeTimeScale('year');
+    expect(component.viewChanged.emit).toHaveBeenCalledWith('year');
+
+    component.changeTimeScale('day');
+    expect(component.viewChanged.emit).toHaveBeenCalledWith('day');
+  });
+
+  it('should emit filterToggled event when filters are toggled', () => {
+    spyOn(component.filterToggled, 'emit');
+
+    const mockEvent = { target: { checked: true } } as unknown as Event;
+    
+    component.toggleFilter('sprints', 'Sprint 1', mockEvent);
+    expect(component.filterToggled.emit).toHaveBeenCalledWith({
+      type: 'sprints',
+      value: 'Sprint 1',
+      checked: true
+    });
+
+    const mockEvent2 = { target: { checked: false } } as unknown as Event;
+    component.toggleFilter('types', 'bug', mockEvent2);
+    expect(component.filterToggled.emit).toHaveBeenCalledWith({
+      type: 'types',
+      value: 'bug',
+      checked: false
+    });
+  });
+
+  it('should emit filtersCleared event when clear filters is called', () => {
+    spyOn(component.filtersCleared, 'emit');
+
+    component.clearFilters();
+    expect(component.filtersCleared.emit).toHaveBeenCalled();
+  });
+
+  it('should emit backToEpics event when back button is clicked', () => {
+    spyOn(component.backToEpics, 'emit');
+
+    component.onBackToEpics();
+    expect(component.backToEpics.emit).toHaveBeenCalled();
+  });
+
+  it('should calculate filter counts correctly', () => {
+    component.selectedFilters = {
+      sprints: ['Sprint 1', 'Sprint 2'],
+      epics: ['Epic A'],
+      types: ['story', 'bug'],
+      status: ['todo']
+    };
+
+    expect(component.getFilterCount('sprints')).toBe(2);
+    expect(component.getFilterCount('epics')).toBe(1);
+    expect(component.getFilterCount('types')).toBe(2);
+    expect(component.getFilterCount('status')).toBe(1);
+  });
+
+  it('should toggle dropdown visibility and close others', () => {
+    // Create mock DOM elements without appending to document body
+    const mockButton = document.createElement('button');
+    const mockDropdown = document.createElement('div');
+    mockDropdown.classList.add('filter-dropdown');
+    
+    const otherDropdown = document.createElement('div');
+    otherDropdown.classList.add('filter-dropdown', 'show');
+
+    // Mock querySelectorAll to return our test dropdowns
+    spyOn(document, 'querySelectorAll').and.returnValue([
+      mockDropdown, 
+      otherDropdown
+    ] as any);
+
+    const mockEvent = {
+      stopPropagation: jasmine.createSpy('stopPropagation'),
+      currentTarget: mockButton
+    } as any;
+
+    // Set nextElementSibling to mockDropdown
+    Object.defineProperty(mockButton, 'nextElementSibling', {
+      value: mockDropdown,
+      writable: true
+    });
+
+    component.toggleDropdown(mockEvent);
+
+    expect(mockEvent.stopPropagation).toHaveBeenCalled();
+    expect(mockDropdown.classList.contains('show')).toBe(true);
+    expect(otherDropdown.classList.contains('show')).toBe(false);
+  });
+
+  it('should close all dropdowns when clicking outside', () => {
+    const dropdown1 = document.createElement('div');
+    const dropdown2 = document.createElement('div');
+    dropdown1.classList.add('filter-dropdown', 'show');
+    dropdown2.classList.add('filter-dropdown', 'show');
+
+    // Mock querySelectorAll to return our test dropdowns
+    spyOn(document, 'querySelectorAll').and.returnValue([
+      dropdown1, 
+      dropdown2
+    ] as any);
+
+    const mockEvent = { 
+      target: document.createElement('div') // Create a neutral element
+    } as any;
+
+    spyOn(mockEvent.target, 'closest').and.returnValue(null);
+
+    component.onDocumentClick(mockEvent);
+
+    expect(dropdown1.classList.contains('show')).toBe(false);
+    expect(dropdown2.classList.contains('show')).toBe(false);
+  });
+
+  it('should keep dropdown open when clicking inside dropdown container', () => {
+    const dropdown = document.createElement('div');
+    dropdown.classList.add('filter-dropdown', 'show');
+    const container = document.createElement('div');
+    container.classList.add('relative');
+    container.appendChild(dropdown);
+
+    // Mock querySelectorAll to return our test dropdown
+    spyOn(document, 'querySelectorAll').and.returnValue([dropdown] as any);
+
+    const mockEvent = { 
+      target: dropdown 
+    } as any;
+
+    // Mock closest to return the container (simulating click inside dropdown)
+    spyOn(mockEvent.target, 'closest').and.returnValue(container);
+
+    component.onDocumentClick(mockEvent);
+
+    expect(dropdown.classList.contains('show')).toBe(true);
+  });
+
+  it('should accept input properties correctly', () => {
+    const testFilters: FilterState = {
+      sprints: ['Sprint A'],
+      epics: ['Epic B'],
+      types: ['story'],
+      status: ['done']
+    };
+
+    component.currentView = 'month';
+    component.displayMode = 'issues';
+    component.selectedEpic = 'Test Epic';
+    component.availableSprints = ['Sprint 1', 'Sprint 2'];
+    component.availableEpics = ['Epic 1', 'Epic 2', 'Epic 3'];
+    component.selectedFilters = testFilters;
+
+    fixture.detectChanges();
+
+    expect(component.currentView).toBe('month');
+    expect(component.displayMode).toBe('issues');
+    expect(component.selectedEpic).toBe('Test Epic');
+    expect(component.availableSprints).toEqual(['Sprint 1', 'Sprint 2']);
+    expect(component.availableEpics).toEqual(['Epic 1', 'Epic 2', 'Epic 3']);
+    expect(component.selectedFilters).toEqual(testFilters);
+  });
+
+  it('should have all output event emitters defined and functional', () => {
+    expect(component.viewChanged).toBeDefined();
+    expect(component.filterToggled).toBeDefined();
+    expect(component.filtersCleared).toBeDefined();
+    expect(component.backToEpics).toBeDefined();
+
+    // Test that they are actually EventEmitter instances
+    expect(component.viewChanged.emit).toBeDefined();
+    expect(component.filterToggled.emit).toBeDefined();
+    expect(component.filtersCleared.emit).toBeDefined();
+    expect(component.backToEpics.emit).toBeDefined();
+  });
+});
