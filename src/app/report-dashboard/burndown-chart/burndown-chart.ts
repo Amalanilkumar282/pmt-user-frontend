@@ -5,7 +5,6 @@ import { Navbar } from '../../shared/navbar/navbar';
 import { ChartCard } from '../chart-card/chart-card';
 import { ChartHeader } from '../chart-header/chart-header';
 import { Router } from '@angular/router';
- 
 import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';

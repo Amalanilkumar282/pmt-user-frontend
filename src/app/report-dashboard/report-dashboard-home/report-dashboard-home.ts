@@ -18,6 +18,7 @@ export class ReportDashboardHome {
 
   private sidebarStateService = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+  
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();

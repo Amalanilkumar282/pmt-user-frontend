@@ -8,7 +8,7 @@ import { Navbar } from '../../shared/navbar/navbar';
 import { ChartHeader } from '../chart-header/chart-header';
 import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { NgApexchartsModule } from 'ng-apexcharts';
-import { inject } from '@angular/core';
+ 
 
 describe('BurndownChart', () => {
   let component: BurndownChart;
@@ -64,5 +64,19 @@ describe('BurndownChart', () => {
 
   it('issues should be initialized as empty array', () => {
     expect(component.issues).toEqual([]);
+  });
+  it('should render the template properly', () => {
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-sidebar')).toBeTruthy();
+    expect(compiled.querySelector('app-navbar')).toBeTruthy();
+    expect(compiled.querySelector('app-chart-header')).toBeTruthy();
+  });
+
+  it('should not throw error when toggleSidebar is triggered multiple times', () => {
+    expect(() => {
+      component.onToggleSidebar();
+      component.onToggleSidebar();
+    }).not.toThrow();
   });
 });
