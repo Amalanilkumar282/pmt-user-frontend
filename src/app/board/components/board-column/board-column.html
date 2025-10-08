@@ -35,6 +35,8 @@
       (open)="onOpen($event)">
     </app-task-card>
     
+    <!-- spacer to ensure last task is fully scrollable into view -->
+    <div class="column-end-spacer" aria-hidden="true"></div>
   </div>
 
   <button *ngIf="items.length > pageItems.length"

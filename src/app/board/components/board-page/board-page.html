@@ -11,12 +11,12 @@
     <app-navbar (toggleSidebar)="onToggleSidebar()"></app-navbar>
 
     <!-- Board Content -->
-    <div class="flex-1 flex flex-col overflow-hidden bg-white">
+    <div class="flex-1 flex flex-col bg-white">
       <!-- Board Toolbar -->
       <app-board-toolbar class="px-6 pt-4"></app-board-toolbar>
 
       <!-- Board Columns -->
-      <app-board-columns-container class="flex-1 overflow-auto px-6 pb-6" (openIssue)="onOpenIssue($event)">
+      <app-board-columns-container class="flex-1 overflow-x-auto px-6 pb-6" (openIssue)="onOpenIssue($event)">
       </app-board-columns-container>
 
       <app-issue-detailed-view
