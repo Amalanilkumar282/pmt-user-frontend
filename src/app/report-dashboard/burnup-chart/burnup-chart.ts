@@ -8,7 +8,7 @@ import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { ChartTable } from '../chart-table/chart-table';
-
+ 
 @Component({
   selector: 'app-burnup-chart',
   standalone:true,
@@ -21,21 +21,19 @@ export class BurnupChart {
   private sidebarStateService = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
+     
+    
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
   constructor(private router: Router) {
-     const sprint = sprints.find(s => s.id === 'active-1');
-    if (sprint) this.issues = sprint.issues || [];
+      
   }
 
   navigateBack() {
     this.router.navigate(['/report-dashboard']);
   }
   issues: Issue[] = []; // ✅ define issues property
-
-
-   
   }
 
 

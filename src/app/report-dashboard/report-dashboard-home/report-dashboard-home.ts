@@ -12,12 +12,13 @@ import { Router, RouterModule } from '@angular/router';
   standalone: true,
   imports: [Navbar,Sidebar,ChartCard,CommonModule,RouterModule],
   templateUrl: './report-dashboard-home.html',
-  styleUrl: './report-dashboard-home.css'
+  styleUrls: ['./report-dashboard-home.css']
 })
 export class ReportDashboardHome {
 
   private sidebarStateService = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+  
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();

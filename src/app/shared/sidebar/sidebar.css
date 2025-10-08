@@ -278,12 +278,12 @@
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: rgba(0,0,0,0.04); /* very light gray */
   border-radius: 3px;
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: rgba(0,0,0,0.06);
 }
 
 /* Responsive Design */

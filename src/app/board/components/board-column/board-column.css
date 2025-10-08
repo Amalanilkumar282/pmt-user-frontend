@@ -1,9 +1,11 @@
 .board-column {
-  border-left-width: 3px;
-  border-left-style: solid;
-  background: white;
+  /* force no left border and a very subtle shadow to avoid a dark line */
+  border-left: none !important;
+  background: rgb(249, 249, 249);
+  min-height: 100%;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
 }
 
 .cdk-drag-preview {
@@ -25,3 +27,21 @@
 .cdk-drop-list-dragging .cdk-drag {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+/* Per-column scroll: hide vertical scrollbar by default; reveal thin thumb on hover/focus */
+.board-column [cdkDropList] {
+  overflow-y: auto; /* keep scrolling enabled */
+  scrollbar-width: none; /* Firefox - hide */
+  -ms-overflow-style: none; /* IE/Edge - hide */
+}
+
+/* WebKit browsers: hide by default */
+.board-column [cdkDropList]::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+.column-end-spacer {
+  height: 2rem;
+}
+
