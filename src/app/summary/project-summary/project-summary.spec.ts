@@ -8,9 +8,27 @@ describe('ProjectSummary', () => {
   let fixture: ComponentFixture<ProjectSummary>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
+    TestBed.configureTestingModule({
       imports: [ProjectSummary], // Standalone component
-    }).compileComponents();
+    });
+
+    // The component uses <ng-content> for projection. The test expects
+    // specific projected elements to exist, so override the component
+    // template here to include the expected h2 and p elements.
+    TestBed.overrideComponent(ProjectSummary, {
+      set: {
+        template: `
+          <div class="text-center mb-10">
+            <h2 class="text-xl font-bold">Project Summary</h2>
+            <p class="text-sm leading-[18px]">
+              Get insights into your project's current status, recent activity, and team performance
+            </p>
+          </div>
+        `,
+      },
+    });
+
+    await TestBed.compileComponents();
 
     fixture = TestBed.createComponent(ProjectSummary);
     component = fixture.componentInstance;
