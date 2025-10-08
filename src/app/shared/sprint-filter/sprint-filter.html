@@ -1,5 +1,5 @@
 <div class="flex items-center gap-3 mb-6">
-  <label for="sprint-select" class="text-sm font-semibold text-gray-700"> Filter by Sprint: </label>
+  <label for="sprint-select" class="text-sm font-semibold text-gray-700"> Select Sprint: </label>
 
   <div class="relative">
     <select
@@ -9,7 +9,6 @@
       class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 font-medium cursor-pointer transition-all duration-200 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[220px] shadow-sm"
     >
       <option value="all" class="py-2">All Sprints</option>
-      <option value="backlog" class="py-2">Backlog</option>
 
       <!-- ✅ Classic *ngFor -->
       <option *ngFor="let sprint of sprints" [value]="sprint.id" class="py-2">
