@@ -8,34 +8,15 @@ import { ProjectCard } from '../project-card/project-card';
 import { ActivityItem } from '../activity-item/activity-item';
 import { Header } from '../../shared/header/header';
 import { RouterModule } from '@angular/router';
-
-interface Project {
-  id: string;
-  name: string;
-  type: string;
-  status: 'Active' | 'Completed';
-  sprint: string;
-  tasks: {
-    toDo: number;
-    inProgress: number;
-    done: number;
-  };
-  teamMembers: string[];
-  deadline: string;
-  updated: string;
-  starred?: boolean;
-}
-
-interface Activity {
-  id: string;
-  user: string;
-  initials: string;
-  action: string;
-  task: string;
-  taskId: string;
-  time: string;
-  type: 'completed' | 'commented' | 'assigned';
-}
+import {
+  DashboardProject,
+  DashboardActivity,
+  activeSprintIssues,
+  dashboardProjects,
+  dashboardStats,
+  dashboardActivities,
+  DashboardStats,
+} from '../../shared/data/dummy-backlog-data';
 
 @Component({
   selector: 'app-main-dashboard-home',
@@ -61,97 +42,41 @@ export class MainDashboardHome {
     return this.sidebarStateService.getCollapsed();
   }
 
-  stats = {
-    activeProjects: 2,
-    issuesInProgress: 12,
-    sprintsInProgress: 3,
-  };
+  dashstats: DashboardStats = dashboardStats;
 
-  taskStatus = {
-    toDo: 8,
-    inProgress: 6,
-    completed: 7,
-    onHold: 3,
-  };
+  get stats() {
+    const activeProjects = this.dashstats.activeProjects;
+    const issuesInProgress = this.dashstats.issuesInProgress;
+    const sprintsInProgress = this.dashstats.sprintsInProgress;
+
+    return {
+      activeProjects,
+      issuesInProgress,
+      sprintsInProgress,
+    };
+  }
+
+  get taskStatus() {
+    return {
+      toDo: activeSprintIssues.filter((i) => i.status === 'TODO').length,
+      inProgress: activeSprintIssues.filter((i) => i.status === 'IN_PROGRESS').length,
+      completed: activeSprintIssues.filter((i) => i.status === 'DONE').length,
+      onHold: activeSprintIssues.filter((i) => i.status === 'BLOCKED').length,
+    };
+  }
 
   get sprintStatuses(): { label: string; count: number; colorClass: string }[] {
     return [
-      { label: 'To Do', count: this.taskStatus.toDo, colorClass: 'bg-status-blue' },
-      { label: 'In Progress', count: this.taskStatus.inProgress, colorClass: 'bg-status-yellow' },
-      { label: 'Completed', count: this.taskStatus.completed, colorClass: 'bg-status-green' },
-      { label: 'On Hold', count: this.taskStatus.onHold, colorClass: 'bg-status-purple' },
+      { label: 'To Do', count: this.taskStatus.toDo, colorClass: 'bg-blue-500' },
+      { label: 'In Progress', count: this.taskStatus.inProgress, colorClass: 'bg-yellow-500' },
+      { label: 'Completed', count: this.taskStatus.completed, colorClass: 'bg-green-500' },
+      { label: 'On Hold', count: this.taskStatus.onHold, colorClass: 'bg-purple-500' },
     ];
   }
 
-  projects: Project[] = [
-    {
-      id: '1',
-      name: 'Mobile App Revamp',
-      type: 'Scrum Project',
-      status: 'Active',
-      sprint: 'Sprint Alpha',
-      tasks: { toDo: 15, inProgress: 8, done: 25 },
-      teamMembers: ['A', 'B', 'C', '+2'],
-      deadline: 'Oct 5, 2025',
-      updated: '2h ago',
-      starred: true,
-    },
-    {
-      id: '2',
-      name: 'Mobile App Revamp',
-      type: 'Scrum Project',
-      status: 'Completed',
-      sprint: 'Sprint Alpha',
-      tasks: { toDo: 15, inProgress: 8, done: 25 },
-      teamMembers: ['A', 'B', 'C', '+2'],
-      deadline: 'Oct 5, 2025',
-      updated: '2h ago',
-      starred: false,
-    },
-  ];
+  projects: DashboardProject[] = dashboardProjects;
 
-  recentActivities: Activity[] = [
-    {
-      id: '1',
-      user: 'You',
-      initials: 'SC',
-      action: 'completed task',
-      task: 'User authentication flow',
-      taskId: 'ECOM-123',
-      time: '2 minutes ago',
-      type: 'completed',
-    },
-    {
-      id: '2',
-      user: 'Mike Johnson',
-      initials: 'MJ',
-      action: 'commented on',
-      task: 'Mobile responsive design',
-      taskId: 'MAR-45',
-      time: '15 minutes ago',
-      type: 'commented',
-    },
-    {
-      id: '3',
-      user: 'Emily Davis',
-      initials: 'ED',
-      action: 'assigned you to',
-      task: 'Database optimization',
-      taskId: 'DAT-78',
-      time: '1 hour ago',
-      type: 'assigned',
-    },
-    {
-      id: '4',
-      user: 'You',
-      initials: 'HA',
-      action: 'completed task',
-      task: 'process flow',
-      taskId: 'ECOM-123',
-      time: '2 hours ago',
-      type: 'completed',
-    },
-  ];
+  recentActivities: DashboardActivity[] = dashboardActivities;
 
   // called with payload { id, starred } from the ProjectCard child
   toggleStar(payload: { id: string; starred: boolean }): void {
