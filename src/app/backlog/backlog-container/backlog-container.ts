@@ -13,7 +13,18 @@ import { Issue } from '../../shared/models/issue.model';
   styleUrl: './backlog-container.css'
 })
 export class BacklogContainer {
-  @Input() issues: Issue[] = [];
+  // Backlog issues: use a signal so derived/computed values react when
+  // the Input is updated. This ensures `paginatedIssues` recomputes when
+  // tests or parent components replace the array.
+  private issuesSignal = signal<Issue[]>([]);
+
+  @Input()
+  set issues(value: Issue[]) {
+    this.issuesSignal.set(value ?? []);
+  }
+  get issues(): Issue[] {
+    return this.issuesSignal();
+  }
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
   @Input() connectedDropLists: string[] = [];
   @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
