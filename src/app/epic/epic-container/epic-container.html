@@ -1,80 +1,108 @@
-<div class="epic-panel">
+<div class="epic-panel" [class.sidebar-collapsed]="isSidebarCollapsed()">
   <div class="epic-panel-header">
     <h3 class="epic-panel-title">Epic</h3>
     <button class="close-btn" (click)="onClose()">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path
+          d="M15 5L5 15M5 5L15 15"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
       </svg>
     </button>
   </div>
 
   <div class="epic-panel-content">
     @if (epics.length === 0 && !isCreating) {
-      <div class="empty-state">
-        <div class="empty-icon">
-          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Toolbox base -->
-            <rect x="16" y="30" width="48" height="36" rx="3" fill="#4F80E1"/>
-            <!-- Toolbox lid -->
-            <path d="M16 34 C16 31.7909 17.7909 30 20 30 L60 30 C62.2091 30 64 31.7909 64 34 L64 40 L16 40 Z" fill="#3D62A8"/>
-            <!-- Handle -->
-            <path d="M30 30 L30 24 C30 21.7909 31.7909 20 34 20 L46 20 C48.2091 20 50 21.7909 50 24 L50 30" stroke="#FFB020" stroke-width="3" stroke-linecap="round"/>
-            <!-- Wrench -->
-            <path d="M32 14 L32 8 M30 10 L34 10" stroke="#FFB020" stroke-width="2.5" stroke-linecap="round"/>
-            <!-- Screwdriver -->
-            <path d="M46 16 L46 6 M44 8 L48 8" stroke="#FFB020" stroke-width="2.5" stroke-linecap="round"/>
-            <!-- Settings gear decoration -->
-            <circle cx="26" cy="50" r="4" fill="#8B5CF6"/>
-            <circle cx="26" cy="50" r="2" fill="white"/>
-          </svg>
-        </div>
-        <p class="empty-title">Plan and prioritize large<br>chunks of work.</p>
-        <p class="empty-description">Create your first epic to start<br>capturing and breaking down<br>work for your team.</p>
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg
+          width="80"
+          height="80"
+          viewBox="0 0 80 80"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <!-- Toolbox base -->
+          <rect x="16" y="30" width="48" height="36" rx="3" fill="#4F80E1" />
+          <!-- Toolbox lid -->
+          <path
+            d="M16 34 C16 31.7909 17.7909 30 20 30 L60 30 C62.2091 30 64 31.7909 64 34 L64 40 L16 40 Z"
+            fill="#3D62A8"
+          />
+          <!-- Handle -->
+          <path
+            d="M30 30 L30 24 C30 21.7909 31.7909 20 34 20 L46 20 C48.2091 20 50 21.7909 50 24 L50 30"
+            stroke="#FFB020"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          <!-- Wrench -->
+          <path
+            d="M32 14 L32 8 M30 10 L34 10"
+            stroke="#FFB020"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          />
+          <!-- Screwdriver -->
+          <path
+            d="M46 16 L46 6 M44 8 L48 8"
+            stroke="#FFB020"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          />
+          <!-- Settings gear decoration -->
+          <circle cx="26" cy="50" r="4" fill="#8B5CF6" />
+          <circle cx="26" cy="50" r="2" fill="white" />
+        </svg>
       </div>
-    }
+      <p class="empty-title">Plan and prioritize large<br />chunks of work.</p>
+      <p class="empty-description">
+        Create your first epic to start<br />capturing and breaking down<br />work for your team.
+      </p>
+    </div>
+    } @if (epics.length > 0) {
+    <div class="epic-filter">
+      <button class="no-epic-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect width="16" height="16" rx="2" fill="#9CA3AF" />
+        </svg>
+        <span>No epic</span>
+      </button>
+    </div>
 
-    @if (epics.length > 0) {
-      <div class="epic-filter">
-        <button class="no-epic-btn">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <rect width="16" height="16" rx="2" fill="#9CA3AF"/>
-          </svg>
-          <span>No epic</span>
-        </button>
-      </div>
-
-      <div class="epic-list">
-        @for (epic of epics; track epic.id) {
-          <app-epic-list 
-            [epic]="epic"
-            (toggleExpand)="onToggleExpand($event)"
-            (viewDetails)="onViewDetails($event)">
-          </app-epic-list>
-        }
-      </div>
-    }
-
-    @if (isCreating) {
-      <div class="create-epic-input-container">
-        <input 
-          type="text" 
-          class="epic-name-input"
-          [(ngModel)]="newEpicName"
-          (keydown)="onKeyDown($event)"
-          (blur)="onInputBlur()"
-          placeholder="Enter epic name..."
-        />
-      </div>
+    <div class="epic-list">
+      @for (epic of epics; track epic.id) {
+      <app-epic-list
+        [epic]="epic"
+        (toggleExpand)="onToggleExpand($event)"
+        (viewDetails)="onViewDetails($event)"
+      >
+      </app-epic-list>
+      }
+    </div>
+    } @if (isCreating) {
+    <div class="create-epic-input-container">
+      <input
+        type="text"
+        class="epic-name-input"
+        [(ngModel)]="newEpicName"
+        (keydown)="onKeyDown($event)"
+        (blur)="onInputBlur()"
+        placeholder="Enter epic name..."
+      />
+    </div>
     }
 
     <div class="epic-panel-footer">
       @if (!isCreating) {
-        <button class="create-epic-btn" (click)="startCreatingEpic()">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <span>Create epic</span>
-        </button>
+      <button class="create-epic-btn" (click)="startCreatingEpic()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>Create epic</span>
+      </button>
       }
     </div>
   </div>
