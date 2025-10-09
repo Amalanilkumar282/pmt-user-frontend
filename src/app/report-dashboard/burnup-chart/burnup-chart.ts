@@ -8,11 +8,14 @@ import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { ChartTable } from '../chart-table/chart-table';
+import { IssueSummaryService } from '../../summary/issue-summary.service';
+import { Sprint } from '../../sprint/sprint-container/sprint-container';
+import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
 
 @Component({
   selector: 'app-burnup-chart',
   standalone:true,
-  imports: [Navbar,Sidebar,ChartHeader,MetricsChart,ChartTable],
+  imports: [Navbar,Sidebar,ChartHeader,MetricsChart,ChartTable,SprintFilterComponent,SprintFilterComponent],
   // providers:[SidebarStateService],
   templateUrl: './burnup-chart.html',
   styleUrl: './burnup-chart.css'
@@ -20,13 +23,18 @@ import { ChartTable } from '../chart-table/chart-table';
 export class BurnupChart {
   private sidebarStateService = inject(SidebarStateService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+ private issueSummaryService = inject(IssueSummaryService);
 
+    
+  // Sprint filter data
+  sprints: Sprint[] = [];
+  selectedSprintId: string | null = 'all';
+    
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
   constructor(private router: Router) {
-     const sprint = sprints.find(s => s.id === 'active-1');
-    if (sprint) this.issues = sprint.issues || [];
+      
   }
 
   navigateBack() {
@@ -35,7 +43,23 @@ export class BurnupChart {
   issues: Issue[] = []; // ✅ define issues property
 
 
-   
+
+
+  onSprintFilterChange(sprintId: string): void {
+    this.selectedSprintId = sprintId;
+    this.updatechartData();
   }
+
+  private updatechartData(): void {
+    // Update issue summary cards
+     
+
+    // Update sprint status breakdown
+    
+  }
+
+  }
+
+
 
 

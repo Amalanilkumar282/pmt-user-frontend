@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BoardStore } from '../../board-store';
@@ -8,6 +8,7 @@ import { FilterPanel } from '../filter-panel/filter-panel';
 import { GroupByMenu } from '../group-by-menu/group-by-menu';
 import { AddColumnButton } from '../add-column-button/add-column-button';
 import { BoardSearch } from '../../../shared/components/board-search/board-search';
+import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe';
 
 @Component({
   selector: 'app-board-toolbar',
@@ -19,7 +20,9 @@ import { BoardSearch } from '../../../shared/components/board-search/board-searc
     FilterPanel,
     GroupByMenu,
     AddColumnButton,
-    BoardSearch
+    BoardSearch,
+    AvatarClassPipe,
+    InitialsPipe
   ],
   templateUrl: './board-toolbar.html',
   styleUrls: ['./board-toolbar.css'],
@@ -31,6 +34,13 @@ export class BoardToolbar {
   readonly search = this.store.search;
   readonly selectedSprintId = this.store.selectedSprintId;
   readonly sprints = this.store.sprints;
+  readonly assignees = computed(() => {
+    const set = new Set<string>();
+    for (const i of this.store.visibleIssues()) {
+      if (i.assignee) set.add(i.assignee);
+    }
+    return Array.from(set).sort((a,b)=>a.localeCompare(b));
+  });
 
   onSearch(event: Event): void {
     const target = event.target as HTMLInputElement;

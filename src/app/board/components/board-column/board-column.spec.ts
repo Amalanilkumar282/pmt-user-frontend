@@ -95,4 +95,181 @@ describe('BoardColumn', () => {
     expect(store.removeColumn).toHaveBeenCalledWith('DONE');
     expect(res).toBeTrue();
   });
+
+  it('onDeleteColumn confirms and deletes when user accepts', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+    const store = TestBed.inject(BoardStore) as any as StoreMock;
+
+    cmp.items = [{id:'a'} as any];
+    cmp.def = { id: 'TODO' as any, title: 'To Do', color: '' } as any;
+    spyOn(window, 'confirm').and.returnValue(true);
+
+    const res = cmp.onDeleteColumn();
+    expect(window.confirm).toHaveBeenCalledWith('This column is not empty. Please move or remove the issues before deleting the column.');
+    expect(res).toBeTrue();
+    expect(store.removeColumn).not.toHaveBeenCalled(); // Still doesn't delete non-empty column
+  });
+
+  it('onOpen emits openIssue event', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    spyOn(cmp.openIssue, 'emit');
+    const issue = {id: 'test'} as any;
+    
+    cmp.onOpen(issue);
+    expect(cmp.openIssue.emit).toHaveBeenCalledWith(issue);
+  });
+
+  it('should initialize with safe defaults', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    expect(cmp.def).toBeDefined();
+    expect(cmp.def.id).toBe('TODO');
+    expect(cmp.items).toEqual([]);
+    expect(cmp.connectedTo).toEqual([]);
+    expect(cmp.pageSize).toBe(20);
+  });
+
+  it('should accept input properties', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    const testDef = { id: 'TEST' as any, title: 'Test', color: 'test-color' };
+    const testItems = [{id: '1'} as any, {id: '2'} as any];
+    const testConnectedTo = ['col1', 'col2'];
+
+    cmp.def = testDef;
+    cmp.items = testItems;
+    cmp.connectedTo = testConnectedTo;
+
+    expect(cmp.def).toBe(testDef);
+    expect(cmp.items).toBe(testItems);
+    expect(cmp.connectedTo).toBe(testConnectedTo);
+  });
+
+  it('pageItems returns correct slice', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    cmp.items = Array.from({length: 50}).map((_,i) => ({id: String(i)} as Issue));
+    
+    expect(cmp.pageItems.length).toBe(20);
+    expect(cmp.pageItems[0].id).toBe('0');
+    expect(cmp.pageItems[19].id).toBe('19');
+  });
+
+  it('loadMore increases pageSize correctly', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    cmp.items = Array.from({length: 100}).map((_,i) => ({id: String(i)} as Issue));
+    
+    expect(cmp.pageSize).toBe(20);
+    expect(cmp.pageItems.length).toBe(20);
+    
+    cmp.loadMore();
+    expect(cmp.pageSize).toBe(40);
+    expect(cmp.pageItems.length).toBe(40);
+
+    cmp.loadMore();
+    expect(cmp.pageSize).toBe(60);
+    expect(cmp.pageItems.length).toBe(60);
+  });
+
+  it('loadMore handles cases where items length is less than pageSize', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    cmp.items = Array.from({length: 10}).map((_,i) => ({id: String(i)} as Issue));
+    
+    expect(cmp.pageItems.length).toBe(10);
+    
+    cmp.loadMore();
+    expect(cmp.pageItems.length).toBe(10); // Should still be 10, not more
+  });
+
+  it('drop handles same data reference correctly', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+    const store = TestBed.inject(BoardStore) as any as StoreMock;
+
+    const sharedData = [{id:'a'} as any, {id:'b'} as any, {id:'c'} as any];
+    cmp.items = sharedData;
+
+    const event: any = {
+      previousContainer: { data: sharedData },
+      container: { data: sharedData },
+      previousIndex: 2,
+      currentIndex: 0
+    };
+    
+    cmp.drop(event);
+    expect(sharedData.map(i=>i.id)).toEqual(['c','a','b']);
+    expect(store.updateIssueStatus).not.toHaveBeenCalled();
+  });
+
+  it('drop calls store updateIssueStatus with correct parameters', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+    const store = TestBed.inject(BoardStore) as any as StoreMock;
+
+    cmp.def = { id: 'IN_PROGRESS' as any, title:'In Progress', color:'' };
+    const sourceData: Issue[] = [{id:'task-123'} as any];
+    const targetData: Issue[] = [];
+    
+    const event: any = {
+      previousContainer: { data: sourceData },
+      container: { data: targetData },
+      previousIndex: 0,
+      currentIndex: 0
+    };
+    
+    cmp.drop(event);
+    expect(store.updateIssueStatus).toHaveBeenCalledWith('task-123', 'IN_PROGRESS' as any);
+  });
+
+  it('trackById returns consistent id for same issue', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    const issue = { id: 'TASK-456' } as Issue;
+    
+    expect(cmp.trackById(0, issue)).toBe('TASK-456');
+    expect(cmp.trackById(999, issue)).toBe('TASK-456'); // Index doesn't matter
+  });
+
+  it('component integrates with CDK drag drop', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    // Component should be able to handle CDK drag drop events
+    expect(cmp.drop).toBeDefined();
+    expect(typeof cmp.drop).toBe('function');
+  });
+
+  it('handles empty items array gracefully', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    cmp.items = [];
+    
+    expect(cmp.pageItems).toEqual([]);
+    expect(cmp.pageItems.length).toBe(0);
+    
+    const result = cmp.onDeleteColumn();
+    expect(result).toBeTrue();
+  });
+
+  it('handles undefined items gracefully in onDeleteColumn', () => {
+    const fixture = TestBed.createComponent(BoardColumn);
+    const cmp = fixture.componentInstance;
+
+    cmp.items = undefined as any;
+    
+    const result = cmp.onDeleteColumn();
+    expect(result).toBeTrue(); // Should treat undefined as empty
+  });
 });

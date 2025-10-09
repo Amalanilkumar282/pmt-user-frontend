@@ -37,7 +37,7 @@ export class BoardColumnsContainer {
   }
 
   onDrop(event: CdkDragDrop<Issue[]>) {
-    if (event.previousContainer === event.container) {
+    if (event.previousContainer === event.container || event.previousContainer.data === event.container.data) {
       moveItemInArray(
         event.container.data,
         event.previousIndex,

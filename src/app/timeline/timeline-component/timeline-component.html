@@ -1,18 +1,12 @@
 <div class="layout-wrapper">
-  <!-- Sidebar -->
   <app-sidebar></app-sidebar>
-
-  <!-- Navbar -->
   <app-navbar 
     [class.sidebar-collapsed]="isSidebarCollapsed()"
     (toggleSidebar)="onToggleSidebar()">
   </app-navbar>
-
-  <!-- Main Content -->
   <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
-     <div class="page-header font-montserrat  text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
-
-  <app-timeline-chart></app-timeline-chart>
-</div>
+    <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
+      <app-timeline-chart></app-timeline-chart>
+    </div>
   </div>
 </div>

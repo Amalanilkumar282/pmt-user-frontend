@@ -1,22 +1,15 @@
 <!-- board-column.component.html -->
-<div class="rounded-2xl bg-slate-50 p-3">
-  <div class="mb-2 flex items-center justify-between">
-    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ def.title }}</div>
+<div class="board-column rounded-2xl shadow-sm p-4" [style.border-left]="'3px solid ' + def.color" [style.background-color]="'#F8FAFC'">
+  <div class="mb-4 flex items-center justify-between">
     <div class="flex items-center gap-2">
-      <div class="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500 shadow">{{ items.length }}</div>
-      <!-- delete button: subtle gray, blue on hover -->
-      <button
-        aria-label="Delete column"
-        title="Delete column"
-        (click)="onDeleteColumn()"
-        class="text-slate-400 hover:text-blue-500 focus:outline-none"
-        >
-        <!-- simple X icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <h3 class="text-xs font-bold uppercase tracking-wide" style="color: #3D62A8">{{ def.title }}</h3>
+      <span class="text-xs font-bold text-white rounded-full min-w-[24px] h-6 px-2 flex items-center justify-center" [style.background-color]="def.color">{{ items.length }}</span>
     </div>
+    <button aria-label="Delete column" title="Delete column" (click)="onDeleteColumn()" class="text-slate-400 hover:text-rose-500 hover:cursor-pointer focus:outline-none transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
   </div>
 
   <div
@@ -25,7 +18,7 @@
     [cdkDropListData]="items"
     [cdkDropListConnectedTo]="connectedTo"
     (cdkDropListDropped)="drop($event)"
-    class="min-h-16 space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+    class="min-h-16 space-y-3 max-h-[60vh] overflow-y-auto pr-2 board-column-scroll">
 
     <app-task-card
       *ngFor="let issue of pageItems; trackBy: trackById"
@@ -35,6 +28,8 @@
       (open)="onOpen($event)">
     </app-task-card>
     
+    <!-- spacer to ensure last task is fully scrollable into view -->
+    <div class="column-end-spacer" aria-hidden="true"></div>
   </div>
 
   <button *ngIf="items.length > pageItems.length"

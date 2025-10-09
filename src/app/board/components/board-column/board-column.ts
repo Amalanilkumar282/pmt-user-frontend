@@ -55,4 +55,18 @@ export class BoardColumn {
     this.store.removeColumn(this.def.id as any);
     return true;
   }
+
+  getColumnColorClass(): string {
+    // Map column colors to indicator dot colors
+    const colorMap: Record<string, string> = {
+      'border-slate-300': 'bg-gray-400',
+      'border-rose-300': 'bg-red-400',
+      'border-emerald-300': 'bg-green-400',
+      'border-blue-300': 'bg-blue-400',
+      'border-purple-300': 'bg-purple-400',
+      'border-orange-300': 'bg-orange-400',
+      'border-yellow-300': 'bg-yellow-400'
+    };
+    return colorMap[this.def.color] || 'bg-gray-400';
+  }
 }

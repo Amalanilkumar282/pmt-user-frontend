@@ -10,9 +10,9 @@
 }
 
 .custom-table {
-  width: 100%;
+  width: 80%;
   border-collapse: collapse;
-
+  
   th, td {
     padding: 8px 12px;
     border-bottom: 1px solid #e0e0e0;
@@ -30,12 +30,14 @@
   }
 }
 
-
+ 
   .paginator-wrapper {
   display: flex;
   justify-content: center; /* center paginator */
   margin-top: 12px;
 }
+
+ 
 
 /* Style page-size dropdown */
 .mat-paginator .mat-select-trigger {
@@ -52,4 +54,104 @@
 }
 
 
+::ng-deep .mat-mdc-paginator {
+  background-color: #fff !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  /* border-top: 0.5px solid #e5e7eb; thinner border */
+  border-radius: 8px; /* rounded corners */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); /* subtle elevation */
+}
 
+/* ✅ Center the range label */
+::ng-deep .mat-mdc-paginator-range-actions {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+::ng-deep .mat-mdc-paginator-range-label {
+  font-weight: 500;
+  color: #374151;
+  text-align: center;
+}
+
+/* Label + dropdown layout */
+::ng-deep .mat-mdc-paginator-page-size {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+::ng-deep .mat-mdc-paginator-page-size-label {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+/* Dropdown — no outer box, solid white background */
+::ng-deep .mat-mdc-form-field {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove inner outlines */
+::ng-deep .mat-mdc-form-field-outline,
+::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none !important;
+}
+
+/* Dropdown trigger */
+::ng-deep .mat-mdc-select-trigger {
+  background: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  box-shadow: none !important;
+}
+
+/* Dropdown panel */
+::ng-deep .mat-mdc-select-panel {
+  background-color: #fff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Navigation buttons */
+::ng-deep .mat-mdc-paginator-navigation-first,
+::ng-deep .mat-mdc-paginator-navigation-previous,
+::ng-deep .mat-mdc-paginator-navigation-next,
+::ng-deep .mat-mdc-paginator-navigation-last {
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  margin: 0 2px;
+  padding: 2px 8px;
+  color: #4b5563;
+  transition: background 0.2s ease;
+}
+
+::ng-deep .mat-mdc-paginator-navigation-first:hover,
+::ng-deep .mat-mdc-paginator-navigation-previous:hover,
+::ng-deep .mat-mdc-paginator-navigation-next:hover,
+::ng-deep .mat-mdc-paginator-navigation-last:hover {
+  background-color: #e5e7eb;
+}
+
+::ng-deep .mat-mdc-paginator-navigation-first[disabled],
+::ng-deep .mat-mdc-paginator-navigation-previous[disabled],
+::ng-deep .mat-mdc-paginator-navigation-next[disabled],
+::ng-deep .mat-mdc-paginator-navigation-last[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

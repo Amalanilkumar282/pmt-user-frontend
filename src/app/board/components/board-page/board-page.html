@@ -6,17 +6,17 @@
   </app-sidebar>
 
   <!-- Main Content -->
-  <div class="flex-1 flex flex-col overflow-hidden" style="padding-top:124px;">
+  <div class="flex-1 flex flex-col overflow-hidden">
     <!-- Navbar -->
     <app-navbar (toggleSidebar)="onToggleSidebar()"></app-navbar>
 
     <!-- Board Content -->
-    <div class="flex-1 flex flex-col overflow-hidden bg-white">
+    <div class="flex-1 flex flex-col bg-slate-50 min-h-0 overflow-hidden" style="padding-top: 125px;">
       <!-- Board Toolbar -->
-      <app-board-toolbar class="px-6 pt-4"></app-board-toolbar>
+      <app-board-toolbar class="px-6 py-4 bg-white "></app-board-toolbar>
 
       <!-- Board Columns -->
-      <app-board-columns-container class="flex-1 overflow-auto px-6 pb-6" (openIssue)="onOpenIssue($event)">
+      <app-board-columns-container class="flex-1 bg-white overflow-x-auto overflow-y-hidden px-6 py-6" (openIssue)="onOpenIssue($event)">
       </app-board-columns-container>
 
       <app-issue-detailed-view
