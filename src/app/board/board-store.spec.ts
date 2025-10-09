@@ -154,5 +154,187 @@ describe('BoardStore', () => {
     // ensure other columns remain
     expect(store.columns().length).toBe(before.length);
   });
+
+  it('removeColumn does nothing for non-existent column id', () => {
+    const before = store.columns().length;
+    store.removeColumn('NONEXISTENT' as any);
+    expect(store.columns().length).toBe(before);
+  });
+
+  it('columnBuckets includes all columns even when empty', () => {
+    const s = mkSprint('s1', [mkIssue({status:'TODO' as any})]);
+    store.loadData([s]);
+    store.selectSprint('s1');
+    
+    const buckets = store.columnBuckets();
+    expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+    
+    const emptyBucket = buckets.find(b => b.def.id === 'DONE');
+    expect(emptyBucket?.items.length).toBe(0);
+  });
+
+  it('visibleIssues handles edge cases with filters', () => {
+    const s = mkSprint('s1', [
+      mkIssue({id:'1', assignee: undefined, labels: [], type: undefined as any}),
+      mkIssue({id:'2', assignee: 'John', labels: ['bug'], type: 'TASK' as any})
+    ]);
+    store.loadData([s]);
+    store.selectSprint('s1');
+
+    // Filter by non-existent assignee
+    store.applyFilters({ assignees: ['NonExistent'] });
+    expect(store.visibleIssues().length).toBe(0);
+
+    // Filter by empty array should show all
+    store.applyFilters({ assignees: [] });
+    expect(store.visibleIssues().length).toBe(2);
+  });
+
+  it('visibleIssues search is case insensitive and searches multiple fields', () => {
+    const s = mkSprint('s1', [
+      mkIssue({id:'1', title:'Frontend Task', description:'Fix UI bug'}),
+      mkIssue({id:'2', title:'Backend API', description:'Add new endpoint'}),
+      mkIssue({id:'3', title:'Testing', description:'Write unit tests'})
+    ]);
+    store.loadData([s]);
+    store.selectSprint('s1');
+
+    // Search in title (case insensitive)
+    store.setSearch('frontend');
+    expect(store.visibleIssues().map(i => i.id)).toEqual(['1']);
+
+    // Search in description
+    store.setSearch('endpoint');
+    expect(store.visibleIssues().map(i => i.id)).toEqual(['2']);
+
+    // Search should handle empty string
+    store.setSearch('');
+    expect(store.visibleIssues().length).toBe(3);
+  });
+
+  it('updateIssueStatus handles non-existent issue gracefully', () => {
+    const issue = mkIssue({id:'x'});
+    store.addBacklog([issue]);
+    
+    // Try to update non-existent issue
+    expect(() => {
+      store.updateIssueStatus('non-existent', 'DONE' as any);
+    }).not.toThrow();
+    
+    // Original issue should be unchanged
+    const unchanged = store.issues().find(i => i.id === 'x');
+    expect(unchanged?.status).toBe('TODO');
+  });
+
+  it('loadData handles empty sprints array', () => {
+    store.loadData([]);
+    expect(store.issues().length).toBe(0);
+    expect(store.sprints().length).toBe(0);
+  });
+
+  it('loadData preserves existing issues when called multiple times', () => {
+    const s1 = mkSprint('s1', [mkIssue({id:'A'})]);
+    store.loadData([s1]);
+    expect(store.issues().length).toBe(1);
+
+    const s2 = mkSprint('s2', [mkIssue({id:'B'})]);
+    store.loadData([s2]);
+    // Should replace, not append
+    expect(store.issues().length).toBe(1);
+    expect(store.issues()[0].id).toBe('B');
+  });
+
+  it('addBacklog handles empty array', () => {
+    store.addBacklog([]);
+    expect(store.issues().length).toBe(0);
+  });
+
+  it('addBacklog appends to existing issues without replacement', () => {
+    const sprint = mkSprint('s1', [mkIssue({id:'A'})]);
+    store.loadData([sprint]);
+    
+    store.addBacklog([mkIssue({id:'B'}), mkIssue({id:'C'})]);
+    expect(store.issues().length).toBe(3);
+    expect(store.issues().map(i => i.id).sort()).toEqual(['A', 'B', 'C']);
+  });
+
+  it('visibleIssues ordering is stable and predictable', () => {
+    const s = mkSprint('s1', [
+      mkIssue({id:'1', status:'DONE' as any, updatedAt: new Date(2024,0,1)}),
+      mkIssue({id:'2', status:'TODO' as any, updatedAt: new Date(2024,0,2)}),
+      mkIssue({id:'3', status:'TODO' as any, updatedAt: new Date(2024,0,1)}),
+      mkIssue({id:'4', status:'IN_PROGRESS' as any, updatedAt: new Date(2024,0,3)})
+    ]);
+    store.loadData([s]);
+    store.selectSprint('s1');
+    
+    const ordered = store.visibleIssues().map(i => i.id);
+    // Should order by status first (statusOrder), then by updatedAt desc
+    // TODO(3,1) -> TODO(2,2) -> IN_PROGRESS(4,3) -> DONE(1,1)
+    expect(ordered).toEqual(['3', '2', '4', '1']);
+  });
+
+  it('columnBuckets maintains correct bucket structure', () => {
+    const s = mkSprint('s1', [mkIssue({status:'TODO' as any})]);
+    store.loadData([s]);
+    store.selectSprint('s1');
+    
+    const buckets = store.columnBuckets();
+    buckets.forEach(bucket => {
+      expect(bucket.def).toBeDefined();
+      expect(bucket.items).toBeDefined();
+      expect(bucket.def.id).toBeDefined();
+      expect(bucket.def.title).toBeDefined();
+      expect(bucket.def.color).toBeDefined();
+      expect(Array.isArray(bucket.items)).toBe(true);
+    });
+  });
+
+  it('multiple filter types work together correctly', () => {
+    const s = mkSprint('s1', [
+      mkIssue({id:'1', assignee:'Alice', type:'TASK' as any, labels:['ui'], status:'TODO' as any, priority:'HIGH' as any}),
+      mkIssue({id:'2', assignee:'Alice', type:'BUG' as any, labels:['ui'], status:'TODO' as any, priority:'HIGH' as any}),
+      mkIssue({id:'3', assignee:'Bob', type:'TASK' as any, labels:['ui'], status:'TODO' as any, priority:'HIGH' as any}),
+      mkIssue({id:'4', assignee:'Alice', type:'TASK' as any, labels:['backend'], status:'TODO' as any, priority:'HIGH' as any})
+    ]);
+    store.loadData([s]);
+    store.selectSprint('s1');
+
+    // Apply multiple filters
+    store.applyFilters({
+      assignees: ['Alice'],
+      workTypes: ['TASK' as any],
+      labels: ['ui'],
+      statuses: ['TODO' as any],
+      priorities: ['HIGH' as any]
+    });
+
+    const filtered = store.visibleIssues();
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].id).toBe('1');
+  });
+
+  it('signal updates trigger reactivity correctly', () => {
+    let computedCallCount = 0;
+    
+    // Create a computed that depends on store signals
+    const computed = () => {
+      computedCallCount++;
+      return store.selectedSprintId() + ':' + store.search();
+    };
+
+    // Initial computation
+    expect(computed()).toBe('BACKLOG:');
+    expect(computedCallCount).toBe(1);
+
+    // Update should trigger recomputation
+    store.selectSprint('test' as any);
+    expect(computed()).toBe('test:');
+    expect(computedCallCount).toBe(2);
+
+    store.setSearch('query');
+    expect(computed()).toBe('test:query');
+    expect(computedCallCount).toBe(3);
+  });
 });
 

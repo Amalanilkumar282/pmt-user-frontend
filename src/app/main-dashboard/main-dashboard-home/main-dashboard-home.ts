@@ -11,11 +11,12 @@ import { RouterModule } from '@angular/router';
 import {
   DashboardProject,
   DashboardActivity,
-  activeSprintIssues,
   dashboardProjects,
   dashboardStats,
   dashboardActivities,
   DashboardStats,
+  TaskStatus,
+  dashboardTaskStatus,
 } from '../../shared/data/dummy-backlog-data';
 
 @Component({
@@ -56,14 +57,7 @@ export class MainDashboardHome {
     };
   }
 
-  get taskStatus() {
-    return {
-      toDo: activeSprintIssues.filter((i) => i.status === 'TODO').length,
-      inProgress: activeSprintIssues.filter((i) => i.status === 'IN_PROGRESS').length,
-      completed: activeSprintIssues.filter((i) => i.status === 'DONE').length,
-      onHold: activeSprintIssues.filter((i) => i.status === 'BLOCKED').length,
-    };
-  }
+  taskStatus: TaskStatus = dashboardTaskStatus;
 
   get sprintStatuses(): { label: string; count: number; colorClass: string }[] {
     return [
