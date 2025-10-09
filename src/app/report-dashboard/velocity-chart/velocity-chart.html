@@ -1,5 +1,3 @@
-
-
 <div class="layout-wrapper">
   <!-- Sidebar -->
   <app-sidebar></app-sidebar>
@@ -10,11 +8,11 @@
 
   <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
     <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
-         
-            <app-chart-header [title]="'Velocity Report'" (back)="navigateBack()"></app-chart-header>
-            <app-metrics-chart [chartType]="'velocity'"></app-metrics-chart>
-            <!-- <app-chart-table></app-chart-table> -->
-             <app-chart-table type="velocity" [showPaginator]="false"></app-chart-table>
 
+      <app-chart-header [title]="'Velocity Report'" (back)="navigateBack()"></app-chart-header>
+      <app-metrics-chart [chartType]="'velocity'"></app-metrics-chart>
+      <div class="table-wrapper">
+        <app-chart-table type="velocity" [showPaginator]="false"></app-chart-table>
+      </div>
     </div>
-</div>
+  </div>
