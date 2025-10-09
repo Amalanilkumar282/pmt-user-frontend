@@ -29,6 +29,7 @@ export interface BurndownRow {
   imports: [CommonModule, MatTableModule, MatPaginatorModule],
   templateUrl: './chart-table.html',
   styleUrls: ['./chart-table.css'],
+  
 })
 export class ChartTable implements OnInit, AfterViewInit {
   @Input() type: 'burnup' | 'burndown' | 'velocity' = 'burnup';

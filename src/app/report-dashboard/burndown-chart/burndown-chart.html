@@ -14,12 +14,14 @@
 
       <app-metrics-chart [chartType]="'burndown'"></app-metrics-chart>
       <br><br>
-      <h3 class="font-bold text-left text-lg mb-2 ml-3">Completed Work Items</h3>
 
+      <div class="table-wrapper"> 
+
+      <h3 class="font-bold text-left text-lg mb-2 ml-3">Completed Work Items</h3>
       <app-chart-table type="burndown" [statusFilter]="'DONE'" [showPaginator]="true"></app-chart-table>
       <br><br>
       <h3 class="font-bold text-left text-lg mb-2 ml-3">Incompleted Work Items</h3>
-
+      
       <app-chart-table type="burndown" [statusFilter]="'INCOMPLETE'" [showPaginator]="true"></app-chart-table>
     </div>
 
