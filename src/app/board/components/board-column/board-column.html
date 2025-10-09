@@ -3,13 +3,17 @@
   <div class="mb-4 flex items-center justify-between">
     <div class="flex items-center gap-2">
       <h3 class="text-xs font-bold uppercase tracking-wide" style="color: #3D62A8">{{ def.title }}</h3>
-      <span class="text-xs font-bold text-white rounded-full min-w-[24px] h-6 px-2 flex items-center justify-center" [style.background-color]="def.color">{{ items.length }}</span>
+      
     </div>
+    <div class="flex gap-3">
+      <span class="text-xs font-bold text-white rounded-full min-w-[24px] h-6 px-2 flex items-center justify-center" [style.background-color]="def.color">{{ items.length }}</span>
+    
     <button aria-label="Delete column" title="Delete column" (click)="onDeleteColumn()" class="text-slate-400 hover:text-rose-500 hover:cursor-pointer focus:outline-none transition-colors">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>
+    </div>
   </div>
 
   <div
@@ -18,14 +22,16 @@
     [cdkDropListData]="items"
     [cdkDropListConnectedTo]="connectedTo"
     (cdkDropListDropped)="drop($event)"
-    class="min-h-16 space-y-3 max-h-[60vh] overflow-y-auto pr-2 board-column-scroll">
+    class="min-h-16 space-y-3 max-h-[60vh] overflow-y-auto board-column-scroll">
 
     <app-task-card
       *ngFor="let issue of pageItems; trackBy: trackById"
       cdkDrag
       [issue]="issue"
       [colorClass]="def.color"
-      (open)="onOpen($event)">
+      (open)="onOpen($event)"
+      >
+
     </app-task-card>
     
     <!-- spacer to ensure last task is fully scrollable into view -->
