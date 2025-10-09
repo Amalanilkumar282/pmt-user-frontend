@@ -1,9 +1,30 @@
 .page-header {
-  margin-left: 240px;
-  margin-top: 121px;
+  margin-left: 25px;
+  margin-top: 75px;
+  margin-right: 25px;
 }
 
 .page-header.sidebar-collapsed {
   margin-left: 70px;
   width: calc(100% - 70px);
+}
+
+.layout-wrapper {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.page-container {
+  transition: margin-left 0.3s ease;
+  margin-left: 240px;
+  padding-top: 64px;
+}
+
+.page-container.sidebar-collapsed {
+  margin-left: 70px;
+}
+
+app-timeline-chart {
+  display: block;
+  width: 100%;
 }

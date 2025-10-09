@@ -26,6 +26,39 @@ interface GanttTask {
   dependencies?: string;
 }
 
+interface TimelineRow {
+  id: string;
+  type: 'sprint' | 'epic' | 'issue';
+  name: string;
+  status: string;
+  startDate?: Date;
+  endDate?: Date;
+  progress?: number;
+  issueType?: string;
+  expanded?: boolean;
+  level?: number;
+  visible?: boolean;
+}
+
+interface MonthHeader {
+  name: string;
+  left: number;
+  width: number;
+}
+
+interface WeekHeader {
+  name: string;
+  left: number;
+  width: number;
+}
+
+interface DayHeader {
+  name: string;
+  left: number;
+  width: number;
+  date: Date;
+}
+
 @Component({
   selector: 'app-timeline-chart',
   standalone: true,
@@ -34,10 +67,11 @@ interface GanttTask {
   styleUrls: ['./timeline-chart.css']
 })
 export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild('ganttTarget', { static: false }) ganttEl!: ElementRef;
+  @ViewChild('chartContainer', { static: false }) chartContainer!: ElementRef;
+  @ViewChild('timelineHeader', { static: false }) timelineHeader!: ElementRef;
   
   ganttChart: any;
-  currentView: 'day' | 'month' | 'year' = 'day';
+  currentView: 'day' | 'month' | 'year' = 'month';
   selectedFilters: FilterState = {
     sprints: [],
     epics: [],
@@ -53,20 +87,27 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   availableSprints: string[] = [];
   availableEpics: string[] = [];
 
+  // Timeline properties
+  timelineRows: TimelineRow[] = [];
+  monthHeaders: MonthHeader[] = [];
+  weekHeaders: WeekHeader[] = [];
+  dayHeaders: DayHeader[] = [];
+  expandedRows: Set<string> = new Set();
+  dateRange: { start: Date; end: Date } = { start: new Date(), end: new Date() };
+
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.initializeFilters();
     this.setLatestSprintAsDefault();
     this.availableEpics = this.getUniqueEpics();
+    this.prepareTimelineData();
   }
 
   ngAfterViewInit() {
-    this.loadGanttLibrary().then(() => {
-      setTimeout(() => {
-        this.initializeGantt();
-      }, 100);
-    });
+    setTimeout(() => {
+      this.updateDateHeaders();
+    }, 100);
   }
 
   ngOnDestroy() {
@@ -75,15 +116,371 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // Event handlers from header
+  // Dynamic timeline preparation
+  private prepareTimelineData(): void {
+    this.timelineRows = [];
+    const filteredSprints = this.getFilteredSprints();
+
+    // Calculate date range based on current view and filters
+    this.calculateDynamicDateRange(filteredSprints);
+
+    filteredSprints.forEach(sprint => {
+      // Add sprint row
+      this.timelineRows.push({
+        id: `sprint-${sprint.id}`,
+        type: 'sprint',
+        name: sprint.name,
+        status: sprint.status,
+        startDate: sprint.startDate,
+        endDate: sprint.endDate,
+        progress: this.calculateSprintProgress(sprint),
+        expanded: this.isRowExpanded(`sprint-${sprint.id}`),
+        level: 0,
+        visible: this.isItemInDateRange(sprint.startDate, sprint.endDate)
+      });
+
+      // Add epic rows if sprint is expanded
+      if (this.isRowExpanded(`sprint-${sprint.id}`) && sprint.issues) {
+        const epicGroups = this.groupIssuesByEpicId(sprint.issues);
+        
+        Object.entries(epicGroups).forEach(([epicId, issues]) => {
+          const epic = this.epicsData.find(e => e.id === epicId);
+          if (!epic) return;
+          
+          if (this.selectedFilters.epics.length > 0 && 
+              !this.selectedFilters.epics.includes(epic.name)) {
+            return;
+          }
+
+          const epicStart = this.getEarliestDate(issues.map(i => i.createdAt));
+          const epicEnd = this.getLatestDate(issues.map(i => i.updatedAt));
+          
+          this.timelineRows.push({
+            id: `epic-${epic.id}`,
+            type: 'epic',
+            name: epic.name,
+            status: epic.status || 'TODO',
+            startDate: epicStart,
+            endDate: epicEnd,
+            progress: this.calculateEpicProgress(issues),
+            expanded: this.isRowExpanded(`epic-${epic.id}`),
+            level: 1,
+            visible: this.isItemInDateRange(epicStart, epicEnd)
+          });
+
+          // Add issue rows if epic is expanded
+          if (this.isRowExpanded(`epic-${epic.id}`)) {
+            issues.forEach(issue => {
+              if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
+                this.timelineRows.push({
+                  id: issue.id,
+                  type: 'issue',
+                  name: issue.title,
+                  status: issue.status,
+                  startDate: issue.createdAt,
+                  endDate: issue.updatedAt,
+                  progress: this.getIssueProgress(issue),
+                  issueType: issue.type,
+                  level: 2,
+                  visible: this.isItemInDateRange(issue.createdAt, issue.updatedAt)
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    this.updateDateHeaders();
+    this.cdr.detectChanges();
+  }
+
+  private calculateDynamicDateRange(sprints: Sprint[]): void {
+    if (sprints.length === 0) {
+      // Default range if no sprints
+      const now = new Date();
+      switch (this.currentView) {
+        case 'day':
+          this.dateRange.start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+          this.dateRange.end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+          break;
+        case 'month':
+          this.dateRange.start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          this.dateRange.end = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+          break;
+        case 'year':
+          this.dateRange.start = new Date(now.getFullYear(), 0, 1);
+          this.dateRange.end = new Date(now.getFullYear(), 11, 31);
+          break;
+      }
+      return;
+    }
+
+    const allDates: Date[] = [];
+    
+    // Include sprint dates
+    sprints.forEach(sprint => {
+      allDates.push(sprint.startDate);
+      allDates.push(sprint.endDate);
+    });
+
+    // Include epic and issue dates for expanded rows
+    sprints.forEach(sprint => {
+      if (sprint.issues && this.isRowExpanded(`sprint-${sprint.id}`)) {
+        sprint.issues.forEach(issue => {
+          if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
+            allDates.push(issue.createdAt);
+            allDates.push(issue.updatedAt);
+          }
+        });
+      }
+    });
+
+    const earliestDate = this.getEarliestDate(allDates);
+    const latestDate = this.getLatestDate(allDates);
+
+    // Apply view-based date range
+    switch (this.currentView) {
+      case 'day':
+        // For day view, show 2 weeks centered around the data
+        const dayRange = 14; // 2 weeks
+        const dayCenter = new Date((earliestDate.getTime() + latestDate.getTime()) / 2);
+        this.dateRange.start = new Date(dayCenter.getTime() - (dayRange / 2) * 24 * 60 * 60 * 1000);
+        this.dateRange.end = new Date(dayCenter.getTime() + (dayRange / 2) * 24 * 60 * 60 * 1000);
+        break;
+
+      case 'month':
+        // For month view, show 3 months centered around the data
+        const monthRange = 3; // 3 months
+        const monthCenter = new Date((earliestDate.getTime() + latestDate.getTime()) / 2);
+        this.dateRange.start = new Date(monthCenter.getFullYear(), monthCenter.getMonth() - 1, 1);
+        this.dateRange.end = new Date(monthCenter.getFullYear(), monthCenter.getMonth() + 2, 0);
+        break;
+
+      case 'year':
+        // For year view, show the entire year of the data
+        this.dateRange.start = new Date(earliestDate.getFullYear(), 0, 1);
+        this.dateRange.end = new Date(earliestDate.getFullYear(), 11, 31);
+        // If data spans multiple years, show the range
+        if (earliestDate.getFullYear() !== latestDate.getFullYear()) {
+          this.dateRange.end = new Date(latestDate.getFullYear(), 11, 31);
+        }
+        break;
+    }
+  }
+
+  private isItemInDateRange(startDate: Date, endDate: Date): boolean {
+    if (!startDate || !endDate) return true;
+    
+    const itemStart = startDate.getTime();
+    const itemEnd = endDate.getTime();
+    const rangeStart = this.dateRange.start.getTime();
+    const rangeEnd = this.dateRange.end.getTime();
+
+    // Item is visible if it overlaps with the current date range
+    return itemStart <= rangeEnd && itemEnd >= rangeStart;
+  }
+
+  private isIssueTypeVisible(issueType: string): boolean {
+    if (this.selectedFilters.types.length === 0) return true;
+    return this.selectedFilters.types.includes(issueType.toLowerCase());
+  }
+
+  private isIssueStatusVisible(issueStatus: string): boolean {
+    if (this.selectedFilters.status.length === 0) return true;
+    const statusMap: { [key: string]: string } = {
+      'TODO': 'todo',
+      'IN_PROGRESS': 'progress',
+      'DONE': 'done',
+      'IN_REVIEW': 'progress'
+    };
+    const filterStatus = statusMap[issueStatus] || issueStatus.toLowerCase();
+    return this.selectedFilters.status.includes(filterStatus);
+  }
+
+  // Date header management
+  private updateDateHeaders(): void {
+    this.updateMonthHeaders();
+    this.updateWeekHeaders();
+    this.updateDayHeaders();
+  }
+
+  private updateMonthHeaders(): void {
+    this.monthHeaders = [];
+    if (!this.dateRange.start || !this.dateRange.end) return;
+    
+    const start = new Date(this.dateRange.start);
+    const end = new Date(this.dateRange.end);
+    
+    let current = new Date(start.getFullYear(), start.getMonth(), 1);
+    
+    while (current <= end) {
+      const monthName = current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const monthStart = new Date(Math.max(current.getTime(), start.getTime()));
+      const monthEnd = new Date(Math.min(
+        new Date(current.getFullYear(), current.getMonth() + 1, 0).getTime(),
+        end.getTime()
+      ));
+      
+      const left = this.getDatePosition(monthStart);
+      const right = this.getDatePosition(monthEnd);
+      const width = Math.max((right - left) * 100, 5);
+      
+      if (width > 3 && left < 100) {
+        this.monthHeaders.push({
+          name: monthName,
+          left: left * 100,
+          width: width
+        });
+      }
+      
+      current.setMonth(current.getMonth() + 1);
+    }
+  }
+
+  private updateWeekHeaders(): void {
+    this.weekHeaders = [];
+    if (!this.dateRange.start || !this.dateRange.end || this.currentView === 'year') return;
+    
+    const start = new Date(this.dateRange.start);
+    const end = new Date(this.dateRange.end);
+    
+    let current = new Date(start);
+    current.setDate(current.getDate() - current.getDay()); // Start from Sunday
+    
+    while (current < end) {
+      const weekStart = new Date(Math.max(current.getTime(), start.getTime()));
+      const weekEnd = new Date(Math.min(
+        new Date(current.getFullYear(), current.getMonth(), current.getDate() + 6).getTime(),
+        end.getTime()
+      ));
+      
+      const left = this.getDatePosition(weekStart);
+      const right = this.getDatePosition(weekEnd);
+      const width = Math.max((right - left) * 100, 2);
+      
+      if (width > 1 && left < 100) {
+        this.weekHeaders.push({
+          name: `W${this.getWeekNumber(current)}`,
+          left: left * 100,
+          width: width
+        });
+      }
+      
+      current.setDate(current.getDate() + 7);
+    }
+  }
+
+  private updateDayHeaders(): void {
+    this.dayHeaders = [];
+    if (!this.dateRange.start || !this.dateRange.end || this.currentView !== 'day') return;
+    
+    const start = new Date(this.dateRange.start);
+    const end = new Date(this.dateRange.end);
+    
+    let current = new Date(start);
+    
+    while (current <= end) {
+      const dayStart = new Date(current);
+      const dayEnd = new Date(current);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const left = this.getDatePosition(dayStart);
+      const right = this.getDatePosition(dayEnd);
+      const width = Math.max((right - left) * 100, 1);
+      
+      if (width > 0.5) {
+        this.dayHeaders.push({
+          name: current.getDate().toString(),
+          left: left * 100,
+          width: width,
+          date: new Date(current)
+        });
+      }
+      
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  getWeekHeaders(): WeekHeader[] {
+    return this.weekHeaders;
+  }
+
+  getDayHeaders(): DayHeader[] {
+    return this.dayHeaders;
+  }
+
+  // Helper methods
+  private getWeekNumber(date: Date): number {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  }
+
+  private getDatePosition(date: Date): number {
+    if (!this.dateRange.start || !this.dateRange.end) return 0;
+    const totalDuration = this.dateRange.end.getTime() - this.dateRange.start.getTime();
+    const position = date.getTime() - this.dateRange.start.getTime();
+    return totalDuration > 0 ? Math.max(0, Math.min(1, position / totalDuration)) : 0;
+  }
+
+  // Template methods
+  toggleRow(rowId: string): void {
+    if (this.expandedRows.has(rowId)) {
+      this.expandedRows.delete(rowId);
+    } else {
+      this.expandedRows.add(rowId);
+    }
+    this.prepareTimelineData();
+  }
+
+  isRowExpanded(rowId: string): boolean {
+    return this.expandedRows.has(rowId);
+  }
+
+  getStatusBadgeClass(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'COMPLETED': 'bg-green-500',
+      'ACTIVE': 'bg-blue-500',
+      'PLANNED': 'bg-yellow-500',
+      'DONE': 'bg-green-500',
+      'IN_PROGRESS': 'bg-blue-500',
+      'TODO': 'bg-gray-500',
+      'IN_REVIEW': 'bg-orange-500'
+    };
+    return statusMap[status] || 'bg-gray-500';
+  }
+
+  getTypeIcon(issueType?: string): string {
+    const iconMap: { [key: string]: string } = {
+      'STORY': '📖',
+      'TASK': '✓',
+      'BUG': '🐛',
+      'EPIC': '⚡'
+    };
+    return issueType ? iconMap[issueType] || '○' : '○';
+  }
+
+  getBarPosition(startDate?: Date): number {
+    if (!startDate) return 0;
+    return this.getDatePosition(startDate) * 100;
+  }
+
+  getBarWidth(startDate?: Date, endDate?: Date): number {
+    if (!startDate || !endDate) return 0;
+    const startPos = this.getDatePosition(startDate);
+    const endPos = this.getDatePosition(endDate);
+    return Math.max((endPos - startPos) * 100, 1);
+  }
+
+  getTodayPosition(): number {
+    return this.getDatePosition(new Date()) * 100;
+  }
+
+  // Event handlers
   onViewChanged(view: 'day' | 'month' | 'year') {
     this.currentView = view;
-    if (this.ganttChart) {
-      this.ganttChart.change_view_mode(this.getViewMode());
-      setTimeout(() => {
-        this.scrollToCurrentDate();
-      }, 500);
-    }
+    this.prepareTimelineData();
   }
 
   onFilterToggled(event: { type: string; value: string; checked: boolean }) {
@@ -107,15 +504,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         this.selectedFilters.epics = this.selectedFilters.epics.filter(epic => 
           this.availableEpics.includes(epic)
         );
-        
-        setTimeout(() => {
-          const epicCheckboxes = document.querySelectorAll('.filter-dropdown input[id^="epic-"]');
-          epicCheckboxes.forEach(cb => {
-            const epicCheckbox = cb as HTMLInputElement;
-            const epicValue = epicCheckbox.value;
-            epicCheckbox.checked = this.selectedFilters.epics.includes(epicValue);
-          });
-        }, 0);
       }
     }
     
@@ -130,11 +518,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       status: []
     };
     
-    const checkboxes = document.querySelectorAll('.filter-dropdown input[type="checkbox"]');
-    checkboxes.forEach(cb => {
-      (cb as HTMLInputElement).checked = false;
-    });
-    
     this.setLatestSprintAsDefault();
     this.availableEpics = this.getUniqueEpics();
     this.applyFilters();
@@ -144,37 +527,11 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     this.displayMode = 'epics';
     this.selectedEpic = null;
     this.selectedFilters.epics = [];
-    
-    const epicCheckboxes = document.querySelectorAll('.filter-dropdown input[id^="epic-"]');
-    epicCheckboxes.forEach(cb => {
-      (cb as HTMLInputElement).checked = false;
-    });
-    
     this.availableEpics = this.getUniqueEpics();
-    this.cdr.detectChanges();
-    this.initializeGantt();
+    this.prepareTimelineData();
   }
 
-  // Private methods
-  private loadGanttLibrary(): Promise<void> {
-    return new Promise((resolve) => {
-      if (typeof Gantt !== 'undefined') {
-        resolve();
-        return;
-      }
-
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.css';
-      document.head.appendChild(link);
-
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js';
-      script.onload = () => resolve();
-      document.head.appendChild(script);
-    });
-  }
-
+  // Existing private methods
   private initializeFilters() {
     this.availableSprints = this.projectData.map(s => s.name);
   }
@@ -206,183 +563,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     if (latestSprint) {
       this.selectedFilters.sprints = [latestSprint.name];
-      
-      setTimeout(() => {
-        const checkbox = document.getElementById(`sprint-${latestSprint.name}`) as HTMLInputElement;
-        if (checkbox) {
-          checkbox.checked = true;
-        }
-      }, 100);
     }
-  }
-
-  private initializeGantt() {
-    if (!this.ganttEl || !this.ganttEl.nativeElement) {
-      console.error('Gantt element not found');
-      return;
-    }
-
-    this.ganttEl.nativeElement.innerHTML = '';
-    this.prepareTasksData();
-
-    if (this.currentTasks.length === 0) {
-      this.ganttEl.nativeElement.innerHTML = '<div class="no-data">No data to display</div>';
-      this.ganttChart = null;
-      return;
-    }
-
-    this.ganttChart = new Gantt(this.ganttEl.nativeElement, this.currentTasks, {
-      view_mode: this.getViewMode(),
-      date_format: 'YYYY-MM-DD',
-      header_height: 65,
-      column_width: 40,
-      step: 24,
-      bar_height: 40,
-      bar_corner_radius: 4,
-      arrow_curve: 5,
-      padding: 20,
-      view_modes: ['Day', 'Week', 'Month', 'Year'],
-      popup_trigger: 'click',
-      custom_popup_html: (task: any) => {
-        return `
-          <div class="gantt-popup">
-            <h5>${task.name}</h5>
-            <p>Start: ${task.start}</p>
-            <p>End: ${task.end}</p>
-            <p>Progress: ${task.progress}%</p>
-          </div>
-        `;
-      },
-      on_click: (task: any) => {
-        if (this.displayMode === 'epics' && task.id.startsWith('epic-')) {
-          const epicId = task.id.replace('epic-', '');
-          const epic = this.epicsData.find(e => e.id === epicId);
-          if (epic) {
-            this.drillDownToIssues(epic.name);
-          }
-        }
-      }
-    });
-
-    setTimeout(() => {
-      this.scrollToCurrentDate();
-    }, 500);
-  }
-
-  private prepareTasksData() {
-    const tasks: GanttTask[] = [];
-    
-    if (this.displayMode === 'epics') {
-      const filteredSprints = this.getFilteredSprints();
-      
-      filteredSprints.forEach(sprint => {
-        tasks.push({
-          id: `sprint-${sprint.id}`,
-          name: `${sprint.name}`,
-          start: this.formatDate(sprint.startDate),
-          end: this.formatDate(sprint.endDate),
-          progress: this.calculateSprintProgress(sprint),
-          custom_class: 'bar-sprint'
-        });
-
-        if (!sprint.issues || sprint.issues.length === 0) {
-          return;
-        }
-
-        const epicGroups = this.groupIssuesByEpicId(sprint.issues);
-        
-        Object.entries(epicGroups).forEach(([epicId, issues]) => {
-          const epic = this.epicsData.find(e => e.id === epicId);
-          if (!epic) return;
-          
-          if (this.selectedFilters.epics.length > 0 && 
-              !this.selectedFilters.epics.includes(epic.name)) {
-            return;
-          }
-
-          const epicStart = this.getEarliestDate(issues.map(i => i.createdAt));
-          const epicEnd = this.getLatestDate(issues.map(i => i.updatedAt));
-          
-          tasks.push({
-            id: `epic-${epic.id}`,
-            name: `${epic.name}`,
-            start: this.formatDate(epicStart),
-            end: this.formatDate(epicEnd),
-            progress: this.calculateEpicProgress(issues),
-            custom_class: 'bar-epic'
-          });
-        });
-      });
-    } else if (this.displayMode === 'issues') {
-      const allFiltersCleared = this.areAllFiltersCleared();
-      
-      if (allFiltersCleared) {
-        this.projectData.forEach(sprint => {
-          if (!sprint.issues || sprint.issues.length === 0) {
-            return;
-          }
-          
-          sprint.issues.forEach(issue => {
-            tasks.push({
-              id: issue.id,
-              name: `${issue.id} - ${issue.title}`,
-              start: this.formatDate(issue.createdAt),
-              end: this.formatDate(issue.updatedAt),
-              progress: this.getIssueProgress(issue),
-              custom_class: this.getIssueClass(issue)
-            });
-          });
-        });
-      } else {
-        const filteredSprints = this.getFilteredSprints();
-        
-        filteredSprints.forEach(sprint => {
-          if (!sprint.issues || sprint.issues.length === 0) {
-            return;
-          }
-          
-          sprint.issues.forEach(issue => {
-            if (this.selectedFilters.epics.length > 0 && issue.epicId) {
-              const epic = this.epicsData.find(e => e.id === issue.epicId);
-              if (!epic || !this.selectedFilters.epics.includes(epic.name)) {
-                return;
-              }
-            } else if (this.selectedFilters.epics.length > 0 && !issue.epicId) {
-              return;
-            }
-            
-            if (this.selectedFilters.types.length > 0 && 
-                !this.selectedFilters.types.includes(issue.type.toLowerCase())) {
-              return;
-            }
-            
-            if (this.selectedFilters.status.length > 0) {
-              const statusMap: Record<string, string> = {
-                'TODO': 'todo',
-                'IN_PROGRESS': 'progress',
-                'IN_REVIEW': 'progress',
-                'DONE': 'done'
-              };
-              const mappedStatus = statusMap[issue.status] || 'todo';
-              if (!this.selectedFilters.status.includes(mappedStatus)) {
-                return;
-              }
-            }
-            
-            tasks.push({
-              id: issue.id,
-              name: `${issue.id} - ${issue.title}`,
-              start: this.formatDate(issue.createdAt),
-              end: this.formatDate(issue.updatedAt),
-              progress: this.getIssueProgress(issue),
-              custom_class: this.getIssueClass(issue)
-            });
-          });
-        });
-      }
-    }
-
-    this.currentTasks = tasks;
   }
 
   private groupIssuesByEpicId(issues: Issue[]): Record<string, Issue[]> {
@@ -398,13 +579,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     });
     
     return groups;
-  }
-
-  private areAllFiltersCleared(): boolean {
-    return this.selectedFilters.sprints.length === 0 &&
-           this.selectedFilters.epics.length === 0 &&
-           this.selectedFilters.types.length === 0 &&
-           this.selectedFilters.status.length === 0;
   }
 
   private getFilteredSprints(): Sprint[] {
@@ -438,18 +612,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private getIssueClass(issue: Issue): string {
-    return `bar-${issue.type.toLowerCase()}`;
-  }
-
-  private formatDate(date: Date): string {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
   private getEarliestDate(dates: Date[]): Date {
     return new Date(Math.min(...dates.map(d => new Date(d).getTime())));
   }
@@ -458,92 +620,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     return new Date(Math.max(...dates.map(d => new Date(d).getTime())));
   }
 
-  private getViewMode(): string {
-    switch (this.currentView) {
-      case 'day': return 'Day';
-      case 'month': return 'Month';
-      case 'year': return 'Year';
-      default: return 'Day';
-    }
-  }
-
-  private scrollToCurrentDate() {
-    try {
-      const container = this.ganttEl.nativeElement;
-      const today = new Date();
-      
-      const ganttSvg = container.querySelector('svg');
-      if (!ganttSvg) {
-        console.log('Gantt SVG not found yet');
-        return;
-      }
-
-      const gridHeaders = ganttSvg.querySelectorAll('.grid-header');
-      if (gridHeaders.length === 0) {
-        console.log('No grid headers found');
-        return;
-      }
-
-      let targetHeader: Element | null = null;
-      
-      gridHeaders.forEach((header: Element) => {
-        const textElement = header.querySelector('text');
-        if (textElement) {
-          const headerText = textElement.textContent;
-          if (headerText && this.isDateMatch(headerText, today)) {
-            targetHeader = header;
-          }
-        }
-      });
-
-      if (targetHeader) {
-        const headerElement = targetHeader as HTMLElement;
-        const headerRect = headerElement.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const scrollLeft = headerRect.left - containerRect.left + container.scrollLeft - (container.clientWidth / 2) + (headerRect.width / 2);
-        
-        container.scrollLeft = Math.max(0, scrollLeft);
-      } else {
-        console.log('Today header not found, using fallback scroll');
-        container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
-      }
-    } catch (error) {
-      console.log('Could not scroll to current date:', error);
-      const container = this.ganttEl.nativeElement;
-      container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
-    }
-  }
-
-  private isDateMatch(headerText: string, targetDate: Date): boolean {
-    const targetDay = targetDate.getDate().toString();
-    const targetMonth = (targetDate.getMonth() + 1).toString();
-    const targetYear = targetDate.getFullYear().toString();
-    
-    return headerText.includes(targetDay) || 
-           headerText.includes(targetMonth) || 
-           headerText.includes(targetYear);
-  }
-
   private applyFilters() {
-    this.initializeGantt();
-  }
-
-  private drillDownToIssues(epicName: string) {
-    console.log('Drilling down to epic:', epicName);
-    
-    this.selectedEpic = epicName;
-    this.selectedFilters.epics = [epicName];
-    this.displayMode = 'issues';
-    
-    this.cdr.detectChanges();
-    
-    setTimeout(() => {
-      const epicCheckbox = document.getElementById(`epic-${epicName}`) as HTMLInputElement;
-      if (epicCheckbox) {
-        epicCheckbox.checked = true;
-      }
-      console.log('Calling initializeGantt for issues view');
-      this.initializeGantt();
-    }, 0);
+    this.prepareTimelineData();
   }
 }
