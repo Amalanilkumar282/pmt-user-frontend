@@ -1,11 +1,10 @@
-import { Component,inject, model } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ChartHeader } from '../chart-header/chart-header';
 import { Router } from '@angular/router';
 import { MetricsChart } from '../metrics-chart/metrics-chart';
-import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { ChartTable } from '../chart-table/chart-table';
 import { IssueSummaryService } from '../../summary/issue-summary.service';
@@ -14,36 +13,40 @@ import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter'
 
 @Component({
   selector: 'app-burnup-chart',
-  standalone:true,
-  imports: [Navbar,Sidebar,ChartHeader,MetricsChart,ChartTable,SprintFilterComponent,SprintFilterComponent],
-  // providers:[SidebarStateService],
+  standalone: true,
+  imports: [Navbar, Sidebar, ChartHeader, MetricsChart, ChartTable, SprintFilterComponent],
   templateUrl: './burnup-chart.html',
-  styleUrl: './burnup-chart.css'
+  styleUrl: './burnup-chart.css',
 })
-export class BurnupChart {
+export class BurnupChart implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
-  isSidebarCollapsed = this.sidebarStateService.isCollapsed;
- private issueSummaryService = inject(IssueSummaryService);
+  private issueSummaryService = inject(IssueSummaryService);
 
-    
+  isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+
   // Sprint filter data
   sprints: Sprint[] = [];
   selectedSprintId: string | null = 'all';
-    
+
+  issues: Issue[] = [];
+
+  constructor(private router: Router) {}
+
+  ngOnInit(): void {
+    // Load all sprints from the service
+    this.sprints = this.issueSummaryService.getAllSprints();
+
+    // Load initial chart data
+    this.updatechartData();
+  }
+
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
-  constructor(private router: Router) {
-      
-  }
 
-  navigateBack() {
+  navigateBack(): void {
     this.router.navigate(['/report-dashboard']);
   }
-  issues: Issue[] = []; // ✅ define issues property
-
-
-
 
   onSprintFilterChange(sprintId: string): void {
     this.selectedSprintId = sprintId;
@@ -51,15 +54,10 @@ export class BurnupChart {
   }
 
   private updatechartData(): void {
-    // Update issue summary cards
-     
+    // Get issues for the selected sprint
+    this.issues = this.issueSummaryService.getIssuesBySprintId(this.selectedSprintId);
 
-    // Update sprint status breakdown
-    
+    // You can add more chart-specific data updates here
+    // For example, pass the filtered data to your MetricsChart component
   }
-
-  }
-
-
-
-
+}
