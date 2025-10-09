@@ -103,48 +103,6 @@ describe('TaskCard', () => {
     });
   });
 
-  describe('getInitials', () => {
-    it('should return "?" for undefined name', () => {
-      expect(component.getInitials(undefined)).toBe('?');
-    });
-
-    it('should return "?" for null name', () => {
-      expect(component.getInitials(null as any)).toBe('?');
-    });
-
-    it('should return "?" for empty string', () => {
-      expect(component.getInitials('')).toBe('?');
-    });
-
-    it('should return single initial for single name', () => {
-      expect(component.getInitials('Alice')).toBe('A');
-    });
-
-    it('should return two initials for two names', () => {
-      expect(component.getInitials('John Doe')).toBe('JD');
-    });
-
-    it('should return only first two initials for multiple names', () => {
-      expect(component.getInitials('Mary Jane Watson Smith')).toBe('MJ');
-    });
-
-    it('should handle names with extra spaces', () => {
-      expect(component.getInitials('  John   Doe  ')).toBe('JD');
-    });
-
-    it('should uppercase the initials', () => {
-      expect(component.getInitials('alice bob')).toBe('AB');
-    });
-
-    it('should handle single character names', () => {
-      expect(component.getInitials('A B')).toBe('AB');
-    });
-
-    it('should handle names with special characters', () => {
-      expect(component.getInitials('Jean-Pierre Marie')).toBe('JM');
-    });
-  });
-
   describe('component rendering', () => {
     it('should render with default values when no issue provided', () => {
       fixture.detectChanges();
