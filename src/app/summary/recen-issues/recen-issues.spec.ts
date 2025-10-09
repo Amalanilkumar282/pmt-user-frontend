@@ -144,4 +144,32 @@ describe('RecenIssues', () => {
       'Last issue should NOT have border-b'
     );
   });
+  // --- 10. *ngFor Directive Test ---
+  it('should use *ngFor to iterate and render all issues with correct data', () => {
+    component.issues = mockIssues;
+    fixture.detectChanges();
+
+    const issueRows = fixture.debugElement.queryAll(By.css('[data-testid^="issue-row"]'));
+
+    // Verify each issue is rendered with correct data
+    mockIssues.forEach((issue, index) => {
+      const row = issueRows[index];
+
+      // Check title
+      const titleElement = row.query(By.css('[data-testid="issue-title"]')).nativeElement;
+      expect(titleElement.textContent?.trim()).toBe(issue.title);
+
+      // Check code
+      const codeElement = row.query(By.css('[data-testid="issue-code"]')).nativeElement;
+      expect(codeElement.textContent?.trim()).toBe(issue.code);
+
+      // Check status letter
+      const statusIcon = row.query(By.css('[data-testid="status-icon"]')).nativeElement;
+      expect(statusIcon.textContent?.trim()).toBe(issue.statusLetter);
+
+      // Check assignee initials
+      const assigneeIcon = row.query(By.css('[data-testid="assignee-icon"]')).nativeElement;
+      expect(assigneeIcon.textContent?.trim()).toBe(issue.assigneeInitials);
+    });
+  });
 });
