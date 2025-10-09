@@ -1,24 +1,28 @@
 <div class="layout-wrapper">
-    <!-- Sidebar -->
-    <app-sidebar></app-sidebar>
+  <!-- Sidebar -->
+  <app-sidebar></app-sidebar>
 
-    <!-- Navbar -->
-    <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
-    </app-navbar>
-    <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
-        <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
+  <!-- Navbar -->
+  <app-navbar [class.sidebar-collapsed]="isSidebarCollapsed()" (toggleSidebar)="onToggleSidebar()">
+  </app-navbar>
+  <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <div
+      class="page-header font-montserrat text-center"
+      [class.sidebar-collapsed]="isSidebarCollapsed()"
+    >
+      <app-chart-header [title]="'Burnup Report'" (back)="navigateBack()"></app-chart-header>
 
+      <app-sprint-filter
+        [sprints]="sprints"
+        [selectedSprint]="selectedSprintId || 'all'"
+        (sprintChange)="onSprintFilterChange($event)"
+      ></app-sprint-filter>
 
-            <app-chart-header [title]="'Burnup Report'" (back)="navigateBack()"></app-chart-header>
-
-            <app-sprint-filter [sprints]="sprints" [selectedSprint]="selectedSprintId || 'all'"
-                (sprintChange)="onSprintFilterChange($event)"></app-sprint-filter>
-
-            <app-metrics-chart [chartType]="'burnup'"></app-metrics-chart>
-            <br><br>
-            <div class="table-wrapper">
-                <app-chart-table type="burnup" [showPaginator]="true"></app-chart-table>
-            </div>
-        </div>
-
+      <app-metrics-chart [chartType]="'burnup'"></app-metrics-chart>
+      <br /><br />
+      <div class="table-wrapper">
+        <app-chart-table type="burnup" [showPaginator]="true"></app-chart-table>
+      </div>
     </div>
+  </div>
+</div>
