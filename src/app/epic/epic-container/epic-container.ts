@@ -1,21 +1,27 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EpicList } from '../epic-list/epic-list';
 import { Epic } from '../../shared/models/epic.model';
 import { epics as initialEpics } from '../../shared/data/dummy-backlog-data';
+import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 
 @Component({
   selector: 'app-epic-container',
   standalone: true,
   imports: [CommonModule, FormsModule, EpicList],
   templateUrl: './epic-container.html',
-  styleUrl: './epic-container.css'
+  styleUrl: './epic-container.css',
 })
 export class EpicContainer {
   epics: Epic[] = [...initialEpics];
   isCreating = false;
   newEpicName = '';
+  private sidebarStateService = inject(SidebarStateService);
+
+  isSidebarCollapsed(): boolean {
+    return this.sidebarStateService.getCollapsed();
+  }
 
   @Output() epicSelected = new EventEmitter<string>();
   @Output() closeEpicPanel = new EventEmitter<void>();
@@ -23,10 +29,8 @@ export class EpicContainer {
   @Output() epicCreated = new EventEmitter<Epic>();
 
   onToggleExpand(epicId: string): void {
-    this.epics = this.epics.map(epic => 
-      epic.id === epicId 
-        ? { ...epic, isExpanded: !epic.isExpanded }
-        : epic
+    this.epics = this.epics.map((epic) =>
+      epic.id === epicId ? { ...epic, isExpanded: !epic.isExpanded } : epic
     );
   }
 
@@ -70,7 +74,7 @@ export class EpicContainer {
         storyPoints: 0,
         reporter: 'Unassigned',
         status: 'TODO',
-        childWorkItems: []
+        childWorkItems: [],
       };
       this.epics.push(newEpic);
       this.epicCreated.emit(newEpic);
