@@ -29,7 +29,7 @@ export class AddColumnButton {
   ];
 
   open() { this.isOpen = true; }
-  close() { this.isOpen = false; this.name = ''; this.color = '#A1C4FD'; }
+  close() { this.isOpen = false; this.name = ''; }
 
   addColumn() {
     if (!this.name.trim()) return;

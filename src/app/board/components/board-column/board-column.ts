@@ -24,9 +24,9 @@ export class BoardColumn {
   trackById(index: number, item: Issue): string {
     return item.id;
   }  // simple pagination per column
-  pageSize = 10;
+  pageSize = 20;
   get pageItems() { return this.items.slice(0, this.pageSize); }
-  loadMore() { this.pageSize += 10; }
+  loadMore() { this.pageSize += 20; }
 
   constructor(private store: BoardStore) {}
 
