@@ -1,11 +1,11 @@
 import { BoardColumnDef, Status } from './models';
 
 export const DEFAULT_COLUMNS: BoardColumnDef[] = [
-  { id: 'TODO',        title: 'To Do',        color: 'border-sky-400' },
-  { id: 'IN_PROGRESS', title: 'In Progress',  color: 'border-violet-400' },
-  { id: 'BLOCKED',     title: 'Blocked',      color: 'border-red-400' },
-  { id: 'IN_REVIEW',   title: 'In Review',    color: 'border-amber-400' },
-  { id: 'DONE',        title: 'Done',         color: 'border-emerald-400' },
+  { id: 'TODO',        title: 'To Do',        color: '#A1C4FD' },  
+  { id: 'IN_PROGRESS', title: 'In Progress',  color: '#FFA500' },  
+  { id: 'BLOCKED',     title: 'Blocked',      color: '#EF4444' },  
+  { id: 'IN_REVIEW',   title: 'In Review',    color: '#A78BFA' },  
+  { id: 'DONE',        title: 'Done',         color: '#10B981' },  
 ];
 
 export const statusOrder: Record<Status, number> = {

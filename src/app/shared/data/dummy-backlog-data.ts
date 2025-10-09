@@ -303,6 +303,7 @@ export const activeSprintIssues: Issue[] = [
     type: 'TASK',
     priority: 'LOW',
     status: 'TODO',
+    assignee: 'Emma Wilson',
     storyPoints: 2,
     sprintId: 'active-1',
     epicId: 'epic-2',

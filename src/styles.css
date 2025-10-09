@@ -1,6 +1,11 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
 
+/* Apply Montserrat globally (font loaded via index.html) */
+* {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 /* Drag and Drop Styles */
 .cdk-drag-preview {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);

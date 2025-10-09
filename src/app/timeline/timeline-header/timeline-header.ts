@@ -16,7 +16,7 @@ export interface FilterState {
   styleUrls: ['./timeline-header.css']
 })
 export class TimelineHeaderComponent {
-  @Input() currentView: 'day' | 'month' | 'year' = 'day';
+  @Input() currentView: 'day' | 'month' | 'year' = 'month';
   @Input() displayMode: 'epics' | 'issues' = 'epics';
   @Input() selectedFilters: FilterState = {
     sprints: [],
@@ -36,7 +36,7 @@ export class TimelineHeaderComponent {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.relative')) {
+    if (!target.closest('.filter-container')) {
       this.closeAllDropdowns();
     }
   }
@@ -71,12 +71,14 @@ export class TimelineHeaderComponent {
     const button = event.currentTarget as HTMLElement;
     const dropdown = button.nextElementSibling as HTMLElement;
     
+    // Close all other dropdowns
     document.querySelectorAll('.filter-dropdown').forEach(dd => {
       if (dd !== dropdown) {
         dd.classList.remove('show');
       }
     });
     
+    // Toggle current dropdown
     dropdown.classList.toggle('show');
   }
 

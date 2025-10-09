@@ -1,10 +1,10 @@
-<div class="flex gap-5 pt-4 h-full overflow-x-auto columns-scroll">
+<div class="flex gap-4 h-full overflow-x-auto columns-scroll">
   <app-board-column
     *ngFor="let bucket of buckets(); trackBy: track"
     [def]="bucket.def"
     [items]="bucket.items"
     [connectedTo]="dropListIdsArray()"
     (openIssue)="onOpenIssue($event)"
-    class="flex-shrink-0 w-80">
+    class="flex-shrink-0 w-75">
   </app-board-column>
 </div>

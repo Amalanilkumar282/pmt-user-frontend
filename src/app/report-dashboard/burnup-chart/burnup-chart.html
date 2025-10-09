@@ -16,8 +16,9 @@
 
             <app-metrics-chart [chartType]="'burnup'"></app-metrics-chart>
             <br><br>
-            <app-chart-table type="burnup" [showPaginator]="true"></app-chart-table>
-
+            <div class="table-wrapper">
+                <app-chart-table type="burnup" [showPaginator]="true"></app-chart-table>
+            </div>
         </div>
 
     </div>
