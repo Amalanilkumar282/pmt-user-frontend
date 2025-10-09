@@ -1,4 +1,85 @@
+/* Timeline Header Styles */
+
 /* Show dropdown when toggled */
 .filter-dropdown.show {
     display: block !important;
+}
+
+.filter-dropdown {
+    display: none;
+}
+
+/* Filter container positioning */
+.filter-container {
+    position: relative;
+}
+
+/* Dropdown animation */
+.filter-dropdown {
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"] {
+    accent-color: #4f46e5;
+}
+
+input[type="checkbox"]:hover {
+    cursor: pointer;
+}
+
+/* Filter button hover effects */
+button:hover {
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Badge styling */
+.bg-indigo-500 {
+    background-color: #6366f1;
+}
+
+/* Dropdown scrollbar */
+.filter-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.filter-dropdown::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.filter-dropdown::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.filter-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .flex.gap-3 {
+        gap: 0.5rem;
+    }
+    
+    button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
 }
