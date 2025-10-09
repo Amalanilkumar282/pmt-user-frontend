@@ -1,30 +1,47 @@
 <!-- board-toolbar.component.html -->
-<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-4">
+  <!-- Title + Sprint Row -->
   <div class="flex items-center justify-between">
-    <div class="flex h-8 gap-5">
-      <div class="text-lg font-semibold pl-4 pt-1">Board</div>
-      <!-- Sprint filter (from summary) -->
-      <app-sprint-filter
-        [sprints]="sprints()"
-        [selectedSprint]="selectedSprintId()"
-        (sprintChange)="selectSprint($event)">
-      </app-sprint-filter>
-    </div>
-
-    <div class="hidden md:flex items-center gap-2">
-      <!-- placeholder for right-aligned controls if needed -->
+    <div class="flex h-8 gap-8">
+      <h1 class="text-xl font-bold text-slate-900">Board</h1>
+      <div class="flex items-center pt-6 gap-2 text-sm">
+        <app-sprint-filter
+          [sprints]="sprints()"
+          [selectedSprint]="selectedSprintId()"
+          (sprintChange)="selectSprint($event)">
+        </app-sprint-filter>
+      </div>
     </div>
   </div>
 
-  <div class="flex items-center gap-3">
+  <!-- Controls Container -->
+  <div class="w-full bg-white px-2 flex items-center gap-3">
+    <!-- Search -->
     <div class="flex-1">
       <app-board-search></app-board-search>
     </div>
 
+    <!-- Dynamic Assignees -->
+    <div class="hidden md:flex items-center gap-2 px-3 border-l border-slate-200">
+      <div class="flex -space-x-2">
+        <ng-container *ngFor="let a of assignees() | slice:0:5">
+          <div class="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
+               [ngClass]="a | avatarClass"
+               [title]="a">
+            {{ a | initials }}
+          </div>
+        </ng-container>
+        <div *ngIf="assignees().length > 5"
+             class="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-slate-600 text-[10px] font-semibold shadow-sm">
+          +{{ assignees().length - 5 }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
     <div class="flex items-center gap-2">
-        <app-filter-panel></app-filter-panel>
+      <app-filter-panel></app-filter-panel>
       <app-group-by-menu></app-group-by-menu>
-      
       <app-add-column-button></app-add-column-button>
     </div>
   </div>

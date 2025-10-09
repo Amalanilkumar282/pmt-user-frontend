@@ -1,11 +1,8 @@
 .board-column {
-  /* force no left border and a very subtle shadow to avoid a dark line */
-  border-left: none !important;
-  background: rgb(249, 249, 249);
+  border: none !important;
+  background: white;
   min-height: 100%;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .cdk-drag-preview {
@@ -28,6 +25,12 @@
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
+.column-end-spacer {
+  height: 2rem;
+}
+
+
+/* Board Column Scrollbar Styling */
 /* Per-column scroll: hide vertical scrollbar by default; reveal thin thumb on hover/focus */
 .board-column [cdkDropList] {
   overflow-y: auto; /* keep scrolling enabled */
@@ -41,7 +44,4 @@
   height: 0px;
 }
 
-.column-end-spacer {
-  height: 2rem;
-}
 

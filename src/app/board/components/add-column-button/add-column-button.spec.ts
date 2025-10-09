@@ -28,7 +28,7 @@ describe('AddColumnButton', () => {
     expect(component).toBeTruthy();
     expect(component.isOpen).toBe(false);
     expect(component.name).toBe('');
-    expect(component.color).toBe('border-slate-300');
+    expect(component.color).toBe('#A1C4FD');
   });
 
   it('open sets isOpen to true', () => {
@@ -50,11 +50,11 @@ describe('AddColumnButton', () => {
   it('close preserves color when clearing', () => {
     component.isOpen = true;
     component.name = 'Test';
-    component.color = 'border-blue-500';
+    component.color = '#EF4444';
     
     component.close();
     
-    expect(component.color).toBe('border-blue-500');
+    expect(component.color).toBe('#EF4444');
   });
 
   describe('addColumn', () => {
@@ -72,14 +72,14 @@ describe('AddColumnButton', () => {
 
     it('should create column with uppercase underscore ID', () => {
       component.name = 'QA Ready';
-      component.color = 'border-slate-300';
+      component.color = '#A1C4FD';
       
       component.addColumn();
       
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'QA_READY',
         title: 'QA Ready',
-        color: 'border-slate-300'
+        color: '#A1C4FD'
       });
     });
 
@@ -91,7 +91,7 @@ describe('AddColumnButton', () => {
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'QUALITY_ASSURANCE_READY',
         title: 'Quality   Assurance    Ready',
-        color: 'border-slate-300'
+        color: '#A1C4FD'
       });
     });
 
@@ -103,7 +103,7 @@ describe('AddColumnButton', () => {
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'READY_FOR_TESTING!',
         title: 'Ready for Testing!',
-        color: 'border-slate-300'
+        color: '#A1C4FD'
       });
     });
 
@@ -115,7 +115,7 @@ describe('AddColumnButton', () => {
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'TESTING',
         title: 'testing',
-        color: 'border-slate-300'
+        color: '#A1C4FD'
       });
     });
 
@@ -131,14 +131,14 @@ describe('AddColumnButton', () => {
 
     it('should use custom color when set', () => {
       component.name = 'Custom Column';
-      component.color = 'border-red-500';
+      component.color = '#EF4444';
       
       component.addColumn();
       
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'CUSTOM_COLUMN',
         title: 'Custom Column',
-        color: 'border-red-500'
+        color: '#EF4444'
       });
     });
 
@@ -156,18 +156,18 @@ describe('AddColumnButton', () => {
   describe('state management', () => {
     it('should maintain state independently between operations', () => {
       component.name = 'First Column';
-      component.color = 'border-blue-500';
+      component.color = '#10B981';
       component.open();
       
       expect(component.isOpen).toBe(true);
       expect(component.name).toBe('First Column');
-      expect(component.color).toBe('border-blue-500');
+      expect(component.color).toBe('#10B981');
       
       component.addColumn();
       
       expect(component.isOpen).toBe(false);
       expect(component.name).toBe('');
-      expect(component.color).toBe('border-blue-500'); // Should persist
+      expect(component.color).toBe('#10B981'); // Should persist
     });
 
     it('should handle multiple open/close cycles', () => {

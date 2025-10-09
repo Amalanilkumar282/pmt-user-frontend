@@ -1,24 +1,38 @@
 <div class="relative inline-block">
-	<button class="btn-secondary" (click)="open()">+ Add Column</button>
+	<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sky-500 text-white text-sm font-medium hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors" (click)="open()">
+		<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+			<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+		</svg>
+	</button>
 
 	<div *ngIf="isOpen" class="fixed inset-0 z-40 flex items-center justify-center">
 		<div class="absolute inset-0 bg-black/40" (click)="close()"></div>
-		<div class="relative w-96 rounded-lg bg-white p-6 shadow-lg">
-			<h3 class="text-lg font-semibold mb-3">Add Column</h3>
+		<div class="relative w-96 rounded-xl bg-white p-6 shadow-xl">
+			<h3 class="text-lg font-bold mb-4 text-slate-900">Add New Column</h3>
 
-			<label class="block text-sm text-slate-600 mb-2">Column name</label>
-			<input [(ngModel)]="name" class="w-full rounded-md border border-slate-200 px-3 py-2 mb-3" placeholder="e.g. QA" />
+			<label class="block text-sm font-medium text-slate-700 mb-2">Column Name</label>
+			<input [(ngModel)]="name" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent" placeholder="e.g., Testing" />
 
-			<label class="block text-sm text-slate-600 mb-2">Color</label>
-			<div class="flex gap-2 mb-4">
-				<button type="button" (click)="color='border-slate-300'" [class.border-sky-500]="color==='border-slate-300'" class="w-8 h-8 rounded border"></button>
-				<button type="button" (click)="color='border-rose-300'" [class.border-sky-500]="color==='border-rose-300'" class="w-8 h-8 rounded border bg-rose-50"></button>
-				<button type="button" (click)="color='border-emerald-300'" [class.border-sky-500]="color==='border-emerald-300'" class="w-8 h-8 rounded border bg-emerald-50"></button>
+			<label class="block text-sm font-medium text-slate-700 mb-3">Column Color</label>
+			<div class="grid grid-cols-4 gap-3 mb-6">
+				<button 
+					type="button" 
+					*ngFor="let colorOpt of colorOptions"
+					(click)="color=colorOpt.value" 
+					class="h-12 rounded-lg border-2 transition-all hover:scale-105 flex items-center justify-center"
+					[style.background-color]="colorOpt.value"
+					[class.border-slate-900]="color === colorOpt.value"
+					[class.border-slate-200]="color !== colorOpt.value"
+					[title]="colorOpt.name">
+					<svg *ngIf="color === colorOpt.value" class="w-6 h-6 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+						<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+					</svg>
+				</button>
 			</div>
 
-			<div class="flex justify-end gap-2">
-				<button class="btn-secondary" (click)="close()">Cancel</button>
-				<button [disabled]="!name.trim()" (click)="addColumn()" class="btn-primary">Add</button>
+			<div class="flex justify-end gap-3">
+				<button class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors" (click)="close()">Cancel</button>
+				<button [disabled]="!name.trim()" (click)="addColumn()" class="px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Add Column</button>
 			</div>
 		</div>
 	</div>
