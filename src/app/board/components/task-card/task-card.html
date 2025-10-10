@@ -1,4 +1,4 @@
-<div class="task-card bg-white rounded-xl p-4 cursor-pointer hover:shadow-md transition-all duration-300" 
+<div class="task-card bg-white rounded-xl p-2 mb-3 cursor-pointer hover:shadow-md transition-all duration-300" 
      [style.border-left]="'3px solid ' + colorClass"
      (click)="open.emit(issue)">
   <div class="content" cdkDragHandle>
@@ -25,7 +25,7 @@
     </div>
 
     <!-- Description -->
-    <p class="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed" *ngIf="issue.description">
+    <p class="text-[13px] text-slate-600 mb-4 line-clamp-2 leading-relaxed" *ngIf="issue.description">
       {{ issue.description }}
     </p>
 
