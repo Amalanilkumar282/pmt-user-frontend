@@ -5,8 +5,6 @@ import { sprints as sharedSprints, epics as sharedEpics } from '../../shared/dat
 import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
 
-declare var Gantt: any;
-
 interface Sprint {
   id: string;
   name: string;
@@ -14,16 +12,6 @@ interface Sprint {
   endDate: Date;
   status: 'COMPLETED' | 'ACTIVE' | 'PLANNED';
   issues?: Issue[];
-}
-
-interface GanttTask {
-  id: string;
-  name: string;
-  start: string;
-  end: string;
-  progress: number;
-  custom_class: string;
-  dependencies?: string;
 }
 
 interface TimelineRow {
@@ -68,9 +56,10 @@ interface DayHeader {
 })
 export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('chartContainer', { static: false }) chartContainer!: ElementRef;
-  @ViewChild('timelineHeader', { static: false }) timelineHeader!: ElementRef;
+  @ViewChild('sidebarContent', { static: false }) sidebarContent!: ElementRef;
+  @ViewChild('chartContent', { static: false }) chartContent!: ElementRef;
+  @ViewChild('headerScroll', { static: false }) headerScroll!: ElementRef;
   
-  ganttChart: any;
   currentView: 'day' | 'month' | 'year' = 'month';
   selectedFilters: FilterState = {
     sprints: [],
@@ -81,7 +70,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   
   projectData: Sprint[] = sharedSprints;
   epicsData: Epic[] = sharedEpics;
-  currentTasks: GanttTask[] = [];
   displayMode: 'epics' | 'issues' = 'epics';
   selectedEpic: string | null = null;
   availableSprints: string[] = [];
@@ -94,6 +82,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   dayHeaders: DayHeader[] = [];
   expandedRows: Set<string> = new Set();
   dateRange: { start: Date; end: Date } = { start: new Date(), end: new Date() };
+  chartWidth: number = 0;
+  
+  // Scroll synchronization flags
+  private isScrollingSidebar = false;
+  private isScrollingChart = false;
+  private isScrollingHeader = false;
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -101,19 +95,40 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     this.initializeFilters();
     this.setLatestSprintAsDefault();
     this.availableEpics = this.getUniqueEpics();
+    
+    // FIXED: Expand all sprints by default
+    this.expandAllSprintsByDefault();
+    
     this.prepareTimelineData();
   }
 
   ngAfterViewInit() {
     setTimeout(() => {
       this.updateDateHeaders();
+      this.cdr.detectChanges();
     }, 100);
   }
 
   ngOnDestroy() {
-    if (this.ganttChart) {
-      this.ganttChart = null;
-    }
+    // Cleanup if needed
+  }
+
+  // FIXED: Expand all sprints (and their epics) by default
+  private expandAllSprintsByDefault(): void {
+    const filteredSprints = this.getFilteredSprints();
+    
+    filteredSprints.forEach(sprint => {
+      const sprintId = `sprint-${sprint.id}`;
+      this.expandedRows.add(sprintId);
+      
+      // Also expand all epics within this sprint
+      if (sprint.issues) {
+        const epicGroups = this.groupIssuesByEpicId(sprint.issues);
+        Object.keys(epicGroups).forEach(epicId => {
+          this.expandedRows.add(`epic-${epicId}`);
+        });
+      }
+    });
   }
 
   // Dynamic timeline preparation
@@ -197,20 +212,19 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private calculateDynamicDateRange(sprints: Sprint[]): void {
     if (sprints.length === 0) {
-      // Default range if no sprints
       const now = new Date();
       switch (this.currentView) {
         case 'day':
-          this.dateRange.start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-          this.dateRange.end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+          this.dateRange.start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+          this.dateRange.end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
           break;
         case 'month':
-          this.dateRange.start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          this.dateRange.end = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+          this.dateRange.start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+          this.dateRange.end = new Date(now.getFullYear(), now.getMonth() + 4, 0);
           break;
         case 'year':
-          this.dateRange.start = new Date(now.getFullYear(), 0, 1);
-          this.dateRange.end = new Date(now.getFullYear(), 11, 31);
+          this.dateRange.start = new Date(now.getFullYear() - 1, 0, 1);
+          this.dateRange.end = new Date(now.getFullYear() + 1, 11, 31);
           break;
       }
       return;
@@ -218,13 +232,11 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
     const allDates: Date[] = [];
     
-    // Include sprint dates
     sprints.forEach(sprint => {
       allDates.push(sprint.startDate);
       allDates.push(sprint.endDate);
     });
 
-    // Include epic and issue dates for expanded rows
     sprints.forEach(sprint => {
       if (sprint.issues && this.isRowExpanded(`sprint-${sprint.id}`)) {
         sprint.issues.forEach(issue => {
@@ -239,32 +251,24 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     const earliestDate = this.getEarliestDate(allDates);
     const latestDate = this.getLatestDate(allDates);
 
-    // Apply view-based date range
     switch (this.currentView) {
       case 'day':
-        // For day view, show 2 weeks centered around the data
-        const dayRange = 14; // 2 weeks
-        const dayCenter = new Date((earliestDate.getTime() + latestDate.getTime()) / 2);
-        this.dateRange.start = new Date(dayCenter.getTime() - (dayRange / 2) * 24 * 60 * 60 * 1000);
-        this.dateRange.end = new Date(dayCenter.getTime() + (dayRange / 2) * 24 * 60 * 60 * 1000);
+        const dayPadding = 7;
+        this.dateRange.start = new Date(earliestDate);
+        this.dateRange.start.setDate(this.dateRange.start.getDate() - dayPadding);
+        this.dateRange.end = new Date(latestDate);
+        this.dateRange.end.setDate(this.dateRange.end.getDate() + dayPadding);
         break;
 
       case 'month':
-        // For month view, show 3 months centered around the data
-        const monthRange = 3; // 3 months
-        const monthCenter = new Date((earliestDate.getTime() + latestDate.getTime()) / 2);
-        this.dateRange.start = new Date(monthCenter.getFullYear(), monthCenter.getMonth() - 1, 1);
-        this.dateRange.end = new Date(monthCenter.getFullYear(), monthCenter.getMonth() + 2, 0);
+        const monthPadding = 1;
+        this.dateRange.start = new Date(earliestDate.getFullYear(), earliestDate.getMonth() - monthPadding, 1);
+        this.dateRange.end = new Date(latestDate.getFullYear(), latestDate.getMonth() + monthPadding + 1, 0);
         break;
 
       case 'year':
-        // For year view, show the entire year of the data
         this.dateRange.start = new Date(earliestDate.getFullYear(), 0, 1);
-        this.dateRange.end = new Date(earliestDate.getFullYear(), 11, 31);
-        // If data spans multiple years, show the range
-        if (earliestDate.getFullYear() !== latestDate.getFullYear()) {
-          this.dateRange.end = new Date(latestDate.getFullYear(), 11, 31);
-        }
+        this.dateRange.end = new Date(latestDate.getFullYear(), 11, 31);
         break;
     }
   }
@@ -277,7 +281,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     const rangeStart = this.dateRange.start.getTime();
     const rangeEnd = this.dateRange.end.getTime();
 
-    // Item is visible if it overlaps with the current date range
     return itemStart <= rangeEnd && itemEnd >= rangeStart;
   }
 
@@ -300,9 +303,26 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   // Date header management
   private updateDateHeaders(): void {
+    this.calculateChartWidth();
     this.updateMonthHeaders();
     this.updateWeekHeaders();
     this.updateDayHeaders();
+  }
+
+  private calculateChartWidth(): void {
+    const totalDays = Math.ceil((this.dateRange.end.getTime() - this.dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    
+    switch (this.currentView) {
+      case 'day':
+        this.chartWidth = Math.max(totalDays * 100, 3000); // Increased from 80
+        break;
+      case 'month':
+        this.chartWidth = Math.max(totalDays * 20, 2500); // Increased from 15
+        break;
+      case 'year':
+        this.chartWidth = Math.max(totalDays * 4, 2000); // Increased from 3
+        break;
+    }
   }
 
   private updateMonthHeaders(): void {
@@ -315,21 +335,23 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     let current = new Date(start.getFullYear(), start.getMonth(), 1);
     
     while (current <= end) {
-      const monthName = current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const monthName = this.currentView === 'year' 
+        ? current.toLocaleDateString('en-US', { month: 'short' })
+        : current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      
       const monthStart = new Date(Math.max(current.getTime(), start.getTime()));
       const monthEnd = new Date(Math.min(
-        new Date(current.getFullYear(), current.getMonth() + 1, 0).getTime(),
+        new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59).getTime(),
         end.getTime()
       ));
       
-      const left = this.getDatePosition(monthStart);
-      const right = this.getDatePosition(monthEnd);
-      const width = Math.max((right - left) * 100, 5);
+      const left = this.getDatePositionInPixels(monthStart);
+      const width = this.getDatePositionInPixels(monthEnd) - left;
       
-      if (width > 3 && left < 100) {
+      if (width > 30) {
         this.monthHeaders.push({
           name: monthName,
-          left: left * 100,
+          left: left,
           width: width
         });
       }
@@ -346,23 +368,22 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     const end = new Date(this.dateRange.end);
     
     let current = new Date(start);
-    current.setDate(current.getDate() - current.getDay()); // Start from Sunday
+    current.setDate(current.getDate() - current.getDay());
     
     while (current < end) {
       const weekStart = new Date(Math.max(current.getTime(), start.getTime()));
       const weekEnd = new Date(Math.min(
-        new Date(current.getFullYear(), current.getMonth(), current.getDate() + 6).getTime(),
+        new Date(current.getFullYear(), current.getMonth(), current.getDate() + 6, 23, 59, 59).getTime(),
         end.getTime()
       ));
       
-      const left = this.getDatePosition(weekStart);
-      const right = this.getDatePosition(weekEnd);
-      const width = Math.max((right - left) * 100, 2);
+      const left = this.getDatePositionInPixels(weekStart);
+      const width = this.getDatePositionInPixels(weekEnd) - left;
       
-      if (width > 1 && left < 100) {
+      if (width > 20) {
         this.weekHeaders.push({
           name: `W${this.getWeekNumber(current)}`,
-          left: left * 100,
+          left: left,
           width: width
         });
       }
@@ -385,14 +406,13 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       const dayEnd = new Date(current);
       dayEnd.setHours(23, 59, 59, 999);
       
-      const left = this.getDatePosition(dayStart);
-      const right = this.getDatePosition(dayEnd);
-      const width = Math.max((right - left) * 100, 1);
+      const left = this.getDatePositionInPixels(dayStart);
+      const width = this.getDatePositionInPixels(dayEnd) - left;
       
-      if (width > 0.5) {
+      if (width > 10) {
         this.dayHeaders.push({
           name: current.getDate().toString(),
-          left: left * 100,
+          left: left,
           width: width,
           date: new Date(current)
         });
@@ -402,26 +422,18 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  getWeekHeaders(): WeekHeader[] {
-    return this.weekHeaders;
+  private getDatePositionInPixels(date: Date): number {
+    if (!this.dateRange.start || !this.dateRange.end) return 0;
+    const totalDuration = this.dateRange.end.getTime() - this.dateRange.start.getTime();
+    const position = date.getTime() - this.dateRange.start.getTime();
+    const percentage = totalDuration > 0 ? Math.max(0, Math.min(1, position / totalDuration)) : 0;
+    return percentage * this.chartWidth;
   }
 
-  getDayHeaders(): DayHeader[] {
-    return this.dayHeaders;
-  }
-
-  // Helper methods
   private getWeekNumber(date: Date): number {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-  }
-
-  private getDatePosition(date: Date): number {
-    if (!this.dateRange.start || !this.dateRange.end) return 0;
-    const totalDuration = this.dateRange.end.getTime() - this.dateRange.start.getTime();
-    const position = date.getTime() - this.dateRange.start.getTime();
-    return totalDuration > 0 ? Math.max(0, Math.min(1, position / totalDuration)) : 0;
   }
 
   // Template methods
@@ -463,24 +475,108 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   getBarPosition(startDate?: Date): number {
     if (!startDate) return 0;
-    return this.getDatePosition(startDate) * 100;
+    return this.getDatePositionInPixels(startDate);
   }
 
   getBarWidth(startDate?: Date, endDate?: Date): number {
     if (!startDate || !endDate) return 0;
-    const startPos = this.getDatePosition(startDate);
-    const endPos = this.getDatePosition(endDate);
-    return Math.max((endPos - startPos) * 100, 1);
+    const startPos = this.getDatePositionInPixels(startDate);
+    const endPos = this.getDatePositionInPixels(endDate);
+    return Math.max(endPos - startPos, 20);
   }
 
   getTodayPosition(): number {
-    return this.getDatePosition(new Date()) * 100;
+    return this.getDatePositionInPixels(new Date());
+  }
+
+  getChartWidth(): number {
+    return this.chartWidth;
+  }
+
+  getHeaderHeight(): number {
+    switch (this.currentView) {
+      case 'day':
+        return 96; // 40 + 28 + 28 (REDUCED)
+      case 'month':
+        return 68;  // 40 + 28 (REDUCED)
+      case 'year':
+        return 40;  // 40 only (REDUCED)
+      default:
+        return 68;
+    }
+  }
+
+  // ADDED: Get dynamic container height based on visible rows
+  getContainerHeight(): number {
+    const visibleRows = this.getVisibleRowCount();
+    const headerHeight = this.getHeaderHeight();
+    const baseHeight = 300; // Minimum height
+    const maxHeight = 700; // Maximum height
+    
+    // Calculate height based on row count
+    let calculatedHeight = headerHeight + (visibleRows * 48) + 50; // 50px for padding
+    
+    // Constrain between min and max
+    return Math.max(baseHeight, Math.min(calculatedHeight, maxHeight));
+  }
+
+  // ADDED: Get count of visible rows
+  getVisibleRowCount(): number {
+    return this.timelineRows.filter(row => row.visible !== false).length;
+  }
+
+  // FIXED: Scroll synchronization methods with header sync
+  onSidebarScroll(event: Event): void {
+    if (this.isScrollingChart) {
+      return;
+    }
+    
+    this.isScrollingSidebar = true;
+    const sidebar = event.target as HTMLElement;
+    const scrollTop = sidebar.scrollTop;
+    
+    if (this.chartContent && this.chartContent.nativeElement) {
+      this.chartContent.nativeElement.scrollTop = scrollTop;
+    }
+    
+    setTimeout(() => {
+      this.isScrollingSidebar = false;
+    }, 10);
+  }
+
+  onChartScroll(event: Event): void {
+    if (this.isScrollingSidebar) {
+      return;
+    }
+    
+    this.isScrollingChart = true;
+    const chart = event.target as HTMLElement;
+    const scrollTop = chart.scrollTop;
+    const scrollLeft = chart.scrollLeft;
+    
+    // Sync vertical scroll with sidebar
+    if (this.sidebarContent && this.sidebarContent.nativeElement) {
+      this.sidebarContent.nativeElement.scrollTop = scrollTop;
+    }
+    
+    // FIXED: Sync horizontal scroll with header
+    if (this.headerScroll && this.headerScroll.nativeElement) {
+      this.headerScroll.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    setTimeout(() => {
+      this.isScrollingChart = false;
+    }, 10);
   }
 
   // Event handlers
   onViewChanged(view: 'day' | 'month' | 'year') {
     this.currentView = view;
     this.prepareTimelineData();
+    // Force change detection to update header heights
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   onFilterToggled(event: { type: string; value: string; checked: boolean }) {
@@ -519,6 +615,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     };
     
     this.setLatestSprintAsDefault();
+    this.expandAllSprintsByDefault();
     this.availableEpics = this.getUniqueEpics();
     this.applyFilters();
   }
