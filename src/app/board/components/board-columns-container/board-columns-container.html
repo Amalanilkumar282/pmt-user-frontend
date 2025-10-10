@@ -1,4 +1,4 @@
-<div class="flex gap-4 h-full overflow-x-auto columns-scroll">
+<div class="flex gap-4 h-full overflow-x-auto overflow-y-hidden columns-scroll">
   <app-board-column
     *ngFor="let bucket of buckets(); trackBy: track"
     [def]="bucket.def"
