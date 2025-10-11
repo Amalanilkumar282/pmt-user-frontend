@@ -1,18 +1,31 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SidebarStateService } from '../services/sidebar-state.service';
+import { ProjectContextService } from '../services/project-context.service';
 
 @Component({
   selector: 'app-sidebar',
   imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.html',
   styleUrls: ['./sidebar.css'],
-  standalone: true
+  standalone: true,
 })
 export class Sidebar {
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
+  isStateReady = signal(false);
   
+  currentProjectId = this.projectContextService.currentProjectId;
+
+  constructor() {
+    // Mark ready after state loads
+    effect(() => {
+      this.sidebarStateService.isCollapsed();
+      this.isStateReady.set(true);
+    });
+  }
+
   // Use shared state from service
   // provide a tolerant isCollapsed callable that supports multiple shapes
   // of the SidebarStateService used across tests and app code:
@@ -37,12 +50,12 @@ export class Sidebar {
     { icon: 'recent', label: 'Recent', route: '/recent', active: false },
     { icon: 'projects', label: 'Projects', route: '/projects', active: false },
     { icon: 'starred', label: 'Starred', route: '/starred', active: false },
-    { icon: 'settings', label: 'Settings', route: '/settings', active: false }
+    { icon: 'settings', label: 'Settings', route: '/settings', active: false },
   ];
 
   recentProjects = [
     { name: 'My Scrum Project', id: 1 },
-    { name: 'My Scrum Project', id: 2 }
+    { name: 'My Scrum Project', id: 2 },
   ];
 
   toggleCollapse(): void {

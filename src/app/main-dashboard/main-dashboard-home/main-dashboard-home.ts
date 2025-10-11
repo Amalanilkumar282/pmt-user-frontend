@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 import { IssueSummaryCard } from '../../summary/issue-summary-card/issue-summary-card';
 import { SprintOverview } from '../../summary/sprint-overview/sprint-overview';
 import { ProjectCard } from '../project-card/project-card';
@@ -11,11 +12,12 @@ import { RouterModule } from '@angular/router';
 import {
   DashboardProject,
   DashboardActivity,
-  activeSprintIssues,
   dashboardProjects,
   dashboardStats,
   dashboardActivities,
   DashboardStats,
+  TaskStatus,
+  dashboardTaskStatus,
 } from '../../shared/data/dummy-backlog-data';
 
 @Component({
@@ -34,9 +36,15 @@ import {
     RouterModule,
   ],
 })
-export class MainDashboardHome {
+export class MainDashboardHome implements OnInit {
   userName = 'Harrel';
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
+
+  ngOnInit(): void {
+    // Clear project context when viewing main dashboard
+    this.projectContextService.clearCurrentProjectId();
+  }
 
   isSidebarCollapsed(): boolean {
     return this.sidebarStateService.getCollapsed();
@@ -56,14 +64,7 @@ export class MainDashboardHome {
     };
   }
 
-  get taskStatus() {
-    return {
-      toDo: activeSprintIssues.filter((i) => i.status === 'TODO').length,
-      inProgress: activeSprintIssues.filter((i) => i.status === 'IN_PROGRESS').length,
-      completed: activeSprintIssues.filter((i) => i.status === 'DONE').length,
-      onHold: activeSprintIssues.filter((i) => i.status === 'BLOCKED').length,
-    };
-  }
+  taskStatus: TaskStatus = dashboardTaskStatus;
 
   get sprintStatuses(): { label: string; count: number; colorClass: string }[] {
     return [

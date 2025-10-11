@@ -8,3 +8,17 @@
   width: calc(100% - 70px);
 }
  
+
+
+.table-wrapper {
+  width: 100%;               /* full width relative to page-container */
+  max-width: 1200px;         /* optional: limit width */
+  margin: 0;                 /* align with container */
+  padding: 0 3rem;           /* optional padding */
+}
+
+app-chart-table {
+  width: 100%;               /* stretch table to wrapper */
+}
+
+ 

@@ -1,11 +1,11 @@
-import { Component,inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 import { Navbar } from '../../shared/navbar/navbar';
 import { ChartCard } from '../chart-card/chart-card';
 import { ChartHeader } from '../chart-header/chart-header';
-import { Router } from '@angular/router';
- 
 import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
@@ -23,9 +23,19 @@ import { ChartTable } from '../chart-table/chart-table';
   templateUrl: './burndown-chart.html',
   styleUrl: './burndown-chart.css'
 })
-export class BurndownChart {
+export class BurndownChart implements OnInit {
+  private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+
+  ngOnInit(): void {
+    // Set project context from route params
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
+    }
+  }
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();

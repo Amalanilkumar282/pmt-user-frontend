@@ -9,18 +9,20 @@
   <div class="page-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
     <div class="page-header font-montserrat text-center" [class.sidebar-collapsed]="isSidebarCollapsed()">
       <!-- <p>burndown-chart works!</p> -->
-       
-        <app-chart-header [title]="'Burndown Report'" (back)="navigateBack()"></app-chart-header>
-      
+
+      <app-chart-header [title]="'Burndown Report'" (back)="navigateBack()"></app-chart-header>
+
       <app-metrics-chart [chartType]="'burndown'"></app-metrics-chart>
       <br><br>
-  <h3 class="font-bold text-left text-lg mb-2 ml-3">Completed Work Items</h3>
 
-<app-chart-table type="burndown" [statusFilter]="'DONE'" [showPaginator]="true"></app-chart-table>
-<br><br>
- <h3 class="font-bold text-left text-lg mb-2 ml-3">Incompleted Work Items</h3>
+      <div class="table-wrapper"> 
 
-<app-chart-table type="burndown" [statusFilter]="'INCOMPLETE'"[showPaginator]="true"></app-chart-table>
+      <h3 class="font-bold text-left text-lg mb-2 ml-3">Completed Work Items</h3>
+      <app-chart-table type="burndown" [statusFilter]="'DONE'" [showPaginator]="true"></app-chart-table>
+      <br><br>
+      <h3 class="font-bold text-left text-lg mb-2 ml-3">Incompleted Work Items</h3>
+      
+      <app-chart-table type="burndown" [statusFilter]="'INCOMPLETE'" [showPaginator]="true"></app-chart-table>
     </div>
 
   </div>
