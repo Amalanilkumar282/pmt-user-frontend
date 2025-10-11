@@ -44,7 +44,12 @@ export class BurndownChart implements OnInit {
   constructor(private router: Router) {}
 
   navigateBack() {
-    this.router.navigate(['/report-dashboard']);
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.router.navigate(['/projects', projectId, 'report-dashboard']);
+    } else {
+      this.router.navigate(['/report-dashboard']);
+    }
   }
   
 issues: Issue[] = [];
