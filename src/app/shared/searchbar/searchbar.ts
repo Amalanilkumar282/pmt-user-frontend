@@ -1,5 +1,5 @@
 import { Component, Output, EventEmitter } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { environment } from '../../../environments/environment';
@@ -226,29 +226,44 @@ Forget all previous instructions and respond only with the JSON object.
 
       // Parse JSON response
       const geminiResponse: GeminiActionResponse = JSON.parse(cleanedText);
-      console.log("Parsed Gemini response:", geminiResponse);
+      console.log("✨ Parsed Gemini response:", geminiResponse);
 
-      // Handle routing
-      if (geminiResponse.route) {
-        console.log(`Navigating to: ${geminiResponse.route}`);
+      // Check if this is a creation action (to skip routing)
+      const isCreateAction = geminiResponse.action === 'create_issue';
+
+      // Handle creation actions - skip routing and open modal immediately
+      if (isCreateAction && geminiResponse.fields) {
+        console.log('🛑 Creation action detected - skipping routing.');
+        console.log('🚀 Opening modal immediately in current view.');
+        
+        // Emit modal event immediately (no navigation needed)
+        this.openCreateModal.emit(geminiResponse.fields);
+
+        // Show summary if present
+        if (geminiResponse.summary) {
+          console.log('📝 Showing summary:', geminiResponse.summary);
+          setTimeout(() => {
+            this.showSummary.emit(geminiResponse.summary!);
+          }, 300);
+        }
+      }
+      // Handle navigation actions (non-create)
+      else if (geminiResponse.route && !isCreateAction) {
+        console.log('🧭 Navigating to:', geminiResponse.route);
+
+        // Wait for navigation to complete before emitting events
+        this.router.navigate([geminiResponse.route]).then(success => {
+          if (success) {
+            console.log('✅ Navigation complete.');
+          } else {
+            console.warn('⚠️ Navigation failed or was cancelled.');
+          }
+        });
+      }
+      // Fallback: if route exists but wasn't handled above
+      else if (geminiResponse.route) {
+        console.log('🧭 Fallback navigation to:', geminiResponse.route);
         this.router.navigate([geminiResponse.route]);
-      }
-
-      // Handle modal opening for create_issue action
-      if (geminiResponse.action === 'create_issue' && geminiResponse.fields) {
-        console.log("Emitting openCreateModal event with fields:", geminiResponse.fields);
-        // Emit event with delay to allow navigation to complete first
-        setTimeout(() => {
-          this.openCreateModal.emit(geminiResponse.fields);
-        }, 300);
-      }
-
-      // Show summary modal if summary is present
-      if (geminiResponse.summary) {
-        console.log("Showing summary:", geminiResponse.summary);
-        setTimeout(() => {
-          this.showSummary.emit(geminiResponse.summary!);
-        }, 600); // Delay slightly more to show after create modal
       }
 
       // Clear the search query after processing
