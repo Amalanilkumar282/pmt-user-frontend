@@ -1,10 +1,15 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule, CdkDropList, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { BoardColumnDef } from '../../models';
+import { BoardColumnDef, GroupBy } from '../../models';
 import type { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardStore } from '../../board-store';
 import { TaskCard } from '../task-card/task-card';
+
+interface GroupedIssues {
+  groupName: string;
+  issues: Issue[];
+}
 
 @Component({
   selector: 'app-board-column',
@@ -20,10 +25,44 @@ export class BoardColumn {
   @Input() def: BoardColumnDef = { id: 'TODO', title: '', color: 'border-slate-200' };
   @Input() items: Issue[] = [];
   @Input() connectedTo: string[] = [];
+  @Input() groupBy: GroupBy = 'NONE';
 
   trackById(index: number, item: Issue): string {
     return item.id;
-  }  // simple pagination per column
+  }
+  
+  // Group issues based on groupBy mode
+  get groupedIssues(): GroupedIssues[] {
+    if (this.groupBy === 'NONE') {
+      return [{ groupName: '', issues: this.items }];
+    }
+    
+    const groups = new Map<string, Issue[]>();
+    
+    this.items.forEach(issue => {
+      let groupKey = '';
+      
+      if (this.groupBy === 'ASSIGNEE') {
+        groupKey = issue.assignee || 'Unassigned';
+      } else if (this.groupBy === 'EPIC') {
+        groupKey = issue.epicId || 'No Epic';
+      } else if (this.groupBy === 'SUBTASK') {
+        groupKey = issue.parentId || 'No Parent';
+      }
+      
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(issue);
+    });
+    
+    // Convert map to array and sort by group name
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([groupName, issues]) => ({ groupName, issues }));
+  }
+  
+  // simple pagination per column
   pageSize = 20;
   get pageItems() { return this.items.slice(0, this.pageSize); }
   loadMore() { this.pageSize += 20; }

@@ -272,4 +272,112 @@ describe('BoardColumn', () => {
     const result = cmp.onDeleteColumn();
     expect(result).toBeTrue(); // Should treat undefined as empty
   });
+
+  describe('groupedIssues', () => {
+    it('should return single group when groupBy is NONE', () => {
+      const fixture = TestBed.createComponent(BoardColumn);
+      const cmp = fixture.componentInstance;
+      
+      cmp.groupBy = 'NONE';
+      cmp.items = [
+        { id: '1', assignee: 'Alice' } as any,
+        { id: '2', assignee: 'Bob' } as any
+      ];
+      
+      const groups = cmp.groupedIssues;
+      expect(groups.length).toBe(1);
+      expect(groups[0].groupName).toBe('');
+      expect(groups[0].issues.length).toBe(2);
+    });
+
+    it('should group by assignee when groupBy is ASSIGNEE', () => {
+      const fixture = TestBed.createComponent(BoardColumn);
+      const cmp = fixture.componentInstance;
+      
+      cmp.groupBy = 'ASSIGNEE';
+      cmp.items = [
+        { id: '1', assignee: 'Bob' } as any,
+        { id: '2', assignee: 'Alice' } as any,
+        { id: '3', assignee: 'Alice' } as any,
+        { id: '4', assignee: undefined } as any
+      ];
+      
+      const groups = cmp.groupedIssues;
+      expect(groups.length).toBe(3);
+      
+      // Should be sorted alphabetically: Alice, Bob, Unassigned
+      expect(groups[0].groupName).toBe('Alice');
+      expect(groups[0].issues.length).toBe(2);
+      expect(groups[0].issues.map((i: any) => i.id)).toEqual(['2', '3']);
+      
+      expect(groups[1].groupName).toBe('Bob');
+      expect(groups[1].issues.length).toBe(1);
+      
+      expect(groups[2].groupName).toBe('Unassigned');
+      expect(groups[2].issues.length).toBe(1);
+    });
+
+    it('should group by epic when groupBy is EPIC', () => {
+      const fixture = TestBed.createComponent(BoardColumn);
+      const cmp = fixture.componentInstance;
+      
+      cmp.groupBy = 'EPIC';
+      cmp.items = [
+        { id: '1', epicId: 'EPIC-2' } as any,
+        { id: '2', epicId: 'EPIC-1' } as any,
+        { id: '3', epicId: 'EPIC-1' } as any,
+        { id: '4', epicId: undefined } as any
+      ];
+      
+      const groups = cmp.groupedIssues;
+      expect(groups.length).toBe(3);
+      
+      // Should be sorted alphabetically: EPIC-1, EPIC-2, No Epic
+      expect(groups[0].groupName).toBe('EPIC-1');
+      expect(groups[0].issues.length).toBe(2);
+      
+      expect(groups[1].groupName).toBe('EPIC-2');
+      expect(groups[1].issues.length).toBe(1);
+      
+      expect(groups[2].groupName).toBe('No Epic');
+      expect(groups[2].issues.length).toBe(1);
+    });
+
+    it('should group by parent when groupBy is SUBTASK', () => {
+      const fixture = TestBed.createComponent(BoardColumn);
+      const cmp = fixture.componentInstance;
+      
+      cmp.groupBy = 'SUBTASK';
+      cmp.items = [
+        { id: '1', parentId: 'PARENT-2' } as any,
+        { id: '2', parentId: 'PARENT-1' } as any,
+        { id: '3', parentId: 'PARENT-1' } as any,
+        { id: '4', parentId: undefined } as any
+      ];
+      
+      const groups = cmp.groupedIssues;
+      expect(groups.length).toBe(3);
+      
+      // Should be sorted alphabetically: No Parent, PARENT-1, PARENT-2
+      expect(groups[0].groupName).toBe('No Parent');
+      expect(groups[0].issues.length).toBe(1);
+      
+      expect(groups[1].groupName).toBe('PARENT-1');
+      expect(groups[1].issues.length).toBe(2);
+      
+      expect(groups[2].groupName).toBe('PARENT-2');
+      expect(groups[2].issues.length).toBe(1);
+    });
+
+    it('should handle empty items array', () => {
+      const fixture = TestBed.createComponent(BoardColumn);
+      const cmp = fixture.componentInstance;
+      
+      cmp.groupBy = 'ASSIGNEE';
+      cmp.items = [];
+      
+      const groups = cmp.groupedIssues;
+      expect(groups.length).toBe(0);
+    });
+  });
 });

@@ -23,15 +23,25 @@
     (cdkDropListDropped)="drop($event)"
     class="min-h-16 space-y-3 max-h-[60vh] overflow-y-auto board-column-scroll">
 
-    <app-task-card
-      *ngFor="let issue of pageItems; trackBy: trackById"
-      cdkDrag
-      [issue]="issue"
-      [colorClass]="def.color"
-      (open)="onOpen($event)"
-      >
-
-    </app-task-card>
+    <!-- Grouped view -->
+    <ng-container *ngFor="let group of groupedIssues">
+      <!-- Group header (only show if groupBy is active) -->
+      <div *ngIf="groupBy !== 'NONE' && group.groupName" class="group-header">
+        <div class="group-header-line"></div>
+        <span class="group-header-text">{{ group.groupName }}</span>
+        <div class="group-header-line"></div>
+      </div>
+      
+      <!-- Issues in this group -->
+      <app-task-card
+        *ngFor="let issue of group.issues; trackBy: trackById"
+        cdkDrag
+        [issue]="issue"
+        [colorClass]="def.color"
+        (open)="onOpen($event)"
+        >
+      </app-task-card>
+    </ng-container>
     
     <!-- spacer to ensure last task is fully scrollable into view -->
     <div class="column-end-spacer" aria-hidden="true"></div>

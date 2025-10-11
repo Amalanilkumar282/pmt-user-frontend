@@ -2,7 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 import type { Issue } from '../shared/models/issue.model';
 import type { IssueStatus } from '../shared/models/issue.model';
 import type { FilterState, GroupBy, Sprint, BoardColumnDef } from './models';
-import { DEFAULT_COLUMNS, fuzzyIncludes, statusOrder } from './utils';
+import { DEFAULT_COLUMNS, fuzzyIncludes, statusOrder, priorityOrder } from './utils';
 
 @Injectable({ providedIn: 'root' })
 export class BoardStore {
@@ -59,9 +59,124 @@ export class BoardStore {
   columnBuckets = computed(() => {
     const cols = this.columns();
     const issues = this.visibleIssues();
+    const groupByType = this.groupBy();
+    
+    // Helper function to sort issues by priority
+    const sortByPriority = (issueList: Issue[]): Issue[] => {
+      return issueList.sort((a, b) => {
+        const priorityA = priorityOrder[a.priority] ?? 999;
+        const priorityB = priorityOrder[b.priority] ?? 999;
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+        return a.updatedAt.getTime() - b.updatedAt.getTime();
+      });
+    };
+    
+    // If no grouping, return regular columns with priority-sorted issues
+    if (groupByType === 'NONE') {
+      return cols.map(c => ({
+        def: c,
+        items: sortByPriority(issues.filter(i => i.status === c.id))
+      }));
+    }
+    
+    // Group by Assignee - within each column, group issues by assignee
+    if (groupByType === 'ASSIGNEE') {
+      return cols.map(c => {
+        const columnIssues = issues.filter(i => i.status === c.id);
+        
+        // Group issues by assignee
+        const grouped = new Map<string, Issue[]>();
+        columnIssues.forEach(issue => {
+          const assignee = issue.assignee || 'Unassigned';
+          if (!grouped.has(assignee)) {
+            grouped.set(assignee, []);
+          }
+          grouped.get(assignee)!.push(issue);
+        });
+        
+        // Sort each group by priority and flatten
+        const sortedIssues: Issue[] = [];
+        Array.from(grouped.entries())
+          .sort(([a], [b]) => a.localeCompare(b)) // Sort assignee names alphabetically
+          .forEach(([_, groupIssues]) => {
+            sortedIssues.push(...sortByPriority(groupIssues));
+          });
+        
+        return {
+          def: c,
+          items: sortedIssues,
+          groupedBy: 'ASSIGNEE' as const
+        };
+      });
+    }
+    
+    // Group by Epic - within each column, group issues by epic
+    if (groupByType === 'EPIC') {
+      return cols.map(c => {
+        const columnIssues = issues.filter(i => i.status === c.id);
+        
+        // Group issues by epic
+        const grouped = new Map<string, Issue[]>();
+        columnIssues.forEach(issue => {
+          const epic = issue.epicId || 'No Epic';
+          if (!grouped.has(epic)) {
+            grouped.set(epic, []);
+          }
+          grouped.get(epic)!.push(issue);
+        });
+        
+        // Sort each group by priority and flatten
+        const sortedIssues: Issue[] = [];
+        Array.from(grouped.entries())
+          .sort(([a], [b]) => a.localeCompare(b)) // Sort epic IDs alphabetically
+          .forEach(([_, groupIssues]) => {
+            sortedIssues.push(...sortByPriority(groupIssues));
+          });
+        
+        return {
+          def: c,
+          items: sortedIssues,
+          groupedBy: 'EPIC' as const
+        };
+      });
+    }
+    
+    // Group by Subtask - within each column, group issues by parent
+    if (groupByType === 'SUBTASK') {
+      return cols.map(c => {
+        const columnIssues = issues.filter(i => i.status === c.id);
+        
+        // Group issues by parent
+        const grouped = new Map<string, Issue[]>();
+        columnIssues.forEach(issue => {
+          const parent = issue.parentId || 'No Parent';
+          if (!grouped.has(parent)) {
+            grouped.set(parent, []);
+          }
+          grouped.get(parent)!.push(issue);
+        });
+        
+        // Sort each group by priority and flatten
+        const sortedIssues: Issue[] = [];
+        Array.from(grouped.entries())
+          .sort(([a], [b]) => a.localeCompare(b)) // Sort parent IDs alphabetically
+          .forEach(([_, groupIssues]) => {
+            sortedIssues.push(...sortByPriority(groupIssues));
+          });
+        
+        return {
+          def: c,
+          items: sortedIssues,
+          groupedBy: 'SUBTASK' as const
+        };
+      });
+    }
+    
     return cols.map(c => ({
       def: c,
-      items: issues.filter(i => i.status === c.id)
+      items: sortByPriority(issues.filter(i => i.status === c.id))
     }));
   });
 
