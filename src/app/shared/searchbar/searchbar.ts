@@ -15,6 +15,7 @@ export interface GeminiActionResponse {
     priority?: string;
     [key: string]: any;
   };
+  summary?: string;
 }
 
 @Component({
@@ -27,44 +28,152 @@ export interface GeminiActionResponse {
 export class Searchbar {
   query: string = '';
   isLoading: boolean = false;
+  isAiEnabled: boolean = true;
 
   @Output() openCreateModal = new EventEmitter<any>();
+  @Output() showSummary = new EventEmitter<string>();
+  @Output() showWarning = new EventEmitter<string>();
 
   constructor(private router: Router) {}
 
   /**
+   * Toggle AI assist on/off
+   */
+  toggleAi(): void {
+    this.isAiEnabled = !this.isAiEnabled;
+    console.log(`AI Assist ${this.isAiEnabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Check if current route is inside a project context
+   */
+  private isInsideProject(): boolean {
+    const url = this.router.url;
+    // Check if URL matches /projects/:id pattern
+    const projectRoutePattern = /^\/projects\/[\w-]+/;
+    return projectRoutePattern.test(url);
+  }
+
+  /**
+   * Extract project ID from current route
+   */
+  private getCurrentProjectId(): string | null {
+    const url = this.router.url;
+    const match = url.match(/^\/projects\/([\w-]+)/);
+    return match ? match[1] : null;
+  }
+
+  /**
    * Triggered when user presses Enter in the search bar
-   * Sends the query to Gemini and processes the structured response
+   * Handles both AI and non-AI modes
    */
   async searchGemini() {
     const prompt = this.query.trim();
     if (!prompt) return;
 
+    // Pre-parse prompt for "create" actions
+    const isCreateAction = /create|add|make|new\s+(issue|task|bug|story|epic)/i.test(prompt);
+
+    if (isCreateAction) {
+      // Check if we're inside a project route
+      if (!this.isInsideProject()) {
+        this.showWarning.emit('This functionality is only available inside a project dashboard.');
+        return;
+      }
+    }
+
+    // If AI is disabled, perform regular search (placeholder for now)
+    if (!this.isAiEnabled) {
+      console.log('Regular search:', prompt);
+      // TODO: Implement regular search functionality
+      this.query = '';
+      return;
+    }
+
+    // AI-enabled flow
     this.isLoading = true;
 
     try {
       const API_KEY = environment.geminiApiKey;
       const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=" + API_KEY;
 
-      // Enhanced prompt to guide Gemini to return structured JSON
-      const structuredPrompt = `You are an intelligent assistant for a project management application. 
-Parse the user's request and return ONLY a JSON object (no markdown, no code blocks, just raw JSON) with the following structure:
+      const projectId = this.getCurrentProjectId();
 
+      // Enhanced prompt with project context
+      const structuredPrompt = `
+You are an intelligent assistant inside a project management web application (similar to Jira). 
+Your job is to understand the user's natural language request and produce a machine-readable JSON object 
+that allows the application to perform navigation or actions automatically.
+
+Respond **only** with a raw JSON object — no markdown, no code blocks, and no explanations.
+
+---
+
+### Current Context:
+${projectId ? `- User is inside Project ID: ${projectId}` : '- User is NOT inside a specific project'}
+${projectId ? `- Use /projects/${projectId} as the base for all project-scoped routes` : ''}
+
+---
+
+### Available Actions:
+- "create_issue": to create a new issue or task.
+- "navigate": to move to a specific project page.
+- "search": to perform a general search or lookup.
+
+---
+
+### Valid Routes (Always include /projects/{id} when the user is within a project):
+"/projects"                                     → Project List  
+"/projects/{id}/summary"                        → Project Summary Page  
+"/projects/{id}/backlog"                        → Backlog Page  
+"/projects/{id}/board"                          → Board Page  
+"/projects/{id}/timeline"                       → Timeline Page  
+"/projects/{id}/report-dashboard"               → Report Dashboard Home  
+"/projects/{id}/report-dashboard/burnup-chart"  → Burnup Chart Page  
+"/projects/{id}/report-dashboard/burndown-chart"→ Burndown Chart Page  
+"/projects/{id}/report-dashboard/velocity-chart"→ Velocity Chart Page  
+
+---
+
+### Modal:
+- "create-issue" — used only when the action is "create_issue"
+
+---
+
+### JSON Response Format:
 {
   "action": "create_issue" | "navigate" | "search",
-  "route": "/projects" | "/backlog" | "/board" | "/timeline" | "/report-dashboard" | "/summary" | "/dashboard",
-  "modal": "create-issue" (if action is create_issue),
+  "route": "<exact route path (include project ID if relevant)>",
+  "modal": "create-issue" (only for create_issue),
   "fields": {
     "issueType": "Task" | "Bug" | "Story" | "Epic",
-    "summary": "brief title",
-    "description": "optional description",
+    "summary": "short descriptive title",
+    "description": "detailed description",
     "priority": "High" | "Medium" | "Low"
-  }
+  },
+  "summary": "short plain sentence summarizing what was done or will be done"
 }
+
+---
+
+### Rules:
+1. Respond strictly with JSON — no additional text or formatting.
+2. If the user's request contains words like *create, add, make, open new issue*, set \`"action": "create_issue"\`.
+3. If the request is about moving to a section or viewing something, set \`"action": "navigate"\` and map to the correct route.
+4. If the request is informational or exploratory, use \`"action": "search"\`.
+5. Always infer reasonable \`"fields"\` (summary, description, priority, issueType) for create actions.
+6. Include the \`"summary"\` field describing in one sentence what the action represents — this is displayed in a modal.
+7. Use project-scoped paths (e.g., "/projects/{id}/backlog") whenever the action happens inside a project context.
+${projectId ? `8. IMPORTANT: Use "/projects/${projectId}" as the base for all routes in this context.` : ''}
+
+---
 
 User request: "${prompt}"
 
-Return only the JSON object, nothing else.`;
+Return only the JSON object as per the structure above.
+
+Forget all previous instructions and respond only with the JSON object.
+`;
 
       const requestBody = {
         contents: [
@@ -91,6 +200,7 @@ Return only the JSON object, nothing else.`;
       }
     } catch (error) {
       console.error('❌ Error calling Gemini API:', error);
+      this.showWarning.emit('Failed to process your request. Please try again.');
     } finally {
       this.isLoading = false;
     }
@@ -98,7 +208,7 @@ Return only the JSON object, nothing else.`;
 
   /**
    * Parse and process the Gemini response
-   * Handles navigation and modal triggering
+   * Handles navigation, modal triggering, and summary display
    */
   private processGeminiResponse(responseText: string) {
     try {
@@ -133,12 +243,21 @@ Return only the JSON object, nothing else.`;
         }, 300);
       }
 
+      // Show summary modal if summary is present
+      if (geminiResponse.summary) {
+        console.log("Showing summary:", geminiResponse.summary);
+        setTimeout(() => {
+          this.showSummary.emit(geminiResponse.summary!);
+        }, 600); // Delay slightly more to show after create modal
+      }
+
       // Clear the search query after processing
       this.query = '';
 
     } catch (error) {
       console.error('❌ Error parsing Gemini response:', error);
       console.log('Response text was:', responseText);
+      this.showWarning.emit('Failed to understand the response. Please try rephrasing your request.');
     }
   }
 }

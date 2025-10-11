@@ -3,17 +3,26 @@ import { CommonModule } from '@angular/common';
 import { SidebarStateService } from '../services/sidebar-state.service';
 import { ModalService } from '../../modal/modal-service';
 import { Searchbar } from "../searchbar/searchbar";
+import { SummaryModal } from '../summary-modal/summary-modal';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, Searchbar],
+  imports: [CommonModule, Searchbar, SummaryModal],
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
 export class Header {
   private sidebarStateService = inject(SidebarStateService);
   private modalService = inject(ModalService);
+
+  // Summary modal state
+  showSummaryModal: boolean = false;
+  summaryText: string = '';
+
+  // Warning modal state
+  showWarningModal: boolean = false;
+  warningText: string = '';
 
   toggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
@@ -110,5 +119,39 @@ export class Header {
         attachments: []
       }
     });
+  }
+
+  /**
+   * Handle summary display from searchbar
+   */
+  handleShowSummary(summary: string): void {
+    console.log('Header received showSummary event:', summary);
+    this.summaryText = summary;
+    this.showSummaryModal = true;
+  }
+
+  /**
+   * Handle warning display from searchbar
+   */
+  handleShowWarning(warning: string): void {
+    console.log('Header received showWarning event:', warning);
+    this.warningText = warning;
+    this.showWarningModal = true;
+  }
+
+  /**
+   * Close summary modal
+   */
+  closeSummaryModal(): void {
+    this.showSummaryModal = false;
+    this.summaryText = '';
+  }
+
+  /**
+   * Close warning modal
+   */
+  closeWarningModal(): void {
+    this.showWarningModal = false;
+    this.warningText = '';
   }
 }
