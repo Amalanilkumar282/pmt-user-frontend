@@ -1,5 +1,6 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 export interface Project {
   id: string;
@@ -30,10 +31,16 @@ export type ProjectSortOption = 'recent' | 'name' | 'issues' | 'starred';
   styleUrl: './project-list.css',
 })
 export class ProjectList {
+  private router = inject(Router);
+  
   @Input() projects: Project[] = [];
   @Input() filteredProjects: Project[] = [];
   @Output() projectAction = new EventEmitter<ProjectAction>();
   @Input() sortBy: ProjectSortOption = 'recent';
+
+  navigateToProject(projectId: string) {
+    this.router.navigate(['/projects', projectId, 'board']);
+  }
 
   toggleProjectStar(projectId: string) {
     const project = this.projects.find((p) => p.id === projectId);

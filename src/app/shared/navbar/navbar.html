@@ -10,10 +10,10 @@
           </svg>
         </button>
         <div class="project-info">
-          <div class="project-icon">PA</div>
+          <div class="project-icon">{{ projectInfo().icon }}</div>
           <div class="project-details">
-            <div class="project-name">Project Alpha</div>
-            <div class="project-type">Reports</div>
+            <div class="project-name">{{ projectInfo().name }}</div>
+            <div class="project-type">{{ projectInfo().type }}</div>
           </div>
         </div>
       </div>
@@ -40,11 +40,16 @@
   <div class="navbar-bottom">
     <div class="navbar-container">
       <div class="navbar-center">
-        <a routerLink="/summary" routerLinkActive="active" class="nav-tab">Summary</a>
-        <a routerLink="/backlog" routerLinkActive="active" class="nav-tab">Backlog</a>
-        <a routerLink="/board" routerLinkActive="active" class="nav-tab">Board</a>
-        <a routerLink="/timeline" routerLinkActive="active" class="nav-tab">Timeline</a>
-        <a routerLink="/report-dashboard" routerLinkActive="active" class="nav-tab">Reports</a>
+        @if (currentProjectId()) {
+          <a [routerLink]="['/projects', currentProjectId(), 'summary']" routerLinkActive="active" class="nav-tab">Summary</a>
+          <a [routerLink]="['/projects', currentProjectId(), 'backlog']" routerLinkActive="active" class="nav-tab">Backlog</a>
+          <a [routerLink]="['/projects', currentProjectId(), 'board']" routerLinkActive="active" class="nav-tab">Board</a>
+          <a [routerLink]="['/projects', currentProjectId(), 'timeline']" routerLinkActive="active" class="nav-tab">Timeline</a>
+          <a [routerLink]="['/projects', currentProjectId(), 'report-dashboard']" routerLinkActive="active" class="nav-tab">Reports</a>
+        } @else {
+          <a routerLink="/projects" routerLinkActive="active" class="nav-tab">Projects</a>
+          <a routerLink="/dashboard" routerLinkActive="active" class="nav-tab">Dashboard</a>
+        }
         <button class="nav-more">
           <span>+</span>
         </button>

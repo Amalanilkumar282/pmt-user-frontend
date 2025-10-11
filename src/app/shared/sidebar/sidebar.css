@@ -209,6 +209,13 @@
   color: #111827;
 }
 
+/* Navigation divider */
+.nav-divider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 8px 0;
+}
+
 /* Recent Projects Section */
 .recent-projects {
   margin-top: auto;
