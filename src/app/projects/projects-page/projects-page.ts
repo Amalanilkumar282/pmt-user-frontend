@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProjectHeader } from '../components/project-header/project-header';
 import { ProjectFilters } from '../components/project-filters/project-filters';
@@ -6,6 +6,7 @@ import { ProjectList, Project, ProjectSortOption } from '../components/project-l
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Header } from '../../shared/header/header';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 
 @Component({
   selector: 'app-projects-page',
@@ -14,8 +15,9 @@ import { SidebarStateService } from '../../shared/services/sidebar-state.service
   templateUrl: './projects-page.html',
   styleUrl: './projects-page.css',
 })
-export class ProjectsPage {
+export class ProjectsPage implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
   isCollapsed = this.sidebarStateService.isCollapsed;
 
   searchQuery = '';
@@ -96,6 +98,11 @@ export class ProjectsPage {
 
   constructor() {
     this._filteredProjects.set(this._projects());
+  }
+
+  ngOnInit(): void {
+    // Clear project context when viewing all projects
+    this.projectContextService.clearCurrentProjectId();
   }
 
   toggleProjectStar(projectId: string) {
