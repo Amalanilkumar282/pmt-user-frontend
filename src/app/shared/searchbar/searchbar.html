@@ -1,0 +1,15 @@
+<div class="search-box">
+    <span class="search-icon">
+        <svg *ngIf="!isLoading" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M17.5 17.5L13.875 13.875M15.8333 9.16667C15.8333 12.8486 12.8486 15.8333 9.16667 15.8333C5.48477 15.8333 2.5 12.8486 2.5 9.16667C2.5 5.48477 5.48477 2.5 9.16667 2.5C12.8486 2.5 15.8333 5.48477 15.8333 9.16667Z"
+                stroke="currentColor" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg *ngIf="isLoading" class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+            <path d="M12 2 A10 10 0 0 1 22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </span>
+    <input type="text" placeholder="Try: 'Create a task for user sign in' or 'Go to board'..." [(ngModel)]="query"
+        (keyup.enter)="searchGemini()" [disabled]="isLoading" />
+</div>
