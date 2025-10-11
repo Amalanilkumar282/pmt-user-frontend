@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { Sidebar } from '../../../shared/sidebar/sidebar';
 import { Navbar } from '../../../shared/navbar/navbar';
 import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../../shared/services/project-context.service';
 import { BoardColumn } from '../board-column/board-column';
 import { BoardStore } from '../../board-store';
 import { BoardToolbar } from '../board-toolbar/board-toolbar';
@@ -28,7 +30,9 @@ import { sprints, completedSprint1Issues, completedSprint2Issues, activeSprintIs
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BoardPage implements OnInit {
+  private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
   private store = inject(BoardStore);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
@@ -44,6 +48,12 @@ export class BoardPage implements OnInit {
   }
 
   ngOnInit(): void {
+    // Set project context from route params
+    const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
+    }
+    
     this.store.loadData(sprints);
     this.store.addBacklog(backlogIssues);
     this.store.selectSprint('active-1');

@@ -1,9 +1,11 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { IssueSummaryCard } from '../issue-summary-card/issue-summary-card';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 import { SprintOverview } from '../sprint-overview/sprint-overview';
 import { SummaryBarChart } from '../summary-bar-chart/summary-bar-chart';
 import { ProjectSummary } from '../project-summary/project-summary';
@@ -53,7 +55,9 @@ interface RecentIssue {
   styleUrl: './summary-page.css',
 })
 export class SummaryPage implements OnInit {
+  private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
   private issueSummaryService = inject(IssueSummaryService);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
@@ -85,6 +89,12 @@ export class SummaryPage implements OnInit {
   ];
 
   ngOnInit(): void {
+    // Set project context from route params
+    const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
+    }
+    
     // Load sprints for the filter
     this.sprints = this.issueSummaryService.getAllSprints();
 
