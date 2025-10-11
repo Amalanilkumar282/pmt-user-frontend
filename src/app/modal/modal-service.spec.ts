@@ -30,10 +30,10 @@ describe('ModalService', () => {
     service.open(config);
 
     service.activeModal$.subscribe(modalId => {
-      if (modalId === 'test-modal') {
+      // if (modalId === 'test-modal') {
         expect(modalId).toBe('test-modal');
         done();
-      }
+      // }
     });
   });
 
