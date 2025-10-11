@@ -14,11 +14,11 @@ import { Issue } from '../../shared/models/issue.model';
 
 @Component({
   selector: 'app-velocity-chart',
-  standalone:true,
-  imports: [Sidebar,Navbar,ChartHeader,MetricsChart,ChartTable,SprintFilterComponent],
+  standalone: true,
+  imports: [Sidebar, Navbar, ChartHeader, MetricsChart, ChartTable, SprintFilterComponent],
   //  providers: [SidebarStateService], 
   templateUrl: './velocity-chart.html',
-  styleUrl: './velocity-chart.css'
+  styleUrls: ['./velocity-chart.css']
 })
 export class VelocityChart implements OnInit {
   private route = inject(ActivatedRoute);
@@ -26,12 +26,22 @@ export class VelocityChart implements OnInit {
   private projectContextService = inject(ProjectContextService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
+  // declare properties used in the class
+  selectedSprintId: string | null = null;
+  issues: Issue[] = [];
+  private issueSummaryService = inject(IssueSummaryService);
+  // sprints shown in the sprint filter
+  sprints: Sprint[] = [];
+
   ngOnInit(): void {
     // Set project context from route params
     const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
     }
+
+    // populate sprint list for the sprint filter
+    this.sprints = this.issueSummaryService.getAllSprints();
   }
 
   onToggleSidebar(): void {
