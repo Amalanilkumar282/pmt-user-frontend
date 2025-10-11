@@ -39,10 +39,10 @@
     </thead>
     <tbody class="divide-y divide-slate-200">
       @for (project of filteredProjects; track project.id) {
-      <tr class="hover:bg-slate-50 transition-colors">
+      <tr class="hover:bg-slate-50 transition-colors cursor-pointer" (click)="navigateToProject(project.id)">
         <td class="px-6 py-4">
           <button
-            (click)="toggleProjectStar(project.id)"
+            (click)="toggleProjectStar(project.id); $event.stopPropagation()"
             class="text-slate-400 hover:text-yellow-500 transition-colors"
           >
             <svg
@@ -92,7 +92,7 @@
         </td>
         <td class="px-6 py-4">
           <button
-            (click)="openProjectMenu(project.id)"
+            (click)="openProjectMenu(project.id); $event.stopPropagation()"
             class="text-slate-400 hover:text-slate-600 transition-colors"
           >
             <svg class="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">

@@ -11,24 +11,21 @@ import { MainDashboardHome } from './main-dashboard/main-dashboard-home/main-das
 import { ProjectsPage } from './projects/projects-page/projects-page';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  { path: '', redirectTo: '/projects', pathMatch: 'full' },
   { path: 'dashboard', component: MainDashboardHome },
   { path: 'projects', component: ProjectsPage },
-  { path: 'summary', component: SummaryPage },
-  { path: 'backlog', component: BacklogPage },
-  { path: 'board', component: BoardPage },
-  { path: 'report-dashboard', component: ReportDashboardHome },
-  { path: 'timeline', component: TimelineComponent },
   {
-    path: 'report-dashboard/burnup-chart',
-    component: BurnupChart,
-  },
-  {
-    path: 'report-dashboard/burndown-chart',
-    component: BurndownChart,
-  },
-  {
-    path: 'report-dashboard/velocity-chart',
-    component: VelocityChart,
+    path: 'projects/:projectId',
+    children: [
+      { path: '', redirectTo: 'board', pathMatch: 'full' },
+      { path: 'board', component: BoardPage },
+      { path: 'backlog', component: BacklogPage },
+      { path: 'summary', component: SummaryPage },
+      { path: 'timeline', component: TimelineComponent },
+      { path: 'report-dashboard', component: ReportDashboardHome },
+      { path: 'report-dashboard/burnup-chart', component: BurnupChart },
+      { path: 'report-dashboard/burndown-chart', component: BurndownChart },
+      { path: 'report-dashboard/velocity-chart', component: VelocityChart },
+    ],
   },
 ];
