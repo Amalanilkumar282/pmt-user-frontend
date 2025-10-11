@@ -172,10 +172,6 @@
   -ms-overflow-style: none;
 }
 
-.header-scroll-container::-webkit-scrollbar {
-  display: none;
-}
-
 .header-content {
   position: relative;
   height: 100%;
@@ -317,27 +313,53 @@
   background-color: #dbeafe;
 }
 
-/* Timeline Bars */
+/* Timeline Bars - WITH RESIZE HANDLES */
 .timeline-bar {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   border-radius: 0.375rem;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
   cursor: pointer;
   min-width: 20px;
 }
 
-.timeline-bar:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  filter: brightness(1.1);
-  z-index: 20;
-  transform: translateY(-50%) scale(1.05);
+.timeline-bar.resizing {
+  cursor: ew-resize;
+  z-index: 50;
+}
+
+.bar-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.timeline-bar:hover .bar-resize-handle {
+  opacity: 1;
+}
+
+.bar-resize-handle.left {
+  left: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.8), transparent);
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+.bar-resize-handle.right {
+  right: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.8), transparent);
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
 }
 
 .sprint-bar {
@@ -363,8 +385,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%;
+  flex: 1;
   font-size: 0.7rem;
+  pointer-events: none;
 }
 
 .sprint-bar .bar-label {
@@ -379,7 +402,7 @@
   font-size: 0.65rem;
 }
 
-/* Today Marker */
+/* Today Marker - INCREASED Z-INDEX */
 .today-marker {
   position: absolute;
   top: 0;
@@ -387,7 +410,7 @@
   width: 2px;
   background-color: #ef4444;
   pointer-events: none;
-  z-index: 30;
+  z-index: 100;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -437,6 +460,10 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.header-scroll-container::-webkit-scrollbar {
+  display: none;
 }
 
 /* ===========================

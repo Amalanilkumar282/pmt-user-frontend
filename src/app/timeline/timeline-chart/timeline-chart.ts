@@ -89,6 +89,9 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   private isScrollingChart = false;
   private isScrollingHeader = false;
 
+  // Bar resize properties
+  resizingBar: { id: string; side: 'left' | 'right'; startX: number; originalStart: Date; originalEnd: Date } | null = null;
+
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
@@ -96,8 +99,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     this.setLatestSprintAsDefault();
     this.availableEpics = this.getUniqueEpics();
     
-    // FIXED: Expand all sprints by default
-    this.expandAllSprintsByDefault();
+    // FIXED: Only expand sprints by default, NOT epics
+    this.expandSprintsOnly();
     
     this.prepareTimelineData();
   }
@@ -107,28 +110,84 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       this.updateDateHeaders();
       this.cdr.detectChanges();
     }, 100);
+
+    // Add mouse move and up listeners for bar resize
+    document.addEventListener('mousemove', this.onBarResizeMove.bind(this));
+    document.addEventListener('mouseup', this.onBarResizeEnd.bind(this));
   }
 
   ngOnDestroy() {
-    // Cleanup if needed
+    // Cleanup bar resize listeners
+    document.removeEventListener('mousemove', this.onBarResizeMove.bind(this));
+    document.removeEventListener('mouseup', this.onBarResizeEnd.bind(this));
   }
 
-  // FIXED: Expand all sprints (and their epics) by default
-  private expandAllSprintsByDefault(): void {
+  // FIXED: Only expand sprints, keep epics collapsed by default
+  private expandSprintsOnly(): void {
     const filteredSprints = this.getFilteredSprints();
     
     filteredSprints.forEach(sprint => {
       const sprintId = `sprint-${sprint.id}`;
       this.expandedRows.add(sprintId);
-      
-      // Also expand all epics within this sprint
-      if (sprint.issues) {
-        const epicGroups = this.groupIssuesByEpicId(sprint.issues);
-        Object.keys(epicGroups).forEach(epicId => {
-          this.expandedRows.add(`epic-${epicId}`);
-        });
-      }
+      // Do NOT expand epics by default
     });
+  }
+
+  // Bar resize functionality
+  onBarResizeStart(event: MouseEvent, row: TimelineRow, side: 'left' | 'right'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (!row.startDate || !row.endDate) return;
+    
+    this.resizingBar = {
+      id: row.id,
+      side: side,
+      startX: event.clientX,
+      originalStart: new Date(row.startDate),
+      originalEnd: new Date(row.endDate)
+    };
+  }
+
+  private onBarResizeMove(event: MouseEvent): void {
+    if (!this.resizingBar) return;
+    
+    const deltaX = event.clientX - this.resizingBar.startX;
+    const deltaDays = Math.round(deltaX / this.getPixelsPerDay());
+    
+    const row = this.timelineRows.find(r => r.id === this.resizingBar!.id);
+    if (!row || !row.startDate || !row.endDate) return;
+    
+    if (this.resizingBar.side === 'left') {
+      const newStart = new Date(this.resizingBar.originalStart);
+      newStart.setDate(newStart.getDate() + deltaDays);
+      
+      // Ensure start doesn't go beyond end
+      if (newStart < row.endDate) {
+        row.startDate = newStart;
+      }
+    } else {
+      const newEnd = new Date(this.resizingBar.originalEnd);
+      newEnd.setDate(newEnd.getDate() + deltaDays);
+      
+      // Ensure end doesn't go before start
+      if (newEnd > row.startDate) {
+        row.endDate = newEnd;
+      }
+    }
+    
+    this.cdr.detectChanges();
+  }
+
+  private onBarResizeEnd(event: MouseEvent): void {
+    if (!this.resizingBar) return;
+    this.resizingBar = null;
+    this.cdr.detectChanges();
+  }
+
+  private getPixelsPerDay(): number {
+    const totalDays = Math.ceil((this.dateRange.end.getTime() - this.dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    return this.chartWidth / totalDays;
   }
 
   // Dynamic timeline preparation
@@ -314,13 +373,13 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     switch (this.currentView) {
       case 'day':
-        this.chartWidth = Math.max(totalDays * 100, 3000); // Increased from 80
+        this.chartWidth = Math.max(totalDays * 100, 3000);
         break;
       case 'month':
-        this.chartWidth = Math.max(totalDays * 20, 2500); // Increased from 15
+        this.chartWidth = Math.max(totalDays * 20, 2500);
         break;
       case 'year':
-        this.chartWidth = Math.max(totalDays * 4, 2000); // Increased from 3
+        this.chartWidth = Math.max(totalDays * 4, 2000);
         break;
     }
   }
@@ -496,31 +555,29 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   getHeaderHeight(): number {
     switch (this.currentView) {
       case 'day':
-        return 96; // 40 + 28 + 28 (REDUCED)
+        return 96;
       case 'month':
-        return 68;  // 40 + 28 (REDUCED)
+        return 68;
       case 'year':
-        return 40;  // 40 only (REDUCED)
+        return 40;
       default:
         return 68;
     }
   }
 
-  // ADDED: Get dynamic container height based on visible rows
+  // Get dynamic container height based on visible rows
   getContainerHeight(): number {
     const visibleRows = this.getVisibleRowCount();
     const headerHeight = this.getHeaderHeight();
-    const baseHeight = 300; // Minimum height
-    const maxHeight = 700; // Maximum height
+    const baseHeight = 300;
+    const maxHeight = 700;
     
-    // Calculate height based on row count
-    let calculatedHeight = headerHeight + (visibleRows * 48) + 50; // 50px for padding
+    let calculatedHeight = headerHeight + (visibleRows * 48) + 50;
     
-    // Constrain between min and max
     return Math.max(baseHeight, Math.min(calculatedHeight, maxHeight));
   }
 
-  // ADDED: Get count of visible rows
+  // Get count of visible rows
   getVisibleRowCount(): number {
     return this.timelineRows.filter(row => row.visible !== false).length;
   }
@@ -545,7 +602,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onChartScroll(event: Event): void {
-    if (this.isScrollingSidebar) {
+    if (this.isScrollingSidebar || this.isScrollingHeader) {
       return;
     }
     
@@ -569,11 +626,30 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }, 10);
   }
 
+  // FIXED: Add header scroll handler to sync with chart content
+  onHeaderScroll(event: Event): void {
+    if (this.isScrollingChart) {
+      return;
+    }
+    
+    this.isScrollingHeader = true;
+    const header = event.target as HTMLElement;
+    const scrollLeft = header.scrollLeft;
+    
+    // Sync horizontal scroll with chart content
+    if (this.chartContent && this.chartContent.nativeElement) {
+      this.chartContent.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    setTimeout(() => {
+      this.isScrollingHeader = false;
+    }, 10);
+  }
+
   // Event handlers
   onViewChanged(view: 'day' | 'month' | 'year') {
     this.currentView = view;
     this.prepareTimelineData();
-    // Force change detection to update header heights
     setTimeout(() => {
       this.cdr.detectChanges();
     }, 0);
@@ -615,7 +691,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     };
     
     this.setLatestSprintAsDefault();
-    this.expandAllSprintsByDefault();
+    this.expandSprintsOnly();
     this.availableEpics = this.getUniqueEpics();
     this.applyFilters();
   }

@@ -95,7 +95,7 @@
              [class.day-view]="currentView === 'day'"
              [class.month-view]="currentView === 'month'"
              [class.year-view]="currentView === 'year'">
-          <div class="header-scroll-container" #headerScroll>
+          <div class="header-scroll-container" #headerScroll (scroll)="onHeaderScroll($event)">
             <div class="header-content" [style.width.px]="chartWidth">
               
               <!-- Month/Year Headers (Top Level) - ALWAYS VISIBLE -->
@@ -158,34 +158,49 @@
                   <!-- Sprint Bar -->
                   <div *ngIf="row.type === 'sprint' && row.startDate && row.endDate" 
                        class="timeline-bar sprint-bar"
+                       [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
                        [title]="row.name + ' (' + row.progress + '%)'">
+                    <div class="bar-resize-handle left" 
+                         (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
                       {{ row.name }} ({{ row.progress }}%)
                     </div>
+                    <div class="bar-resize-handle right" 
+                         (mousedown)="onBarResizeStart($event, row, 'right')"></div>
                   </div>
 
                   <!-- Epic Bar -->
                   <div *ngIf="row.type === 'epic' && row.startDate && row.endDate" 
                        class="timeline-bar epic-bar"
+                       [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
                        [title]="row.name + ' (' + row.progress + '%)'">
+                    <div class="bar-resize-handle left" 
+                         (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
                       {{ row.name }} ({{ row.progress }}%)
                     </div>
+                    <div class="bar-resize-handle right" 
+                         (mousedown)="onBarResizeStart($event, row, 'right')"></div>
                   </div>
 
                   <!-- Issue Bar -->
                   <div *ngIf="row.type === 'issue' && row.startDate && row.endDate" 
                        class="timeline-bar issue-bar"
+                       [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
                        [title]="row.name + ' (' + row.progress + '%)'">
+                    <div class="bar-resize-handle left" 
+                         (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
                       {{ row.progress }}%
                     </div>
+                    <div class="bar-resize-handle right" 
+                         (mousedown)="onBarResizeStart($event, row, 'right')"></div>
                   </div>
                 </div>
               </ng-container>
