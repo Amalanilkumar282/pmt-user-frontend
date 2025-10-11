@@ -33,24 +33,21 @@
 .btn-primary { background:#5a4ca7; color:#fff; padding:6px 16px; border:none; border-radius:4px; }
 .btn-secondary { background:#eee; color:#333; padding:6px 16px; border:none; border-radius:4px; }
 
-/* Scrollbar track */
 .modal-body::-webkit-scrollbar {
-  width: 15px; /* width of the scrollbar */
+  width: 15px; 
 }
 
 .modal-body::-webkit-scrollbar-track {
-  background: #F1e3Fe; /* track color */
-  border-radius: 4px;
+  background: #F1e3Fe; 
+  border-radius: 8px;
 }
 
-/* Scrollbar thumb */
 .modal-body::-webkit-scrollbar-thumb {
-  background: #888; /* thumb color */
+  background: #888;
   border-radius: 20px;
   border: 3px solid #F1E3FC;
 }
 
-/* Thumb hover */
 .modal-body::-webkit-scrollbar-thumb:hover {
   background: #555;
 }

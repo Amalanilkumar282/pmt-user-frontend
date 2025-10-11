@@ -41,4 +41,5 @@ export class ModalService {
   getConfig(modalId: string): ModalConfig | undefined {
     return this.modalData[modalId];
   }
+  
 }
