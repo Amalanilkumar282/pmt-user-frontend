@@ -11,18 +11,25 @@
       <!-- <p>burndown-chart works!</p> -->
 
       <app-chart-header [title]="'Burndown Report'" (back)="navigateBack()"></app-chart-header>
+      <div class="ml-10">
+     <app-sprint-filter
+        [sprints]="sprints"
+        [selectedSprint]="selectedSprintId || 'all'"
+        (sprintChange)="onSprintFilterChange($event)"
+      ></app-sprint-filter>
+      </div>
 
-      <app-metrics-chart [chartType]="'burndown'"></app-metrics-chart>
+      <app-metrics-chart [chartType]="'burndown'" [sprintId]="selectedSprintId"></app-metrics-chart>
       <br><br>
 
       <div class="table-wrapper"> 
 
       <h3 class="font-bold text-left text-lg mb-2 ml-3">Completed Work Items</h3>
-      <app-chart-table type="burndown" [statusFilter]="'DONE'" [showPaginator]="true"></app-chart-table>
+      <app-chart-table type="burndown" [statusFilter]="'DONE'" [showPaginator]="true"  [sprintId]="selectedSprintId"></app-chart-table>
       <br><br>
       <h3 class="font-bold text-left text-lg mb-2 ml-3">Incompleted Work Items</h3>
       
-      <app-chart-table type="burndown" [statusFilter]="'INCOMPLETE'" [showPaginator]="true"></app-chart-table>
+      <app-chart-table type="burndown" [statusFilter]="'INCOMPLETE'" [showPaginator]="true" [sprintId]="selectedSprintId"></app-chart-table>
     </div>
 
   </div>

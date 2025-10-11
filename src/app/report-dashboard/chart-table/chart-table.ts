@@ -1,11 +1,11 @@
-import { Component, OnInit, Input } from '@angular/core';
+ import { Component, OnInit, Input, OnChanges, SimpleChanges, AfterViewInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { Issue } from '../../shared/models/issue.model';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
-import { ViewChild, AfterViewInit } from '@angular/core';
+
 interface BurnupRow {
   date: string;
   event: string;
@@ -13,6 +13,7 @@ interface BurnupRow {
   completed: number;
   scope: number;
 }
+
 export interface BurndownRow {
   key: string;
   summary: string;
@@ -28,19 +29,35 @@ export interface BurndownRow {
   standalone: true,
   imports: [CommonModule, MatTableModule, MatPaginatorModule],
   templateUrl: './chart-table.html',
-  styleUrls: ['./chart-table.css'],
-  
+  styleUrls: ['./chart-table.css']
 })
-export class ChartTable implements OnInit, AfterViewInit {
+export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   @Input() type: 'burnup' | 'burndown' | 'velocity' = 'burnup';
   @Input() statusFilter?: 'DONE' | 'INCOMPLETE';
   @Input() showPaginator: boolean = true;
+  @Input() sprintId: string | null = null; // 👈 Added
 
   dataSource!: MatTableDataSource<any>;
   displayedColumns: string[] = [];
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   ngOnInit(): void {
+    this.loadTableData();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['sprintId'] && !changes['sprintId'].firstChange) {
+      this.loadTableData(); // 👈 Reload when sprintId changes
+    }
+  }
+
+  ngAfterViewInit(): void {
+    if (this.dataSource) {
+      this.dataSource.paginator = this.paginator;
+    }
+  }
+
+  private loadTableData(): void {
     if (this.type === 'burnup') {
       this.displayedColumns = ['date', 'event', 'workItem', 'completed', 'scope'];
       this.loadBurnupData();
@@ -52,155 +69,110 @@ export class ChartTable implements OnInit, AfterViewInit {
       this.loadVelocityData();
     }
   }
-  ngAfterViewInit(): void {
-    if (this.dataSource) {
-      this.dataSource.paginator = this.paginator;
+
+  private getSelectedSprint(): Sprint | undefined {
+    if (this.sprintId && this.sprintId !== 'all') {
+      return sprints.find(s => s.id === this.sprintId);
     }
-  }
-   
-
- 
- loadBurnupData(): void {
-  // Automatically pick the latest completed or active sprint
-  const sprint: Sprint | undefined = sprints
-    .filter(s => s.status === 'COMPLETED' || s.status === 'ACTIVE')
-    .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
-
-   if (!sprint) {
-  this.dataSource = new MatTableDataSource<BurnupRow>([]);
-  return;
-}
-
-  // ✅ All issues created in this sprint (for Sprint Start row)
-  const allSprintIssues: Issue[] = sprint.issues ?? [];
-
-  // ✅ Only include completed (DONE) issues updated before sprint end
-  const completedIssues: Issue[] = allSprintIssues
-    .filter(issue => issue.status === 'DONE' && issue.updatedAt.getTime() <= sprint.endDate.getTime());
-
-  // ✅ Sort completed issues by updated date
-  const sortedIssues: Issue[] = [...completedIssues].sort(
-    (a, b) => a.updatedAt.getTime() - b.updatedAt.getTime()
-  );
-
-  // ✅ Total scope = all issues' story points in this sprint (not just completed)
-  const totalScope: number = allSprintIssues.reduce(
-    (sum, i) => sum + (i.storyPoints || 0),
-    0
-  );
-
-  const chartData: BurnupRow[] = [];
-
-  // ✅ Sprint Start row – show all issues created in that sprint
-  chartData.push({
-    date: sprint.startDate.toISOString().split('T')[0],
-    event: 'Sprint Start',
-    workItem: allSprintIssues.map(i => i.id).join(', '), // ← all issue IDs
-    completed: 0,
-    scope: totalScope,
-  });
-
-  // ✅ Group completed issues by updated date
-  const issuesByDate: Record<string, Issue[]> = {};
-  sortedIssues.forEach(issue => {
-     const dateStr = issue.updatedAt ? issue.updatedAt.toISOString().split('T')[0] : '';
-
-    if (!issuesByDate[dateStr]) issuesByDate[dateStr] = [];
-    issuesByDate[dateStr].push(issue);
-  });
-
-  // ✅ Add rows for each date with cumulative completed
-  let cumulativeCompleted = 0;
-  Object.keys(issuesByDate)
-    .sort()
-    .forEach(date => {
-      const issues = issuesByDate[date];
-      const workItems = issues.map(i => i.id).join(', ');
-      cumulativeCompleted += issues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
-
-      chartData.push({
-        date,
-        event: 'Workitem Completed',
-        workItem: workItems,
-        completed: cumulativeCompleted,
-        scope: totalScope,
-      });
-    });
-
-  this.dataSource = new MatTableDataSource<BurnupRow>(chartData??[]);
-}
-
-  loadBurndownData():void {
-    const sprint = sprints
+    return sprints
       .filter(s => s.status === 'COMPLETED' || s.status === 'ACTIVE')
       .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
+  }
 
-     if (!sprint?.issues || sprint.issues.length === 0) {
-  this.dataSource = new MatTableDataSource<BurndownRow>([]);
-  return;
-}
-    // Filter issues by updated date first
-    let sprintIssues: Issue[] = sprint.issues.filter(
-      i => i.updatedAt && i.updatedAt.getTime() <= sprint.endDate.getTime()
-    );
-
-    // Apply status filter before mapping to rows
-    if (this.statusFilter === 'DONE') {
-      sprintIssues = sprintIssues.filter(i => i.status === 'DONE');
-    } else if (this.statusFilter === 'INCOMPLETE') {
-      sprintIssues = sprintIssues.filter(i => i.status !== 'DONE');
+  private loadBurnupData(): void {
+    const sprint = this.getSelectedSprint();
+    if (!sprint) {
+      this.dataSource = new MatTableDataSource<BurnupRow>([]);
+      return;
     }
 
-    // Map filtered issues to table rows
-    const burndownRows: BurndownRow[] = sprintIssues.map(i => ({
+    const allIssues: Issue[] = sprint.issues ?? [];
+    const completedIssues = allIssues.filter(i => i.status === 'DONE');
+    const totalScope = allIssues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
+    const sorted = completedIssues.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime());
+
+    const data: BurnupRow[] = [
+      {
+        date: sprint.startDate.toISOString().split('T')[0],
+        event: 'Sprint Start',
+        workItem: allIssues.map(i => i.id).join(', '),
+        completed: 0,
+        scope: totalScope
+      }
+    ];
+
+    let cumulative = 0;
+    const grouped: Record<string, Issue[]> = {};
+    sorted.forEach(issue => {
+      const date = issue.updatedAt.toISOString().split('T')[0];
+      if (!grouped[date]) grouped[date] = [];
+      grouped[date].push(issue);
+    });
+
+    Object.keys(grouped)
+      .sort()
+      .forEach(date => {
+        const issues = grouped[date];
+        cumulative += issues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
+        data.push({
+          date,
+          event: 'Workitem Completed',
+          workItem: issues.map(i => i.id).join(', '),
+          completed: cumulative,
+          scope: totalScope
+        });
+      });
+
+    this.dataSource = new MatTableDataSource<BurnupRow>(data ?? []);
+  }
+
+  private loadBurndownData(): void {
+    const sprint = this.getSelectedSprint();
+    if (!sprint || !sprint.issues?.length) {
+      this.dataSource = new MatTableDataSource<BurndownRow>([]);
+      return;
+    }
+
+    let issues: Issue[] = sprint.issues;
+    if (this.statusFilter === 'DONE') {
+      issues = issues.filter(i => i.status === 'DONE');
+    } else if (this.statusFilter === 'INCOMPLETE') {
+      issues = issues.filter(i => i.status !== 'DONE');
+    }
+
+    const rows: BurndownRow[] = issues.map(i => ({
       key: i.id,
       summary: i.title,
       workType: i.type,
-      // epic: i.epic || 'N/A',
       epic: 'N/A',
       status: i.status,
       assignee: i.assignee || 'Undefined',
       storyPoints: i.storyPoints ?? 0
     }));
 
-    this.dataSource = new MatTableDataSource(burndownRows??[]);
+    this.dataSource = new MatTableDataSource<BurndownRow>(rows ?? []);
   }
 
-   loadVelocityData() {
-  // Get the latest sprint (either ACTIVE or most recently COMPLETED)
-  const latestSprint = sprints
-    .filter(s => s.status === 'ACTIVE' || s.status === 'COMPLETED')
-    .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
-
-  if (!latestSprint?.issues) return;
-
-  // Total story points committed in the sprint
-  const totalCommitted = latestSprint.issues.reduce(
-    (sum, i) => sum + (i.storyPoints ?? 0),
-    0
-  );
-
-  // Total completed story points (status === DONE)
-  const completedPoints = latestSprint.issues
-    .filter(i => i.status === 'DONE')
-    .reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
-
-  // Prepare single-row table
-  const velocityRows = [
-    {
-      sprint: latestSprint.name,
-      commitment: totalCommitted,
-      completed: completedPoints
+  private loadVelocityData(): void {
+    const sprint = this.getSelectedSprint();
+    if (!sprint?.issues) {
+      this.dataSource = new MatTableDataSource<any>([]);
+      return;
     }
-  ];
 
-  // Define table columns
-  this.displayedColumns = ['sprint', 'commitment', 'completed'];
-  this.dataSource = new MatTableDataSource(velocityRows??[]);
+    const totalCommitted = sprint.issues.reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
+    const completedPoints = sprint.issues
+      .filter(i => i.status === 'DONE')
+      .reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
+
+    const rows = [
+      {
+        sprint: sprint.name,
+        commitment: totalCommitted,
+        completed: completedPoints
+      }
+    ];
+
+    this.dataSource = new MatTableDataSource(rows ?? []);
+  }
 }
-
-}
-
-
-
-
