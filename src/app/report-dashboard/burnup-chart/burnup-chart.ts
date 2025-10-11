@@ -1,9 +1,10 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 import { ChartHeader } from '../chart-header/chart-header';
-import { Router } from '@angular/router';
 import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { Issue } from '../../shared/models/issue.model';
 import { ChartTable } from '../chart-table/chart-table';
@@ -19,7 +20,9 @@ import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter'
   styleUrl: './burnup-chart.css',
 })
 export class BurnupChart implements OnInit {
+  private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
   private issueSummaryService = inject(IssueSummaryService);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
@@ -33,6 +36,12 @@ export class BurnupChart implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit(): void {
+    // Set project context from route params
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
+    }
+    
     // Load all sprints from the service
     this.sprints = this.issueSummaryService.getAllSprints();
 
@@ -45,7 +54,12 @@ export class BurnupChart implements OnInit {
   }
 
   navigateBack(): void {
-    this.router.navigate(['/report-dashboard']);
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.router.navigate(['/projects', projectId, 'report-dashboard']);
+    } else {
+      this.router.navigate(['/report-dashboard']);
+    }
   }
 
   onSprintFilterChange(sprintId: string): void {

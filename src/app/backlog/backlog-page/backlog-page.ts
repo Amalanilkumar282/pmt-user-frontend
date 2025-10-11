@@ -1,5 +1,6 @@
-import { Component, inject, HostListener } from '@angular/core';
+import { Component, inject, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
 import { Issue } from '../../shared/models/issue.model';
@@ -8,6 +9,7 @@ import { Navbar } from '../../shared/navbar/navbar';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 import { EpicContainer } from '../../epic/epic-container/epic-container';
 import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
 import { Epic } from '../../shared/models/epic.model';
@@ -28,10 +30,12 @@ import { FormField, ModalService } from '../../modal/modal-service';
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
-export class BacklogPage {
+export class BacklogPage implements OnInit {
   constructor(private modalService: ModalService) {}
   
+  private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
     const svc: any = this.sidebarStateService as any;
@@ -328,6 +332,14 @@ export class BacklogPage {
   onMouseUp(): void {
     if (this.isResizing) {
       this.isResizing = false;
+    }
+  }
+
+  ngOnInit(): void {
+    // Set project context from route params
+    const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
     }
   }
 }

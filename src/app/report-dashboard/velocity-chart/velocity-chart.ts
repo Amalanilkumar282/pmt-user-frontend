@@ -1,9 +1,10 @@
-import { Component,inject} from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 import { Navbar } from '../../shared/navbar/navbar';
 import { ChartHeader } from '../chart-header/chart-header';
-import { Router } from '@angular/router';
 import { MetricsChart } from '../metrics-chart/metrics-chart';
 import { ChartTable } from '../chart-table/chart-table';
 import { IssueSummaryService } from '../../summary/issue-summary.service';
@@ -19,23 +20,18 @@ import { Issue } from '../../shared/models/issue.model';
   templateUrl: './velocity-chart.html',
   styleUrl: './velocity-chart.css'
 })
-export class VelocityChart {
+export class VelocityChart implements OnInit {
+  private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
-   private issueSummaryService = inject(IssueSummaryService);
-
+  private projectContextService = inject(ProjectContextService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
-  // Sprint filter data
-    sprints: Sprint[] = [];
-    selectedSprintId: string | null = 'all';
-  
-     issues: Issue[] = [];
   ngOnInit(): void {
-    // Load all sprints from the service
-    this.sprints = this.issueSummaryService.getAllSprints();
-
-    // Load initial chart data
-    this.updatechartData();
+    // Set project context from route params
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
+    }
   }
 
   onToggleSidebar(): void {
@@ -44,7 +40,12 @@ export class VelocityChart {
   constructor(private router: Router) {}
 
   navigateBack() {
-    this.router.navigate(['/report-dashboard']);
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.router.navigate(['/projects', projectId, 'report-dashboard']);
+    } else {
+      this.router.navigate(['/report-dashboard']);
+    }
   }
   onSprintFilterChange(sprintId: string): void {
     this.selectedSprintId = sprintId;

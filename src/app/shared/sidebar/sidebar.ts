@@ -2,6 +2,7 @@ import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SidebarStateService } from '../services/sidebar-state.service';
+import { ProjectContextService } from '../services/project-context.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -12,7 +13,10 @@ import { SidebarStateService } from '../services/sidebar-state.service';
 })
 export class Sidebar {
   private sidebarStateService = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
   isStateReady = signal(false);
+  
+  currentProjectId = this.projectContextService.currentProjectId;
 
   constructor() {
     // Mark ready after state loads

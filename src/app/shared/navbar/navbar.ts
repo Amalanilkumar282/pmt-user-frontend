@@ -1,10 +1,12 @@
-import { Component, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Output, EventEmitter, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { ModalService, FormField } from '../../modal/modal-service';
 import { SidebarStateService } from '../services/sidebar-state.service';
+import { ProjectContextService } from '../services/project-context.service';
 import { CreateIssue } from '../../modal/create-issue/create-issue';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
@@ -16,23 +18,32 @@ import { CreateIssue } from '../../modal/create-issue/create-issue';
 export class Navbar {
   @Output() toggleSidebar = new EventEmitter<void>();
 
-  constructor(private modalService: ModalService) {}
+  private modalService = inject(ModalService);
   private sidebarState = inject(SidebarStateService);
+  private projectContextService = inject(ProjectContextService);
+  private router = inject(Router);
+  
   isSidebarCollapsed = this.sidebarState.isCollapsed;
+  currentProjectId = this.projectContextService.currentProjectId;
 
-  navTabs = [
-    { label: 'Summary', route: '/summary', active: false },
-    { label: 'Backlog', route: '/backlog', active: true },
-    { label: 'Board', route: '/board', active: false },
-    { label: 'Timeline', route: '/timeline', active: false },
-    { label: 'Reports', route: '/report-dashboard', active: false }
-  ];
-
-  projectInfo = {
-    name: 'Project Alpha',
-    type: 'Reports',
-    icon: 'PA'
-  };
+  // Computed property to get project info based on current project ID
+  projectInfo = computed(() => {
+    const projectId = this.currentProjectId();
+    if (!projectId) {
+      return { name: 'Project Alpha', type: 'Software', icon: 'PA' };
+    }
+    
+    // Get project info from dummy data (you can replace this with actual service call)
+    const projects: Record<string, any> = {
+      '1': { name: 'Website Redesign', type: 'Software', icon: 'WR' },
+      '2': { name: 'Mobile App Development', type: 'Software', icon: 'MA' },
+      '3': { name: 'Marketing Campaign', type: 'Marketing', icon: 'MC' },
+      '4': { name: 'Backend Infrastructure', type: 'Software', icon: 'BI' },
+      '5': { name: 'Customer Portal', type: 'Software', icon: 'CP' },
+    };
+    
+    return projects[projectId] || { name: 'Project Alpha', type: 'Software', icon: 'PA' };
+  });
 
 
 
