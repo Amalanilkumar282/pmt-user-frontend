@@ -54,7 +54,12 @@ export class BurnupChart implements OnInit {
   }
 
   navigateBack(): void {
-    this.router.navigate(['/report-dashboard']);
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.router.navigate(['/projects', projectId, 'report-dashboard']);
+    } else {
+      this.router.navigate(['/report-dashboard']);
+    }
   }
 
   onSprintFilterChange(sprintId: string): void {

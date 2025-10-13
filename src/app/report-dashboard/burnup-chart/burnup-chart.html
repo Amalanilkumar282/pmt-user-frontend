@@ -11,17 +11,18 @@
       [class.sidebar-collapsed]="isSidebarCollapsed()"
     >
       <app-chart-header [title]="'Burnup Report'" (back)="navigateBack()"></app-chart-header>
-
+      <div class="ml-10">
       <app-sprint-filter
         [sprints]="sprints"
         [selectedSprint]="selectedSprintId || 'all'"
         (sprintChange)="onSprintFilterChange($event)"
       ></app-sprint-filter>
+      </div>
 
-      <app-metrics-chart [chartType]="'burnup'"></app-metrics-chart>
+      <app-metrics-chart [chartType]="'burnup'" [sprintId]="selectedSprintId"></app-metrics-chart> 
       <br /><br />
       <div class="table-wrapper">
-        <app-chart-table type="burnup" [showPaginator]="true"></app-chart-table>
+        <app-chart-table type="burnup" [showPaginator]="true"  [sprintId]="selectedSprintId"></app-chart-table>
       </div>
     </div>
   </div>

@@ -20,6 +20,7 @@ export class ReportDashboardHome implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
+  currentProjectId = this.projectContextService.currentProjectId;
   
 
   onToggleSidebar(): void {
@@ -39,6 +40,22 @@ export class ReportDashboardHome implements OnInit {
 
   navigateTo(path: string) {
     this.router.navigate([path]);
+  }
+
+  // Get dynamic routes with project ID
+  getBurnupRoute(): string {
+    const projectId = this.currentProjectId();
+    return projectId ? `/projects/${projectId}/report-dashboard/burnup-chart` : '/report-dashboard/burnup-chart';
+  }
+
+  getBurndownRoute(): string {
+    const projectId = this.currentProjectId();
+    return projectId ? `/projects/${projectId}/report-dashboard/burndown-chart` : '/report-dashboard/burndown-chart';
+  }
+
+  getVelocityRoute(): string {
+    const projectId = this.currentProjectId();
+    return projectId ? `/projects/${projectId}/report-dashboard/velocity-chart` : '/report-dashboard/velocity-chart';
   }
 
   
