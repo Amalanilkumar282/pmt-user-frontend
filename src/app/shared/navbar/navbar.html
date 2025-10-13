@@ -20,6 +20,11 @@
 
       <!-- Right Section: Action Buttons -->
       <div class="navbar-right">
+        <app-searchbar 
+          (openCreateModal)="handleOpenCreateModal($event)"
+          (showSummary)="handleShowSummary($event)"
+          (showWarning)="handleShowWarning($event)">
+        </app-searchbar>
         <button class="btn-secondary" (click)="onShareModal()">Share</button>
         <button class="btn-primary" (click)="onCreate()">Create</button>
         <button class="btn-menu">
@@ -59,3 +64,17 @@
 
   
 </nav>
+
+<!-- Summary Modal -->
+<app-summary-modal 
+  [show]="showSummaryModal" 
+  [summary]="summaryText" 
+  (close)="closeSummaryModal()">
+</app-summary-modal>
+
+<!-- Warning Modal (reuse summary modal with different styling) -->
+<app-summary-modal 
+  [show]="showWarningModal" 
+  [summary]="warningText" 
+  (close)="closeWarningModal()">
+</app-summary-modal>

@@ -6,11 +6,13 @@ import { ModalService, FormField } from '../../modal/modal-service';
 import { SidebarStateService } from '../services/sidebar-state.service';
 import { ProjectContextService } from '../services/project-context.service';
 import { CreateIssue } from '../../modal/create-issue/create-issue';
+import { Searchbar } from '../searchbar/searchbar';
+import { SummaryModal } from '../summary-modal/summary-modal';
 import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, Searchbar, SummaryModal],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.css'],
   standalone: true
@@ -25,6 +27,14 @@ export class Navbar {
   
   isSidebarCollapsed = this.sidebarState.isCollapsed;
   currentProjectId = this.projectContextService.currentProjectId;
+
+  // Summary modal state
+  showSummaryModal: boolean = false;
+  summaryText: string = '';
+
+  // Warning modal state
+  showWarningModal: boolean = false;
+  warningText: string = '';
 
   // Computed property to get project info based on current project ID
   projectInfo = computed(() => {
@@ -49,6 +59,135 @@ export class Navbar {
 
   onToggleSidebar(): void {
     this.toggleSidebar.emit();
+  }
+
+  /**
+   * Handle the create issue modal trigger from searchbar
+   * Opens the modal with pre-filled data from Gemini
+   */
+  handleOpenCreateModal(fields: any): void {
+    console.log('Navbar received openCreateModal event with fields:', fields);
+    
+    // Map the fields to the modal configuration
+    const issueType = fields.issueType || 'Task';
+    const summary = fields.summary || '';
+    const description = fields.description || '';
+    const priority = fields.priority || 'Medium';
+
+    const userOptions = users.map(u => u.name);
+
+    // Open the create issue modal with pre-filled data
+    this.modalService.open({
+      id: 'create-issue',
+      title: 'Create Issue',
+      projectName: this.projectInfo().name,
+      modalDesc: 'Fill in the details below to create a new issue',
+      showLabels: true,
+      submitText: 'Create Issue',
+      fields: [
+        {
+          label: 'Issue Type',
+          type: 'select',
+          model: 'issueType',
+          options: ['Task', 'Bug', 'Story', 'Epic'],
+          required: true,
+          colSpan: 1
+        },
+        {
+          label: 'Summary',
+          type: 'text',
+          model: 'summary',
+          required: true,
+          colSpan: 2
+        },
+        {
+          label: 'Description',
+          type: 'textarea',
+          model: 'description',
+          colSpan: 2
+        },
+        {
+          label: 'Priority',
+          type: 'select',
+          model: 'priority',
+          options: ['High', 'Medium', 'Low'],
+          required: true,
+          colSpan: 1
+        },
+        {
+          label: 'Assignee',
+          type: 'select',
+          model: 'assignee',
+          options: userOptions,
+          colSpan: 1
+        },
+        {
+          label: 'Sprint',
+          type: 'select',
+          model: 'sprint',
+          options: ['Backlog', 'Sprint 1', 'Sprint 2', 'Sprint 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Story Points',
+          type: 'number',
+          model: 'storyPoints',
+          colSpan: 1
+        },
+        {
+          label: 'Due Date',
+          type: 'date',
+          model: 'dueDate',
+          colSpan: 1
+        }
+      ],
+      data: {
+        issueType: issueType,
+        summary: summary,
+        description: description,
+        priority: priority,
+        assignee: 'Unassigned',
+        sprint: 'Backlog',
+        storyPoints: '',
+        dueDate: '',
+        labels: [],
+        attachments: []
+      }
+    });
+  }
+
+  /**
+   * Handle summary display from searchbar
+   */
+  handleShowSummary(summary: string): void {
+    console.log('Navbar received showSummary event:', summary);
+    this.summaryText = summary;
+    this.showSummaryModal = true;
+  }
+
+  /**
+   * Handle warning display from searchbar
+   */
+  handleShowWarning(warning: string): void {
+    console.log('Navbar received showWarning event:', warning);
+    this.warningText = warning;
+    this.showWarningModal = true;
+  }
+
+  /**
+   * Close summary modal
+   */
+  closeSummaryModal(): void {
+    this.showSummaryModal = false;
+    this.summaryText = '';
+  }
+
+  /**
+   * Close warning modal
+   */
+  closeWarningModal(): void {
+    this.showWarningModal = false;
+    this.warningText = '';
   }
 
   
