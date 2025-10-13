@@ -167,3 +167,136 @@
   background: #f9fafb;
 }
 
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table.mat-mdc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th.mat-mdc-header-cell {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+  padding: 16px;
+  text-align: left;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+td.mat-mdc-cell {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+tr.mat-mdc-row:hover {
+  background-color: #fafafa;
+}
+
+/* Badge Styling */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.badge-worktype {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.badge-status {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #e1bee7;
+}
+
+.badge-status.done {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+/* Key Cell */
+.key-cell {
+  font-weight: 600;
+  color: #1976d2;
+}
+
+/* Assignee Cell */
+.assignee-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.assignee-name {
+  font-size: 14px;
+  color: #333;
+}
+
+/* Empty State */
+.no-data-message {
+  padding: 32px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+/* Paginator */
+.paginator-wrapper {
+  margin-top: 16px;
+}
+
+.mat-mdc-paginator {
+  background-color: #fafafa;
+}
+
+.badge-story { background-color: #bcecbe; }   /* green */
+.badge-task { background-color: #8bc3f1; }    /* blue */
+.badge-bug { background-color: #e76f66; }     /* red */
+.badge-epic { background-color: #efca93; }    /* orange */
+
+
+/* global styles or component styles (with ::ng-deep) */
+ /* Scoped to component using ::ng-deep to style Angular Material tooltip */
+::ng-deep .dark-tooltip {
+  background-color: #333 !important; /* dark box */
+  color: #fff !important;            /* white text */
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  max-width: 200px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Optional: make tooltip arrow match dark background */
+::ng-deep .dark-tooltip .mat-tooltip-arrow {
+  color: #333 !important;
+}
+
+
+

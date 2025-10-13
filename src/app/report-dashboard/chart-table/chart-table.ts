@@ -5,6 +5,7 @@ import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { Issue } from '../../shared/models/issue.model';
 import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 interface BurnupRow {
   date: string;
@@ -27,7 +28,7 @@ export interface BurndownRow {
 @Component({
   selector: 'app-chart-table',
   standalone: true,
-  imports: [CommonModule, MatTableModule, MatPaginatorModule],
+  imports: [CommonModule, MatTableModule, MatPaginatorModule,MatTooltipModule],
   templateUrl: './chart-table.html',
   styleUrls: ['./chart-table.css']
 })
@@ -35,7 +36,7 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   @Input() type: 'burnup' | 'burndown' | 'velocity' = 'burnup';
   @Input() statusFilter?: 'DONE' | 'INCOMPLETE'|'OUT_OF_SPRINT';
  
-  @Input() sprintId: string | null = null; // 👈 Added
+  @Input() sprintId: string | null = null;
 
   dataSource!: MatTableDataSource<any> ;
   displayedColumns: string[] = [];
@@ -48,7 +49,7 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['sprintId'] && !changes['sprintId'].firstChange) {
-      this.loadTableData(); // 👈 Reload when sprintId changes
+      this.loadTableData();
     }
   }
 
@@ -126,58 +127,52 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 
     this.dataSource = new MatTableDataSource<BurnupRow>(data ?? []);
     if (data.length > 5) {
-  this.dataSource.paginator = this.paginator;  // attach paginator only if more than 5
-} else {
-  this.dataSource.paginator = null;            // hide paginator
-}
+      this.dataSource.paginator = this.paginator;
+    } else {
+      this.dataSource.paginator = null;
+    }
   }
-
-   
 
   private loadBurndownData(): void {
-  const sprint = this.getSelectedSprint();
-  if (!sprint || !sprint.issues?.length) {
-    this.dataSource = new MatTableDataSource<BurndownRow>([]);
-    return;
+    const sprint = this.getSelectedSprint();
+    if (!sprint || !sprint.issues?.length) {
+      this.dataSource = new MatTableDataSource<BurndownRow>([]);
+      return;
+    }
+
+    const sprintEndDate = new Date(sprint.endDate);
+    let issues: Issue[] = sprint.issues;
+
+    if (this.statusFilter === 'DONE') {
+      issues = issues.filter(i => 
+        i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate
+      );
+    } else if (this.statusFilter === 'INCOMPLETE') {
+      issues = issues.filter(i => i.status !== 'DONE');
+    } else if (this.statusFilter === 'OUT_OF_SPRINT') {
+      issues = issues.filter(i => 
+        i.status === 'DONE' && new Date(i.updatedAt) > sprintEndDate
+      );
+    }
+
+    const rows: BurndownRow[] = issues.map(i => ({
+      key: i.id,
+      summary: i.title,
+      workType: i.type,
+      epic:  i.epicId || '',
+      status: i.status,
+      assignee: i.assignee || 'Undefined',
+      storyPoints: i.storyPoints ?? 0
+    }));
+
+    this.dataSource = new MatTableDataSource<BurndownRow>(rows ?? []);
+
+    if (rows.length > 5) {
+      this.dataSource.paginator = this.paginator;
+    } else {
+      this.dataSource.paginator = null;
+    }
   }
-
-  const sprintEndDate = new Date(sprint.endDate);
-  let issues: Issue[] = sprint.issues;
-
-  if (this.statusFilter === 'DONE') {
-    // Completed within sprint
-    issues = issues.filter(i => 
-      i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate
-    );
-  } else if (this.statusFilter === 'INCOMPLETE') {
-    // Not done
-    issues = issues.filter(i => i.status !== 'DONE');
-  } else if (this.statusFilter === 'OUT_OF_SPRINT') {
-    // Completed but after sprint end
-    issues = issues.filter(i => 
-      i.status === 'DONE' && new Date(i.updatedAt) > sprintEndDate
-    );
-  }
-
-  const rows: BurndownRow[] = issues.map(i => ({
-    key: i.id,
-    summary: i.title,
-    workType: i.type,
-    epic:  i.epicId || '',
-    status: i.status,
-    assignee: i.assignee || 'Undefined',
-    storyPoints: i.storyPoints ?? 0
-  }));
-
-  this.dataSource = new MatTableDataSource<BurndownRow>(rows ?? []);
-
-  if (rows.length > 5) {
-  this.dataSource.paginator = this.paginator;  // attach paginator only if more than 5
-} else {
-  this.dataSource.paginator = null;            // hide paginator
-}
-}
-
 
   private loadVelocityData(): void {
     const sprint = this.getSelectedSprint();
@@ -201,17 +196,89 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 
     this.dataSource = new MatTableDataSource(rows ?? []);
   }
+
   getEmptyMessage(): string {
-  switch (this.statusFilter) {
-    case 'DONE':
-      return 'No work items have been completed within the sprint';
-    case 'OUT_OF_SPRINT':
-      return 'No work items have been completed outside of the sprint';
-    case 'INCOMPLETE':
-      return 'No incomplete work items';
-    default:
-      return 'No work items available';
+    switch (this.statusFilter) {
+      case 'DONE':
+        return 'No work items have been completed within the sprint';
+      case 'OUT_OF_SPRINT':
+        return 'No work items have been completed outside of the sprint';
+      case 'INCOMPLETE':
+        return 'No incomplete work items';
+      default:
+        return 'No work items available';
+    }
   }
+
+  // 👈 Add this helper method
+  getInitials(name: string): string {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  // Filter out already-defined columns for dynamic rendering
+  getOtherColumns(): string[] {
+    const defined = ['key', 'summary', 'workType', 'epic', 'status', 'assignee', 'storyPoints'];
+    return this.displayedColumns.filter(col => !defined.includes(col));
+  }
+
+   
+
+// To keep track of assigned colors for each value
+assignedColors: { [key: string]: string } = {};
+
+
+colorPalette: string[] = [
+  '#4caf50', '#2196f3', '#ff9800', '#9c27b0',
+  '#009688', '#795548', '#607d8b', '#e91e63', '#3f51b5',
+  '#00bcd4', '#8bc34a', '#ff5722', '#673ab7', '#cddc39',
+  '#ffeb3b', '#f06292', '#64b5f6', '#4db6ac', '#ba68c8'
+];
+
+getStatusColor(value: string): string {
+  if (!value) return '#ccc';
+  const key = value.toLowerCase().replace(/_/g, ' ');
+
+  // If already assigned, return
+  if (this.assignedColors[key]) return this.assignedColors[key];
+
+  // Assign color deterministically using hash to palette
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = key.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const color = this.colorPalette[Math.abs(hash) % this.colorPalette.length];
+  this.assignedColors[key] = color;
+  return color;
 }
+
+
+
+  // Generates a consistent color based on string
+//  getStatusColor(str: string): { bg: string, text: string } {
+//   if (!str) return { bg: '#ccc', text: '#000' };
+
+//   // generate hash from string
+//   let hash = 0;
+//   for (let i = 0; i < str.length; i++) {
+//     hash = str.charCodeAt(i) + ((hash << 5) - hash);
+//   }
+
+//   // hue from 0 to 360
+//   const hue = hash % 360;
+
+//   // fixed saturation and lightness for good readability
+//   const bg = `hsl(${hue}, 60%, 75%)`; // light pastel color
+//   const text = `hsl(${hue}, 60%, 25%)`; // dark text on light bg
+
+//   return { bg, text };
+// }
+
 
 }
