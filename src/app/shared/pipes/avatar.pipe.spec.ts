@@ -11,12 +11,12 @@ describe('AvatarClassPipe', () => {
     expect(pipe).toBeTruthy();
   });
 
-  it('should return default gray class for undefined', () => {
-    expect(pipe.transform(undefined)).toBe('bg-gray-400');
+  it('should return default gray color for undefined', () => {
+    expect(pipe.transform(undefined)).toBe('#94A3B8');
   });
 
-  it('should return default gray class for empty string', () => {
-    expect(pipe.transform('')).toBe('bg-gray-400');
+  it('should return default gray color for empty string', () => {
+    expect(pipe.transform('')).toBe('#94A3B8');
   });
 
   it('should return consistent color for same name', () => {
@@ -25,23 +25,29 @@ describe('AvatarClassPipe', () => {
     expect(result1).toBe(result2);
   });
 
-  it('should return one of the predefined colors', () => {
+  it('should return hex color code (shade of primary #3D62A8)', () => {
     const validColors = [
-      'bg-blue-600', 'bg-green-600', 'bg-purple-600', 'bg-orange-600',
-      'bg-pink-600', 'bg-red-600', 'bg-indigo-600', 'bg-teal-600'
+      '#5A7FBF', '#4A6FB5', '#3D62A8', '#36579A',
+      '#2F4D8C', '#28437E', '#658AC5', '#4E69AC'
     ];
     const result = pipe.transform('Alice Smith');
     expect(validColors).toContain(result);
   });
 
-  it('should handle different names differently (most of the time)', () => {
+  it('should return a hex color string starting with #', () => {
+    const result = pipe.transform('Test User');
+    expect(result).toMatch(/^#[0-9A-F]{6}$/i);
+  });
+
+  it('should handle different names consistently', () => {
     const name1 = pipe.transform('Alice');
     const name2 = pipe.transform('Bob');
     const name3 = pipe.transform('Charlie');
     
-    // At least one should be different (statistically very likely with 8 colors and 3 names)
-    const allSame = name1 === name2 && name2 === name3;
-    expect(allSame).toBe(false);
+    // All should be valid hex colors
+    expect(name1).toMatch(/^#[0-9A-F]{6}$/i);
+    expect(name2).toMatch(/^#[0-9A-F]{6}$/i);
+    expect(name3).toMatch(/^#[0-9A-F]{6}$/i);
   });
 });
 

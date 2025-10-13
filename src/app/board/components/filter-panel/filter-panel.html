@@ -62,20 +62,20 @@
 							[ngModelOptions]="{updateOn: 'change'}" />
 					</div>
 					<div class="filter-list">
-						<label *ngFor="let a of assignees()" class="filter-item">
-							<input 
-								type="checkbox" 
-								class="filter-checkbox"
-								[checked]="isSelected('assignees', a)" 
-								(change)="toggle('assignees', a)" />
-							<div class="flex items-center gap-2 flex-1">
-								<div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-									 [ngClass]="a | avatarClass">
-									{{ a | initials }}
-								</div>
-								<span class="text-sm text-slate-700">{{ a }}</span>
+					<label *ngFor="let a of assignees()" class="filter-item">
+						<input 
+							type="checkbox" 
+							class="filter-checkbox"
+							[checked]="isSelected('assignees', a)" 
+							(change)="toggle('assignees', a)" />
+						<div class="flex items-center gap-2 flex-1">
+							<div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+								 [style.background-color]="a | avatarClass">
+								{{ a | initials }}
 							</div>
-						</label>
+							<span class="text-sm text-slate-700">{{ a }}</span>
+						</div>
+					</label>
 						<div *ngIf="assignees().length === 0" class="text-sm text-slate-400 p-4">
 							No assignees found
 						</div>

@@ -49,12 +49,13 @@ describe('BoardColumn', () => {
     expect(store.updateIssueStatus).not.toHaveBeenCalled();
   });
 
-  it('drop across containers updates status via store only (no manual transfer)', () => {
+  it('drop across containers transfers item and updates status via store', () => {
     const fixture = TestBed.createComponent(BoardColumn);
     const cmp = fixture.componentInstance;
     const store = TestBed.inject(BoardStore) as any as StoreMock;
 
     cmp.def = { id: 'DONE' as any, title:'Done', color:'' };
+    cmp.items = []; // Start with empty target
     const otherData: Issue[] = [{id:'a'} as any];
     const event: any = {
       previousContainer: { data: otherData },
@@ -64,8 +65,11 @@ describe('BoardColumn', () => {
     };
     cmp.drop(event);
     expect(store.updateIssueStatus).toHaveBeenCalledWith('a', 'DONE' as any);
-    // Ensure we did not push into cmp.items directly (single source of truth is store)
-    expect(cmp.items.length).toBe(0);
+    // Item should be transferred to cmp.items
+    expect(cmp.items.length).toBe(1);
+    expect(cmp.items[0].id).toBe('a');
+    // And removed from source
+    expect(otherData.length).toBe(0);
   });
 
   it('onDeleteColumn prompts if column not empty and does not delete', () => {
@@ -284,10 +288,10 @@ describe('BoardColumn', () => {
         { id: '2', assignee: 'Bob' } as any
       ];
       
-      const groups = cmp.groupedIssues;
-      expect(groups.length).toBe(1);
-      expect(groups[0].groupName).toBe('');
-      expect(groups[0].issues.length).toBe(2);
+      const sorted = cmp.sortedItems;
+      expect(sorted.length).toBe(2);
+      expect(cmp.shouldShowGroupHeader(sorted[0], null)).toBe(false);
+      expect(cmp.shouldShowGroupHeader(sorted[1], sorted[0])).toBe(false);
     });
 
     it('should group by assignee when groupBy is ASSIGNEE', () => {
@@ -302,19 +306,20 @@ describe('BoardColumn', () => {
         { id: '4', assignee: undefined } as any
       ];
       
-      const groups = cmp.groupedIssues;
-      expect(groups.length).toBe(3);
+      const sorted = cmp.sortedItems;
+      expect(sorted.length).toBe(4);
       
-      // Should be sorted alphabetically: Alice, Bob, Unassigned
-      expect(groups[0].groupName).toBe('Alice');
-      expect(groups[0].issues.length).toBe(2);
-      expect(groups[0].issues.map((i: any) => i.id)).toEqual(['2', '3']);
+      // Should be sorted alphabetically: Alice (2 items), Bob (1 item), Unassigned (1 item)
+      expect(sorted[0].assignee).toBe('Alice');
+      expect(sorted[1].assignee).toBe('Alice');
+      expect(sorted[2].assignee).toBe('Bob');
+      expect(sorted[3].assignee).toBeUndefined();
       
-      expect(groups[1].groupName).toBe('Bob');
-      expect(groups[1].issues.length).toBe(1);
-      
-      expect(groups[2].groupName).toBe('Unassigned');
-      expect(groups[2].issues.length).toBe(1);
+      // Check group headers
+      expect(cmp.shouldShowGroupHeader(sorted[0], null)).toBe(true);
+      expect(cmp.shouldShowGroupHeader(sorted[1], sorted[0])).toBe(false);
+      expect(cmp.shouldShowGroupHeader(sorted[2], sorted[1])).toBe(true);
+      expect(cmp.shouldShowGroupHeader(sorted[3], sorted[2])).toBe(true);
     });
 
     it('should group by epic when groupBy is EPIC', () => {
@@ -329,18 +334,20 @@ describe('BoardColumn', () => {
         { id: '4', epicId: undefined } as any
       ];
       
-      const groups = cmp.groupedIssues;
-      expect(groups.length).toBe(3);
+      const sorted = cmp.sortedItems;
+      expect(sorted.length).toBe(4);
       
       // Should be sorted alphabetically: EPIC-1, EPIC-2, No Epic
-      expect(groups[0].groupName).toBe('EPIC-1');
-      expect(groups[0].issues.length).toBe(2);
+      expect(sorted[0].epicId).toBe('EPIC-1');
+      expect(sorted[1].epicId).toBe('EPIC-1');
+      expect(sorted[2].epicId).toBe('EPIC-2');
+      expect(sorted[3].epicId).toBeUndefined();
       
-      expect(groups[1].groupName).toBe('EPIC-2');
-      expect(groups[1].issues.length).toBe(1);
-      
-      expect(groups[2].groupName).toBe('No Epic');
-      expect(groups[2].issues.length).toBe(1);
+      // Check group headers
+      expect(cmp.shouldShowGroupHeader(sorted[0], null)).toBe(true);
+      expect(cmp.shouldShowGroupHeader(sorted[1], sorted[0])).toBe(false);
+      expect(cmp.shouldShowGroupHeader(sorted[2], sorted[1])).toBe(true);
+      expect(cmp.shouldShowGroupHeader(sorted[3], sorted[2])).toBe(true);
     });
 
     it('should group by parent when groupBy is SUBTASK', () => {
@@ -355,18 +362,20 @@ describe('BoardColumn', () => {
         { id: '4', parentId: undefined } as any
       ];
       
-      const groups = cmp.groupedIssues;
-      expect(groups.length).toBe(3);
+      const sorted = cmp.sortedItems;
+      expect(sorted.length).toBe(4);
       
       // Should be sorted alphabetically: No Parent, PARENT-1, PARENT-2
-      expect(groups[0].groupName).toBe('No Parent');
-      expect(groups[0].issues.length).toBe(1);
+      expect(sorted[0].parentId).toBeUndefined();
+      expect(sorted[1].parentId).toBe('PARENT-1');
+      expect(sorted[2].parentId).toBe('PARENT-1');
+      expect(sorted[3].parentId).toBe('PARENT-2');
       
-      expect(groups[1].groupName).toBe('PARENT-1');
-      expect(groups[1].issues.length).toBe(2);
-      
-      expect(groups[2].groupName).toBe('PARENT-2');
-      expect(groups[2].issues.length).toBe(1);
+      // Check group headers
+      expect(cmp.shouldShowGroupHeader(sorted[0], null)).toBe(true);
+      expect(cmp.shouldShowGroupHeader(sorted[1], sorted[0])).toBe(true);
+      expect(cmp.shouldShowGroupHeader(sorted[2], sorted[1])).toBe(false);
+      expect(cmp.shouldShowGroupHeader(sorted[3], sorted[2])).toBe(true);
     });
 
     it('should handle empty items array', () => {
@@ -376,8 +385,8 @@ describe('BoardColumn', () => {
       cmp.groupBy = 'ASSIGNEE';
       cmp.items = [];
       
-      const groups = cmp.groupedIssues;
-      expect(groups.length).toBe(0);
+      const sorted = cmp.sortedItems;
+      expect(sorted.length).toBe(0);
     });
   });
 });

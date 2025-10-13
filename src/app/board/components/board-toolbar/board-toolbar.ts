@@ -9,6 +9,7 @@ import { GroupByMenu } from '../group-by-menu/group-by-menu';
 import { AddColumnButton } from '../add-column-button/add-column-button';
 import { BoardSearch } from '../../../shared/components/board-search/board-search';
 import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe';
+import { EditBoardColumns } from '../edit-board-columns/edit-board-columns';
 
 @Component({
   selector: 'app-board-toolbar',
@@ -16,13 +17,14 @@ import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe
   imports: [
     CommonModule, 
     FormsModule,
-  SprintFilterComponent,
+    SprintFilterComponent,
     FilterPanel,
     GroupByMenu,
     AddColumnButton,
     BoardSearch,
     AvatarClassPipe,
-    InitialsPipe
+    InitialsPipe,
+    EditBoardColumns
   ],
   templateUrl: './board-toolbar.html',
   styleUrls: ['./board-toolbar.css'],

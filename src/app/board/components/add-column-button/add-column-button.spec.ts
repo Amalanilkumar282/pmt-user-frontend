@@ -28,33 +28,30 @@ describe('AddColumnButton', () => {
     expect(component).toBeTruthy();
     expect(component.isOpen).toBe(false);
     expect(component.name).toBe('');
-    expect(component.color).toBe('#A1C4FD');
+    expect(component.color).toBe('#3D62A8');
   });
 
-  it('open sets isOpen to true', () => {
-    expect(component.isOpen).toBe(false);
+  it('open sets isOpen to true and resets values', () => {
+    component.name = 'old';
+    component.color = '#000000';
+    
     component.open();
+    
     expect(component.isOpen).toBe(true);
+    expect(component.name).toBe('');
+    expect(component.color).toBe('#3D62A8');
   });
 
-  it('close sets isOpen to false and clears name', () => {
+  it('close sets isOpen to false and clears values', () => {
     component.isOpen = true;
     component.name = 'Test Column';
+    component.color = '#EF4444';
     
     component.close();
     
     expect(component.isOpen).toBe(false);
     expect(component.name).toBe('');
-  });
-
-  it('close preserves color when clearing', () => {
-    component.isOpen = true;
-    component.name = 'Test';
-    component.color = '#EF4444';
-    
-    component.close();
-    
-    expect(component.color).toBe('#EF4444');
+    expect(component.color).toBe('#3D62A8');
   });
 
   describe('addColumn', () => {
@@ -70,16 +67,16 @@ describe('AddColumnButton', () => {
       expect(storeMock.addColumn).not.toHaveBeenCalled();
     });
 
-    it('should create column with uppercase underscore ID', () => {
+    it('should create column with uppercase underscore ID and trim title', () => {
       component.name = 'QA Ready';
-      component.color = '#A1C4FD';
+      component.color = '#3D62A8';
       
       component.addColumn();
       
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'QA_READY',
         title: 'QA Ready',
-        color: '#A1C4FD'
+        color: '#3D62A8'
       });
     });
 
@@ -91,7 +88,7 @@ describe('AddColumnButton', () => {
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'QUALITY_ASSURANCE_READY',
         title: 'Quality   Assurance    Ready',
-        color: '#A1C4FD'
+        color: '#3D62A8'
       });
     });
 
@@ -103,7 +100,7 @@ describe('AddColumnButton', () => {
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'READY_FOR_TESTING!',
         title: 'Ready for Testing!',
-        color: '#A1C4FD'
+        color: '#3D62A8'
       });
     });
 
@@ -115,7 +112,7 @@ describe('AddColumnButton', () => {
       expect(storeMock.addColumn).toHaveBeenCalledWith({
         id: 'TESTING',
         title: 'testing',
-        color: '#A1C4FD'
+        color: '#3D62A8'
       });
     });
 
@@ -127,6 +124,7 @@ describe('AddColumnButton', () => {
       
       expect(component.isOpen).toBe(false);
       expect(component.name).toBe('');
+      expect(component.color).toBe('#3D62A8');
     });
 
     it('should use custom color when set', () => {
@@ -153,21 +151,91 @@ describe('AddColumnButton', () => {
     });
   });
 
+  describe('isValid', () => {
+    it('should return false for empty name', () => {
+      component.name = '';
+      component.color = '#3D62A8';
+      expect(component.isValid()).toBe(false);
+    });
+
+    it('should return false for whitespace-only name', () => {
+      component.name = '   ';
+      component.color = '#3D62A8';
+      expect(component.isValid()).toBe(false);
+    });
+
+    it('should return false for invalid hex color', () => {
+      component.name = 'Test';
+      component.color = 'invalid';
+      expect(component.isValid()).toBe(false);
+    });
+
+    it('should return false for short hex color', () => {
+      component.name = 'Test';
+      component.color = '#FFF';
+      expect(component.isValid()).toBe(false);
+    });
+
+    it('should return true for valid name and color', () => {
+      component.name = 'Test Column';
+      component.color = '#3D62A8';
+      expect(component.isValid()).toBe(true);
+    });
+  });
+
+  describe('isValidHexColor', () => {
+    it('should validate correct hex colors', () => {
+      expect(component.isValidHexColor('#000000')).toBe(true);
+      expect(component.isValidHexColor('#FFFFFF')).toBe(true);
+      expect(component.isValidHexColor('#3D62A8')).toBe(true);
+      expect(component.isValidHexColor('#abc123')).toBe(true);
+    });
+
+    it('should reject invalid hex colors', () => {
+      expect(component.isValidHexColor('000000')).toBe(false);
+      expect(component.isValidHexColor('#FFF')).toBe(false);
+      expect(component.isValidHexColor('#GGGGGG')).toBe(false);
+      expect(component.isValidHexColor('invalid')).toBe(false);
+      expect(component.isValidHexColor('')).toBe(false);
+    });
+  });
+
+  describe('validateHexColor', () => {
+    it('should add # prefix if missing', () => {
+      const event = { target: { value: 'FF0000' } } as any;
+      component.validateHexColor(event);
+      expect(component.color).toBe('#FF0000');
+    });
+
+    it('should convert to uppercase', () => {
+      const event = { target: { value: '#abc123' } } as any;
+      component.validateHexColor(event);
+      expect(component.color).toBe('#ABC123');
+    });
+
+    it('should remove invalid characters', () => {
+      const event = { target: { value: '#XYZ123' } } as any;
+      component.validateHexColor(event);
+      expect(component.color).toBe('#123');
+    });
+
+    it('should limit to 7 characters', () => {
+      const event = { target: { value: '#FFFFFFFF' } } as any;
+      component.validateHexColor(event);
+      expect(component.color).toBe('#FFFFFF');
+    });
+  });
+
   describe('state management', () => {
-    it('should maintain state independently between operations', () => {
-      component.name = 'First Column';
+    it('should reset values on open', () => {
+      component.name = 'Old';
       component.color = '#10B981';
+      
       component.open();
       
       expect(component.isOpen).toBe(true);
-      expect(component.name).toBe('First Column');
-      expect(component.color).toBe('#10B981');
-      
-      component.addColumn();
-      
-      expect(component.isOpen).toBe(false);
       expect(component.name).toBe('');
-      expect(component.color).toBe('#10B981'); // Should persist
+      expect(component.color).toBe('#3D62A8');
     });
 
     it('should handle multiple open/close cycles', () => {
