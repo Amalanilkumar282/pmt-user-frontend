@@ -33,16 +33,35 @@ export class VelocityChart implements OnInit {
   // sprints shown in the sprint filter
   sprints: Sprint[] = [];
 
-  ngOnInit(): void {
+  // 
+   ngOnInit(): void {
     // Set project context from route params
     const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
     }
+    
+    // Load all sprints from the service
+    // this.sprints = this.issueSummaryService.getAllSprints();
+     // Load all sprints
+  const allSprints = this.issueSummaryService.getAllSprints();
 
-    // populate sprint list for the sprint filter
-    this.sprints = this.issueSummaryService.getAllSprints();
+  
+
+    // Find active sprint
+  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+
+  // Reorder: active sprint first, exclude 'all' placeholder if any exists
+  this.sprints = [
+    ...(activeSprint ? [activeSprint] : []),
+    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+  ];
+
+  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
+    // Load initial chart data
+    this.updatechartData();
   }
+
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();

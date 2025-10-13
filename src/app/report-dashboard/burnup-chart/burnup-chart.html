@@ -17,6 +17,8 @@
         [selectedSprint]="selectedSprintId || 'all'"
         (sprintChange)="onSprintFilterChange($event)"
       ></app-sprint-filter>
+        
+      
       </div>
 
       <app-metrics-chart [chartType]="'burnup'" [sprintId]="selectedSprintId"></app-metrics-chart> 

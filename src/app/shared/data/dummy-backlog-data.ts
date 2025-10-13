@@ -160,7 +160,7 @@ export const completedSprint1Issues: Issue[] = [
     sprintId: 'completed-1',
     epicId: 'epic-1',
     createdAt: new Date('2025-08-03'),
-    updatedAt: new Date('2025-08-16'),
+    updatedAt: new Date('2025-08-17'),
   },
   {
     id: 'PMT-004',

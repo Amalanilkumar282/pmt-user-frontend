@@ -12,11 +12,12 @@ import { IssueSummaryService } from '../../summary/issue-summary.service';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
 import { Location } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-burnup-chart',
   standalone: true,
-  imports: [Navbar, Sidebar, ChartHeader, MetricsChart, ChartTable, SprintFilterComponent],
+  imports: [Navbar, Sidebar, ChartHeader, MetricsChart, ChartTable, SprintFilterComponent,FormsModule],
   templateUrl: './burnup-chart.html',
   styleUrl: './burnup-chart.css',
 })
@@ -44,8 +45,22 @@ export class BurnupChart implements OnInit {
     }
     
     // Load all sprints from the service
-    this.sprints = this.issueSummaryService.getAllSprints();
+    // this.sprints = this.issueSummaryService.getAllSprints();
+     // Load all sprints
+  const allSprints = this.issueSummaryService.getAllSprints();
 
+  
+
+    // Find active sprint
+  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+
+  // Reorder: active sprint first, exclude 'all' placeholder if any exists
+  this.sprints = [
+    ...(activeSprint ? [activeSprint] : []),
+    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+  ];
+
+  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
     // Load initial chart data
     this.updatechartData();
   }
