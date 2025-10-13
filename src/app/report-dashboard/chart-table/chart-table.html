@@ -12,13 +12,19 @@
 
     <!-- Data Rows -->
     <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-  </table>
 
-  <div class="paginator-wrapper" *ngIf="showPaginator">
-    <mat-paginator
-      [pageSize]="5"
-      [pageSizeOptions]="[5, 10, 20]"
-      showFirstLastButtons>
-    </mat-paginator>
-  </div>
+  </table>
+  <div *ngIf="dataSource?.data?.length === 0 && displayedColumns?.length" class="no-data-message">
+  {{ getEmptyMessage() }}
+</div>
+
+  <div class="paginator-wrapper"
+     *ngIf="(dataSource?.data?.length || 0) > 5">
+  <mat-paginator
+    [pageSize]="5"
+    [pageSizeOptions]="[5, 10, 20]"
+    showFirstLastButtons>
+  </mat-paginator>
+</div>
+
 </div>

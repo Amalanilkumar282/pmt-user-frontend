@@ -33,16 +33,17 @@ export interface BurndownRow {
 })
 export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   @Input() type: 'burnup' | 'burndown' | 'velocity' = 'burnup';
-  @Input() statusFilter?: 'DONE' | 'INCOMPLETE';
-  @Input() showPaginator: boolean = true;
+  @Input() statusFilter?: 'DONE' | 'INCOMPLETE'|'OUT_OF_SPRINT';
+ 
   @Input() sprintId: string | null = null; // 👈 Added
 
-  dataSource!: MatTableDataSource<any>;
+  dataSource!: MatTableDataSource<any> ;
   displayedColumns: string[] = [];
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   ngOnInit(): void {
     this.loadTableData();
+    
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -124,34 +125,59 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       });
 
     this.dataSource = new MatTableDataSource<BurnupRow>(data ?? []);
+    if (data.length > 5) {
+  this.dataSource.paginator = this.paginator;  // attach paginator only if more than 5
+} else {
+  this.dataSource.paginator = null;            // hide paginator
+}
   }
+
+   
 
   private loadBurndownData(): void {
-    const sprint = this.getSelectedSprint();
-    if (!sprint || !sprint.issues?.length) {
-      this.dataSource = new MatTableDataSource<BurndownRow>([]);
-      return;
-    }
-
-    let issues: Issue[] = sprint.issues;
-    if (this.statusFilter === 'DONE') {
-      issues = issues.filter(i => i.status === 'DONE');
-    } else if (this.statusFilter === 'INCOMPLETE') {
-      issues = issues.filter(i => i.status !== 'DONE');
-    }
-
-    const rows: BurndownRow[] = issues.map(i => ({
-      key: i.id,
-      summary: i.title,
-      workType: i.type,
-      epic: 'N/A',
-      status: i.status,
-      assignee: i.assignee || 'Undefined',
-      storyPoints: i.storyPoints ?? 0
-    }));
-
-    this.dataSource = new MatTableDataSource<BurndownRow>(rows ?? []);
+  const sprint = this.getSelectedSprint();
+  if (!sprint || !sprint.issues?.length) {
+    this.dataSource = new MatTableDataSource<BurndownRow>([]);
+    return;
   }
+
+  const sprintEndDate = new Date(sprint.endDate);
+  let issues: Issue[] = sprint.issues;
+
+  if (this.statusFilter === 'DONE') {
+    // Completed within sprint
+    issues = issues.filter(i => 
+      i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate
+    );
+  } else if (this.statusFilter === 'INCOMPLETE') {
+    // Not done
+    issues = issues.filter(i => i.status !== 'DONE');
+  } else if (this.statusFilter === 'OUT_OF_SPRINT') {
+    // Completed but after sprint end
+    issues = issues.filter(i => 
+      i.status === 'DONE' && new Date(i.updatedAt) > sprintEndDate
+    );
+  }
+
+  const rows: BurndownRow[] = issues.map(i => ({
+    key: i.id,
+    summary: i.title,
+    workType: i.type,
+    epic:  i.epicId || '',
+    status: i.status,
+    assignee: i.assignee || 'Undefined',
+    storyPoints: i.storyPoints ?? 0
+  }));
+
+  this.dataSource = new MatTableDataSource<BurndownRow>(rows ?? []);
+
+  if (rows.length > 5) {
+  this.dataSource.paginator = this.paginator;  // attach paginator only if more than 5
+} else {
+  this.dataSource.paginator = null;            // hide paginator
+}
+}
+
 
   private loadVelocityData(): void {
     const sprint = this.getSelectedSprint();
@@ -175,4 +201,17 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 
     this.dataSource = new MatTableDataSource(rows ?? []);
   }
+  getEmptyMessage(): string {
+  switch (this.statusFilter) {
+    case 'DONE':
+      return 'No work items have been completed within the sprint';
+    case 'OUT_OF_SPRINT':
+      return 'No work items have been completed outside of the sprint';
+    case 'INCOMPLETE':
+      return 'No incomplete work items';
+    default:
+      return 'No work items available';
+  }
+}
+
 }
