@@ -11,6 +11,7 @@ import { ChartTable } from '../chart-table/chart-table';
 import { IssueSummaryService } from '../../summary/issue-summary.service';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
+import { Location } from '@angular/common';
 
 @Component({
   selector: 'app-burnup-chart',
@@ -33,7 +34,7 @@ export class BurnupChart implements OnInit {
 
   issues: Issue[] = [];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router,private location: Location ) {}
 
   ngOnInit(): void {
     // Set project context from route params
@@ -53,13 +54,11 @@ export class BurnupChart implements OnInit {
     this.sidebarStateService.toggleCollapse();
   }
 
+
   navigateBack(): void {
-    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
-    if (projectId) {
-      this.router.navigate(['/projects', projectId, 'report-dashboard']);
-    } else {
-      this.router.navigate(['/report-dashboard']);
-    }
+    
+      this.location.back();
+
   }
 
   onSprintFilterChange(sprintId: string): void {

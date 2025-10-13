@@ -11,7 +11,7 @@ import { IssueSummaryService } from '../../summary/issue-summary.service';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
 import { Issue } from '../../shared/models/issue.model';
-
+import { Location } from '@angular/common';
 @Component({
   selector: 'app-velocity-chart',
   standalone: true,
@@ -47,15 +47,12 @@ export class VelocityChart implements OnInit {
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
-  constructor(private router: Router) {}
+  constructor(private router: Router,private location:Location) {}
 
-  navigateBack() {
-    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
-    if (projectId) {
-      this.router.navigate(['/projects', projectId, 'report-dashboard']);
-    } else {
-      this.router.navigate(['/report-dashboard']);
-    }
+  navigateBack(): void {
+    
+      this.location.back();
+
   }
   onSprintFilterChange(sprintId: string): void {
     this.selectedSprintId = sprintId;

@@ -64,8 +64,8 @@
   justify-content: space-between;
   padding: 0.75rem 1.25rem;
   /* border-top: 0.5px solid #e5e7eb; thinner border */
-  border-radius: 8px; /* rounded corners */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); /* subtle elevation */
+  /* border-radius: 8px; rounded corners */
+  /* box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); subtle elevation */
 }
 
 /* ✅ Center the range label */
