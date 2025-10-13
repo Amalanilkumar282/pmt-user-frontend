@@ -1,0 +1,236 @@
+.all-issues-card {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.all-issues-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapse-icon {
+  font-size: 12px;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+  width: 16px;
+  text-align: center;
+}
+
+.all-issues-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  display: inline;
+}
+
+.issue-count-inline {
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.all-issues-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.collapsible-content {
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 1;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.issues-group {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.issues-group:last-child {
+  border-bottom: none;
+}
+
+.completed-group {
+  background-color: #f0fdf4;
+}
+
+.issues-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.completed-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background-color: #10b981;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.completed-checkmark {
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+/* Text center utility */
+.text-center {
+  text-align: center;
+}
+
+.py-8 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Pagination */
+.pagination-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.pagination-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.items-per-page label {
+  font-weight: 500;
+}
+
+.items-per-page select {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.items-per-page select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.page-info {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.pagination-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 6px 12px;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-number {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pagination-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pagination-buttons {
+    justify-content: flex-start;
+  }
+
+  .pagination-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
