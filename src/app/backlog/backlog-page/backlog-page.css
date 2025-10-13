@@ -157,55 +157,15 @@
     padding: 16px;
   }
 
-  .view-toggle-section {
-    margin-bottom: 16px;
-  }
-
-  .view-toggle-buttons {
-    width: 100%;
-  }
-
-  .view-toggle-btn {
-    flex: 1;
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
   .page-header {
-    gap: 12px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .page-header-left {
-    width: 100%;
-  }
-
-  .epic-controls {
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 8px;
-  }
-
-  .epic-toggle-btn,
-  .completed-sprint-toggle-btn {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-
-  .epic-filter-select {
-    flex: 1;
-    min-width: auto;
-  }
-
-  .page-title {
-    font-size: 20px;
+    justify-content: center;
   }
 
   .create-sprint-btn {
-    padding: 4px 10px;
-    font-size: 11px;
+    padding: 6px 14px;
+    font-size: 12px;
     width: 100%;
+    max-width: 300px;
   }
 
   .section {
