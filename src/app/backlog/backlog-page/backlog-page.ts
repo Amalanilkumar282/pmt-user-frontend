@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
+import { AllIssuesList } from '../all-issues-list/all-issues-list';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
@@ -26,7 +27,7 @@ import { FormField, ModalService } from '../../modal/modal-service';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
+  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -68,6 +69,12 @@ export class BacklogPage implements OnInit {
   // All sprints
   sprints: Sprint[] = sharedSprints;
 
+  // View state: 'sprints' or 'all-issues'
+  currentView: 'sprints' | 'all-issues' = 'sprints';
+
+  // Toggle for showing/hiding completed sprints
+  showCompletedSprints = false;
+
   // Helper to get sprints by status
   get activeSprints(): Sprint[] {
     return this.sprints.filter(s => s.status === 'ACTIVE');
@@ -79,6 +86,27 @@ export class BacklogPage implements OnInit {
 
   get completedSprints(): Sprint[] {
     return this.sprints.filter(s => s.status === 'COMPLETED');
+  }
+
+  // Get backlog issues excluding completed ones
+  get filteredBacklogIssues(): Issue[] {
+    return this.backlogIssues.filter(issue => issue.status !== 'DONE');
+  }
+
+  // Get all issues from all sprints and backlog
+  get allIssues(): Issue[] {
+    const sprintIssues = this.sprints.flatMap(sprint => sprint.issues || []);
+    return [...sprintIssues, ...this.backlogIssues];
+  }
+
+  // Toggle view between sprints and all issues
+  toggleView(view: 'sprints' | 'all-issues'): void {
+    this.currentView = view;
+  }
+
+  // Toggle completed sprints visibility
+  toggleCompletedSprints(): void {
+    this.showCompletedSprints = !this.showCompletedSprints;
   }
 
   
@@ -208,19 +236,23 @@ export class BacklogPage implements OnInit {
     // Search in backlog
     const backlogIndex = this.backlogIssues.findIndex(i => i.id === issueId);
     if (backlogIndex !== -1) {
-      movedIssue = this.backlogIssues[backlogIndex];
-      this.backlogIssues = this.backlogIssues.filter(i => i.id !== issueId);
+      // Create a copy to avoid reference issues
+      movedIssue = { ...this.backlogIssues[backlogIndex] };
+      // Remove from backlog by creating a new array
+      this.backlogIssues = [...this.backlogIssues.filter(i => i.id !== issueId)];
     }
 
-    // Search in sprints
+    // Search in sprints if not found in backlog
     if (!movedIssue) {
       for (const sprint of this.sprints) {
         if (sprint.issues) {
           const issueIndex = sprint.issues.findIndex(i => i.id === issueId);
           if (issueIndex !== -1) {
-            movedIssue = sprint.issues[issueIndex];
+            // Create a copy to avoid reference issues
+            movedIssue = { ...sprint.issues[issueIndex] };
             sourceSprintId = sprint.id;
-            sprint.issues = sprint.issues.filter(i => i.id !== issueId);
+            // Remove from sprint by creating a new array
+            sprint.issues = [...sprint.issues.filter(i => i.id !== issueId)];
             break;
           }
         }
@@ -228,7 +260,7 @@ export class BacklogPage implements OnInit {
     }
 
     if (movedIssue) {
-      // Update the issue's sprintId
+      // Update the issue's sprintId and timestamp
       movedIssue.sprintId = destinationSprintId || undefined;
       movedIssue.updatedAt = new Date();
 
@@ -236,17 +268,19 @@ export class BacklogPage implements OnInit {
       if (destinationSprintId) {
         const targetSprint = this.sprints.find(s => s.id === destinationSprintId);
         if (targetSprint) {
+          // Initialize issues array if it doesn't exist
           if (!targetSprint.issues) {
             targetSprint.issues = [];
           }
-          targetSprint.issues.push(movedIssue);
+          // Add to sprint by creating a new array
+          targetSprint.issues = [...targetSprint.issues, movedIssue];
         }
       } else {
-        // Move to backlog
-        this.backlogIssues.push(movedIssue);
+        // Move to backlog by creating a new array
+        this.backlogIssues = [...this.backlogIssues, movedIssue];
       }
 
-      console.log(`Issue ${issueId} moved successfully`);
+      console.log(`Issue ${issueId} moved successfully from ${sourceSprintId || 'backlog'} to ${destinationSprintId || 'backlog'}`);
     } else {
       console.error(`Issue ${issueId} not found`);
     }

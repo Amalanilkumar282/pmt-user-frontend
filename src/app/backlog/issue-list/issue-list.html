@@ -9,17 +9,20 @@
       <div 
         cdkDrag
         [cdkDragData]="issue"
-        class="bg-white border border-gray-200 rounded-md p-2.5 hover:shadow-md transition-shadow cursor-move hover:bg-gray-50"
+        [class]="'issue-card ' + (issue.status === 'DONE' ? 'completed-issue' : '')"
         (click)="onIssueClick(issue)">
         
         <div class="flex items-center justify-between gap-3">
           <!-- Left side: Icon, ID, Title -->
           <div class="flex items-center gap-2 flex-1 min-w-0">
             <span class="text-base flex-shrink-0">{{ getTypeIcon(issue.type) }}</span>
-            <span class="text-xs font-semibold text-gray-500 flex-shrink-0">{{ issue.id }}</span>
-            <h4 class="font-medium text-gray-900 text-sm truncate">
+            <span [class]="'text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'text-green-600' : 'text-gray-500')">{{ issue.id }}</span>
+            <h4 [class]="'font-medium text-sm truncate ' + (issue.status === 'DONE' ? 'text-green-700 line-through' : 'text-gray-900')">
               {{ issue.title }}
             </h4>
+            @if (issue.status === 'DONE') {
+              <span class="completed-badge-inline">✓</span>
+            }
           </div>
           
           <!-- Right side: Metadata -->
@@ -29,18 +32,18 @@
             </span>
             
             @if (issue.storyPoints) {
-              <span class="text-xs text-gray-600 font-semibold bg-gray-100 px-2 py-0.5 rounded">
+              <span [class]="'text-xs font-semibold px-2 py-0.5 rounded ' + (issue.status === 'DONE' ? 'text-green-700 bg-green-100' : 'text-gray-600 bg-gray-100')">
                 {{ issue.storyPoints }} SP
               </span>
             }
             
             @if (issue.assignee) {
-              <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+              <span [class]="'w-6 h-6 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'bg-green-500' : 'bg-blue-500')">
                 {{ issue.assignee.charAt(0).toUpperCase() }}
               </span>
             }
             
-            <span class="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
+            <span [class]="'px-2 py-0.5 rounded text-xs font-medium ' + (issue.status === 'DONE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600')">
               {{ issue.status.replace('_', ' ') }}
             </span>
           </div>
