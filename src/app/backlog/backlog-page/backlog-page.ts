@@ -46,9 +46,8 @@ export class BacklogPage implements OnInit {
     return !!svc.isCollapsed;
   }
   
-  // Epic panel state
+  // Epic panel state  
   isEpicPanelOpen = false;
-  selectedEpicFilter: string | null = null;
   epics: Epic[] = [...sharedEpics];
   
   // Epic detail view state
@@ -69,11 +68,10 @@ export class BacklogPage implements OnInit {
   // All sprints
   sprints: Sprint[] = sharedSprints;
 
-  // View state: 'sprints' or 'all-issues'
+  // View state managed by filters component
   currentView: 'sprints' | 'all-issues' = 'sprints';
-
-  // Toggle for showing/hiding completed sprints
   showCompletedSprints = false;
+  selectedEpicFilter: string | null = null;
 
   // Helper to get sprints by status
   get activeSprints(): Sprint[] {
@@ -195,9 +193,13 @@ export class BacklogPage implements OnInit {
 
   onFiltersChanged(criteria: FilterCriteria): void {
     console.log('Filters changed:', criteria);
-    // Implement filter logic here
-    // You can filter sprints and backlog issues based on the criteria
-    // For now, just logging the criteria
+    // Update view states from filter criteria
+    this.currentView = criteria.view;
+    this.showCompletedSprints = criteria.showCompletedSprints;
+    this.isEpicPanelOpen = criteria.showEpicPanel;
+    this.selectedEpicFilter = criteria.epicId;
+    // Additional filter logic can be implemented here
+    // Filter sprints and backlog issues based on other criteria
   }
 
   // Get list of all sprints for move dropdown
@@ -223,6 +225,11 @@ export class BacklogPage implements OnInit {
   // Get connected drop lists for backlog (all sprints)
   get connectedDropListsForBacklog(): string[] {
     return this.allDropListIds.filter(id => id !== 'backlog-container');
+  }
+
+  // Get epic options for filter component
+  get epicFilterOptions(): Array<{ id: string, name: string }> {
+    return this.epics.map(epic => ({ id: epic.id, name: epic.name }));
   }
 
   // Handle moving issue between sprints/backlog
@@ -290,26 +297,8 @@ export class BacklogPage implements OnInit {
     this.sidebarStateService.toggleCollapse();
   }
 
-  toggleEpicPanel(): void {
-    this.isEpicPanelOpen = !this.isEpicPanelOpen;
-  }
-
   closeEpicPanel(): void {
     this.isEpicPanelOpen = false;
-  }
-
-  onEpicFilterChange(event: Event): void {
-    const selectElement = event.target as HTMLSelectElement;
-    this.selectedEpicFilter = selectElement.value || null;
-    console.log('Selected epic filter:', this.selectedEpicFilter);
-    // Implement filter logic here to filter backlog issues by epic
-  }
-
-  get epicFilterOptions(): Array<{ id: string | null, name: string }> {
-    return [
-      { id: null, name: 'All epics' },
-      ...this.epics.map(epic => ({ id: epic.id, name: epic.name }))
-    ];
   }
 
   // Epic detail view methods

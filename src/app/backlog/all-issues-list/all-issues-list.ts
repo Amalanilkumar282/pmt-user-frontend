@@ -2,11 +2,12 @@ import { Component, Input, Output, EventEmitter, signal, computed } from '@angul
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IssueDetailedView } from '../issue-detailed-view/issue-detailed-view';
+import { IssueList } from '../issue-list/issue-list';
 import { Issue } from '../../shared/models/issue.model';
 
 @Component({
   selector: 'app-all-issues-list',
-  imports: [CommonModule, FormsModule, IssueDetailedView],
+  imports: [CommonModule, FormsModule, IssueDetailedView, IssueList],
   templateUrl: './all-issues-list.html',
   styleUrl: './all-issues-list.css'
 })
@@ -127,25 +128,5 @@ export class AllIssuesList {
 
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
-  }
-
-  protected getTypeIcon(type: string): string {
-    const icons: Record<string, string> = {
-      'STORY': '📖',
-      'TASK': '✓',
-      'BUG': '🐛',
-      'EPIC': '⚡'
-    };
-    return icons[type] || '📝';
-  }
-
-  protected getPriorityClass(priority: string): string {
-    const classes: Record<string, string> = {
-      'LOW': 'bg-gray-100 text-gray-700',
-      'MEDIUM': 'bg-blue-100 text-blue-700',
-      'HIGH': 'bg-orange-100 text-orange-700',
-      'CRITICAL': 'bg-red-100 text-red-700'
-    };
-    return classes[priority] || 'bg-gray-100 text-gray-700';
   }
 }

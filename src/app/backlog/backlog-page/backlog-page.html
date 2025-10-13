@@ -41,61 +41,14 @@
        [class.epic-panel-open]="isEpicPanelOpen"
        [class.epic-detail-open]="selectedEpic"
        [style.margin-right.px]="selectedEpic ? epicDetailPanelWidth : 0">
-    <!-- Filters Section -->
-    <app-filters (filtersChanged)="onFiltersChanged($event)"></app-filters>
+    <!-- Filters Section - Now includes view toggle, epic controls, and sprint visibility -->
+    <app-filters 
+      [epicOptions]="epicFilterOptions"
+      (filtersChanged)="onFiltersChanged($event)">
+    </app-filters>
 
-    <!-- View Toggle -->
-    <div class="view-toggle-section">
-      <div class="view-toggle-buttons">
-        <button 
-          class="view-toggle-btn"
-          [class.active]="currentView === 'sprints'"
-          (click)="toggleView('sprints')">
-          📋 Sprints View
-        </button>
-        <button 
-          class="view-toggle-btn"
-          [class.active]="currentView === 'all-issues'"
-          (click)="toggleView('all-issues')">
-          📝 All Issues
-        </button>
-      </div>
-    </div>
-
+    <!-- Page Header - Simplified -->
     <div class="page-header">
-      <div class="page-header-left">
-        <div class="epic-controls">
-          <button 
-            class="epic-toggle-btn"
-            [class.active]="isEpicPanelOpen"
-            (click)="toggleEpicPanel()">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect width="16" height="16" rx="2" fill="#8B5CF6"/>
-              <rect x="3" y="3" width="10" height="10" rx="1" fill="white"/>
-            </svg>
-            <span>Epic</span>
-          </button>
-
-          <select 
-            class="epic-filter-select"
-            [value]="selectedEpicFilter || ''"
-            (change)="onEpicFilterChange($event)">
-            @for (option of epicFilterOptions; track option.id) {
-              <option [value]="option.id || ''">{{ option.name }}</option>
-            }
-          </select>
-
-          @if (currentView === 'sprints') {
-            <button 
-              class="completed-sprint-toggle-btn"
-              [class.active]="showCompletedSprints"
-              (click)="toggleCompletedSprints()">
-              <span class="toggle-icon">{{ showCompletedSprints ? '👁️' : '👁️‍🗨️' }}</span>
-              <span>{{ showCompletedSprints ? 'Hide' : 'Show' }} Completed Sprints</span>
-            </button>
-          }
-        </div>
-      </div>
       <button 
         class="create-sprint-btn"
         (click)="handleCreateSprint()">

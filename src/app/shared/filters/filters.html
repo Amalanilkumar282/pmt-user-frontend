@@ -23,6 +23,76 @@
 
   <!-- Collapsible Content -->
   <div class="filters-content" [class.collapsed]="isCollapsed()">
+    <!-- View Toggle -->
+    <div class="view-toggle-container">
+      <div class="view-toggle-buttons">
+        <button 
+          class="view-toggle-btn"
+          [class.active]="currentView === 'sprints'"
+          (click)="toggleView('sprints')">
+          📋 Sprints
+        </button>
+        <button 
+          class="view-toggle-btn"
+          [class.active]="currentView === 'all-issues'"
+          (click)="toggleView('all-issues')">
+          📝 All Issues
+        </button>
+      </div>
+    </div>
+
+    <!-- Epic and Sprint Controls -->
+    <div class="filter-controls">
+      <!-- Epic Panel Toggle -->
+      <label class="toggle-control">
+        <input 
+          type="checkbox" 
+          class="toggle-input"
+          [checked]="showEpicPanel()"
+          (change)="toggleEpicPanel()">
+        <span class="toggle-slider"></span>
+        <span class="toggle-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <rect width="16" height="16" rx="2" fill="#8B5CF6"/>
+            <rect x="3" y="3" width="10" height="10" rx="1" fill="white"/>
+          </svg>
+          Epic Panel
+        </span>
+      </label>
+
+      <!-- Epic Filter Dropdown -->
+      <div class="filter-dropdown compact">
+        <button class="dropdown-toggle compact" (click)="toggleDropdown('epic')">
+          <span class="dropdown-label">Epic:</span>
+          <span class="dropdown-value">{{ getSelectedEpicName() }}</span>
+          <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        @if (openDropdown === 'epic') {
+          <div class="dropdown-menu">
+            <div class="dropdown-item" (click)="onEpicFilterChange(null)">All Epics</div>
+            @for (epic of epicOptions; track epic.id) {
+              <div class="dropdown-item" (click)="onEpicFilterChange(epic.id)">{{ epic.name }}</div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Show Completed Sprints Toggle (only in sprints view) -->
+      @if (currentView === 'sprints') {
+        <label class="toggle-control">
+          <input 
+            type="checkbox" 
+            class="toggle-input"
+            [checked]="showCompletedSprints()"
+            (change)="toggleCompletedSprints()">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Show Completed Sprints</span>
+        </label>
+      }
+    </div>
+
     <!-- Search Bar -->
     <div class="search-box">
     <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

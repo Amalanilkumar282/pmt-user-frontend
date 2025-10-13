@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, Input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -10,6 +10,11 @@ export interface FilterCriteria {
   status: string | null;
   assignee: string | null;
   sort: string;
+  // New fields
+  view: 'sprints' | 'all-issues';
+  epicId: string | null;
+  showCompletedSprints: boolean;
+  showEpicPanel: boolean;
 }
 
 @Component({
@@ -40,6 +45,15 @@ export class Filters {
 
   // Dropdown state
   openDropdown: string | null = null;
+
+  // New view and filter states
+  currentView: 'sprints' | 'all-issues' = 'sprints';
+  selectedEpicId: string | null = null;
+  showCompletedSprints = signal(false);
+  showEpicPanel = signal(false);
+
+  // Epic options - will be passed from parent
+  @Input() epicOptions: Array<{ id: string, name: string }> = [];
 
   onSearchChange(): void {
     this.emitFilters();
@@ -101,6 +115,7 @@ export class Filters {
       this.selectedPriority ||
       this.selectedStatus ||
       this.selectedAssignee ||
+      this.selectedEpicId ||
       this.selectedSort !== 'Recently Updated');
   }
 
@@ -112,6 +127,7 @@ export class Filters {
     if (this.selectedPriority) count++;
     if (this.selectedStatus) count++;
     if (this.selectedAssignee) count++;
+    if (this.selectedEpicId) count++;
     if (this.selectedSort !== 'Recently Updated') count++;
     return count;
   }
@@ -123,12 +139,41 @@ export class Filters {
     this.selectedPriority = null;
     this.selectedStatus = null;
     this.selectedAssignee = null;
+    this.selectedEpicId = null;
     this.selectedSort = 'Recently Updated';
+    // Keep view and toggle states when clearing filters
     this.emitFilters();
   }
 
   toggleCollapse(): void {
     this.isCollapsed.set(!this.isCollapsed());
+  }
+
+  // New methods for view and epic management
+  toggleView(view: 'sprints' | 'all-issues'): void {
+    this.currentView = view;
+    this.emitFilters();
+  }
+
+  toggleEpicPanel(): void {
+    this.showEpicPanel.set(!this.showEpicPanel());
+    this.emitFilters();
+  }
+
+  onEpicFilterChange(epicId: string | null): void {
+    this.selectedEpicId = epicId;
+    this.emitFilters();
+  }
+
+  toggleCompletedSprints(): void {
+    this.showCompletedSprints.set(!this.showCompletedSprints());
+    this.emitFilters();
+  }
+
+  getSelectedEpicName(): string {
+    if (!this.selectedEpicId) return 'All';
+    const epic = this.epicOptions.find(e => e.id === this.selectedEpicId);
+    return epic ? epic.name : 'All';
   }
 
   private emitFilters(): void {
@@ -139,7 +184,11 @@ export class Filters {
       priority: this.selectedPriority,
       status: this.selectedStatus,
       assignee: this.selectedAssignee,
-      sort: this.selectedSort
+      sort: this.selectedSort,
+      view: this.currentView,
+      epicId: this.selectedEpicId,
+      showCompletedSprints: this.showCompletedSprints(),
+      showEpicPanel: this.showEpicPanel()
     };
     this.filtersChanged.emit(criteria);
   }
