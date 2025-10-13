@@ -233,28 +233,55 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 assignedColors: { [key: string]: string } = {};
 
 
+// Predefined colors for common statuses
+predefinedStatusColors: { [key: string]: string } = {
+  'done': '#4caf50',          // green
+  'todo': '#2196f3',   // blue
+  'in progress': '#ff9800',         // orange
+  'on hold': '#9c27b0',       // purple
+  'in review': '#009688'      // teal
+};
+
+
 colorPalette: string[] = [
-  '#4caf50', '#2196f3', '#ff9800', '#9c27b0',
-  '#009688', '#795548', '#607d8b', '#e91e63', '#3f51b5',
+  
+    '#795548', '#607d8b', '#e91e63', '#3f51b5',
   '#00bcd4', '#8bc34a', '#ff5722', '#673ab7', '#cddc39',
   '#ffeb3b', '#f06292', '#64b5f6', '#4db6ac', '#ba68c8'
 ];
 
-getStatusColor(value: string): string {
+ getStatusColor(value: string): string {
   if (!value) return '#ccc';
+
   const key = value.toLowerCase().replace(/_/g, ' ');
 
-  // If already assigned, return
-  if (this.assignedColors[key]) return this.assignedColors[key];
-
-  // Assign color deterministically using hash to palette
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) {
-    hash = key.charCodeAt(i) + ((hash << 5) - hash);
+  // 1️⃣ Check if predefined
+  if (this.predefinedStatusColors[key]) {
+    return this.predefinedStatusColors[key];
   }
 
-  const color = this.colorPalette[Math.abs(hash) % this.colorPalette.length];
-  this.assignedColors[key] = color;
+  // 2️⃣ Check if already assigned dynamically
+  if (this.assignedColors[key]) {
+    return this.assignedColors[key];
+  }
+
+  // 3️⃣ Assign next available color from palette
+  const usedColors = Object.values(this.assignedColors);
+  const availableColors = this.colorPalette.filter(c => !usedColors.includes(c));
+
+  let color: string;
+  if (availableColors.length > 0) {
+    color = availableColors[0]; // pick first unused
+  } else {
+    // if all used, fallback to hash
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = key.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    color = this.colorPalette[Math.abs(hash) % this.colorPalette.length];
+  }
+
+  this.assignedColors[key] = color; // save dynamically
   return color;
 }
 
