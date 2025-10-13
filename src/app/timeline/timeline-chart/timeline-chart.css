@@ -1,96 +1,501 @@
-/* Timeline Chart Styles */
+/* Timeline Chart Styles - FIXED ALIGNMENT VERSION */
 
+/* ===========================
+   MAIN CONTAINER LAYOUT
+   =========================== */
+.timeline-container {
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  height: 600px;
+}
+
+/* ===========================
+   LEFT SIDEBAR (TASK LIST)
+   =========================== */
+.timeline-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+/* FIXED: Header height now matches exactly based on view */
+.sidebar-header {
+  flex-shrink: 0;
+  padding: 1rem;
+  background-color: #eef2ff;
+  border-bottom: 2px solid #c7d2fe;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 30;
+}
+
+/* Day view: 3 levels = 96px */
+.sidebar-header.day-view {
+  height: 96px;
+}
+
+/* Month view: 2 levels = 68px */
+.sidebar-header.month-view {
+  height: 68px;
+}
+
+/* Year view: 1 level = 40px */
+.sidebar-header.year-view {
+  height: 40px;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: auto;
+}
+
+/* Timeline Rows in Sidebar - CONSISTENT HEIGHTS */
 .timeline-row {
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-bottom: 1px solid #f3f4f6;
   transition: background-color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .timeline-row.sprint-row {
-  background-color: #f0f9ff;
+  background-color: #eef2ff;
+  border-bottom: 1px solid #c7d2fe;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
 }
 
-.timeline-row.epic-row:hover,
-.timeline-row.issue-row:hover {
+.timeline-row.epic-row {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.timeline-row.issue-row {
+  background-color: white;
+  border-bottom: 1px solid #f3f4f6;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+}
+
+.row-content {
+  width: 100%;
+  height: 100%;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.row-content.sprint-content {
+  background-color: #eef2ff;
+}
+
+.row-content.sprint-content:hover {
+  background-color: #dbeafe;
+}
+
+.row-content.epic-content:hover {
   background-color: #f9fafb;
 }
 
-/* Bar styles */
-.bar-sprint {
+.row-content.issue-content {
+  padding-left: 2.5rem;
+  padding-right: 0.75rem;
+  border-left: 2px solid #d1d5db;
+  margin-left: 0.75rem;
+}
+
+.row-content.issue-content:hover {
+  background-color: #f9fafb;
+}
+
+/* ===========================
+   RIGHT CHART AREA - FIXED ALIGNMENT
+   =========================== */
+.timeline-chart {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* FIXED: Chart header with exact heights */
+.chart-header {
+  flex-shrink: 0;
+  position: relative;
+  background-color: white;
+  border-bottom: 2px solid #d1d5db;
+  z-index: 25;
+  overflow: hidden;
+}
+
+/* Day view: 3 levels = 96px */
+.chart-header.day-view {
+  height: 96px;
+}
+
+/* Month view: 2 levels = 68px */
+.chart-header.month-view {
+  height: 68px;
+}
+
+/* Year view: 1 level = 40px */
+.chart-header.year-view {
+  height: 40px;
+}
+
+.header-scroll-container {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.header-content {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* FIXED: Header levels stack vertically */
+.header-level {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.header-level.month-header {
+  height: 40px;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.header-level.week-header {
+  height: 28px;
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-level.day-header {
+  height: 28px;
+  background-color: white;
+}
+
+.header-cell {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+}
+
+.header-cell.month-cell {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.header-cell.week-cell {
+  font-size: 0.7rem;
+  color: #4b5563;
+  background-color: white;
+}
+
+.header-cell.day-cell {
+  font-size: 0.7rem;
+  color: #6b7280;
+  background-color: white;
+}
+
+.chart-content {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+  scroll-behavior: auto;
+}
+
+.chart-canvas {
+  position: relative;
+  min-height: 100%;
+}
+
+/* Grid Lines */
+.chart-grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #e5e7eb;
+}
+
+.grid-line.major {
+  background-color: #d1d5db;
+}
+
+/* Chart Rows - EXACTLY MATCH SIDEBAR ROWS */
+.chart-rows {
+  position: relative;
+  z-index: 10;
+  min-height: 100%;
+}
+
+.chart-row {
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.chart-row.sprint-row {
+  background-color: #eef2ff;
+  border-bottom: 1px solid #c7d2fe;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
+}
+
+.chart-row.epic-row {
+  background-color: white;
+}
+
+.chart-row.issue-row {
+  background-color: white;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+}
+
+.chart-row:hover {
+  background-color: #f9fafb;
+}
+
+.chart-row.sprint-row:hover {
+  background-color: #dbeafe;
+}
+
+/* Timeline Bars - WITH RESIZE HANDLES */
+.timeline-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 0.375rem;
+  overflow: visible;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  min-width: 20px;
+}
+
+.timeline-bar.resizing {
+  cursor: ew-resize;
+  z-index: 50;
+}
+
+.bar-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.timeline-bar:hover .bar-resize-handle {
+  opacity: 1;
+}
+
+.bar-resize-handle.left {
+  left: 0;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.8), transparent);
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+.bar-resize-handle.right {
+  right: 0;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.8), transparent);
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.sprint-bar {
+  height: 36px;
   background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
 }
 
-.bar-epic {
-  background: linear-gradient(135deg, #ffc0cb 0%, #ffb6c1 100%);
+.epic-bar {
+  height: 32px;
+  background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
 }
 
-.bar-story,
-.bar-task,
-.bar-bug {
-  background: linear-gradient(135deg, #ffc0cb 0%, #ffb6c1 100%);
-  opacity: 0.9;
+.issue-bar {
+  height: 24px;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
 }
 
-/* Level indentation */
-.level-0 {
-  padding-left: 0.75rem;
+.bar-label {
+  color: white;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  font-size: 0.7rem;
+  pointer-events: none;
 }
 
-.level-1 {
-  padding-left: 1.5rem;
+.sprint-bar .bar-label {
+  font-size: 0.75rem;
 }
 
-.level-2 {
-  padding-left: 3rem;
+.epic-bar .bar-label {
+  font-size: 0.7rem;
 }
 
-/* Custom scrollbar */
+.issue-bar .bar-label {
+  font-size: 0.65rem;
+}
+
+/* Today Marker - INCREASED Z-INDEX */
+.today-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #ef4444;
+  pointer-events: none;
+  z-index: 100;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.today-dot {
+  position: absolute;
+  top: -6px;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.today-label {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  margin-top: -20px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* ===========================
+   CUSTOM SCROLLBAR
+   =========================== */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #888;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
-/* Status badge colors */
-.status-done {
+.header-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===========================
+   STATUS BADGE COLORS
+   =========================== */
+.status-done,
+.bg-green-500 {
   background-color: #10b981;
 }
 
-.status-in-progress {
+.status-in-progress,
+.bg-blue-500 {
   background-color: #3b82f6;
 }
 
-.status-todo {
+.status-todo,
+.bg-gray-500 {
   background-color: #6b7280;
 }
 
-.status-in-review {
+.status-in-review,
+.bg-orange-500 {
   background-color: #f59e0b;
 }
 
-/* Expand/collapse button */
-button:focus {
-  outline: none;
+.bg-yellow-500 {
+  background-color: #eab308;
 }
 
-/* Timeline header sticky positioning */
-.sticky {
-  position: sticky;
-  z-index: 10;
-}
-
-/* Today marker animation */
+/* ===========================
+   ANIMATIONS
+   =========================== */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -100,64 +505,71 @@ button:focus {
   }
 }
 
-.today-marker {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-/* Bar hover effects */
-.bar-sprint:hover,
-.bar-epic:hover,
-.bar-story:hover,
-.bar-task:hover,
-.bar-bug:hover {
-  filter: brightness(1.1);
-  cursor: pointer;
-}
-
-/* Transition effects */
+/* ===========================
+   UTILITY CLASSES
+   =========================== */
 .transition-all {
   transition: all 0.2s ease;
 }
 
-/* No data state */
-.no-data {
-  text-align: center;
-  padding: 60px 20px;
-  color: #999;
-  font-size: 16px;
-  background: #f9fafb;
+/* Prevent text selection during interactions */
+.timeline-row,
+.timeline-bar,
+.row-content {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
-/* Loading state */
-.loading {
-  text-align: center;
-  padding: 60px;
-  color: #999;
-}
-
-/* Grid lines for better readability */
-.chart-grid-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: #e5e7eb;
-  opacity: 0.5;
-}
-
-/* Responsive adjustments */
+/* ===========================
+   RESPONSIVE ADJUSTMENTS
+   =========================== */
 @media (max-width: 1200px) {
-  .w-96 {
-    width: 300px;
+  .timeline-sidebar {
+    width: 220px;
   }
 }
 
 @media (max-width: 768px) {
-  .w-96 {
-    width: 250px;
+  .timeline-sidebar {
+    width: 180px;
   }
   
-  .text-sm {
-    font-size: 0.8rem;
+  .timeline-container {
+    height: 500px;
+  }
+
+  .chart-row,
+  .timeline-row {
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+  }
+
+  .chart-row.sprint-row,
+  .timeline-row.sprint-row {
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+  }
+
+  .chart-row.issue-row,
+  .timeline-row.issue-row {
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+  }
+
+  .sprint-bar {
+    height: 30px;
+  }
+
+  .epic-bar {
+    height: 26px;
+  }
+
+  .issue-bar {
+    height: 20px;
   }
 }
