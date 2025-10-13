@@ -1,0 +1,128 @@
+<div class="all-issues-card">
+  <div class="all-issues-header">
+    <div class="header-left" (click)="toggleCollapse()">
+      <span class="collapse-icon">{{ isCollapsed() ? '▶' : '▼' }}</span>
+      <div>
+        <h3 class="all-issues-title">All Issues <span class="issue-count-inline">({{ issues.length }})</span></h3>
+        <p class="all-issues-subtitle">View all issues including completed ones</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Collapsible Content -->
+  <div class="collapsible-content" [class.collapsed]="isCollapsed()">
+    <!-- Active Issues Section -->
+    @if (activeIssues().length > 0) {
+      <div class="issues-group">
+        <h4 class="issues-group-title">Active Issues ({{ activeIssues().length }})</h4>
+        <div class="issues-section">
+          <app-issue-list 
+            [issues]="activeIssues()"
+            (issueClick)="onIssueClick($event)">
+          </app-issue-list>
+        </div>
+      </div>
+    }
+
+    <!-- Completed Issues Section -->
+    @if (completedIssues().length > 0) {
+      <div class="issues-group completed-group">
+        <h4 class="issues-group-title">
+          <span class="completed-badge">✓</span> Completed Issues ({{ completedIssues().length }})
+        </h4>
+        <div class="issues-section">
+          <app-issue-list 
+            [issues]="completedIssues()"
+            (issueClick)="onIssueClick($event)">
+          </app-issue-list>
+        </div>
+      </div>
+    }
+
+    @if (issues.length === 0) {
+      <div class="text-center py-8 text-gray-500">
+        <p class="text-lg">No issues yet</p>
+        <p class="text-sm">Add issues to get started</p>
+      </div>
+    }
+
+    <!-- Pagination Controls -->
+    @if (issues.length > 0) {
+      <div class="pagination-controls">
+        <div class="pagination-info">
+          <div class="items-per-page">
+            <label for="itemsPerPage">Items per page:</label>
+            <select 
+              id="itemsPerPage"
+              [(ngModel)]="itemsPerPage"
+              (change)="onItemsPerPageChange()">
+              <option [value]="5">5</option>
+              <option [value]="10">10</option>
+              <option [value]="15">15</option>
+              <option [value]="20">20</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+            </select>
+          </div>
+          <div class="page-info">
+            Showing <strong>{{ startItem }}</strong> - <strong>{{ endItem }}</strong> of <strong>{{ issues.length }}</strong> issues
+          </div>
+        </div>
+
+        <div class="pagination-buttons">
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === 1"
+            (click)="goToFirstPage()">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 5l-7 7 7 7M18 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            First
+          </button>
+          
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === 1"
+            (click)="previousPage()">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Previous
+          </button>
+
+          <span class="page-number">Page {{ currentPage }} of {{ totalPages }}</span>
+
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === totalPages"
+            (click)="nextPage()">
+            Next
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <button 
+            class="pagination-btn"
+            [disabled]="currentPage === totalPages"
+            (click)="goToLastPage()">
+            Last
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 5l7 7-7 7M6 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Issue Detailed View Modal -->
+<app-issue-detailed-view
+  [issue]="selectedIssue()"
+  [isOpen]="isModalOpen()"
+  [availableSprints]="availableSprints"
+  (close)="onCloseModal()"
+  (deleteIssue)="onDeleteIssue($event)"
+  (moveIssue)="onMoveIssue($event)">
+</app-issue-detailed-view>
