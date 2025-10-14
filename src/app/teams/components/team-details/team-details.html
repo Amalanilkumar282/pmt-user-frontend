@@ -1,0 +1,164 @@
+<div class="details-overlay" (click)="onClose()">
+  <div class="details-container" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="details-header">
+      <div class="header-left">
+        <div class="team-icon-large">{{ getInitials(team.name) }}</div>
+        <div class="header-info">
+          <h2 class="team-name">{{ team.name }}</h2>
+          <span class="project-name">{{ team.projectName }}</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="status-badge" [class.active]="team.status === 'Active'" [class.inactive]="team.status === 'Inactive'">
+          {{ team.status }}
+        </span>
+        <button class="action-btn" (click)="onEdit()" title="Edit team">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="close-btn" (click)="onClose()" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="details-content">
+      <!-- Description -->
+      <div class="section">
+        <h3 class="section-title">Description</h3>
+        <p class="description-text">{{ team.description }}</p>
+      </div>
+
+      <!-- Statistics -->
+      <div class="section">
+        <h3 class="section-title">Team Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #dbeafe; color: #2563eb;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-value">{{ stats.totalMembers }}</div>
+            <div class="stat-label">Team Members</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #dcfce7; color: #16a34a;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="stat-value">{{ stats.activeSprints }}</div>
+            <div class="stat-label">Active Sprints</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #fef3c7; color: #d97706;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-value">{{ stats.completedSprints }}</div>
+            <div class="stat-label">Completed Sprints</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #f3e8ff; color: #9333ea;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 20V10M6 20V4M18 20v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-value">{{ stats.velocity }}</div>
+            <div class="stat-label">Velocity</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="section">
+        <h3 class="section-title">Issue Progress</h3>
+        <div class="progress-container">
+          <div class="progress-header">
+            <span class="progress-label">{{ stats.completedIssues }} of {{ stats.totalIssues }} issues completed</span>
+            <span class="progress-percentage">{{ getCompletionPercentage() }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="getCompletionPercentage()"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Lead -->
+      <div class="section">
+        <h3 class="section-title">Team Lead</h3>
+        <div class="member-card lead-card">
+          <div class="member-avatar">{{ getInitials(team.lead.name) }}</div>
+          <div class="member-info">
+            <div class="member-name">{{ team.lead.name }}</div>
+            <div class="member-email">{{ team.lead.email }}</div>
+          </div>
+          <span class="role-badge" [style.background]="getRoleColor(team.lead.role)">
+            {{ team.lead.role }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Team Members -->
+      <div class="section">
+        <h3 class="section-title">Team Members ({{ team.members.length - 1 }})</h3>
+        <div class="members-list">
+          @for (member of team.members; track member.id) {
+            @if (member.id !== team.lead.id) {
+              <div class="member-card">
+                <div class="member-avatar">{{ getInitials(member.name) }}</div>
+                <div class="member-info">
+                  <div class="member-name">{{ member.name }}</div>
+                  <div class="member-email">{{ member.email }}</div>
+                </div>
+                <span class="role-badge" [style.background]="getRoleColor(member.role)">
+                  {{ member.role }}
+                </span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <!-- Tags -->
+      @if (team.tags && team.tags.length > 0) {
+        <div class="section">
+          <h3 class="section-title">Tags</h3>
+          <div class="tags">
+            @for (tag of team.tags; track tag) {
+              <span class="tag">{{ tag }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Metadata -->
+      <div class="section">
+        <h3 class="section-title">Information</h3>
+        <div class="metadata-grid">
+          <div class="metadata-item">
+            <span class="metadata-label">Created</span>
+            <span class="metadata-value">{{ formatDate(team.createdAt) }}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="metadata-label">Last Updated</span>
+            <span class="metadata-value">{{ formatDate(team.updatedAt) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
