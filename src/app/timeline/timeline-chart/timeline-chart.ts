@@ -524,13 +524,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getTypeIcon(issueType?: string): string {
-    const iconMap: { [key: string]: string } = {
-      'STORY': '📖',
-      'TASK': '✓',
-      'BUG': '🐛',
-      'EPIC': '⚡'
-    };
-    return issueType ? iconMap[issueType] || '○' : '○';
+    // Method kept for backward compatibility but no longer used in template
+    return '';
   }
 
   getBarPosition(startDate?: Date): number {

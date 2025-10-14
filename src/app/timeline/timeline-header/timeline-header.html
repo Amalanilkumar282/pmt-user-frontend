@@ -28,15 +28,21 @@
     <div class="flex items-center gap-3">
         <!-- Sprint Filter -->
         <div class="relative filter-container">
-            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[95px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
                 <span class="flex-1 text-left">Sprint</span>
+                <!-- Show count when filters are selected -->
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('sprints') > 0">
                     {{getFilterCount('sprints')}}
                 </span>
-                <span class="dropdown-arrow text-xs transition-transform duration-300"
-                      [class.rotate-down]="isDropdownOpen('sprint-dropdown')">▼</span>
+                <!-- Show arrow only when no filters are selected -->
+                <svg *ngIf="getFilterCount('sprints') === 0" 
+                     class="dropdown-arrow transition-transform duration-300" 
+                     width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     [class.rotate-down]="isDropdownOpen('sprint-dropdown')">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </button>
             <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="sprint-dropdown">
@@ -55,15 +61,21 @@
         
         <!-- Epic Filter -->
         <div class="relative filter-container">
-            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[95px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
                 <span class="flex-1 text-left">Epic</span>
+                <!-- Show count when filters are selected -->
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('epics') > 0">
                     {{getFilterCount('epics')}}
                 </span>
-                <span class="dropdown-arrow text-xs transition-transform duration-300"
-                      [class.rotate-down]="isDropdownOpen('epic-dropdown')">▼</span>
+                <!-- Show arrow only when no filters are selected -->
+                <svg *ngIf="getFilterCount('epics') === 0" 
+                     class="dropdown-arrow transition-transform duration-300" 
+                     width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     [class.rotate-down]="isDropdownOpen('epic-dropdown')">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </button>
             <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="epic-dropdown">
@@ -75,6 +87,9 @@
                            [value]="epic"
                            [checked]="selectedFilters.epics.includes(epic)"
                            (change)="toggleFilter('epics', epic, $event)">
+                    <svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+                    </svg>
                     <label class="cursor-pointer flex-1 m-0" [for]="'epic-' + epic">{{epic}}</label>
                 </div>
             </div>
@@ -82,15 +97,21 @@
         
         <!-- Type Filter -->
         <div class="relative filter-container">
-            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[95px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
                 <span class="flex-1 text-left">Type</span>
+                <!-- Show count when filters are selected -->
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('types') > 0">
                     {{getFilterCount('types')}}
                 </span>
-                <span class="dropdown-arrow text-xs transition-transform duration-300"
-                      [class.rotate-down]="isDropdownOpen('type-dropdown')">▼</span>
+                <!-- Show arrow only when no filters are selected -->
+                <svg *ngIf="getFilterCount('types') === 0" 
+                     class="dropdown-arrow transition-transform duration-300" 
+                     width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     [class.rotate-down]="isDropdownOpen('type-dropdown')">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </button>
             <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="type-dropdown">
@@ -101,6 +122,10 @@
                            id="type-story"
                            [checked]="selectedFilters.types.includes('story')"
                            (change)="toggleFilter('types', 'story', $event)">
+                    <svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="12" height="12" rx="2" stroke="#10b981" stroke-width="1.5" fill="none"/>
+                        <path d="M5 6h6M5 8h6M5 10h4" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
                     <label class="cursor-pointer flex-1 m-0" for="type-story">Story</label>
                 </div>
                 <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
@@ -110,6 +135,10 @@
                            id="type-task"
                            [checked]="selectedFilters.types.includes('task')"
                            (change)="toggleFilter('types', 'task', $event)">
+                    <svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="12" height="12" rx="2" stroke="#3b82f6" stroke-width="1.5" fill="none"/>
+                        <path d="M5 8l2 2 4-4" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                     <label class="cursor-pointer flex-1 m-0" for="type-task">Task</label>
                 </div>
                 <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
@@ -119,6 +148,10 @@
                            id="type-bug"
                            [checked]="selectedFilters.types.includes('bug')"
                            (change)="toggleFilter('types', 'bug', $event)">
+                    <svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="8" cy="8" r="6" stroke="#ef4444" stroke-width="1.5" fill="none"/>
+                        <path d="M5.5 6.5L10.5 11.5M10.5 6.5L5.5 11.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
                     <label class="cursor-pointer flex-1 m-0" for="type-bug">Bug</label>
                 </div>
             </div>
@@ -126,15 +159,21 @@
         
         <!-- Status Filter -->
         <div class="relative filter-container">
-            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[95px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
                 <span class="flex-1 text-left">Status</span>
+                <!-- Show count when filters are selected -->
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('status') > 0">
                     {{getFilterCount('status')}}
                 </span>
-                <span class="dropdown-arrow text-xs transition-transform duration-300"
-                      [class.rotate-down]="isDropdownOpen('status-dropdown')">▼</span>
+                <!-- Show arrow only when no filters are selected -->
+                <svg *ngIf="getFilterCount('status') === 0" 
+                     class="dropdown-arrow transition-transform duration-300" 
+                     width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     [class.rotate-down]="isDropdownOpen('status-dropdown')">
+                    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </button>
             <div class="hidden absolute top-full right-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="status-dropdown">

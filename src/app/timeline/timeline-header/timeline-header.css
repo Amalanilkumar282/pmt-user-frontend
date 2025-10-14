@@ -4,6 +4,7 @@
 .dropdown-arrow {
     display: inline-block;
     transition: transform 0.3s ease;
+    flex-shrink: 0;
 }
 
 .dropdown-arrow.rotate-down {
