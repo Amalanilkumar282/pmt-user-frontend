@@ -12,7 +12,11 @@
       (viewChanged)="onViewChanged($event)"
       (filterToggled)="onFilterToggled($event)"
       (filtersCleared)="onFiltersCleared()"
-      (backToEpics)="onBackToEpics()">
+      (backToEpics)="onBackToEpics()"
+      (displayRangeChanged)="onDisplayRangeChanged($event)"
+      (showCompletedChanged)="onShowCompletedChanged($event)"
+      (expandAllEpics)="onExpandAllEpics()"
+      (collapseAllEpics)="onCollapseAllEpics()">
     </app-timeline-header>
     
     <!-- Gantt Container - DYNAMIC HEIGHT -->

@@ -394,7 +394,8 @@
   text-overflow: ellipsis;
   flex: 1;
   font-size: 0.7rem;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .sprint-bar .bar-label {
