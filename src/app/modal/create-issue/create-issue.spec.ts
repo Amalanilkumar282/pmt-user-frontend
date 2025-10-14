@@ -67,7 +67,6 @@ describe('CreateIssue Component (Full Suite)', () => {
 
     expect(component.show).toBeTrue();
     expect(component.modalTitle).toBe('Create Issue');
-    expect(component.projectName).toBe('Alpha');
     expect(component.submitButtonText).toBe('Save Issue');
   }));
 

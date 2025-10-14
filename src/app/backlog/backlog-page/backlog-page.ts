@@ -111,7 +111,7 @@ export class BacklogPage implements OnInit {
 
   handleCreateSprint() {
       const sprintFields: FormField[] = [
-        { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2 },
+        { label: 'Sprint Name', type: 'text', model: 'sprintName',required:true, colSpan: 2 },
         { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
         { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
         { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
