@@ -3,12 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
-import { IssueSummaryCard } from '../../summary/issue-summary-card/issue-summary-card';
 import { SprintOverview } from '../../summary/sprint-overview/sprint-overview';
 import { ProjectCard } from '../project-card/project-card';
 import { ActivityItem } from '../activity-item/activity-item';
+import { TabbedIssues } from '../tabbed-issues/tabbed-issues';
 import { Header } from '../../shared/header/header';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import {
   DashboardProject,
   DashboardActivity,
@@ -28,22 +28,21 @@ import {
   imports: [
     CommonModule,
     Sidebar,
-    IssueSummaryCard,
     ProjectCard,
     ActivityItem,
     SprintOverview,
     Header,
     RouterModule,
+    TabbedIssues,
   ],
 })
 export class MainDashboardHome implements OnInit {
-  userName = 'Harrel';
+  private router = inject(Router);
+  userName = 'User';
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
-
-  ngOnInit(): void {
-    // Clear project context when viewing main dashboard
-    this.projectContextService.clearCurrentProjectId();
+  navigateToProject() {
+    this.router.navigate(['/projects', 1, 'board']);
   }
 
   isSidebarCollapsed(): boolean {
@@ -84,5 +83,10 @@ export class MainDashboardHome implements OnInit {
     this.projects = this.projects.map((p) =>
       p.id === payload.id ? { ...p, starred: payload.starred } : p
     );
+  }
+
+  ngOnInit(): void {
+    // Clear project context when viewing main dashboard
+    this.projectContextService.clearCurrentProjectId();
   }
 }

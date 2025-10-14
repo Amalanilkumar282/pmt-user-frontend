@@ -39,7 +39,10 @@
     </thead>
     <tbody class="divide-y divide-slate-200">
       @for (project of filteredProjects; track project.id) {
-      <tr class="hover:bg-slate-50 transition-colors cursor-pointer" (click)="navigateToProject(project.id)">
+      <tr
+        class="hover:bg-slate-50 transition-colors cursor-pointer"
+        (click)="navigateToProject(project.id)"
+      >
         <td class="px-6 py-4">
           <button
             (click)="toggleProjectStar(project.id); $event.stopPropagation()"
