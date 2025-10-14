@@ -1,40 +1,137 @@
 <div class="relative inline-block">
-	<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sky-500 text-white text-sm font-medium hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors" (click)="open()">
+	<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[#3D62A8] text-sm font-medium hover:bg-[#3D62A8] hover:text-white hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-colors" (click)="open()">
 		<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
 		</svg>
 	</button>
 
-	<div *ngIf="isOpen" class="fixed inset-0 z-40 flex items-center justify-center">
-		<div class="absolute inset-0 bg-black/40" (click)="close()"></div>
-		<div class="relative w-96 rounded-xl bg-white p-6 shadow-xl">
-			<h3 class="text-lg font-bold mb-4 text-slate-900">Add New Column</h3>
-
-			<label class="block text-sm font-medium text-slate-700 mb-2">Column Name</label>
-			<input [(ngModel)]="name" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent" placeholder="e.g., Testing" />
-
-			<label class="block text-sm font-medium text-slate-700 mb-3">Column Color</label>
-			<div class="grid grid-cols-4 gap-3 mb-6">
-				<button 
-					type="button" 
-					*ngFor="let colorOpt of colorOptions"
-					(click)="color=colorOpt.value" 
-					class="h-12 rounded-lg border-2 transition-all hover:scale-105 flex items-center justify-center"
-					[style.background-color]="colorOpt.value"
-					[class.border-slate-900]="color === colorOpt.value"
-					[class.border-slate-200]="color !== colorOpt.value"
-					[title]="colorOpt.name">
-					<svg *ngIf="color === colorOpt.value" class="w-6 h-6 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
-						<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+	<!-- Full Screen Modal -->
+	<div *ngIf="isOpen" class="fixed inset-0 z-[9999] flex items-center justify-center">
+		<!-- Dark Backdrop -->
+		<div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="close()"></div>
+		
+		<!-- Modal Content -->
+		<div class="relative w-[580px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+			<!-- Header -->
+			<div class="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+				<h3 class="text-2xl font-bold text-slate-900">Create Column</h3>
+				<button (click)="close()" class="text-slate-400 hover:text-slate-700 transition-colors p-2 rounded-lg hover:bg-slate-100">
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
 					</svg>
 				</button>
 			</div>
 
-			<div class="flex justify-end gap-3">
-				<button class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors" (click)="close()">Cancel</button>
-				<button [disabled]="!name.trim()" (click)="addColumn()" class="px-4 py-2 rounded-lg bg-sky-500 text-white font-medium hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Add Column</button>
+			<!-- Content -->
+			<div class="px-6 py-6 space-y-6">
+				<!-- Column Name -->
+				<div>
+					<label class="block text-sm font-semibold text-slate-700 mb-2">Column Name *</label>
+					<input 
+						[(ngModel)]="name" 
+						class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-base focus:outline-none focus:border-[#3D62A8] focus:ring-4 focus:ring-[#3D62A8]/10 transition-all" 
+						placeholder="e.g., Code Review, Testing, Ready for Deploy" 
+						maxlength="50"
+						autofocus />
+					<div class="mt-2 flex items-center justify-between">
+						<span class="text-xs text-slate-500">Give your column a clear, descriptive name</span>
+						<span class="text-xs font-medium" [class.text-slate-500]="name.length < 40" [class.text-amber-600]="name.length >= 40">
+							{{ name.length }}/50
+						</span>
+					</div>
+				</div>
+
+				<!-- Color Selection -->
+				<div>
+					<label class="block text-sm font-semibold text-slate-700 mb-3">Column Color</label>
+					
+					<!-- Quick Color Options -->
+					<div class="mb-4">
+						<p class="text-xs text-slate-500 mb-3">Quick options</p>
+						<div class="grid grid-cols-6 gap-2">
+							<button 
+								type="button" 
+								*ngFor="let colorOpt of presetColors"
+								(click)="color=colorOpt" 
+								class="group relative h-10 rounded-lg transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3D62A8]"
+								[style.background-color]="colorOpt"
+								[class.ring-2]="color === colorOpt"
+								[class.ring-[#3D62A8]]="color === colorOpt"
+								[class.ring-offset-2]="color === colorOpt"
+								[title]="getColorName(colorOpt)">
+								<!-- Checkmark for selected -->
+								<svg *ngIf="color === colorOpt" 
+									class="absolute inset-0 m-auto w-5 h-5 text-white drop-shadow" 
+									fill="currentColor" 
+									viewBox="0 0 20 20">
+									<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+
+					<!-- Custom Color Picker -->
+					<div class="border-t border-slate-200 pt-4">
+						<p class="text-xs text-slate-500 mb-3">Or choose a custom color</p>
+						<div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+							<div class="relative">
+								<input 
+									type="color" 
+									[(ngModel)]="color"
+									class="w-12 h-12 rounded-lg cursor-pointer border-2 border-slate-300 hover:border-[#3D62A8] transition-colors"
+									title="Pick custom color" />
+							</div>
+							<div class="flex-1">
+								<label class="block text-xs font-medium text-slate-600 mb-1.5">Hex Code</label>
+								<input 
+									type="text" 
+									[(ngModel)]="color"
+									(input)="validateHexColor($event)"
+									class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#3D62A8] focus:ring-2 focus:ring-[#3D62A8]/20" 
+									placeholder="#3D62A8"
+									maxlength="7" />
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Preview Section -->
+				<div class="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 border border-slate-200">
+					<div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Preview</div>
+					<div class="bg-white rounded-xl p-4 shadow-sm border-l-4" [style.border-left-color]="color">
+						<div class="flex items-center justify-between mb-2">
+							<h4 class="text-sm font-bold uppercase tracking-wide text-[#3D62A8]">
+								{{ name || 'Your Column Name' }}
+							</h4>
+							<span class="text-xs font-bold text-white rounded-full min-w-[28px] h-7 px-2.5 flex items-center justify-center shadow-sm" 
+								[style.background-color]="color">
+								3
+							</span>
+						</div>
+						<div class="text-xs text-slate-500">Tasks will appear here</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Footer Actions -->
+			<div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between">
+				<button 
+					class="px-5 py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-4 focus:ring-slate-200" 
+					(click)="close()">
+					Cancel
+				</button>
+				<button 
+					[disabled]="!isValid()"
+					(click)="addColumn()" 
+					class="px-6 py-2.5 rounded-xl bg-[#3D62A8] text-white text-sm font-semibold hover:bg-[#2F4D8C] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#3D62A8] transition-all shadow-lg shadow-[#3D62A8]/20 hover:shadow-xl hover:shadow-[#3D62A8]/30 focus:outline-none focus:ring-4 focus:ring-[#3D62A8]/30">
+					<span class="flex items-center gap-2">
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+						</svg>
+						Create Column
+					</span>
+				</button>
 			</div>
 		</div>
 	</div>
 </div>
-

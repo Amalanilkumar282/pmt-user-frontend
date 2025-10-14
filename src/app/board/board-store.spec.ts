@@ -108,8 +108,8 @@ describe('BoardStore', () => {
     const buckets = store.columnBuckets();
     const todo = buckets.find(b => b.def.id === 'TODO')!;
     const done = buckets.find(b => b.def.id === 'DONE')!;
-    expect(todo.items.map(i=>i.id)).toEqual(['a']);
-    expect(done.items.map(i=>i.id)).toEqual(['b']);
+    expect(todo.items.map((i: Issue) => i.id)).toEqual(['a']);
+    expect(done.items.map((i: Issue) => i.id)).toEqual(['b']);
   });
 
   it('updateIssueStatus mutates status and updates updatedAt', () => {
@@ -336,5 +336,192 @@ describe('BoardStore', () => {
     expect(computed()).toBe('test:query');
     expect(computedCallCount).toBe(3);
   });
+
+  describe('groupBy functionality', () => {
+    it('should group issues by assignee within each column when groupBy is ASSIGNEE', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', assignee:'Bob', status:'TODO' as any, priority:'HIGH' as any}),
+        mkIssue({id:'2', assignee:'Alice', status:'TODO' as any, priority:'LOW' as any}),
+        mkIssue({id:'3', assignee:'Alice', status:'TODO' as any, priority:'CRITICAL' as any}),
+        mkIssue({id:'4', assignee:'Bob', status:'IN_PROGRESS' as any, priority:'MEDIUM' as any}),
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+      store.setGroupBy('ASSIGNEE');
+
+      const buckets = store.columnBuckets();
+      
+      // Should still have the same number of columns (not multiplied)
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      expect(buckets.map(b => b.def.title)).toEqual(['To Do', 'In Progress', 'Blocked', 'In Review', 'Done']);
+      
+      // Check TODO column - should have Alice's issues grouped, then Bob's, sorted by priority within each group
+      const todoBucket = buckets.find(b => b.def.id === 'TODO');
+      expect(todoBucket?.items.length).toBe(3);
+      // Alice comes before Bob (alphabetically), Alice's CRITICAL before LOW, Bob's HIGH
+      expect(todoBucket?.items[0].id).toBe('3'); // Alice - CRITICAL
+      expect(todoBucket?.items[1].id).toBe('2'); // Alice - LOW
+      expect(todoBucket?.items[2].id).toBe('1'); // Bob - HIGH
+      
+      // Check IN_PROGRESS column
+      const inProgressBucket = buckets.find(b => b.def.id === 'IN_PROGRESS');
+      expect(inProgressBucket?.items.length).toBe(1);
+      expect(inProgressBucket?.items[0].id).toBe('4'); // Bob - MEDIUM
+    });
+
+    it('should group issues by epic within each column when groupBy is EPIC', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', epicId:'EPIC-2', status:'TODO' as any, priority:'HIGH' as any}),
+        mkIssue({id:'2', epicId:'EPIC-1', status:'TODO' as any, priority:'LOW' as any}),
+        mkIssue({id:'3', epicId:'EPIC-1', status:'TODO' as any, priority:'CRITICAL' as any}),
+        mkIssue({id:'4', epicId: undefined, status:'TODO' as any, priority:'MEDIUM' as any}),
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+      store.setGroupBy('EPIC');
+
+      const buckets = store.columnBuckets();
+      
+      // Should still have the same number of columns
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      
+      // Check TODO column - issues grouped by epic, sorted by priority within each
+      const todoBucket = buckets.find(b => b.def.id === 'TODO');
+      expect(todoBucket?.items.length).toBe(4);
+      // EPIC-1 comes first (alphabetically), then EPIC-2, then No Epic
+      expect(todoBucket?.items[0].id).toBe('3'); // EPIC-1 - CRITICAL
+      expect(todoBucket?.items[1].id).toBe('2'); // EPIC-1 - LOW
+      expect(todoBucket?.items[2].id).toBe('1'); // EPIC-2 - HIGH
+      expect(todoBucket?.items[3].id).toBe('4'); // No Epic - MEDIUM
+    });
+
+    it('should group issues by parent within each column when groupBy is SUBTASK', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', parentId:'PARENT-2', status:'TODO' as any, priority:'HIGH' as any}),
+        mkIssue({id:'2', parentId:'PARENT-1', status:'TODO' as any, priority:'LOW' as any}),
+        mkIssue({id:'3', parentId:'PARENT-1', status:'TODO' as any, priority:'CRITICAL' as any}),
+        mkIssue({id:'4', parentId: undefined, status:'TODO' as any, priority:'MEDIUM' as any}),
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+      store.setGroupBy('SUBTASK');
+
+      const buckets = store.columnBuckets();
+      
+      // Should still have the same number of columns
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      
+      // Check TODO column - issues grouped by parent, sorted by priority within each
+      const todoBucket = buckets.find(b => b.def.id === 'TODO');
+      expect(todoBucket?.items.length).toBe(4);
+      // No Parent, PARENT-1, then PARENT-2 (alphabetically)
+      expect(todoBucket?.items[0].id).toBe('4'); // No Parent - MEDIUM
+      expect(todoBucket?.items[1].id).toBe('3'); // PARENT-1 - CRITICAL
+      expect(todoBucket?.items[2].id).toBe('2'); // PARENT-1 - LOW
+      expect(todoBucket?.items[3].id).toBe('1'); // PARENT-2 - HIGH
+    });
+
+    it('should sort issues by priority when groupBy is NONE', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', status:'TODO' as any, priority:'LOW' as any}),
+        mkIssue({id:'2', status:'TODO' as any, priority:'CRITICAL' as any}),
+        mkIssue({id:'3', status:'TODO' as any, priority:'HIGH' as any}),
+        mkIssue({id:'4', status:'TODO' as any, priority:'MEDIUM' as any}),
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+      store.setGroupBy('NONE');
+
+      const buckets = store.columnBuckets();
+      
+      // Should have default columns
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      expect(buckets.map(b => b.def.title)).toEqual(['To Do', 'In Progress', 'Blocked', 'In Review', 'Done']);
+      
+      // Issues should be sorted by priority: CRITICAL > HIGH > MEDIUM > LOW
+      const todoBucket = buckets.find(b => b.def.id === 'TODO');
+      expect(todoBucket?.items.length).toBe(4);
+      expect(todoBucket?.items[0].id).toBe('2'); // CRITICAL
+      expect(todoBucket?.items[1].id).toBe('3'); // HIGH
+      expect(todoBucket?.items[2].id).toBe('4'); // MEDIUM
+      expect(todoBucket?.items[3].id).toBe('1'); // LOW
+    });
+
+    it('should handle empty issues with groupBy', () => {
+      store.loadData([]);
+      store.setGroupBy('ASSIGNEE');
+
+      const buckets = store.columnBuckets();
+      
+      // Should create default columns when no issues
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      buckets.forEach(bucket => {
+        expect(bucket.items.length).toBe(0);
+      });
+    });
+
+    it('should switch between groupBy modes correctly', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', assignee:'Alice', epicId:'EPIC-1', status:'TODO' as any}),
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+
+      // Start with NONE
+      store.setGroupBy('NONE');
+      let buckets = store.columnBuckets();
+      expect(buckets.map(b => b.def.title)).toEqual(['To Do', 'In Progress', 'Blocked', 'In Review', 'Done']);
+
+      // Switch to ASSIGNEE - should still have same columns, just grouped differently
+      store.setGroupBy('ASSIGNEE');
+      buckets = store.columnBuckets();
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      expect(buckets.map(b => b.def.title)).toEqual(['To Do', 'In Progress', 'Blocked', 'In Review', 'Done']);
+
+      // Switch to EPIC
+      store.setGroupBy('EPIC');
+      buckets = store.columnBuckets();
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      expect(buckets.map(b => b.def.title)).toEqual(['To Do', 'In Progress', 'Blocked', 'In Review', 'Done']);
+
+      // Switch back to NONE
+      store.setGroupBy('NONE');
+      buckets = store.columnBuckets();
+      expect(buckets.map(b => b.def.title)).toEqual(['To Do', 'In Progress', 'Blocked', 'In Review', 'Done']);
+    });
+
+    it('should respect filters when grouping by assignee', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', assignee:'Alice', status:'TODO' as any}),
+        mkIssue({id:'2', assignee:'Bob', status:'TODO' as any}),
+        mkIssue({id:'3', assignee:'Alice', status:'IN_PROGRESS' as any}),
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+      store.setGroupBy('ASSIGNEE');
+      
+      // Filter to only Alice
+      store.applyFilters({
+        assignees: ['Alice'],
+        workTypes: [],
+        labels: [],
+        statuses: [],
+        priorities: []
+      });
+
+      const buckets = store.columnBuckets();
+      
+      // Should have all columns but only Alice's issues
+      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
+      const todoBucket = buckets.find(b => b.def.id === 'TODO');
+      expect(todoBucket?.items.length).toBe(1);
+      expect(todoBucket?.items[0].assignee).toBe('Alice');
+      
+      const inProgressBucket = buckets.find(b => b.def.id === 'IN_PROGRESS');
+      expect(inProgressBucket?.items.length).toBe(1);
+      expect(inProgressBucket?.items[0].assignee).toBe('Alice');
+    });
+  });
 });
+
 
