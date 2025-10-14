@@ -1,5 +1,5 @@
-<div class="p-5 bg-gray-100 min-h-screen flex justify-start">
-  <div class="mt-5 bg-white rounded-lg shadow-md w-full max-w-[1800px] ml-4">
+<div class="bg-gray-100 min-h-screen">
+  <div class="mt-5 bg-white rounded-lg shadow-md w-full max-w-[1800px] mx-auto">
     
     <!-- Timeline Header Component -->
     <app-timeline-header
@@ -29,7 +29,6 @@
              [class.year-view]="currentView === 'year'">
           <div class="flex items-center gap-2">
             <span class="text-sm font-semibold text-indigo-800">Tasks</span>
-            <span class="text-xs text-gray-500">({{ getVisibleRowCount() }})</span>
           </div>
         </div>
 

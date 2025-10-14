@@ -1,21 +1,21 @@
 <div class="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
     <!-- Time Scale Selector -->
     <div class="flex gap-2">
-        <button class="px-4 py-2 border border-gray-300 bg-white rounded transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
+        <button class="px-3 py-1.5 border border-gray-300 bg-white rounded-md transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
                 [class.!bg-indigo-600]="currentView === 'day'"
                 [class.!text-white]="currentView === 'day'"
                 [class.!border-indigo-600]="currentView === 'day'"
                 (click)="changeTimeScale('day')">
             Day
         </button>
-        <button class="px-4 py-2 border border-gray-300 bg-white rounded transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
+        <button class="px-3 py-1.5 border border-gray-300 bg-white rounded-md transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
                 [class.!bg-indigo-600]="currentView === 'month'"
                 [class.!text-white]="currentView === 'month'"
                 [class.!border-indigo-600]="currentView === 'month'"
                 (click)="changeTimeScale('month')">
             Month
         </button>
-        <button class="px-4 py-2 border border-gray-300 bg-white rounded transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
+        <button class="px-3 py-1.5 border border-gray-300 bg-white rounded-md transition-all duration-300 hover:bg-gray-50 text-sm font-medium"
                 [class.!bg-indigo-600]="currentView === 'year'"
                 [class.!text-white]="currentView === 'year'"
                 [class.!border-indigo-600]="currentView === 'year'"
@@ -28,14 +28,15 @@
     <div class="flex items-center gap-3">
         <!-- Sprint Filter -->
         <div class="relative filter-container">
-            <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
-                Sprint 
+                <span class="flex-1 text-left">Sprint</span>
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('sprints') > 0">
                     {{getFilterCount('sprints')}}
                 </span>
-                <span class="text-xs ml-1">▼</span>
+                <span class="dropdown-arrow text-xs transition-transform duration-300"
+                      [class.rotate-down]="isDropdownOpen('sprint-dropdown')">▼</span>
             </button>
             <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="sprint-dropdown">
@@ -54,14 +55,15 @@
         
         <!-- Epic Filter -->
         <div class="relative filter-container">
-            <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
-                Epic 
+                <span class="flex-1 text-left">Epic</span>
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('epics') > 0">
                     {{getFilterCount('epics')}}
                 </span>
-                <span class="text-xs ml-1">▼</span>
+                <span class="dropdown-arrow text-xs transition-transform duration-300"
+                      [class.rotate-down]="isDropdownOpen('epic-dropdown')">▼</span>
             </button>
             <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="epic-dropdown">
@@ -80,14 +82,15 @@
         
         <!-- Type Filter -->
         <div class="relative filter-container">
-            <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
-                Type 
+                <span class="flex-1 text-left">Type</span>
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('types') > 0">
                     {{getFilterCount('types')}}
                 </span>
-                <span class="text-xs ml-1">▼</span>
+                <span class="dropdown-arrow text-xs transition-transform duration-300"
+                      [class.rotate-down]="isDropdownOpen('type-dropdown')">▼</span>
             </button>
             <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="type-dropdown">
@@ -123,14 +126,15 @@
         
         <!-- Status Filter -->
         <div class="relative filter-container">
-            <button class="px-4 py-2 border border-gray-300 bg-white rounded flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
+            <button class="min-w-[110px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
                     (click)="toggleDropdown($event)">
-                Status 
+                <span class="flex-1 text-left">Status</span>
                 <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
                       *ngIf="getFilterCount('status') > 0">
                     {{getFilterCount('status')}}
                 </span>
-                <span class="text-xs ml-1">▼</span>
+                <span class="dropdown-arrow text-xs transition-transform duration-300"
+                      [class.rotate-down]="isDropdownOpen('status-dropdown')">▼</span>
             </button>
             <div class="hidden absolute top-full right-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="status-dropdown">
@@ -165,7 +169,7 @@
         </div>
 
         <!-- Clear Filters Button -->
-        <button class="px-4 py-2 border-0 bg-red-500 text-white rounded text-sm font-medium transition-all duration-300 hover:bg-red-600"
+        <button class="px-3 py-1.5 border-0 bg-red-500 text-white rounded-md text-sm font-medium transition-all duration-300 hover:bg-red-600"
                 (click)="clearFilters()">
             Clear Filters
         </button>

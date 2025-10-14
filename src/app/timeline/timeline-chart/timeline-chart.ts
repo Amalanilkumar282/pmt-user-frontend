@@ -108,6 +108,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     setTimeout(() => {
       this.updateDateHeaders();
+      this.scrollToTodayCenter();
       this.cdr.detectChanges();
     }, 100);
 
@@ -644,6 +645,27 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     setTimeout(() => {
       this.isScrollingHeader = false;
     }, 10);
+  }
+
+  // Scroll to center the timeline on today's date
+  scrollToTodayCenter(): void {
+    if (!this.chartContent || !this.chartContent.nativeElement) {
+      return;
+    }
+
+    const todayPosition = this.getTodayPosition();
+    const chartElement = this.chartContent.nativeElement;
+    const chartVisibleWidth = chartElement.clientWidth;
+    
+    // Calculate scroll position to center today's line in the viewport
+    const scrollLeft = todayPosition - (chartVisibleWidth / 2);
+    
+    // Apply the scroll position to both chart content and header
+    chartElement.scrollLeft = Math.max(0, scrollLeft);
+    
+    if (this.headerScroll && this.headerScroll.nativeElement) {
+      this.headerScroll.nativeElement.scrollLeft = Math.max(0, scrollLeft);
+    }
   }
 
   // Event handlers

@@ -57,6 +57,13 @@
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.sidebar-content::-webkit-scrollbar {
+  display: none;
 }
 
 /* Timeline Rows in Sidebar - CONSISTENT HEIGHTS */
@@ -402,7 +409,7 @@
   font-size: 0.65rem;
 }
 
-/* Today Marker - INCREASED Z-INDEX */
+/* Today Marker - Z-INDEX below dropdowns */
 .today-marker {
   position: absolute;
   top: 0;
@@ -410,7 +417,7 @@
   width: 2px;
   background-color: #ef4444;
   pointer-events: none;
-  z-index: 100;
+  z-index: 15;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -431,7 +438,7 @@
   top: 0;
   left: 6px;
   margin-top: -20px;
-  background-color: #ef4444;
+  background-color: none;
   color: white;
   font-size: 0.65rem;
   padding: 0.2rem 0.4rem;

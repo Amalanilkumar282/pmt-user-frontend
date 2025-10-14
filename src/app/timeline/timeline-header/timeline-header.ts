@@ -33,6 +33,8 @@ export class TimelineHeaderComponent {
   @Output() filtersCleared = new EventEmitter<void>();
   @Output() backToEpics = new EventEmitter<void>();
 
+  openDropdownId: string | null = null;
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
@@ -70,6 +72,7 @@ export class TimelineHeaderComponent {
     event.stopPropagation();
     const button = event.currentTarget as HTMLElement;
     const dropdown = button.nextElementSibling as HTMLElement;
+    const dropdownId = dropdown.id;
     
     // Close all other dropdowns
     document.querySelectorAll('.filter-dropdown').forEach(dd => {
@@ -79,12 +82,21 @@ export class TimelineHeaderComponent {
     });
     
     // Toggle current dropdown
+    const isOpening = !dropdown.classList.contains('show');
     dropdown.classList.toggle('show');
+    
+    // Update openDropdownId for arrow rotation
+    this.openDropdownId = isOpening ? dropdownId : null;
   }
 
   private closeAllDropdowns() {
     document.querySelectorAll('.filter-dropdown').forEach(dd => {
       dd.classList.remove('show');
     });
+    this.openDropdownId = null;
+  }
+
+  isDropdownOpen(dropdownId: string): boolean {
+    return this.openDropdownId === dropdownId;
   }
 }
