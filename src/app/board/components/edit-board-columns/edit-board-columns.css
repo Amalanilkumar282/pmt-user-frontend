@@ -1,0 +1,14 @@
+.cdk-drag-preview {
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  background: white;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #E2E8F0;
+  opacity: 0.95;
+}
+.cdk-drag-placeholder {
+  opacity: 0.4;
+}

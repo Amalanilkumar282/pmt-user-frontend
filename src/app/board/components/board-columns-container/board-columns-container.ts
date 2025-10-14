@@ -17,6 +17,7 @@ import { BoardColumnDef } from '../../models';
 export class BoardColumnsContainer {
   private store = inject(BoardStore);
   readonly buckets = this.store.columnBuckets;
+  readonly groupBy = this.store.groupBy;
   @Output() openIssue = new EventEmitter<any>();
 
   readonly dropListIds = computed(() => 

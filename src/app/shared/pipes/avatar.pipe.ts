@@ -5,17 +5,27 @@ import { Pipe, PipeTransform } from '@angular/core';
   standalone: true
 })
 export class AvatarClassPipe implements PipeTransform {
+  // Shades of primary color #3D62A8 - from lighter to darker
   private colors = [
-    'bg-blue-600', 'bg-green-600', 'bg-purple-600', 'bg-orange-600', 
-    'bg-pink-600', 'bg-red-600', 'bg-indigo-600', 'bg-teal-600'
+    '#5A7FBF', // Lighter blue
+    '#4A6FB5', // Light-medium blue
+    '#3D62A8', // Primary blue
+    '#36579A', // Medium-dark blue
+    '#2F4D8C', // Dark blue
+    '#28437E', // Darker blue
+    '#658AC5', // Lighter variant
+    '#4E69AC', // Medium variant
   ];
 
   transform(assignee?: string): string {
-    if (!assignee) return 'bg-gray-400';
+    if (!assignee) return '#94A3B8'; // Neutral gray for unassigned
     
     // Generate consistent color based on name
     const hash = assignee.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return this.colors[hash % this.colors.length];
+    const colorHex = this.colors[hash % this.colors.length];
+    
+    // Return inline style instead of Tailwind class for custom colors
+    return colorHex;
   }
 }
 

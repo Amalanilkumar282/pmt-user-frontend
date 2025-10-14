@@ -29,6 +29,37 @@
   height: 6rem;
 }
 
+/* Group Header Styling */
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 0.75rem 0;
+  padding-top: 0.5rem;
+}
+
+.group-header:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.group-header-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #cbd5e1, transparent);
+}
+
+.group-header-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  padding: 0.25rem 0.5rem;
+  background-color: #f1f5f9;
+  border-radius: 0.375rem;
+}
 
 /* Board Column Scrollbar Styling */
 /* Per-column scroll: hide vertical scrollbar by default; reveal thin thumb on hover/focus */

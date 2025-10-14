@@ -3,7 +3,9 @@
   <!-- Title + Sprint Row -->
   <div class="flex items-center justify-between">
     <div class="flex h-8 gap-8">
-      <h1 class="text-xl font-bold text-slate-900">Board</h1>
+      <!-- Board Selector - Subtle Placement -->
+      
+
       <div class="flex items-center pt-6 gap-2 text-sm">
         <app-sprint-filter
           [sprints]="sprints()"
@@ -26,7 +28,7 @@
       <div class="flex -space-x-2">
         <ng-container *ngFor="let a of assignees() | slice:0:5">
           <div class="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
-               [ngClass]="a | avatarClass"
+               [style.background-color]="a | avatarClass"
                [title]="a">
             {{ a | initials }}
           </div>
@@ -43,6 +45,8 @@
       <app-filter-panel></app-filter-panel>
       <app-group-by-menu></app-group-by-menu>
       <app-add-column-button></app-add-column-button>
+      <app-edit-board-columns></app-edit-board-columns>
+    
     </div>
   </div>
 </div>
