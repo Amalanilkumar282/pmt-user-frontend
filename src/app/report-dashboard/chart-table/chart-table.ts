@@ -287,25 +287,4 @@ colorPalette: string[] = [
 
 
 
-  // Generates a consistent color based on string
-//  getStatusColor(str: string): { bg: string, text: string } {
-//   if (!str) return { bg: '#ccc', text: '#000' };
-
-//   // generate hash from string
-//   let hash = 0;
-//   for (let i = 0; i < str.length; i++) {
-//     hash = str.charCodeAt(i) + ((hash << 5) - hash);
-//   }
-
-//   // hue from 0 to 360
-//   const hue = hash % 360;
-
-//   // fixed saturation and lightness for good readability
-//   const bg = `hsl(${hue}, 60%, 75%)`; // light pastel color
-//   const text = `hsl(${hue}, 60%, 25%)`; // dark text on light bg
-
-//   return { bg, text };
-// }
-
-
 }
