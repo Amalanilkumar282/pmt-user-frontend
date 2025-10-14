@@ -1,0 +1,146 @@
+<div class="team-form-container">
+  <div class="form-header">
+    <h2 class="form-title">
+      {{ mode === 'create' ? 'Create New Team' : 'Edit Team' }}
+    </h2>
+    <button class="close-btn" (click)="onCancel()" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <form [formGroup]="teamForm" (ngSubmit)="onSubmit()" class="team-form">
+    <!-- Team Name -->
+    <div class="form-group">
+      <label for="name" class="form-label">Team Name *</label>
+      <input
+        type="text"
+        id="name"
+        formControlName="name"
+        class="form-input"
+        placeholder="e.g., Frontend Development Team"
+      />
+      @if (nameControl?.invalid && nameControl?.touched) {
+        <span class="error-message">
+          @if (nameControl?.errors?.['required']) {
+            Team name is required
+          } @else if (nameControl?.errors?.['minlength']) {
+            Team name must be at least 3 characters
+          }
+        </span>
+      }
+    </div>
+
+    <!-- Description -->
+    <div class="form-group">
+      <label for="description" class="form-label">Description *</label>
+      <textarea
+        id="description"
+        formControlName="description"
+        class="form-textarea"
+        rows="3"
+        placeholder="Describe the team's responsibilities and goals..."
+      ></textarea>
+      @if (descriptionControl?.invalid && descriptionControl?.touched) {
+        <span class="error-message">
+          @if (descriptionControl?.errors?.['required']) {
+            Description is required
+          } @else if (descriptionControl?.errors?.['minlength']) {
+            Description must be at least 10 characters
+          }
+        </span>
+      }
+    </div>
+
+    <!-- Team Lead -->
+    <div class="form-group">
+      <label class="form-label">Team Lead *</label>
+      <div class="members-grid">
+        @for (member of availableMembers; track member.id) {
+          <div
+            class="member-item"
+            [class.selected]="isLeadSelected(member.id)"
+            (click)="teamForm.patchValue({ leadId: member.id })"
+          >
+            <div class="member-avatar">{{ getInitials(member.name) }}</div>
+            <div class="member-info">
+              <div class="member-name">{{ member.name }}</div>
+              <div class="member-email">{{ member.email }}</div>
+            </div>
+            @if (isLeadSelected(member.id)) {
+              <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            }
+          </div>
+        }
+      </div>
+      @if (leadControl?.invalid && leadControl?.touched) {
+        <span class="error-message">Team lead is required</span>
+      }
+    </div>
+
+    <!-- Team Members -->
+    <div class="form-group">
+      <label class="form-label">Team Members</label>
+      <p class="form-hint">Select additional team members (Team lead is automatically included)</p>
+      <div class="members-grid">
+        @for (member of availableMembers; track member.id) {
+          @if (!isLeadSelected(member.id)) {
+            <div
+              class="member-item"
+              [class.selected]="isMemberSelected(member.id)"
+              (click)="toggleMember(member.id)"
+            >
+              <div class="member-avatar">{{ getInitials(member.name) }}</div>
+              <div class="member-info">
+                <div class="member-name">{{ member.name }}</div>
+                <div class="member-email">{{ member.email }}</div>
+              </div>
+              @if (isMemberSelected(member.id)) {
+                <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              }
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="form-group">
+      <label for="tags" class="form-label">Tags (Optional)</label>
+      <input
+        type="text"
+        id="tags"
+        formControlName="tags"
+        class="form-input"
+        placeholder="e.g., Frontend, Backend, Mobile (comma-separated)"
+      />
+      <p class="form-hint">Separate multiple tags with commas</p>
+    </div>
+
+    <!-- Status (only in edit mode) -->
+    @if (mode === 'edit') {
+      <div class="form-group">
+        <label for="status" class="form-label">Status</label>
+        <select id="status" formControlName="status" class="form-select">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+    }
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
+      <button type="submit" class="btn btn-primary" [disabled]="teamForm.invalid">
+        {{ mode === 'create' ? 'Create Team' : 'Update Team' }}
+      </button>
+    </div>
+  </form>
+</div>
