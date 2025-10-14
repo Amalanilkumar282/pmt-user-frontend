@@ -27,6 +27,7 @@
               <app-project-card
                 *ngFor="let project of projects"
                 [project]="project"
+                (click)="navigateToProject()"
                 (starToggled)="toggleStar($event)"
               ></app-project-card>
             </div>

@@ -8,7 +8,7 @@ import { ProjectCard } from '../project-card/project-card';
 import { ActivityItem } from '../activity-item/activity-item';
 import { TabbedIssues } from '../tabbed-issues/tabbed-issues';
 import { Header } from '../../shared/header/header';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import {
   DashboardProject,
   DashboardActivity,
@@ -37,9 +37,13 @@ import {
   ],
 })
 export class MainDashboardHome implements OnInit {
+  private router = inject(Router);
   userName = 'User';
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  navigateToProject() {
+    this.router.navigate(['/projects', 1, 'board']);
+  }
 
   isSidebarCollapsed(): boolean {
     return this.sidebarStateService.getCollapsed();

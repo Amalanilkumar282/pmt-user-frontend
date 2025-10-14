@@ -89,7 +89,7 @@
 
 .recent-projects {
   margin-top: auto;
-  padding-top: 20px;
+  padding-top: 12px;
 }
 
 .projects-section {
@@ -132,7 +132,7 @@
   position: sticky;
   top: 0;
   background: white;
-  padding: 20px 0 16px;
+  padding: 16px 0 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -212,15 +212,15 @@
   margin: 20px 32px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 24px;
+  padding: 18px 24px;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
 }
 
 .welcome-section h1 {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 600;
   color: #0f172a;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .welcome-section p {
@@ -285,7 +285,7 @@
 .projects-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .section-header {
@@ -303,9 +303,9 @@
 .view-all-btn {
   background: none;
   border: 1px solid #e2e8f0;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 12px;
   color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
@@ -526,7 +526,7 @@ app-sprint-overview {
 
 /* Activity List */
 .activity-widget {
-  padding: 20px 16px;
+  padding: 8px 16px;
   position: relative;
   overflow: hidden;
 }
@@ -547,7 +547,7 @@ app-sprint-overview {
   display: flex;
   flex-direction: column;
   gap: 0;
-  height: 308px;
+  height: 304px;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
