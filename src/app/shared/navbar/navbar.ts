@@ -18,6 +18,9 @@ import { filter } from 'rxjs';
   standalone: true
 })
 export class Navbar {
+  get unreadCount(): number {
+    return this.notifications ? this.notifications.filter(n => n.unread).length : 0;
+  }
   @Output() toggleSidebar = new EventEmitter<void>();
 
   private modalService = inject(ModalService);
@@ -221,25 +224,31 @@ export class Navbar {
   });
 }
 
-  onShareModal() {
-    const shareFields: FormField[] = [
-      { label: 'Share With', type: 'text', model: 'shareWith', colSpan: 2 },
-      { label: 'Message', type: 'textarea', model: 'message', colSpan: 2 }
-    ];
+  // Notification modal state
+  showNotificationModal = false;
+  notifications: Array<{ title: string; message: string; time: string; unread?: boolean }> = [
+    { title: 'Issue Assigned', message: 'You have been assigned to Issue #123', time: '2 min ago', unread: true },
+    { title: 'Sprint Started', message: 'Sprint 5 has started', time: '1 hr ago', unread: true },
+    { title: 'Comment Added', message: 'A comment was added to Issue #456', time: '5 hrs ago' },
+    { title: 'System Update', message: 'The system will be updated tonight at 2 AM.', time: 'Today' },
+    { title: 'New Member Joined', message: 'Alice has joined your project team.', time: '2 days ago' },
+    { title: 'Deadline Reminder', message: 'Project deadline is approaching in 3 days.', time: '3 days ago' },
+    { title: 'Comment Mention', message: 'You were mentioned in a comment on Issue #789.', time: 'Last week' },
+    { title: 'Task Completed', message: 'Task "Design Review" was marked as completed.', time: 'Last week' }
+  ];
 
-    
-      this.modalService.open({
-        id: 'shareModal',
-        title: 'Share Project',
-        projectName: 'Project Alpha',
-        fields: shareFields,
-        data: { shareWith: '', message: '' }
-      });
+  onNotificationClick() {
+    this.showNotificationModal = true;
+    // Unread notifications remain until modal is closed
   }
 
-
-
-
+  closeNotificationModal() {
+    this.showNotificationModal = false;
+    // Mark unread notifications as read when modal is closed
+    this.notifications = this.notifications.map((n, i) =>
+      i < 2 ? { ...n, unread: false } : n
+    );
+  }
 
   onMenuClick(): void {
     console.log('Menu clicked');
