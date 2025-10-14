@@ -23,9 +23,8 @@ export class CreateIssue implements OnInit, OnDestroy {
   fields: FormField[] = [];
   invalidFields: Set<string> = new Set();
 
-  // Dynamic title/project
+  // Dynamic title
   modalTitle = '';
-  projectName = '';
   modalDesc = '';
   showLabels = false;
   submitButtonText = '';
@@ -65,7 +64,7 @@ showToast(message: string, duration: number = 3000) {
       this.fields = cfg.fields ?? [];
       this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
       this.modalTitle = cfg.title ?? 'Modal';
-      this.projectName = cfg.projectName ?? '';
+  // Removed projectName
       this.modalDesc = cfg.modalDesc ?? '';
       this.showLabels = cfg.showLabels ?? false;
       this.submitButtonText = cfg.submitText ?? 'Create Issue';
@@ -111,6 +110,23 @@ submit() {
     if (field.required && (value === null || value === undefined || value === '')) {
       this.invalidFields.add(field.model);
       this.shakeFields.add(field.model); // mark for shake
+    }
+  }
+
+  // Additional validation: start date should be before or on due date
+  const startDate = this.formData['startDate'];
+  const dueDate = this.formData['dueDate'];
+  if (startDate && dueDate) {
+    const start = new Date(startDate);
+    const due = new Date(dueDate);
+    if (start > due) {
+      this.invalidFields.add('startDate');
+      this.invalidFields.add('dueDate');
+      this.shakeFields.add('startDate');
+      this.shakeFields.add('dueDate');
+      this.showToast('Start date must be before or on Due date.');
+      setTimeout(() => this.shakeFields.clear(), 500);
+      return;
     }
   }
 
