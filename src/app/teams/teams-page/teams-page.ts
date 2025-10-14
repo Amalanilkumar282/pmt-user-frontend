@@ -6,12 +6,14 @@ import { Navbar } from '../../shared/navbar/navbar';
 import { TeamCard } from '../components/team-card/team-card';
 import { TeamFormComponent } from '../components/team-form/team-form';
 import { TeamDetailsComponent } from '../components/team-details/team-details';
+import { MembersManagement } from '../components/members-management/members-management';
 import { TeamsService } from '../services/teams.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { Team, CreateTeamDto, UpdateTeamDto } from '../models/team.model';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'details';
+type TabMode = 'teams' | 'members';
 
 @Component({
   selector: 'app-teams-page',
@@ -23,6 +25,7 @@ type ViewMode = 'list' | 'create' | 'edit' | 'details';
     TeamCard,
     TeamFormComponent,
     TeamDetailsComponent,
+    MembersManagement,
   ],
   templateUrl: './teams-page.html',
   styleUrls: ['./teams-page.css'],
@@ -35,6 +38,9 @@ export class TeamsPage implements OnInit {
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
   currentProjectId = this.projectContextService.currentProjectId;
+
+  // Tab state
+  activeTab = signal<TabMode>('teams');
 
   // View state
   viewMode = signal<ViewMode>('list');
@@ -92,6 +98,13 @@ export class TeamsPage implements OnInit {
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
+  }
+
+  // Tab handlers
+  switchTab(tab: TabMode): void {
+    this.activeTab.set(tab);
+    // Reset view mode when switching tabs
+    this.viewMode.set('list');
   }
 
   // View mode handlers
