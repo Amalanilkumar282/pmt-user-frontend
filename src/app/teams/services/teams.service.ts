@@ -1,11 +1,14 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Team, TeamMember, CreateTeamDto, UpdateTeamDto, TeamStats } from '../models/team.model';
 import { users } from '../../shared/data/dummy-backlog-data';
+import { ProjectMembersService } from './project-members.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TeamsService {
+  private projectMembersService = inject(ProjectMembersService);
+
   // Signal-based state management
   private teamsSignal = signal<Team[]>(this.getInitialTeams());
   private selectedTeamIdSignal = signal<string | null>(null);
@@ -23,7 +26,7 @@ export class TeamsService {
     this.teamsSignal().filter(t => t.status === 'Active')
   );
 
-  // Get all available members from users data
+  // Get all available members from users data (for backward compatibility)
   getAvailableMembers(): TeamMember[] {
     return users
       .filter(user => user.id !== 'user-8') // Exclude 'Unassigned'
@@ -34,6 +37,30 @@ export class TeamsService {
         role: 'Developer' as const,
         joinedDate: new Date().toISOString(),
       }));
+  }
+
+  // Get available members for a specific project (from ProjectMembersService)
+  getProjectMembers(projectId: string): TeamMember[] {
+    const projectMembers = this.projectMembersService.getMembersByProject(projectId);
+    return projectMembers.map(pm => ({
+      id: pm.userId,
+      name: pm.userName,
+      email: pm.userEmail,
+      role: pm.role as any,
+      joinedDate: pm.joinedDate,
+    }));
+  }
+
+  // Get unassigned members for a project (members not in any team)
+  getUnassignedProjectMembers(projectId: string): TeamMember[] {
+    const unassigned = this.projectMembersService.getUnassignedMembers(projectId);
+    return unassigned.map(pm => ({
+      id: pm.userId,
+      name: pm.userName,
+      email: pm.userEmail,
+      role: pm.role as any,
+      joinedDate: pm.joinedDate,
+    }));
   }
 
   // CRUD Operations
