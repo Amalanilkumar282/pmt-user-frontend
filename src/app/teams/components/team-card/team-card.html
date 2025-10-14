@@ -1,0 +1,74 @@
+<div class="team-card" [class.inactive]="team.status === 'Inactive'">
+  <!-- Card Header -->
+  <div class="card-header">
+    <div class="team-info">
+      <div class="team-icon">
+        {{ getInitials(team.name) }}
+      </div>
+      <div class="team-details">
+        <h3 class="team-name">{{ team.name }}</h3>
+        <span class="project-name">{{ team.projectName }}</span>
+      </div>
+    </div>
+    <div class="card-actions">
+      <span class="status-badge" [class.active]="team.status === 'Active'" [class.inactive]="team.status === 'Inactive'">
+        {{ team.status }}
+      </span>
+      <button class="action-btn" (click)="onEdit()" title="Edit team">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="action-btn delete-btn" (click)="onDelete()" title="Delete team">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Description -->
+  <p class="team-description">{{ team.description }}</p>
+
+  <!-- Team Lead -->
+  <div class="team-lead">
+    <svg class="lead-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="lead-label">Team Lead:</span>
+    <span class="lead-name">{{ team.lead.name }}</span>
+  </div>
+
+  <!-- Tags -->
+  @if (team.tags && team.tags.length > 0) {
+    <div class="tags">
+      @for (tag of team.tags; track tag) {
+        <span class="tag">{{ tag }}</span>
+      }
+    </div>
+  }
+
+  <!-- Footer -->
+  <div class="card-footer">
+    <div class="footer-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>{{ team.members.length }} members</span>
+    </div>
+    <div class="footer-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>{{ team.activeSprints.length }} active sprints</span>
+    </div>
+    <button class="view-details-btn" (click)="onViewDetails()">
+      View Details
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</div>
