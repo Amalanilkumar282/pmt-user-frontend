@@ -235,13 +235,19 @@ assignedColors: { [key: string]: string } = {};
 
 // Predefined colors for common statuses
 predefinedStatusColors: { [key: string]: string } = {
-  'done': '#4caf50',          // green
-  'todo': '#2196f3',   // blue
-  'in progress': '#ff9800',         // orange
-  'on hold': '#9c27b0',       // purple
-  'in review': '#009688'      // teal
+  'done': '#10b981',          // green
+  'todo': '#A1C4FD',   // blue
+  'in progress': '#ffa500',         // orange
+  'on hold': '#EF4444',       // purple
+  'in review': '#A78bfa'      // teal
 };
 
+
+// { id: 'TODO',        title: 'To Do',        color: '#A1C4FD' },  
+//   { id: 'IN_PROGRESS', title: 'In Progress',  color: '#FFA500' },  
+//   { id: 'BLOCKED',     title: 'Blocked',      color: '#EF4444' },  
+//   { id: 'IN_REVIEW',   title: 'In Review',    color: '#A78BFA' },  
+//   { id: 'DONE',        title: 'Done',         color: '#10B981' },  
 
 colorPalette: string[] = [
   
