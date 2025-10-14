@@ -16,55 +16,31 @@
       <div class="content-grid">
         <!-- Left Column -->
         <div class="main-column">
-          <!-- Stats Cards -->
-          <div class="stats-grid">
-            <app-issue-summary-card
-              class="stat-card"
-              type="completed"
-              [count]="stats.activeProjects"
-              label="Active Projects"
-              timePeriod="currently active"
-            >
-            </app-issue-summary-card>
-
-            <app-issue-summary-card
-              class="stat-card"
-              type="created"
-              [count]="stats.issuesInProgress"
-              label="Issues in Progress"
-              timePeriod="in active sprints"
-            >
-            </app-issue-summary-card>
-
-            <app-issue-summary-card
-              class="stat-card"
-              type="updated"
-              [count]="stats.sprintsInProgress"
-              label="Active Sprints"
-              timePeriod="currently running"
-            >
-            </app-issue-summary-card>
-          </div>
-
           <!-- Projects Section -->
-          <section class="projects-section">
+          <section class="projects-section shadow-sm">
             <div class="section-header">
-              <h2>Your Projects</h2>
+              <h2>Recent Projects</h2>
               <a routerLink="/projects"><button class="view-all-btn">View All</button></a>
             </div>
 
-            <app-project-card
-              *ngFor="let project of projects"
-              [project]="project"
-              (starToggled)="toggleStar($event)"
-            ></app-project-card>
+            <div class="projects-list">
+              <app-project-card
+                *ngFor="let project of projects"
+                [project]="project"
+                (click)="navigateToProject()"
+                (starToggled)="toggleStar($event)"
+              ></app-project-card>
+            </div>
           </section>
+
+          <!-- Tabbed Issues Section -->
+          <app-tabbed-issues></app-tabbed-issues>
         </div>
 
         <!-- Right Column -->
         <div class="side-column">
           <!-- Task Status Overview -->
-          <div class="widget">
+          <div class="widget shadow-sm">
             <app-sprint-overview
               class="dashboard-sprint-overview"
               title="Task Status"
@@ -74,16 +50,18 @@
           </div>
 
           <!-- Recent Activity -->
-          <div class="widget">
-            <div class="widget-header">
-              <h3>🕐 Recent Activity</h3>
-              <button class="view-all-btn">View All</button>
+          <div class="widget shadow-sm activity-widget bg-white rounded-xl border border-gray-200">
+            <div class="widget-header px-1">
+              <div class="widget-title-wrapper flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-gray-900">Recent Activities</h3>
+              </div>
             </div>
 
-            <div class="activity-list">
+            <div class="activity-list mt-2">
               <app-activity-item
                 *ngFor="let activity of recentActivities"
                 [activity]="activity"
+                class="block"
               ></app-activity-item>
             </div>
           </div>
