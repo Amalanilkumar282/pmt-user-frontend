@@ -193,6 +193,49 @@
   flex-shrink: 0;
 }
 
+/* Searchbar in navbar */
+.navbar-right app-searchbar {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-right app-searchbar ::ng-deep .search-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navbar-right app-searchbar ::ng-deep .search-box {
+  width: 280px;
+  background-color: #f4f5f7;
+  border-color: #dfe1e6;
+  padding: 6px 10px;
+}
+
+.navbar-right app-searchbar ::ng-deep .search-box:focus-within {
+  background-color: #ffffff;
+  border-color: #3D62A8;
+  box-shadow: 0 0 0 1px #3D62A8;
+}
+
+.navbar-right app-searchbar ::ng-deep .ai-toggle-btn {
+  height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background-color: #f4f5f7;
+  border-color: #dfe1e6;
+}
+
+.navbar-right app-searchbar ::ng-deep .ai-toggle-btn:hover:not(:disabled) {
+  background-color: #e0e7ff;
+  border-color: #c7d2fe;
+}
+
+.navbar-right app-searchbar ::ng-deep .ai-toggle-btn.active {
+  background-color: #3D62A8;
+  border-color: #3D62A8;
+}
+
 .btn-secondary {
   padding: 6px 12px;
   background-color: #f4f5f7;
@@ -274,6 +317,34 @@
   .btn-primary {
     padding: 5px 10px;
     font-size: 13px;
+  }
+
+  /* Adjust searchbar for mobile */
+  .navbar-right app-searchbar ::ng-deep .search-box {
+    width: 200px;
+  }
+
+  .navbar-right app-searchbar ::ng-deep .search-box input {
+    font-size: 13px;
+  }
+
+  .navbar-right app-searchbar ::ng-deep .ai-toggle-btn {
+    padding: 6px 8px;
+  }
+
+  .navbar-right app-searchbar ::ng-deep .ai-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Hide searchbar on very small screens or make it minimal */
+  .navbar-right app-searchbar ::ng-deep .search-box {
+    width: 150px;
+  }
+  
+  .navbar-right app-searchbar ::ng-deep .search-box input::placeholder {
+    font-size: 12px;
   }
 }
 

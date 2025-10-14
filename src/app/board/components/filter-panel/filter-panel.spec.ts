@@ -12,6 +12,10 @@ class StoreMock {
     { id:'3', title:'c', description:'', type:'TASK' as any, status:'DONE' as any, priority:'MEDIUM' as any, assignee:undefined as any, labels:[], createdAt: new Date(), updatedAt:new Date() },
   ]);
   filters = signal<FilterState>({ assignees: [], workTypes: [], labels: [], statuses: [], priorities: [] });
+  
+  clearFilters() {
+    this.filters.set({ assignees: [], workTypes: [], labels: [], statuses: [], priorities: [] });
+  }
 }
 
 describe('FilterPanel', () => {
@@ -46,6 +50,25 @@ describe('FilterPanel', () => {
       expect(component.assignees()).toEqual([]);
     });
 
+    it('should filter assignees by search query', () => {
+      component.assigneeSearch.set('joy');
+      expect(component.assignees()).toEqual(['Joy']);
+      
+      component.assigneeSearch.set('sam');
+      expect(component.assignees()).toEqual(['Sam']);
+      
+      component.assigneeSearch.set('xyz');
+      expect(component.assignees()).toEqual([]);
+    });
+
+    it('should be case insensitive for assignee search', () => {
+      component.assigneeSearch.set('JOY');
+      expect(component.assignees()).toEqual(['Joy']);
+      
+      component.assigneeSearch.set('sAm');
+      expect(component.assignees()).toEqual(['Sam']);
+    });
+
     it('should filter out undefined and empty assignees', () => {
       storeMock.issues.set([
         { assignee: 'Alice' } as any,
@@ -71,6 +94,25 @@ describe('FilterPanel', () => {
       expect(new Set(workTypes)).toEqual(new Set(['TASK','BUG']));
     });
 
+    it('should filter work types by search query', () => {
+      component.workTypeSearch.set('task');
+      expect(component.workTypes()).toEqual(['TASK']);
+      
+      component.workTypeSearch.set('bug');
+      expect(component.workTypes()).toEqual(['BUG']);
+      
+      component.workTypeSearch.set('story');
+      expect(component.workTypes()).toEqual([]);
+    });
+
+    it('should be case insensitive for work type search', () => {
+      component.workTypeSearch.set('TASK');
+      expect(component.workTypes()).toEqual(['TASK']);
+      
+      component.workTypeSearch.set('BuG');
+      expect(component.workTypes()).toEqual(['BUG']);
+    });
+
     it('should handle issues without types', () => {
       storeMock.issues.set([
         { type: undefined } as any,
@@ -84,6 +126,22 @@ describe('FilterPanel', () => {
     it('should derive labels from all issues', () => {
       const labels = component.labels();
       expect(new Set(labels)).toEqual(new Set(['l1','l2']));
+    });
+
+    it('should filter labels by search query', () => {
+      component.labelSearch.set('l1');
+      expect(component.labels()).toEqual(['l1']);
+      
+      component.labelSearch.set('l2');
+      expect(component.labels()).toEqual(['l2']);
+      
+      component.labelSearch.set('l3');
+      expect(component.labels()).toEqual([]);
+    });
+
+    it('should be case insensitive for label search', () => {
+      component.labelSearch.set('L1');
+      expect(component.labels()).toEqual(['l1']);
     });
 
     it('should handle issues without labels', () => {
@@ -106,11 +164,117 @@ describe('FilterPanel', () => {
     });
 
     it('should provide fixed status options', () => {
-      expect(component.statuses()).toEqual(['TODO','IN_PROGRESS','IN_REVIEW','DONE']);
+      expect(component.statuses()).toEqual(['TODO','IN_PROGRESS','IN_REVIEW','DONE','BLOCKED']);
+    });
+
+    it('should filter statuses by search query', () => {
+      component.statusSearch.set('todo');
+      expect(component.statuses()).toEqual(['TODO']);
+      
+      component.statusSearch.set('progress');
+      expect(component.statuses()).toEqual(['IN_PROGRESS']);
+      
+      component.statusSearch.set('done');
+      expect(component.statuses()).toEqual(['DONE']);
+      
+      component.statusSearch.set('blocked');
+      expect(component.statuses()).toEqual(['BLOCKED']);
+      
+      component.statusSearch.set('xyz');
+      expect(component.statuses()).toEqual([]);
+    });
+
+    it('should be case insensitive for status search', () => {
+      component.statusSearch.set('DONE');
+      expect(component.statuses()).toEqual(['DONE']);
     });
 
     it('should provide fixed priority options', () => {
-      expect(component.priorities()).toEqual(['HIGH','MEDIUM','LOW']);
+      expect(component.priorities()).toEqual(['CRITICAL','HIGH','MEDIUM','LOW']);
+    });
+
+    it('should filter priorities by search query', () => {
+      component.prioritySearch.set('critical');
+      expect(component.priorities()).toEqual(['CRITICAL']);
+      
+      component.prioritySearch.set('high');
+      expect(component.priorities()).toEqual(['HIGH']);
+      
+      component.prioritySearch.set('med');
+      expect(component.priorities()).toEqual(['MEDIUM']);
+      
+      component.prioritySearch.set('low');
+      expect(component.priorities()).toEqual(['LOW']);
+      
+      component.prioritySearch.set('xyz');
+      expect(component.priorities()).toEqual([]);
+    });
+
+    it('should be case insensitive for priority search', () => {
+      component.prioritySearch.set('HIGH');
+      expect(component.priorities()).toEqual(['HIGH']);
+    });
+  });
+
+  describe('clearSearches', () => {
+    it('should reset all search queries to empty strings', () => {
+      component.assigneeSearch.set('test');
+      component.workTypeSearch.set('task');
+      component.labelSearch.set('label');
+      component.statusSearch.set('done');
+      component.prioritySearch.set('high');
+
+      component.clearSearches();
+
+      expect(component.assigneeSearch()).toBe('');
+      expect(component.workTypeSearch()).toBe('');
+      expect(component.labelSearch()).toBe('');
+      expect(component.statusSearch()).toBe('');
+      expect(component.prioritySearch()).toBe('');
+    });
+
+    it('should restore full lists after clearing searches', () => {
+      component.assigneeSearch.set('joy');
+      expect(component.assignees()).toEqual(['Joy']);
+
+      component.clearSearches();
+      expect(component.assignees()).toEqual(['Joy', 'Sam']);
+    });
+  });
+
+  describe('clearAllFilters', () => {
+    it('should clear all filters in the store', () => {
+      storeMock.filters.set({
+        assignees: ['Joy'],
+        workTypes: ['TASK' as any],
+        labels: ['l1'],
+        statuses: ['TODO' as any],
+        priorities: ['HIGH' as any]
+      });
+
+      component.clearAllFilters();
+
+      expect(storeMock.filters()).toEqual({
+        assignees: [],
+        workTypes: [],
+        labels: [],
+        statuses: [],
+        priorities: []
+      });
+    });
+
+    it('should also clear all search queries', () => {
+      component.assigneeSearch.set('test');
+      component.workTypeSearch.set('task');
+      component.labelSearch.set('label');
+
+      component.clearAllFilters();
+
+      expect(component.assigneeSearch()).toBe('');
+      expect(component.workTypeSearch()).toBe('');
+      expect(component.labelSearch()).toBe('');
+      expect(component.statusSearch()).toBe('');
+      expect(component.prioritySearch()).toBe('');
     });
   });
 
@@ -302,8 +466,8 @@ describe('FilterPanel', () => {
       expect(component.assignees()).toEqual([]);
       expect(component.workTypes()).toEqual([]);
       expect(component.labels()).toEqual([]);
-      expect(component.statuses()).toEqual(['TODO','IN_PROGRESS','IN_REVIEW','DONE']);
-      expect(component.priorities()).toEqual(['HIGH','MEDIUM','LOW']);
+      expect(component.statuses()).toEqual(['TODO','IN_PROGRESS','IN_REVIEW','DONE','BLOCKED']);
+      expect(component.priorities()).toEqual(['CRITICAL','HIGH','MEDIUM','LOW']);
     });
   });
 

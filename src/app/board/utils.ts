@@ -12,6 +12,13 @@ export const statusOrder: Record<Status, number> = {
   TODO: 0, IN_PROGRESS: 1, BLOCKED: 2, IN_REVIEW: 3, DONE: 4
 };
 
+export const priorityOrder: Record<string, number> = {
+  CRITICAL: 0,
+  HIGH: 1,
+  MEDIUM: 2,
+  LOW: 3
+};
+
 export function fuzzyIncludes(hay: string, needle: string) {
   return hay.toLowerCase().includes(needle.trim().toLowerCase());
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
 import { BacklogContainer } from '../backlog-container/backlog-container';
+import { AllIssuesList } from '../all-issues-list/all-issues-list';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
@@ -26,7 +27,7 @@ import { FormField, ModalService } from '../../modal/modal-service';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
+  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -45,9 +46,8 @@ export class BacklogPage implements OnInit {
     return !!svc.isCollapsed;
   }
   
-  // Epic panel state
+  // Epic panel state  
   isEpicPanelOpen = false;
-  selectedEpicFilter: string | null = null;
   epics: Epic[] = [...sharedEpics];
   
   // Epic detail view state
@@ -68,6 +68,11 @@ export class BacklogPage implements OnInit {
   // All sprints
   sprints: Sprint[] = sharedSprints;
 
+  // View state managed by filters component
+  currentView: 'sprints' | 'all-issues' = 'sprints';
+  showCompletedSprints = false;
+  selectedEpicFilter: string | null = null;
+
   // Helper to get sprints by status
   get activeSprints(): Sprint[] {
     return this.sprints.filter(s => s.status === 'ACTIVE');
@@ -79,6 +84,27 @@ export class BacklogPage implements OnInit {
 
   get completedSprints(): Sprint[] {
     return this.sprints.filter(s => s.status === 'COMPLETED');
+  }
+
+  // Get backlog issues excluding completed ones
+  get filteredBacklogIssues(): Issue[] {
+    return this.backlogIssues.filter(issue => issue.status !== 'DONE');
+  }
+
+  // Get all issues from all sprints and backlog
+  get allIssues(): Issue[] {
+    const sprintIssues = this.sprints.flatMap(sprint => sprint.issues || []);
+    return [...sprintIssues, ...this.backlogIssues];
+  }
+
+  // Toggle view between sprints and all issues
+  toggleView(view: 'sprints' | 'all-issues'): void {
+    this.currentView = view;
+  }
+
+  // Toggle completed sprints visibility
+  toggleCompletedSprints(): void {
+    this.showCompletedSprints = !this.showCompletedSprints;
   }
 
   
@@ -167,9 +193,13 @@ export class BacklogPage implements OnInit {
 
   onFiltersChanged(criteria: FilterCriteria): void {
     console.log('Filters changed:', criteria);
-    // Implement filter logic here
-    // You can filter sprints and backlog issues based on the criteria
-    // For now, just logging the criteria
+    // Update view states from filter criteria
+    this.currentView = criteria.view;
+    this.showCompletedSprints = criteria.showCompletedSprints;
+    this.isEpicPanelOpen = criteria.showEpicPanel;
+    this.selectedEpicFilter = criteria.epicId;
+    // Additional filter logic can be implemented here
+    // Filter sprints and backlog issues based on other criteria
   }
 
   // Get list of all sprints for move dropdown
@@ -197,6 +227,11 @@ export class BacklogPage implements OnInit {
     return this.allDropListIds.filter(id => id !== 'backlog-container');
   }
 
+  // Get epic options for filter component
+  get epicFilterOptions(): Array<{ id: string, name: string }> {
+    return this.epics.map(epic => ({ id: epic.id, name: epic.name }));
+  }
+
   // Handle moving issue between sprints/backlog
   handleMoveIssue(issueId: string, destinationSprintId: string | null): void {
     console.log(`Moving issue ${issueId} to sprint ${destinationSprintId || 'backlog'}`);
@@ -208,19 +243,23 @@ export class BacklogPage implements OnInit {
     // Search in backlog
     const backlogIndex = this.backlogIssues.findIndex(i => i.id === issueId);
     if (backlogIndex !== -1) {
-      movedIssue = this.backlogIssues[backlogIndex];
-      this.backlogIssues = this.backlogIssues.filter(i => i.id !== issueId);
+      // Create a copy to avoid reference issues
+      movedIssue = { ...this.backlogIssues[backlogIndex] };
+      // Remove from backlog by creating a new array
+      this.backlogIssues = [...this.backlogIssues.filter(i => i.id !== issueId)];
     }
 
-    // Search in sprints
+    // Search in sprints if not found in backlog
     if (!movedIssue) {
       for (const sprint of this.sprints) {
         if (sprint.issues) {
           const issueIndex = sprint.issues.findIndex(i => i.id === issueId);
           if (issueIndex !== -1) {
-            movedIssue = sprint.issues[issueIndex];
+            // Create a copy to avoid reference issues
+            movedIssue = { ...sprint.issues[issueIndex] };
             sourceSprintId = sprint.id;
-            sprint.issues = sprint.issues.filter(i => i.id !== issueId);
+            // Remove from sprint by creating a new array
+            sprint.issues = [...sprint.issues.filter(i => i.id !== issueId)];
             break;
           }
         }
@@ -228,7 +267,7 @@ export class BacklogPage implements OnInit {
     }
 
     if (movedIssue) {
-      // Update the issue's sprintId
+      // Update the issue's sprintId and timestamp
       movedIssue.sprintId = destinationSprintId || undefined;
       movedIssue.updatedAt = new Date();
 
@@ -236,17 +275,19 @@ export class BacklogPage implements OnInit {
       if (destinationSprintId) {
         const targetSprint = this.sprints.find(s => s.id === destinationSprintId);
         if (targetSprint) {
+          // Initialize issues array if it doesn't exist
           if (!targetSprint.issues) {
             targetSprint.issues = [];
           }
-          targetSprint.issues.push(movedIssue);
+          // Add to sprint by creating a new array
+          targetSprint.issues = [...targetSprint.issues, movedIssue];
         }
       } else {
-        // Move to backlog
-        this.backlogIssues.push(movedIssue);
+        // Move to backlog by creating a new array
+        this.backlogIssues = [...this.backlogIssues, movedIssue];
       }
 
-      console.log(`Issue ${issueId} moved successfully`);
+      console.log(`Issue ${issueId} moved successfully from ${sourceSprintId || 'backlog'} to ${destinationSprintId || 'backlog'}`);
     } else {
       console.error(`Issue ${issueId} not found`);
     }
@@ -256,26 +297,8 @@ export class BacklogPage implements OnInit {
     this.sidebarStateService.toggleCollapse();
   }
 
-  toggleEpicPanel(): void {
-    this.isEpicPanelOpen = !this.isEpicPanelOpen;
-  }
-
   closeEpicPanel(): void {
     this.isEpicPanelOpen = false;
-  }
-
-  onEpicFilterChange(event: Event): void {
-    const selectElement = event.target as HTMLSelectElement;
-    this.selectedEpicFilter = selectElement.value || null;
-    console.log('Selected epic filter:', this.selectedEpicFilter);
-    // Implement filter logic here to filter backlog issues by epic
-  }
-
-  get epicFilterOptions(): Array<{ id: string | null, name: string }> {
-    return [
-      { id: null, name: 'All epics' },
-      ...this.epics.map(epic => ({ id: epic.id, name: epic.name }))
-    ];
   }
 
   // Epic detail view methods

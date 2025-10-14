@@ -87,71 +87,9 @@
 
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 24px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.page-header-left {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.epic-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.epic-toggle-btn {
-  padding: 6px 12px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.epic-toggle-btn:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.epic-toggle-btn.active {
-  background: #eff6ff;
-  border-color: #3b82f6;
-  color: #3b82f6;
-}
-
-.epic-filter-select {
-  padding: 6px 12px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 150px;
-}
-
-.epic-filter-select:hover {
-  border-color: #d1d5db;
-}
-
-.epic-filter-select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .page-title {
@@ -220,38 +158,14 @@
   }
 
   .page-header {
-    gap: 12px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .page-header-left {
-    width: 100%;
-  }
-
-  .epic-controls {
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .epic-toggle-btn {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-
-  .epic-filter-select {
-    flex: 1;
-    min-width: auto;
-  }
-
-  .page-title {
-    font-size: 20px;
+    justify-content: center;
   }
 
   .create-sprint-btn {
-    padding: 4px 10px;
-    font-size: 11px;
+    padding: 6px 14px;
+    font-size: 12px;
     width: 100%;
+    max-width: 300px;
   }
 
   .section {

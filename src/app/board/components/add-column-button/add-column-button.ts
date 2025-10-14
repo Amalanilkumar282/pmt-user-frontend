@@ -14,27 +14,81 @@ export class AddColumnButton {
   private store = inject(BoardStore);
   isOpen = false;
   name = '';
-  color = '#A1C4FD'; // Default blue
+  color = '#3D62A8'; // Default to primary color
 
-  // Available color options
-  colorOptions = [
-    { name: 'Blue', value: '#A1C4FD' },
-    { name: 'Orange', value: '#FFA500' },
-    { name: 'Green', value: '#10B981' },
-    { name: 'Red', value: '#EF4444' },
-    { name: 'Violet', value: '#A78BFA' },
-    { name: 'Pink', value: '#EC4899' },
-    { name: 'Teal', value: '#14B8A6' },
-    { name: 'Yellow', value: '#F59E0B' },
+  // Jira-like: Only 6 essential preset colors for quick access
+  presetColors = [
+    '#3D62A8', // Primary Blue
+    '#10B981', // Success Green
+    '#F59E0B', // Warning Amber
+    '#EF4444', // Danger Red
+    '#8B5CF6', // Purple
+    '#64748B', // Neutral Gray
   ];
 
-  open() { this.isOpen = true; }
-  close() { this.isOpen = false; this.name = ''; }
+  // Simplified color names
+  private colorNames: Record<string, string> = {
+    '#3D62A8': 'Blue',
+    '#10B981': 'Green',
+    '#F59E0B': 'Amber',
+    '#EF4444': 'Red',
+    '#8B5CF6': 'Purple',
+    '#64748B': 'Gray',
+  };
+
+  getColorName(hex: string): string {
+    return this.colorNames[hex] || 'Custom';
+  }
+
+  open() { 
+    this.isOpen = true; 
+    this.name = '';
+    this.color = '#3D62A8';
+  }
+  
+  close() { 
+    this.isOpen = false; 
+    this.name = ''; 
+    this.color = '#3D62A8';
+  }
+
+  isValid(): boolean {
+    return this.name.trim().length > 0 && this.isValidHexColor(this.color);
+  }
+
+  isValidHexColor(hex: string): boolean {
+    return /^#[0-9A-Fa-f]{6}$/.test(hex);
+  }
+
+  validateHexColor(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value;
+    
+    // Ensure it starts with #
+    if (!value.startsWith('#')) {
+      value = '#' + value.replace(/^#+/, '');
+    }
+    
+    // Remove invalid characters
+    value = value.replace(/[^#0-9A-Fa-f]/g, '');
+    
+    // Limit to 7 characters (#RRGGBB)
+    if (value.length > 7) {
+      value = value.substring(0, 7);
+    }
+    
+    this.color = value.toUpperCase();
+  }
 
   addColumn() {
-    if (!this.name.trim()) return;
+    if (!this.isValid()) return;
+    
     const id = this.name.toUpperCase().replace(/\s+/g, '_');
-    this.store.addColumn({ id: id as any, title: this.name, color: this.color });
+    this.store.addColumn({ 
+      id: id as any, 
+      title: this.name.trim(), 
+      color: this.color 
+    });
     this.close();
   }
 }

@@ -41,33 +41,14 @@
        [class.epic-panel-open]="isEpicPanelOpen"
        [class.epic-detail-open]="selectedEpic"
        [style.margin-right.px]="selectedEpic ? epicDetailPanelWidth : 0">
-    <!-- Filters Section -->
-    <app-filters (filtersChanged)="onFiltersChanged($event)"></app-filters>
+    <!-- Filters Section - Now includes view toggle, epic controls, and sprint visibility -->
+    <app-filters 
+      [epicOptions]="epicFilterOptions"
+      (filtersChanged)="onFiltersChanged($event)">
+    </app-filters>
 
+    <!-- Page Header - Simplified -->
     <div class="page-header">
-      <div class="page-header-left">
-        <div class="epic-controls">
-          <button 
-            class="epic-toggle-btn"
-            [class.active]="isEpicPanelOpen"
-            (click)="toggleEpicPanel()">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect width="16" height="16" rx="2" fill="#8B5CF6"/>
-              <rect x="3" y="3" width="10" height="10" rx="1" fill="white"/>
-            </svg>
-            <span>Epic</span>
-          </button>
-
-          <select 
-            class="epic-filter-select"
-            [value]="selectedEpicFilter || ''"
-            (change)="onEpicFilterChange($event)">
-            @for (option of epicFilterOptions; track option.id) {
-              <option [value]="option.id || ''">{{ option.name }}</option>
-            }
-          </select>
-        </div>
-      </div>
       <button 
         class="create-sprint-btn"
         (click)="handleCreateSprint()">
@@ -75,86 +56,100 @@
       </button>
     </div>
   
-  <!-- Active Sprints Section -->
-  @if (activeSprints.length > 0) {
-    <section class="section">
+  <!-- Sprints View -->
+  @if (currentView === 'sprints') {
+    <!-- Active Sprints Section -->
+    @if (activeSprints.length > 0) {
+      <section class="section">
+        <h2 class="section-title">
+          Active Sprints ({{ activeSprints.length }})
+        </h2>
+        <div class="sprint-list">
+          @for (sprint of activeSprints; track sprint.id) {
+            <app-sprint-container 
+              [sprint]="sprint"
+              [availableSprints]="availableSprintsForMove"
+              [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
+              (startSprint)="handleStart($event)"
+              (completeSprint)="handleComplete($event)"
+              (editSprint)="handleEdit($event)"
+              (deleteSprint)="handleDelete($event)"
+              (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+            </app-sprint-container>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Planned Sprints Section -->
+    @if (plannedSprints.length > 0) {
+      <section class="section">
+        <h2 class="section-title">
+          Planned Sprints ({{ plannedSprints.length }})
+        </h2>
+        <div class="sprint-list">
+          @for (sprint of plannedSprints; track sprint.id) {
+            <app-sprint-container 
+              [sprint]="sprint"
+              [availableSprints]="availableSprintsForMove"
+              [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
+              (startSprint)="handleStart($event)"
+              (completeSprint)="handleComplete($event)"
+              (editSprint)="handleEdit($event)"
+              (deleteSprint)="handleDelete($event)"
+              (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+            </app-sprint-container>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Completed Sprints Section - conditionally shown -->
+    @if (showCompletedSprints && completedSprints.length > 0) {
+      <section class="section">
+        <h2 class="section-title">
+          Completed Sprints ({{ completedSprints.length }})
+        </h2>
+        <div class="sprint-list">
+          @for (sprint of completedSprints; track sprint.id) {
+            <app-sprint-container 
+              [sprint]="sprint"
+              [availableSprints]="availableSprintsForMove"
+              [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
+              (startSprint)="handleStart($event)"
+              (completeSprint)="handleComplete($event)"
+              (editSprint)="handleEdit($event)"
+              (deleteSprint)="handleDelete($event)"
+              (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+            </app-sprint-container>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Product Backlog Section -->
+    <section>
       <h2 class="section-title">
-        Active Sprints ({{ activeSprints.length }})
+        Product Backlog
       </h2>
-      <div class="sprint-list">
-        @for (sprint of activeSprints; track sprint.id) {
-          <app-sprint-container 
-            [sprint]="sprint"
-            [availableSprints]="availableSprintsForMove"
-            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
-            (startSprint)="handleStart($event)"
-            (completeSprint)="handleComplete($event)"
-            (editSprint)="handleEdit($event)"
-            (deleteSprint)="handleDelete($event)"
-            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
-          </app-sprint-container>
-        }
-      </div>
+      <app-backlog-container 
+        [issues]="filteredBacklogIssues"
+        [availableSprints]="availableSprintsForMove"
+        [connectedDropLists]="connectedDropListsForBacklog"
+        (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+      </app-backlog-container>
     </section>
   }
 
-  <!-- Planned Sprints Section -->
-  @if (plannedSprints.length > 0) {
-    <section class="section">
-      <h2 class="section-title">
-        Planned Sprints ({{ plannedSprints.length }})
-      </h2>
-      <div class="sprint-list">
-        @for (sprint of plannedSprints; track sprint.id) {
-          <app-sprint-container 
-            [sprint]="sprint"
-            [availableSprints]="availableSprintsForMove"
-            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
-            (startSprint)="handleStart($event)"
-            (completeSprint)="handleComplete($event)"
-            (editSprint)="handleEdit($event)"
-            (deleteSprint)="handleDelete($event)"
-            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
-          </app-sprint-container>
-        }
-      </div>
+  <!-- All Issues View -->
+  @if (currentView === 'all-issues') {
+    <section>
+      <app-all-issues-list 
+        [issues]="allIssues"
+        [availableSprints]="availableSprintsForMove"
+        (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+      </app-all-issues-list>
     </section>
   }
-
-  <!-- Completed Sprints Section -->
-  @if (completedSprints.length > 0) {
-    <section class="section">
-      <h2 class="section-title">
-        Completed Sprints ({{ completedSprints.length }})
-      </h2>
-      <div class="sprint-list">
-        @for (sprint of completedSprints; track sprint.id) {
-          <app-sprint-container 
-            [sprint]="sprint"
-            [availableSprints]="availableSprintsForMove"
-            [connectedDropLists]="getConnectedDropListsForSprint(sprint.id)"
-            (startSprint)="handleStart($event)"
-            (completeSprint)="handleComplete($event)"
-            (editSprint)="handleEdit($event)"
-            (deleteSprint)="handleDelete($event)"
-            (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
-          </app-sprint-container>
-        }
-      </div>
-    </section>
-  }
-
-  <!-- Product Backlog Section -->
-  <section>
-    <h2 class="section-title">
-      Product Backlog
-    </h2>
-    <app-backlog-container 
-      [issues]="backlogIssues"
-      [availableSprints]="availableSprintsForMove"
-      [connectedDropLists]="connectedDropListsForBacklog"
-      (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
-    </app-backlog-container>
-  </section>
   </div>
 </div>
