@@ -3,7 +3,7 @@
     <div class="project-header">
       <div class="project-info">
         <div class="project-avatar">{{ project.name.charAt(0) }}</div>
-        <div>
+        <div class="project-details">
           <h3>{{ project.name }}</h3>
           <p>{{ project.type }}</p>
         </div>
@@ -44,21 +44,13 @@
     </div>
 
     <div class="sprint-info">
-      <span class="sprint-badge">Active Sprint: {{ project.sprint }}</span>
-    </div>
-
-    <div class="task-stats">
-      <div class="task-stat">
-        <span class="task-number">{{ project.tasks.toDo }}</span>
-        <span class="task-label">To Do</span>
-      </div>
-      <div class="task-stat">
-        <span class="task-number">{{ project.tasks.inProgress }}</span>
-        <span class="task-label">In Progress</span>
-      </div>
-      <div class="task-stat">
-        <span class="task-number">{{ project.tasks.done }}</span>
-        <span class="task-label">Done</span>
+      <span class="sprint-badge">{{ project.sprint }}</span>
+      <div class="sprint-stats">
+        <span class="stat">{{ project.tasks.toDo }} todo</span>
+        <span class="divider">•</span>
+        <span class="stat">{{ project.tasks.inProgress }} in progress</span>
+        <span class="divider">•</span>
+        <span class="stat">{{ project.tasks.done }} done</span>
       </div>
     </div>
 
@@ -66,10 +58,7 @@
       <div class="team-members">
         <span class="member-avatar" *ngFor="let member of project.teamMembers">{{ member }}</span>
       </div>
-      <div class="project-meta">
-        <p><strong>Deadline:</strong> {{ project.deadline }}</p>
-        <p class="text-muted">Updated {{ project.updated }}</p>
-      </div>
+      <span class="text-muted">Updated {{ project.updated }}</span>
     </div>
   </div>
 </a>

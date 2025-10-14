@@ -1,13 +1,20 @@
-<div class="activity-item">
+<div
+  class="activity-item flex items-start gap-3 px-2 py-2 rounded-lg border-b border-gray-100 last:border-b-0"
+>
+  <!-- Activity Avatar -->
   <div class="activity-avatar" [class]="activity.type">{{ activity.initials }}</div>
+
+  <!-- Activity Content -->
   <div class="activity-content">
-    <p>
-      <strong>{{ activity.user }}</strong> {{ activity.action }}
-      <strong>{{ activity.task }}</strong>
+    <p class="text-sm text-gray-700 mb-1">
+      <strong class="font-semibold text-gray-900">{{ activity.user }}</strong>
+      <span class="text-gray-600"> {{ activity.action }} </span>
+      <strong class="font-semibold text-gray-900">{{ activity.task }}</strong>
     </p>
+
     <div class="activity-meta">
       <span class="task-id">{{ activity.taskId }}</span>
-      <span class="activity-time">• {{ activity.time }}</span>
+      <span class="activity-time">{{ activity.time }}</span>
     </div>
   </div>
 </div>

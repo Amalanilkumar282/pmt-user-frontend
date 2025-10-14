@@ -1,0 +1,47 @@
+/* Additional component-specific styles that complement Tailwind */
+
+/* Smooth tab transitions */
+button {
+  position: relative;
+}
+.content {
+  height: 300px;
+  overflow: scroll;
+}
+
+/* Custom scrollbar for content area if needed */
+.tab-content-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tab-content-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.tab-content-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.tab-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Ensure proper text truncation */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Enhanced hover states */
+.group:hover .group-hover\:text-blue-600 {
+  transition: color 0.2s ease;
+}
+
+/* Avatar gradient animation on hover */
+.group:hover [class*='bg-gradient-to-br'] {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
