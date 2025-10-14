@@ -69,6 +69,11 @@ showToast(message: string, duration: number = 3000) {
       this.modalDesc = cfg.modalDesc ?? '';
       this.showLabels = cfg.showLabels ?? false;
       this.submitButtonText = cfg.submitText ?? 'Create Issue';
+      
+      // Check initial issue type and update field visibility
+      if (this.formData.issueType) {
+        this.updateFieldVisibility(this.formData.issueType);
+      }
     }
 
     if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
@@ -98,8 +103,10 @@ submit() {
   this.invalidFields.clear();
   this.shakeFields.clear(); // reset shakes
 
-  // Validate required fields
+  // Validate required fields (skip hidden fields)
   for (const field of this.fields) {
+    if (field.hidden) continue; // Skip validation for hidden fields
+    
     const value = this.formData[field.model];
     if (field.required && (value === null || value === undefined || value === '')) {
       this.invalidFields.add(field.model);
@@ -136,6 +143,11 @@ submit() {
       this.invalidFields.delete(field.model);
     }
 
+    // Handle Issue Type change to show/hide fields
+    if (field.model === 'issueType') {
+      this.updateFieldVisibility(value);
+    }
+
     field.onChange?.(value, this.formData);
   }
 
@@ -150,5 +162,22 @@ submit() {
 
   removeLabel(label: string) {
     this.formData.labels = this.formData.labels.filter((l: string) => l !== label);
+  }
+
+  updateFieldVisibility(issueType: string) {
+    // Hide Story Point and Parent Epic when Issue Type is Epic
+    const hideFields = issueType === 'Epic';
+    
+    this.fields.forEach(field => {
+      if (field.model === 'storyPoint' || field.model === 'parentEpic') {
+        field.hidden = hideFields;
+        
+        // Clear validation errors for hidden fields
+        if (hideFields) {
+          this.invalidFields.delete(field.model);
+          this.shakeFields.delete(field.model);
+        }
+      }
+    });
   }
 }

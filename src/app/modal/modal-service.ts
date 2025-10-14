@@ -20,6 +20,7 @@ export interface FormField {
   colSpan?: 1 | 2;
   onChange?: (value: any, formData: any) => void;
   required?: boolean;
+  hidden?: boolean; // For conditional visibility
 }
 
 @Injectable({ providedIn: 'root' })
