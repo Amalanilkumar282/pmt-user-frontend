@@ -1,0 +1,127 @@
+<div class="add-member-form">
+  <div class="form-header">
+    <h2>Add New Member</h2>
+    <p class="form-subtitle">Search and add users to this project</p>
+  </div>
+
+  <form [formGroup]="addMemberForm" (ngSubmit)="onSubmit()">
+    <!-- User Search -->
+    <div class="form-group">
+      <label for="userSearch">Search User</label>
+      <div class="search-wrapper">
+        <div class="search-input-container">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            id="userSearch"
+            class="search-input"
+            placeholder="Type name or email to search..."
+            [value]="searchQuery()"
+            (input)="onSearchInput($event)"
+            (focus)="showDropdown.set(true)"
+            autocomplete="off"
+          />
+          @if (selectedUser()) {
+            <button type="button" class="clear-btn" (click)="clearSelection()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          }
+        </div>
+
+        <!-- Search Results Dropdown -->
+        @if (showDropdown() && searchResults().length > 0) {
+          <div class="search-dropdown">
+            @for (user of searchResults(); track user.id) {
+              <div 
+                class="search-result-item"
+                [class.disabled]="user.alreadyInProject"
+                (click)="selectUser(user)"
+              >
+                <div class="user-avatar">
+                  @if (user.avatar) {
+                    <img [src]="user.avatar" [alt]="user.name" />
+                  } @else {
+                    <div class="avatar-placeholder">
+                      {{ getInitials(user.name) }}
+                    </div>
+                  }
+                </div>
+                <div class="user-info">
+                  <div class="user-name">{{ user.name }}</div>
+                  <div class="user-email">{{ user.email }}</div>
+                </div>
+                @if (user.alreadyInProject) {
+                  <span class="already-member-badge">Already in project</span>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (showDropdown() && searchQuery().length >= 2 && searchResults().length === 0) {
+          <div class="search-dropdown">
+            <div class="no-results">No users found</div>
+          </div>
+        }
+      </div>
+      @if (!addMemberForm.get('userId')?.valid && addMemberForm.get('userId')?.touched) {
+        <span class="error-message">Please select a user</span>
+      }
+    </div>
+
+    <!-- Selected User Display -->
+    @if (selectedUser()) {
+      <div class="selected-user-card">
+        <div class="user-avatar">
+          @if (selectedUser()!.avatar) {
+            <img [src]="selectedUser()!.avatar" [alt]="selectedUser()!.name" />
+          } @else {
+            <div class="avatar-placeholder">
+              {{ getInitials(selectedUser()!.name) }}
+            </div>
+          }
+        </div>
+        <div class="user-info">
+          <div class="user-name">{{ selectedUser()!.name }}</div>
+          <div class="user-email">{{ selectedUser()!.email }}</div>
+        </div>
+        <button type="button" class="remove-selection-btn" (click)="clearSelection()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    }
+
+    <!-- Role Selection -->
+    <div class="form-group">
+      <label for="role">Role</label>
+      <select id="role" formControlName="role" class="form-select">
+        @for (role of availableRoles; track role) {
+          <option [value]="role">{{ role }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" class="btn-cancel" (click)="onCancel()">
+        Cancel
+      </button>
+      <button type="submit" class="btn-submit" [disabled]="!addMemberForm.valid">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/>
+          <line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+        Add Member
+      </button>
+    </div>
+  </form>
+</div>
