@@ -21,3 +21,6 @@
 app-chart-table {
   width: 100%;               /* stretch table to wrapper */
 }
+::ng-deep select#sprint-select option[value="all"] {
+  display: none !important;
+}

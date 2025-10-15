@@ -11,7 +11,7 @@ import { IssueSummaryService } from '../../summary/issue-summary.service';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
 import { Issue } from '../../shared/models/issue.model';
-
+import { Location } from '@angular/common';
 @Component({
   selector: 'app-velocity-chart',
   standalone: true,
@@ -33,29 +33,45 @@ export class VelocityChart implements OnInit {
   // sprints shown in the sprint filter
   sprints: Sprint[] = [];
 
-  ngOnInit(): void {
+  // 
+   ngOnInit(): void {
     // Set project context from route params
     const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
     }
+    
+    // Load all sprints from the service
+    // this.sprints = this.issueSummaryService.getAllSprints();
+     // Load all sprints
+  const allSprints = this.issueSummaryService.getAllSprints();
 
-    // populate sprint list for the sprint filter
-    this.sprints = this.issueSummaryService.getAllSprints();
+  
+
+    // Find active sprint
+  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+
+  // Reorder: active sprint first, exclude 'all' placeholder if any exists
+  this.sprints = [
+    ...(activeSprint ? [activeSprint] : []),
+    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+  ];
+
+  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
+    // Load initial chart data
+    this.updatechartData();
   }
+
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
-  constructor(private router: Router) {}
+  constructor(private router: Router,private location:Location) {}
 
-  navigateBack() {
-    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
-    if (projectId) {
-      this.router.navigate(['/projects', projectId, 'report-dashboard']);
-    } else {
-      this.router.navigate(['/report-dashboard']);
-    }
+  navigateBack(): void {
+    
+      this.location.back();
+
   }
   onSprintFilterChange(sprintId: string): void {
     this.selectedSprintId = sprintId;
