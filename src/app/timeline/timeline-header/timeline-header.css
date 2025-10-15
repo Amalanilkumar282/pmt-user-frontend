@@ -1,5 +1,16 @@
 /* Timeline Header Styles */
 
+/* Dropdown arrow rotation animation */
+.dropdown-arrow {
+    display: inline-block;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+}
+
+.dropdown-arrow.rotate-down {
+    transform: rotate(180deg);
+}
+
 /* Show dropdown when toggled */
 .filter-dropdown.show {
     display: block !important;

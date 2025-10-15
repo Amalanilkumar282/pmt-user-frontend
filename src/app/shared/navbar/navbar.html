@@ -9,13 +9,6 @@
             <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
-        <div class="project-info">
-          <div class="project-icon">{{ projectInfo().icon }}</div>
-          <div class="project-details">
-            <div class="project-name">{{ projectInfo().name }}</div>
-            <div class="project-type">{{ projectInfo().type }}</div>
-          </div>
-        </div>
       </div>
 
       <!-- Right Section: Action Buttons -->
@@ -57,13 +50,83 @@
               </div>
             </div>
           </div>
-          <button class="btn-menu">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
-              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-              <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+          <!-- // Create a React + Tailwind CSS component for a user profile dropdown menu.
+// It should look exactly like a floating account menu similar to Jira or Confluence.
+//
+// 🔲 Overall Layout
+// - White floating panel with rounded corners (~8px) and soft shadow.
+// - Vertically stacked content (flex column) with clean spacing and padding.
+// - About 250–280px wide.
+//
+// 👤 Top Section (User Info)
+// - Circular avatar on the left with initials "NN" in white text.
+// - Avatar background: solid orange-red (#D93025).
+// - Next to avatar, show:
+//   • Name: "Nadim Naisam" (bold, dark gray #202124)
+//   • Email: "nadim.naisam@experionglobal.com" (smaller, gray #5F6368)
+// - Slight padding around this section, bottom border divider (#E0E0E0).
+//
+// ⚙️ Menu Options (Vertical List)
+// Each menu item should be a clickable row with left icon (emoji or lucide-react icon).
+// Padding: ~8–12px vertically.
+// On hover: background turns light gray (#F5F5F5), cursor: pointer, slight rounded corners.
+// 
+// Options in order:
+// 1. 👤 Profile
+// 2. ⚙️ Account settings
+// 3. 🌓 Theme (has a right arrow › at the end for submenu)
+// ---- divider line ----
+// 4. Open Quickstart (text only, no icon)
+// 5. 👥 Switch account
+// 6. 🚪 Log out (text and icon in red color)
+//
+// 🧭 Behavior
+// - Appears as a popover anchored to top-right avatar.
+// - Should close when clicking outside or pressing Esc.
+// - Support keyboard navigation (optional).
+//
+// 📐 Styling (Tailwind suggestions)
+// - bg-white rounded-lg shadow-lg p-4 w-64 flex flex-col
+// - text-sm text-gray-700
+// - border-gray-200 dividers
+//
+// Example structure Copilot should produce:
+// <div class="w-64 bg-white rounded-lg shadow-lg p-4 flex flex-col space-y-2">
+//   [User info header with avatar + name + email]
+//   [Menu buttons with hover effects and divider]
+// </div>
+//
+// Please output a complete, self-contained React functional component
+// (e.g. `export default function ProfileMenu() { ... }`) using TailwindCSS classes. -->
+
+          <button class="btn-profile" (click)="onProfileClick()" aria-label="Profile" style="position: relative; width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: none; background: #f3f4f6; display: flex; align-items: center; justify-content: center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="8" r="4" fill="#3D62A8"/>
+              <rect x="6" y="16" width="12" height="4" rx="2" fill="#3D62A8"/>
             </svg>
           </button>
+          <div *ngIf="showProfileModal" style="position: fixed; inset: 0; z-index: 1999;" (click)="closeProfileModal()">
+            <div style="position: absolute; top: 72px; right: 56px; width: 340px; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(60,72,100,0.16); padding: 0; display: flex; flex-direction: column; font-family: 'Segoe UI', Arial, sans-serif;" (click)="$event.stopPropagation()">
+              <!-- User Info Header -->
+              <div style="display: flex; align-items: center; padding: 20px 20px 16px 20px; border-bottom: 1px solid #ececec;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: #D93025; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.25rem; color: #fff; margin-right: 16px; box-shadow: 0 2px 8px rgba(217,48,37,0.10);">NN</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; color: #202124; font-size: 1.1rem;">Nadim Naisam</div>
+                  <div style="font-size: 0.98rem; color: #5F6368; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">nadim.naisam@experionglobal.com</div>
+                </div>
+              </div>
+              <!-- Menu Options -->
+              <div style="display: flex; flex-direction: column; padding: 10px 0; gap: 2px;">
+                <button style="display: flex; align-items: center; gap: 12px; padding: 8px 20px; background: none; border: none; width: 100%; text-align: left; font-size: 1.05rem; color: #222; cursor: pointer; transition: background 0.18s; font-weight: normal;" onmouseover="this.style.background='#ededed'" onmouseout="this.style.background='none'">
+                  <span><i class="fa-regular fa-user" style="color: #000000;"></i></span> Profile
+                </button>
+                <button style="display: flex; align-items: center; gap: 12px; padding: 8px 20px; background: none; border: none; width: 100%; text-align: left; font-size: 1.05rem; color: #222; cursor: pointer; transition: background 0.18s; font-weight: normal;" onmouseover="this.style.background='#ededed'" onmouseout="this.style.background='none'">
+                  <span><i class="fa-solid fa-arrow-right-from-bracket" style="color: #030303;"></i>
+ </span> <span style="color:#222;">Log out</span>
+                </button>
+              </div>
+            </div>
+          </div>
       </div>
     </div>
   </div>
