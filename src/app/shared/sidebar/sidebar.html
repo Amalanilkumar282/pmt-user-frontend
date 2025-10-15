@@ -62,106 +62,12 @@
   <nav class="sidebar-nav">
     <!-- Show project navigation if we're in a project context -->
     @if (currentProjectId()) {
-      <a [routerLink]="['/projects', currentProjectId(), 'board']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Board' : ''">
-        <svg
-          class="nav-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <rect x="3" y="3" width="7" height="16" rx="1" stroke="currentColor" stroke-width="2" />
-          <rect x="14" y="3" width="7" height="10" rx="1" stroke="currentColor" stroke-width="2" />
-        </svg>
-        <span *ngIf="!isCollapsed()">Board</span>
-      </a>
-
-      <a [routerLink]="['/projects', currentProjectId(), 'backlog']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Backlog' : ''">
-        <svg
-          class="nav-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M3 7h18M3 12h18M3 17h18"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
-        <span *ngIf="!isCollapsed()">Backlog</span>
-      </a>
-
-      <a [routerLink]="['/projects', currentProjectId(), 'summary']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Summary' : ''">
-        <svg
-          class="nav-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none" />
-          <path d="M3 9h18M9 9v12" stroke="currentColor" stroke-width="2" />
-        </svg>
-        <span *ngIf="!isCollapsed()">Summary</span>
-      </a>
-
-      <a [routerLink]="['/projects', currentProjectId(), 'timeline']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Timeline' : ''">
-        <svg
-          class="nav-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
-          <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-        </svg>
-        <span *ngIf="!isCollapsed()">Timeline</span>
-      </a>
-
-      <a [routerLink]="['/projects', currentProjectId(), 'report-dashboard']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Reports' : ''">
-        <svg
-          class="nav-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M3 17v4h4M21 7v-4h-4M3 7V3h4M21 17v4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          <rect x="7" y="7" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none" />
-        </svg>
-        <span *ngIf="!isCollapsed()">Reports</span>
-      </a>
-
-      <a [routerLink]="['/projects', currentProjectId(), 'teams']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Teams' : ''">
-        <svg
-          class="nav-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span *ngIf="!isCollapsed()">Teams</span>
-      </a>
-      
-      <div class="nav-divider"></div>
-    }
-
-    <!-- General navigation -->
-    <a [routerLink]="['/teams']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}" class="nav-item" [title]="isCollapsed() ? 'Teams' : ''">
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'board']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Board' : ''"
+    >
       <svg
         class="nav-icon"
         width="20"
@@ -170,14 +76,221 @@
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="3" y="3" width="7" height="16" rx="1" stroke="currentColor" stroke-width="2" />
+        <rect x="14" y="3" width="7" height="10" rx="1" stroke="currentColor" stroke-width="2" />
+      </svg>
+      <span *ngIf="!isCollapsed()">Board</span>
+    </a>
+
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'backlog']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Backlog' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M3 7h18M3 12h18M3 17h18"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+      <span *ngIf="!isCollapsed()">Backlog</span>
+    </a>
+
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'summary']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Summary' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="3"
+          y="3"
+          width="18"
+          height="18"
+          rx="2"
+          stroke="currentColor"
+          stroke-width="2"
+          fill="none"
+        />
+        <path d="M3 9h18M9 9v12" stroke="currentColor" stroke-width="2" />
+      </svg>
+      <span *ngIf="!isCollapsed()">Summary</span>
+    </a>
+
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'messages']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Messages' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span *ngIf="!isCollapsed()">Messages</span>
+    </a>
+
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'timeline']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Timeline' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+        <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span *ngIf="!isCollapsed()">Timeline</span>
+    </a>
+
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'report-dashboard']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Reports' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M3 17v4h4M21 7v-4h-4M3 7V3h4M21 17v4h-4"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+        <rect
+          x="7"
+          y="7"
+          width="10"
+          height="10"
+          stroke="currentColor"
+          stroke-width="2"
+          fill="none"
+        />
+      </svg>
+      <span *ngIf="!isCollapsed()">Reports</span>
+    </a>
+
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'teams']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Teams' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span *ngIf="!isCollapsed()">Teams</span>
+    </a>
+
+    <div class="nav-divider"></div>
+    }
+
+    <!-- General navigation -->
+    <a
+      [routerLink]="['/teams']"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Teams' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
       <span *ngIf="!isCollapsed()">All Teams</span>
     </a>
 
-    <a [routerLink]="['/projects']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item" [title]="isCollapsed() ? 'Projects' : ''">
+    <a
+      [routerLink]="['/projects']"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Projects' : ''"
+    >
       <svg
         class="nav-icon"
         width="20"
@@ -196,17 +309,17 @@
           stroke-width="2"
           fill="none"
         />
-        <path
-          d="M3 7h18M3 12h18"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
+        <path d="M3 7h18M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
       <span *ngIf="!isCollapsed()">All Projects</span>
     </a>
 
-    <a [routerLink]="['/dashboard']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Dashboard' : ''">
+    <a
+      [routerLink]="['/dashboard']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Dashboard' : ''"
+    >
       <svg
         class="nav-icon"
         width="20"
