@@ -102,11 +102,18 @@ submit() {
   this.invalidFields.clear();
   this.shakeFields.clear(); // reset shakes
 
+
   // Validate required fields (skip hidden fields)
   for (const field of this.fields) {
     if (field.hidden) continue; // Skip validation for hidden fields
-    
     const value = this.formData[field.model];
+    if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
+      this.invalidFields.add(field.model);
+      this.shakeFields.add(field.model);
+      this.showToast('Story Points cannot be negative.');
+      setTimeout(() => this.shakeFields.clear(), 500);
+      return;
+    }
     if (field.required && (value === null || value === undefined || value === '')) {
       this.invalidFields.add(field.model);
       this.shakeFields.add(field.model); // mark for shake
@@ -152,7 +159,14 @@ submit() {
 
 
   handleChange(value: any, field: FormField) {
-    this.formData[field.model] = value;
+    // Prevent negative story points
+    if (field.model === 'storyPoint' && value < 0) {
+      this.formData[field.model] = 0;
+      this.showToast('Story Points cannot be negative.');
+      return;
+    } else {
+      this.formData[field.model] = value;
+    }
 
     // ✅ If field is required and filled, remove from invalid list
     if (field.required && value) {
