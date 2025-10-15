@@ -1,0 +1,77 @@
+<div class="page-container">
+  <app-navbar (toggleSidebar)="onToggleSidebar()"></app-navbar>
+
+  <div class="content-wrapper">
+    <app-sidebar></app-sidebar>
+
+    <main class="main-content" [class.sidebar-collapsed]="isSidebarCollapsed()">
+      <div class="messages-layout">
+        <!-- Channel Sidebar Component -->
+        <app-channel-list
+          [teams]="teams()"
+          [selectedTeamId]="selectedTeamId()"
+          [selectedChannelId]="selectedChannelId()"
+          [showTeamDropdown]="showTeamDropdown()"
+          (teamSelected)="selectTeam($event)"
+          (channelSelected)="selectChannel($event)"
+          (toggleDropdown)="toggleTeamDropdown()"
+          (closeDropdown)="closeTeamDropdown()"
+        ></app-channel-list>
+
+        <!-- Main Chat Area -->
+        <div class="chat-area">
+          <!-- Chat Header -->
+          <header class="chat-header">
+            <div class="channel-info">
+              <span class="channel-hash-large">#</span>
+              <h2 class="channel-title">{{ selectedChannel()?.name }}</h2>
+            </div>
+            <div class="header-actions">
+              <button class="header-btn" title="Search">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5" />
+                  <path
+                    d="M12 12L16 16"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+              <button class="header-btn" title="Members">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <circle cx="9" cy="5" r="3" stroke="currentColor" stroke-width="1.5" />
+                  <path
+                    d="M3 16v-2c0-2.2 1.8-4 4-4h4c2.2 0 4 1.8 4 4v2"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  />
+                </svg>
+              </button>
+              <button class="header-btn" title="More">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <circle cx="9" cy="3" r="1.5" fill="currentColor" />
+                  <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+                  <circle cx="9" cy="15" r="1.5" fill="currentColor" />
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- Message List Component -->
+          <app-message-list
+            [messages]="messages()"
+            [channelName]="selectedChannel()?.name || ''"
+            (reactionAdded)="onReactionAdded($event)"
+          ></app-message-list>
+
+          <!-- Message Input Component -->
+          <app-message-input
+            [channelName]="selectedChannel()?.name || ''"
+            (messageSent)="onMessageSent($event)"
+          ></app-message-input>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
