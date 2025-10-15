@@ -3,12 +3,22 @@
   <div class="navbar-top">
     <div class="navbar-container">
       <!-- Left Section: Hamburger Menu + Project Info -->
-      <div class="navbar-left">
+      <div class="navbar-left" style="display:flex; align-items:center; gap:12px;">
         <button class="hamburger-btn" (click)="onToggleSidebar()" aria-label="Toggle sidebar">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
+
+        <!-- Project title / icon -->
+        <div class="project-info" style="display:flex; align-items:center; gap:10px;">
+          <div class="project-icon" style="width:36px; height:36px; border-radius:6px; background:#e6eefc; display:flex; align-items:center; justify-content:center; font-weight:700; color:#1f4db0;">
+            {{ projectInfo().icon }}
+          </div>
+          <div class="project-title" style="font-size:1rem; font-weight:600; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;">
+            {{ projectInfo().name }}
+          </div>
+        </div>
       </div>
 
       <!-- Right Section: Action Buttons -->
@@ -138,18 +148,13 @@
   <div class="navbar-bottom">
     <div class="navbar-container">
       <div class="navbar-center">
-        @if (currentProjectId()) {
-          <a [routerLink]="['/projects', currentProjectId(), 'summary']" routerLinkActive="active" class="nav-tab">Summary</a>
-          <a [routerLink]="['/projects', currentProjectId(), 'backlog']" routerLinkActive="active" class="nav-tab">Backlog</a>
-          <a [routerLink]="['/projects', currentProjectId(), 'board']" routerLinkActive="active" class="nav-tab">Board</a>
-          
-          <a [routerLink]="['/projects', currentProjectId(), 'timeline']" routerLinkActive="active" class="nav-tab">Timeline</a>
-          <a [routerLink]="['/projects', currentProjectId(), 'report-dashboard']" routerLinkActive="active" class="nav-tab">Reports</a>
-          <a [routerLink]="['/projects', currentProjectId(), 'messages']" routerLinkActive="active" class="nav-tab">Messages</a>
-        } @else {
-          <a routerLink="/projects" routerLinkActive="active" class="nav-tab">Projects</a>
-          <a routerLink="/dashboard" routerLinkActive="active" class="nav-tab">Dashboard</a>
-        }
+        <!-- Always render the main tabs. If no currentProjectId is set, links fall back to the projects list. -->
+        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'summary'] : ['/projects']" routerLinkActive="active" class="nav-tab">Summary</a>
+        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'backlog'] : ['/projects']" routerLinkActive="active" class="nav-tab">Backlog</a>
+        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'board'] : ['/projects']" routerLinkActive="active" class="nav-tab">Board</a>
+        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'timeline'] : ['/projects']" routerLinkActive="active" class="nav-tab">Timeline</a>
+        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'report-dashboard'] : ['/projects']" routerLinkActive="active" class="nav-tab">Reports</a>
+        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'messages'] : ['/projects']" routerLinkActive="active" class="nav-tab">Messages</a>
       </div>
     </div>
   </div>
