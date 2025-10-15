@@ -233,21 +233,23 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 assignedColors: { [key: string]: string } = {};
 
 
+predefinedWorkTypeColors: { [key: string]: string } = {
+  'story': '#ccf1cc',   // light green
+  'task': '#8BC3F1',    // light blue
+  'bug': '#EE9A93',     // light red
+  'epic': '#fff5e1'     // light orange
+};
+
 // Predefined colors for common statuses
 predefinedStatusColors: { [key: string]: string } = {
-  'done': '#10b981',          // green
+  'done': '#57CEA6',          // green
   'todo': '#A1C4FD',   // blue
   'in progress': '#FFD27F',         // orange
   'on hold': '#EF4444',       // purple
-  'in review': '#A78bfa'      // teal
+  'in review': '#C1ADFB'      // teal
 };
 
 
-// { id: 'TODO',        title: 'To Do',        color: '#A1C4FD' },  
-//   { id: 'IN_PROGRESS', title: 'In Progress',  color: '#FFA500' },  
-//   { id: 'BLOCKED',     title: 'Blocked',      color: '#EF4444' },  
-//   { id: 'IN_REVIEW',   title: 'In Review',    color: '#A78BFA' },  
-//   { id: 'DONE',        title: 'Done',         color: '#10B981' },  
 
 colorPalette: string[] = [
   
@@ -256,30 +258,64 @@ colorPalette: string[] = [
   '#ffeb3b', '#f06292', '#64b5f6', '#4db6ac', '#ba68c8'
 ];
 
- getStatusColor(value: string): string {
+//  getStatusColor(value: string): string {
+//   if (!value) return '#ccc';
+
+//   const key = value.toLowerCase().replace(/_/g, ' ');
+
+//   // 1️⃣ Check if predefined
+//   if (this.predefinedStatusColors[key]) {
+//     return this.predefinedStatusColors[key];
+//   }
+
+//   // 2️⃣ Check if already assigned dynamically
+//   if (this.assignedColors[key]) {
+//     return this.assignedColors[key];
+//   }
+
+//   // 3️⃣ Assign next available color from palette
+//   const usedColors = Object.values(this.assignedColors);
+//   const availableColors = this.colorPalette.filter(c => !usedColors.includes(c));
+
+//   let color: string;
+//   if (availableColors.length > 0) {
+//     color = availableColors[0]; // pick first unused
+//   } else {
+//     // if all used, fallback to hash
+//     let hash = 0;
+//     for (let i = 0; i < key.length; i++) {
+//       hash = key.charCodeAt(i) + ((hash << 5) - hash);
+//     }
+//     color = this.colorPalette[Math.abs(hash) % this.colorPalette.length];
+//   }
+
+//   this.assignedColors[key] = color; // save dynamically
+//   return color;
+// }
+
+getStatusColor(value: string): string {
   if (!value) return '#ccc';
 
   const key = value.toLowerCase().replace(/_/g, ' ');
 
-  // 1️⃣ Check if predefined
+  // 1️⃣ Check predefined light colors
   if (this.predefinedStatusColors[key]) {
     return this.predefinedStatusColors[key];
   }
 
-  // 2️⃣ Check if already assigned dynamically
+  // 2️⃣ Check dynamically assigned colors
   if (this.assignedColors[key]) {
     return this.assignedColors[key];
   }
 
-  // 3️⃣ Assign next available color from palette
+  // 3️⃣ Assign next color if not predefined
   const usedColors = Object.values(this.assignedColors);
   const availableColors = this.colorPalette.filter(c => !usedColors.includes(c));
 
   let color: string;
   if (availableColors.length > 0) {
-    color = availableColors[0]; // pick first unused
+    color = availableColors[0];
   } else {
-    // if all used, fallback to hash
     let hash = 0;
     for (let i = 0; i < key.length; i++) {
       hash = key.charCodeAt(i) + ((hash << 5) - hash);
@@ -287,10 +323,35 @@ colorPalette: string[] = [
     color = this.colorPalette[Math.abs(hash) % this.colorPalette.length];
   }
 
-  this.assignedColors[key] = color; // save dynamically
+  this.assignedColors[key] = color;
   return color;
 }
 
+/** 🟩 Function to generate darker text color */
+ getDarkerColor(hex: string): string {
+  // Convert hex to RGB
+  const num = parseInt(hex.replace('#', ''), 16);
+  let r = num >> 16;
+  let g = (num >> 8) & 0x00FF;
+  let b = num & 0x0000FF;
+
+  // Darken by 30–40%
+  r = Math.max(0, Math.floor(r * 0.3));
+  g = Math.max(0, Math.floor(g * 0.3));
+  b = Math.max(0, Math.floor(b * 0.3));
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+
+getWorkTypeColor(type: string): string {
+  if (!type) return '#eee';
+  const key = type.toLowerCase();
+  return this.predefinedWorkTypeColors[key] || '#f5f5f5';
+}
+
+ 
+ 
 
 
 }
