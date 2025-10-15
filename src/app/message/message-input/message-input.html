@@ -1,0 +1,75 @@
+<!-- Message Input -->
+<div class="message-input-area">
+  <div class="input-wrapper">
+    <div class="input-toolbar">
+      <button class="toolbar-btn" title="Bold">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 2h5a3 3 0 0 1 0 6H4V2z" stroke="currentColor" stroke-width="1.5" />
+          <path d="M4 8h6a3 3 0 0 1 0 6H4V8z" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+      </button>
+      <button class="toolbar-btn" title="Italic">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M6 2h6M4 14h6M10 2l-4 12"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+      <button class="toolbar-btn" title="Link">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M7 9l2-2M6 5l-2 2a2.83 2.83 0 0 0 0 4 2.83 2.83 0 0 0 4 0l2-2M10 11l2-2a2.83 2.83 0 0 0 0-4 2.83 2.83 0 0 0-4 0l-2 2"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+      <div class="toolbar-divider"></div>
+      <button class="toolbar-btn" title="Attach file">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M14 8.5L8.5 14C7.12 15.38 4.88 15.38 3.5 14C2.12 12.62 2.12 10.38 3.5 9L9 3.5C9.95 2.55 11.55 2.55 12.5 3.5C13.45 4.45 13.45 6.05 12.5 7L7.5 12C7.22 12.28 6.78 12.28 6.5 12C6.22 11.72 6.22 11.28 6.5 11L11 6.5"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+      <button class="toolbar-btn" title="Add emoji">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" />
+          <circle cx="6" cy="6.5" r="0.75" fill="currentColor" />
+          <circle cx="10" cy="6.5" r="0.75" fill="currentColor" />
+          <path
+            d="M5.5 9.5C6 10.5 7 11 8 11C9 11 10 10.5 10.5 9.5"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+    </div>
+    <textarea
+      class="message-textarea"
+      placeholder="Message #{{ channelName() }}"
+      [value]="messageText()"
+      (input)="messageText.set($any($event.target).value)"
+      (keydown)="onKeyDown($event)"
+      rows="1"
+    ></textarea>
+    <button
+      class="send-button"
+      [disabled]="!messageText().trim()"
+      (click)="onSendMessage()"
+      title="Send message"
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M2 10L18 2L10 18L9 12L2 10Z" fill="currentColor" />
+      </svg>
+    </button>
+  </div>
+</div>

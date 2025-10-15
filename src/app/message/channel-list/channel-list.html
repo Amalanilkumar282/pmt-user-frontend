@@ -1,0 +1,81 @@
+<!-- Channel Sidebar -->
+<aside class="channel-sidebar">
+  <!-- Team Selector -->
+  <div class="team-selector-wrapper">
+    <button class="team-selector-btn" (click)="onToggleDropdown()">
+      <div class="team-info">
+        <div class="team-icon-badge">{{ selectedTeam?.icon }}</div>
+        <span class="team-name">{{ selectedTeam?.name }}</span>
+      </div>
+      <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path
+          d="M4 6L8 10L12 6"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+
+    <!-- Team Dropdown -->
+    @if (showTeamDropdown()) {
+    <div class="team-dropdown-overlay" (click)="onCloseDropdown()"></div>
+    <div class="team-dropdown">
+      <div class="dropdown-header">Switch Team</div>
+      @for (team of teams(); track team.id) {
+      <button
+        class="team-option"
+        [class.active]="team.id === selectedTeamId()"
+        (click)="onSelectTeam(team.id)"
+      >
+        <div class="team-icon-badge small">{{ team.icon }}</div>
+        <span class="team-option-name">{{ team.name }}</span>
+        @if (team.id === selectedTeamId()) {
+        <svg class="check-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M3 8L6 11L13 4"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        }
+      </button>
+      }
+    </div>
+    }
+  </div>
+
+  <!-- Channels Section -->
+  <div class="channels-section">
+    <div class="section-header">
+      <span class="section-title">Channels</span>
+    </div>
+    <div class="channels-list">
+      @for (channel of channels; track channel.id) {
+      <button
+        class="channel-item"
+        [class.active]="channel.id === selectedChannelId()"
+        (click)="onSelectChannel(channel.id)"
+      >
+        <span class="channel-hash">#</span>
+        <span class="channel-name">{{ channel.name }}</span>
+        @if (channel.unreadCount > 0) {
+        <span class="unread-badge">{{ channel.unreadCount }}</span>
+        } @if (channel.isPrivate) {
+        <svg class="lock-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <rect x="2" y="5" width="8" height="5" rx="1" stroke="currentColor" stroke-width="1.2" />
+          <path
+            d="M3.5 5V3.5C3.5 2.12 4.62 1 6 1C7.38 1 8.5 2.12 8.5 3.5V5"
+            stroke="currentColor"
+            stroke-width="1.2"
+          />
+        </svg>
+        }
+      </button>
+      }
+    </div>
+  </div>
+</aside>

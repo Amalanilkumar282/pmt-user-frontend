@@ -36,7 +36,7 @@ export class Navbar {
   private sidebarState = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private router = inject(Router);
-  
+ 
   isSidebarCollapsed = this.sidebarState.isCollapsed;
   currentProjectId = this.projectContextService.currentProjectId;
 
@@ -54,7 +54,7 @@ export class Navbar {
     if (!projectId) {
       return { name: 'Project Alpha', type: 'Software', icon: 'PA' };
     }
-    
+   
     // Get project info from dummy data (you can replace this with actual service call)
     const projects: Record<string, any> = {
       '1': { name: 'Website Redesign', type: 'Software', icon: 'WR' },
@@ -63,7 +63,7 @@ export class Navbar {
       '4': { name: 'Backend Infrastructure', type: 'Software', icon: 'BI' },
       '5': { name: 'Customer Portal', type: 'Software', icon: 'CP' },
     };
-    
+   
     return projects[projectId] || { name: 'Project Alpha', type: 'Software', icon: 'PA' };
   });
 
@@ -79,7 +79,7 @@ export class Navbar {
    */
   handleOpenCreateModal(fields: any): void {
     console.log('Navbar received openCreateModal event with fields:', fields);
-    
+   
     // Map the fields to the modal configuration
     const issueType = fields.issueType || 'Task';
     const summary = fields.summary || '';
@@ -151,6 +151,12 @@ export class Navbar {
           type: 'date',
           model: 'dueDate',
           colSpan: 1
+        },
+        {
+          label: 'Attachments',
+          type: 'file',
+          model: 'attachments',
+          colSpan: 2
         }
       ],
       data: {
@@ -202,7 +208,7 @@ export class Navbar {
     this.warningText = '';
   }
 
-  
+ 
 
   onCreate() {
   const userOptions = users.map(u => u.name);
