@@ -142,15 +142,14 @@
           <a [routerLink]="['/projects', currentProjectId(), 'summary']" routerLinkActive="active" class="nav-tab">Summary</a>
           <a [routerLink]="['/projects', currentProjectId(), 'backlog']" routerLinkActive="active" class="nav-tab">Backlog</a>
           <a [routerLink]="['/projects', currentProjectId(), 'board']" routerLinkActive="active" class="nav-tab">Board</a>
+          
           <a [routerLink]="['/projects', currentProjectId(), 'timeline']" routerLinkActive="active" class="nav-tab">Timeline</a>
           <a [routerLink]="['/projects', currentProjectId(), 'report-dashboard']" routerLinkActive="active" class="nav-tab">Reports</a>
+          <a [routerLink]="['/projects', currentProjectId(), 'messages']" routerLinkActive="active" class="nav-tab">Messages</a>
         } @else {
           <a routerLink="/projects" routerLinkActive="active" class="nav-tab">Projects</a>
           <a routerLink="/dashboard" routerLinkActive="active" class="nav-tab">Dashboard</a>
         }
-        <button class="nav-more">
-          <span>+</span>
-        </button>
       </div>
     </div>
   </div>

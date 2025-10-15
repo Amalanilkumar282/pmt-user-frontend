@@ -151,6 +151,12 @@ export class Navbar {
           type: 'date',
           model: 'dueDate',
           colSpan: 1
+        },
+        {
+          label: 'Attachments',
+          type: 'file',
+          model: 'attachments',
+          colSpan: 2
         }
       ],
       data: {
