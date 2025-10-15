@@ -16,7 +16,7 @@
    LEFT SIDEBAR (TASK LIST)
    =========================== */
 .timeline-sidebar {
-  width: 280px;
+  width: 340px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -57,6 +57,13 @@
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.sidebar-content::-webkit-scrollbar {
+  display: none;
 }
 
 /* Timeline Rows in Sidebar - CONSISTENT HEIGHTS */
@@ -350,14 +357,14 @@
 
 .bar-resize-handle.left {
   left: 0;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0.8), transparent);
+  background: rgba(255, 255, 255, 0.4);
   border-top-left-radius: 0.375rem;
   border-bottom-left-radius: 0.375rem;
 }
 
 .bar-resize-handle.right {
   right: 0;
-  background: linear-gradient(to left, rgba(255, 255, 255, 0.8), transparent);
+  background: rgba(255, 255, 255, 0.4);
   border-top-right-radius: 0.375rem;
   border-bottom-right-radius: 0.375rem;
 }
@@ -387,7 +394,8 @@
   text-overflow: ellipsis;
   flex: 1;
   font-size: 0.7rem;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .sprint-bar .bar-label {
@@ -402,7 +410,7 @@
   font-size: 0.65rem;
 }
 
-/* Today Marker - INCREASED Z-INDEX */
+/* Today Marker - Z-INDEX below dropdowns */
 .today-marker {
   position: absolute;
   top: 0;
@@ -410,7 +418,7 @@
   width: 2px;
   background-color: #ef4444;
   pointer-events: none;
-  z-index: 100;
+  z-index: 15;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -431,7 +439,7 @@
   top: 0;
   left: 6px;
   margin-top: -20px;
-  background-color: #ef4444;
+  background-color: none;
   color: white;
   font-size: 0.65rem;
   padding: 0.2rem 0.4rem;

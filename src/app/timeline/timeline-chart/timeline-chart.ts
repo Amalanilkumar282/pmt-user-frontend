@@ -84,6 +84,10 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   dateRange: { start: Date; end: Date } = { start: new Date(), end: new Date() };
   chartWidth: number = 0;
   
+  // Display options
+  showCompleted: boolean = true;
+  displayRangeMonths: number = 12;
+  
   // Scroll synchronization flags
   private isScrollingSidebar = false;
   private isScrollingChart = false;
@@ -108,6 +112,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     setTimeout(() => {
       this.updateDateHeaders();
+      this.scrollToTodayCenter();
       this.cdr.detectChanges();
     }, 100);
 
@@ -229,6 +234,21 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           const epicStart = this.getEarliestDate(issues.map(i => i.createdAt));
           const epicEnd = this.getLatestDate(issues.map(i => i.updatedAt));
           
+          // Calculate epic progress
+          const epicProgress = this.calculateEpicProgress(issues);
+          
+          // Filter completed epics based on display options
+          // An epic is considered completed if it has 100% progress OR status is 'DONE'
+          const isEpicCompleted = epicProgress === 100 || epic.status === 'DONE';
+          if (!this.showCompleted && isEpicCompleted) {
+            return;
+          }
+          
+          // Filter epics by display range (only for completed epics)
+          if (isEpicCompleted && !this.isEpicInDisplayRange(epic, epicEnd)) {
+            return;
+          }
+          
           this.timelineRows.push({
             id: `epic-${epic.id}`,
             type: 'epic',
@@ -236,7 +256,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
             status: epic.status || 'TODO',
             startDate: epicStart,
             endDate: epicEnd,
-            progress: this.calculateEpicProgress(issues),
+            progress: epicProgress,
             expanded: this.isRowExpanded(`epic-${epic.id}`),
             level: 1,
             visible: this.isItemInDateRange(epicStart, epicEnd)
@@ -358,6 +378,22 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     };
     const filterStatus = statusMap[issueStatus] || issueStatus.toLowerCase();
     return this.selectedFilters.status.includes(filterStatus);
+  }
+
+  private isEpicInDisplayRange(epic: Epic, epicEndDate: Date): boolean {
+    // Only filter if the epic has a due date
+    if (epic.dueDate) {
+      const today = new Date();
+      const monthsAgo = new Date(today);
+      monthsAgo.setMonth(monthsAgo.getMonth() - this.displayRangeMonths);
+      
+      // Check if epic's due date is within the display range
+      const dueDate = new Date(epic.dueDate);
+      return dueDate >= monthsAgo;
+    }
+    
+    // For epics without due dates, always show them
+    return true;
   }
 
   // Date header management
@@ -523,13 +559,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getTypeIcon(issueType?: string): string {
-    const iconMap: { [key: string]: string } = {
-      'STORY': '📖',
-      'TASK': '✓',
-      'BUG': '🐛',
-      'EPIC': '⚡'
-    };
-    return issueType ? iconMap[issueType] || '○' : '○';
+    // Method kept for backward compatibility but no longer used in template
+    return '';
   }
 
   getBarPosition(startDate?: Date): number {
@@ -646,6 +677,27 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }, 10);
   }
 
+  // Scroll to center the timeline on today's date
+  scrollToTodayCenter(): void {
+    if (!this.chartContent || !this.chartContent.nativeElement) {
+      return;
+    }
+
+    const todayPosition = this.getTodayPosition();
+    const chartElement = this.chartContent.nativeElement;
+    const chartVisibleWidth = chartElement.clientWidth;
+    
+    // Calculate scroll position to center today's line in the viewport
+    const scrollLeft = todayPosition - (chartVisibleWidth / 2);
+    
+    // Apply the scroll position to both chart content and header
+    chartElement.scrollLeft = Math.max(0, scrollLeft);
+    
+    if (this.headerScroll && this.headerScroll.nativeElement) {
+      this.headerScroll.nativeElement.scrollLeft = Math.max(0, scrollLeft);
+    }
+  }
+
   // Event handlers
   onViewChanged(view: 'day' | 'month' | 'year') {
     this.currentView = view;
@@ -702,6 +754,39 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     this.selectedFilters.epics = [];
     this.availableEpics = this.getUniqueEpics();
     this.prepareTimelineData();
+  }
+
+  // Display options handlers
+  onDisplayRangeChanged(months: number) {
+    this.displayRangeMonths = months;
+    this.applyFilters();
+  }
+
+  onShowCompletedChanged(show: boolean) {
+    this.showCompleted = show;
+    this.applyFilters();
+  }
+
+  onExpandAllEpics() {
+    // Expand all epic rows
+    this.timelineRows.forEach(row => {
+      if (row.type === 'epic') {
+        this.expandedRows.add(row.id);
+      }
+    });
+    this.prepareTimelineData();
+    this.cdr.detectChanges();
+  }
+
+  onCollapseAllEpics() {
+    // Collapse all epic rows (but keep sprints expanded)
+    this.timelineRows.forEach(row => {
+      if (row.type === 'epic') {
+        this.expandedRows.delete(row.id);
+      }
+    });
+    this.prepareTimelineData();
+    this.cdr.detectChanges();
   }
 
   // Existing private methods

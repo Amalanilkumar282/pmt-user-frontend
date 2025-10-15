@@ -18,6 +18,15 @@ import { filter } from 'rxjs';
   standalone: true
 })
 export class Navbar {
+  showProfileModal = false;
+
+  onProfileClick() {
+    this.showProfileModal = true;
+  }
+
+  closeProfileModal() {
+    this.showProfileModal = false;
+  }
   get unreadCount(): number {
     return this.notifications ? this.notifications.filter(n => n.unread).length : 0;
   }
