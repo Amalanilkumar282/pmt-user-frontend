@@ -237,7 +237,7 @@ assignedColors: { [key: string]: string } = {};
 predefinedStatusColors: { [key: string]: string } = {
   'done': '#10b981',          // green
   'todo': '#A1C4FD',   // blue
-  'in progress': '#ffa500',         // orange
+  'in progress': '#FFD27F',         // orange
   'on hold': '#EF4444',       // purple
   'in review': '#A78bfa'      // teal
 };
