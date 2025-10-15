@@ -102,6 +102,105 @@
             <p class="text-gray-600 text-sm">{{ formatDate(_issue()!.updatedAt) }}</p>
           </div>
         </div>
+
+        <!-- Comments Section -->
+        <div class="comments-section">
+          <h3 class="section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 11.5C21 16.75 16.75 21 11.5 21C6.25 21 2 16.75 2 11.5C2 6.25 6.25 2 11.5 2C16.75 2 21 6.25 21 11.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 22L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Comments ({{ comments().length }})
+          </h3>
+
+          <!-- Comment Input -->
+          <div class="comment-input-container">
+            <div class="comment-input-wrapper">
+              <textarea
+                [value]="newCommentText()"
+                (input)="onCommentInput($event)"
+                placeholder="Add a comment... Use @ to mention someone"
+                class="comment-input"
+                rows="3"></textarea>
+              
+              <!-- Mention Dropdown -->
+              @if (showMentionDropdown() && filteredUsers().length > 0) {
+                <div class="mention-dropdown">
+                  <div class="mention-dropdown-header">Mention someone:</div>
+                  @for (user of filteredUsers(); track user.id) {
+                    <button 
+                      class="mention-dropdown-item"
+                      (click)="selectMention(user)">
+                      <span class="mention-avatar">{{ getCommentInitials(user.name) }}</span>
+                      <div class="mention-user-info">
+                        <span class="mention-user-name">{{ user.name }}</span>
+                        <span class="mention-user-email">{{ user.email }}</span>
+                      </div>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            
+            <div class="comment-input-footer">
+              <span class="comment-hint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Type @ to mention team members
+              </span>
+              <button 
+                (click)="addComment()"
+                [disabled]="!newCommentText().trim()"
+                class="btn-add-comment">
+                Post Comment
+              </button>
+            </div>
+          </div>
+
+          <!-- Comments List -->
+          <div class="comments-list">
+            @if (comments().length === 0) {
+              <div class="no-comments">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p>No comments yet</p>
+                <span>Be the first to comment on this issue</span>
+              </div>
+            } @else {
+              @for (comment of comments(); track comment.id) {
+                <div class="comment-item">
+                  <div class="comment-avatar">{{ getCommentInitials(comment.author) }}</div>
+                  <div class="comment-content">
+                    <div class="comment-header">
+                      <span class="comment-author">{{ comment.author }}</span>
+                      <span class="comment-time">{{ formatCommentDate(comment.createdAt) }}</span>
+                    </div>
+                    <div class="comment-text" [innerHTML]="highlightMentions(comment.content)"></div>
+                    @if (comment.mentions.length > 0) {
+                      <div class="comment-mentions">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM18 8v6M21 11h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        {{ comment.mentions.length }} user{{ comment.mentions.length > 1 ? 's' : '' }} mentioned
+                      </div>
+                    }
+                    <button 
+                      (click)="deleteComment(comment.id)"
+                      class="btn-delete-comment"
+                      title="Delete comment">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
       </div>
 
       <!-- Footer -->
