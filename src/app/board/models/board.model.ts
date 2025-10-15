@@ -1,0 +1,53 @@
+import { BoardColumnDef } from '../models';
+
+export type BoardType = 'TEAM' | 'PROJECT';
+export type BoardSource = 'TEAM' | 'CUSTOM';
+
+export interface Board {
+  id: string;
+  name: string;
+  projectId: string;
+  projectName: string;
+  type: BoardType;
+  source: BoardSource;
+  
+  // If team-based board
+  teamId?: string;
+  teamName?: string;
+  
+  // Board configuration
+  columns: BoardColumnDef[];
+  includeBacklog: boolean;
+  includeDone: boolean;
+  
+  // Metadata
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  isDefault: boolean;
+}
+
+export interface CreateBoardDto {
+  name: string;
+  projectId: string;
+  type: BoardType;
+  source: BoardSource;
+  teamId?: string;
+  columns?: BoardColumnDef[];
+  includeBacklog?: boolean;
+  includeDone?: boolean;
+}
+
+export interface UpdateBoardDto {
+  name?: string;
+  columns?: BoardColumnDef[];
+  includeBacklog?: boolean;
+  includeDone?: boolean;
+}
+
+export interface RecentProject {
+  id: string;
+  name: string;
+  boards: Board[];
+  lastAccessed: string;
+}
