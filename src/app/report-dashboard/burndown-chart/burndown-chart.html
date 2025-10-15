@@ -25,11 +25,16 @@
       <div class="table-wrapper"> 
 
       <h3 class="font-bold text-left text-lg mb-2 ml-3">Completed Work Items</h3>
-      <app-chart-table type="burndown" [statusFilter]="'DONE'" [showPaginator]="true"  [sprintId]="selectedSprintId"></app-chart-table>
+      <app-chart-table type="burndown" [statusFilter]="'DONE'"  [sprintId]="selectedSprintId"></app-chart-table>
       <br><br>
       <h3 class="font-bold text-left text-lg mb-2 ml-3">Incompleted Work Items</h3>
       
-      <app-chart-table type="burndown" [statusFilter]="'INCOMPLETE'" [showPaginator]="true" [sprintId]="selectedSprintId"></app-chart-table>
+      <app-chart-table type="burndown" [statusFilter]="'INCOMPLETE'"   [sprintId]="selectedSprintId"></app-chart-table>
+
+      <br><br>
+       <h3 class="font-bold text-left text-lg mb-2 ml-3">Work Items completed outof sprint</h3>
+      
+      <app-chart-table type="burndown" [statusFilter]="'OUT_OF_SPRINT'"  [sprintId]="selectedSprintId"></app-chart-table>
     </div>
 
   </div>

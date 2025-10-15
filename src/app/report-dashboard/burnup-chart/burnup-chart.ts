@@ -11,11 +11,13 @@ import { ChartTable } from '../chart-table/chart-table';
 import { IssueSummaryService } from '../../summary/issue-summary.service';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
+import { Location } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-burnup-chart',
   standalone: true,
-  imports: [Navbar, Sidebar, ChartHeader, MetricsChart, ChartTable, SprintFilterComponent],
+  imports: [Navbar, Sidebar, ChartHeader, MetricsChart, ChartTable, SprintFilterComponent,FormsModule],
   templateUrl: './burnup-chart.html',
   styleUrl: './burnup-chart.css',
 })
@@ -33,7 +35,7 @@ export class BurnupChart implements OnInit {
 
   issues: Issue[] = [];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router,private location: Location ) {}
 
   ngOnInit(): void {
     // Set project context from route params
@@ -43,8 +45,22 @@ export class BurnupChart implements OnInit {
     }
     
     // Load all sprints from the service
-    this.sprints = this.issueSummaryService.getAllSprints();
+    // this.sprints = this.issueSummaryService.getAllSprints();
+     // Load all sprints
+  const allSprints = this.issueSummaryService.getAllSprints();
 
+  
+
+    // Find active sprint
+  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+
+  // Reorder: active sprint first, exclude 'all' placeholder if any exists
+  this.sprints = [
+    ...(activeSprint ? [activeSprint] : []),
+    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+  ];
+
+  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
     // Load initial chart data
     this.updatechartData();
   }
@@ -53,13 +69,11 @@ export class BurnupChart implements OnInit {
     this.sidebarStateService.toggleCollapse();
   }
 
+
   navigateBack(): void {
-    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
-    if (projectId) {
-      this.router.navigate(['/projects', projectId, 'report-dashboard']);
-    } else {
-      this.router.navigate(['/report-dashboard']);
-    }
+    
+      this.location.back();
+
   }
 
   onSprintFilterChange(sprintId: string): void {

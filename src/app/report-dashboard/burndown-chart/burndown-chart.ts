@@ -14,7 +14,7 @@ import { ChartTable } from '../chart-table/chart-table';
 import { IssueSummaryService } from '../../summary/issue-summary.service';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { SprintFilterComponent } from '../../shared/sprint-filter/sprint-filter';
- 
+import { Location } from '@angular/common';
 
 
 @Component({
@@ -29,7 +29,7 @@ export class BurndownChart implements OnInit {
   private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
     private issueSummaryService = inject(IssueSummaryService);
-
+private projectContextService = inject(ProjectContextService);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
@@ -37,27 +37,53 @@ export class BurndownChart implements OnInit {
   selectedSprintId: string | null = 'all';
   issues: Issue[] = [];
 
-  ngOnInit(): void {
-    // Load all sprints from the service
-    this.sprints = this.issueSummaryService.getAllSprints();
+  // ngOnInit(): void {
+  //   // Load all sprints from the service
+  //   this.sprints = this.issueSummaryService.getAllSprints();
 
+  //   // Load initial chart data
+  //   this.updatechartData();
+  // }
+
+  ngOnInit(): void {
+    // Set project context from route params
+    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
+    }
+    
+    // Load all sprints from the service
+    // this.sprints = this.issueSummaryService.getAllSprints();
+     // Load all sprints
+  const allSprints = this.issueSummaryService.getAllSprints();
+
+  
+
+    // Find active sprint
+  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+
+  // Reorder: active sprint first, exclude 'all' placeholder if any exists
+  this.sprints = [
+    ...(activeSprint ? [activeSprint] : []),
+    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+  ];
+
+  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
     // Load initial chart data
     this.updatechartData();
   }
+
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
 
-  constructor(private router: Router) {}
+  constructor(private router: Router,private location:Location) {}
 
-  navigateBack() {
-    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
-    if (projectId) {
-      this.router.navigate(['/projects', projectId, 'report-dashboard']);
-    } else {
-      this.router.navigate(['/report-dashboard']);
-    }
+  navigateBack(): void {
+    
+      this.location.back();
+
   }
   onSprintFilterChange(sprintId: string): void {
     this.selectedSprintId = sprintId;
