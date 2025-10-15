@@ -7,12 +7,14 @@ import { SidebarStateService } from '../services/sidebar-state.service';
 import { ProjectContextService } from '../services/project-context.service';
 import { CreateIssue } from '../../modal/create-issue/create-issue';
 import { Searchbar } from '../searchbar/searchbar';
+import { ProfileButton } from '../profile-button/profile-button';
+import { Notification } from '../notification/notification';
 import { SummaryModal } from '../summary-modal/summary-modal';
 import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-navbar',
-  imports: [CommonModule, RouterModule, Searchbar, SummaryModal],
+  imports: [CommonModule, RouterModule, Searchbar, SummaryModal, ProfileButton, Notification],
   templateUrl: './navbar.html',
   styleUrls: ['./navbar.css'],
   standalone: true
@@ -224,7 +226,8 @@ export class Navbar {
     { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
     { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
     { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
-    { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1,required : true  }
+    { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1,required : true  },
+    { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
   ];
 
   this.modalService.open({

@@ -13,6 +13,12 @@ import { isPlatformBrowser } from '@angular/common';
   imports: [NgIf, NgFor, FormsModule, NgClass]
 })
 export class CreateIssue implements OnInit, OnDestroy {
+
+  removeFile(fieldModel: string, index: number) {
+    if (Array.isArray(this.formData[fieldModel])) {
+      this.formData[fieldModel].splice(index, 1);
+    }
+  }
   
   show = false;
   private sub!: Subscription;
