@@ -4,9 +4,10 @@
   <div class="flex items-center justify-between">
     <div class="flex h-8 gap-8">
       <!-- Board Selector - Subtle Placement -->
-      
+      <app-board-selector></app-board-selector>
 
-      <div class="flex items-center pt-6 gap-2 text-sm">
+      <!-- Sprint Filter - Only show for TEAM boards -->
+      <div *ngIf="showSprintFilter()" class="flex items-center pt-6 gap-2 text-sm">
         <app-sprint-filter
           [sprints]="sprints()"
           [selectedSprint]="selectedSprintId()"
