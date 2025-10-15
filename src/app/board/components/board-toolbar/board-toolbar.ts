@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BoardStore } from '../../board-store';
+import { BoardService } from '../../services/board.service';
 import { GroupBy } from '../../models';
 import { SprintFilterComponent } from '../../../shared/sprint-filter/sprint-filter';
 import { FilterPanel } from '../filter-panel/filter-panel';
@@ -10,6 +11,7 @@ import { AddColumnButton } from '../add-column-button/add-column-button';
 import { BoardSearch } from '../../../shared/components/board-search/board-search';
 import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe';
 import { EditBoardColumns } from '../edit-board-columns/edit-board-columns';
+import { BoardSelector } from '../board-selector/board-selector';
 
 @Component({
   selector: 'app-board-toolbar',
@@ -24,7 +26,8 @@ import { EditBoardColumns } from '../edit-board-columns/edit-board-columns';
     BoardSearch,
     AvatarClassPipe,
     InitialsPipe,
-    EditBoardColumns
+    EditBoardColumns,
+    BoardSelector
   ],
   templateUrl: './board-toolbar.html',
   styleUrls: ['./board-toolbar.css'],
@@ -32,10 +35,19 @@ import { EditBoardColumns } from '../edit-board-columns/edit-board-columns';
 })
 export class BoardToolbar {
   private store = inject(BoardStore);
+  private boardService = inject(BoardService);
   
   readonly search = this.store.search;
   readonly selectedSprintId = this.store.selectedSprintId;
   readonly sprints = this.store.sprints;
+  readonly currentBoard = this.boardService.currentBoard;
+  
+  // Hide sprint filter for PROJECT type boards
+  readonly showSprintFilter = computed(() => {
+    const board = this.currentBoard();
+    return !board || board.type === 'TEAM';
+  });
+  
   readonly assignees = computed(() => {
     const set = new Set<string>();
     for (const i of this.store.visibleIssues()) {

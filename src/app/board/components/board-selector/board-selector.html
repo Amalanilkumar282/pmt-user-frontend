@@ -1,0 +1,46 @@
+<div class="board-selector-container" appClickOutside (outsideClick)="closeDropdown()">
+  <button type="button" class="board-selector-btn" (click)="toggleDropdown()">
+    <svg class="board-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="7" height="16" rx="1" stroke="currentColor" stroke-width="2"/>
+      <rect x="14" y="3" width="7" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+    </svg>
+    <span class="board-name">{{ currentBoardName }}</span>
+    <svg class="dropdown-icon" [class.open]="isOpen()" width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <div *ngIf="isOpen()" class="board-dropdown">
+    <div class="dropdown-header">
+      <span class="dropdown-title">Boards</span>
+      <span class="board-count">{{ projectBoards().length }}</span>
+    </div>
+
+    <div class="boards-list">
+      <button
+        *ngFor="let board of projectBoards()"
+        type="button"
+        class="board-item"
+        [class.selected]="isSelected(board)"
+        (click)="selectBoard(board)"
+      >
+        <div class="board-item-content">
+          <svg class="board-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="7" height="16" rx="1" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="3" width="7" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <div class="board-item-info">
+            <span class="board-item-name">{{ board.name }}</span>
+            <div class="board-item-meta">
+              <span *ngIf="board.teamName" class="board-item-tag">{{ board.teamName }}</span>
+              <span class="board-item-type">{{ board.type === 'TEAM' ? 'Team' : 'Project' }}</span>
+            </div>
+          </div>
+        </div>
+        <svg *ngIf="isSelected(board)" class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
