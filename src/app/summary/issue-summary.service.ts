@@ -67,15 +67,9 @@ export class IssueSummaryService {
    * Generates a consistent, attractive color based on a string (like initials).
    * This replaces the need for a static ASSIGNEE_BG_MAP.
    */
-  private stringToHslColor(str: string, s: number, l: number): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    // Convert hash to a hue (0-360)
-    const h = hash % 360;
-    // Return HSL color string
-    return `hsl(${h}, ${s}%, ${l}%)`;
+  private stringToHslColor(_str: string, _s: number, _l: number): string {
+    // Return a fixed color for all assignees
+    return '#FF5722'; // blue tone
   }
 
   private getAllIssues(): Issue[] {
@@ -193,9 +187,9 @@ export class IssueSummaryService {
     );
 
     return [
-      { label: 'To Do', count: counts.todo, colorClass: 'bg-green-500' },
+      { label: 'To Do', count: counts.todo, colorClass: 'bg-blue-500' },
       { label: 'In Progress', count: counts.inProgress, colorClass: 'bg-yellow-500' },
-      { label: 'Done', count: counts.done, colorClass: 'bg-blue-500' },
+      { label: 'Done', count: counts.done, colorClass: 'bg-green-500' },
     ];
   }
 

@@ -1,12 +1,23 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Issue } from '../../shared/models/issue.model';
 import { FormField, ModalService } from '../../modal/modal-service';
 import { users } from '../../shared/data/dummy-backlog-data';
 
+export interface Comment {
+  id: string;
+  author: string;
+  authorId: string;
+  content: string;
+  mentions: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 @Component({
   selector: 'app-issue-detailed-view',
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './issue-detailed-view.html',
   styleUrl: './issue-detailed-view.css'
 })
@@ -32,6 +43,23 @@ export class IssueDetailedView {
 
   // Available sprints for moving (will be passed as input)
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
+
+  // Comment functionality
+  protected comments = signal<Comment[]>([]);
+  protected newCommentText = signal('');
+  protected showMentionDropdown = signal(false);
+  protected mentionSearchQuery = signal('');
+  protected cursorPosition = signal(0);
+  
+  protected availableUsers = signal(users);
+  protected filteredUsers = computed(() => {
+    const query = this.mentionSearchQuery().toLowerCase();
+    if (!query) return this.availableUsers();
+    return this.availableUsers().filter(user => 
+      user.name.toLowerCase().includes(query) || 
+      user.email.toLowerCase().includes(query)
+    );
+  });
 
   protected onEditIssue(): void {
   const issue = this._issue();
@@ -150,5 +178,134 @@ export class IssueDetailedView {
 
   protected closeMoveDropdown(event: MouseEvent): void {
     event.stopPropagation();
+  }
+
+  // Comment functionality methods
+  protected onCommentInput(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const text = textarea.value;
+    const cursorPos = textarea.selectionStart;
+    
+    this.newCommentText.set(text);
+    this.cursorPosition.set(cursorPos);
+    
+    // Check if @ symbol is typed
+    const textBeforeCursor = text.substring(0, cursorPos);
+    const lastAtSymbol = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtSymbol !== -1) {
+      const textAfterAt = textBeforeCursor.substring(lastAtSymbol + 1);
+      // Check if there's no space after @ (valid mention trigger)
+      if (!textAfterAt.includes(' ') && textAfterAt.length >= 0) {
+        this.mentionSearchQuery.set(textAfterAt);
+        this.showMentionDropdown.set(true);
+      } else {
+        this.showMentionDropdown.set(false);
+      }
+    } else {
+      this.showMentionDropdown.set(false);
+    }
+  }
+
+  protected selectMention(user: any): void {
+    const text = this.newCommentText();
+    const cursorPos = this.cursorPosition();
+    const textBeforeCursor = text.substring(0, cursorPos);
+    const lastAtSymbol = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtSymbol !== -1) {
+      const beforeAt = text.substring(0, lastAtSymbol);
+      const afterCursor = text.substring(cursorPos);
+      const newText = `${beforeAt}@${user.name} ${afterCursor}`;
+      
+      this.newCommentText.set(newText);
+      this.showMentionDropdown.set(false);
+      this.mentionSearchQuery.set('');
+    }
+  }
+
+  protected extractMentions(text: string): string[] {
+    const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
+    const mentions: string[] = [];
+    let match;
+    
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedName = match[1];
+      // Verify it's a valid user
+      const user = this.availableUsers().find(u => u.name === mentionedName);
+      if (user) {
+        mentions.push(user.id);
+      }
+    }
+    
+    return mentions;
+  }
+
+  protected addComment(): void {
+    const text = this.newCommentText().trim();
+    if (!text) return;
+    
+    const mentions = this.extractMentions(text);
+    const currentUser = users[0]; // Assuming first user is the current user
+    
+    const newComment: Comment = {
+      id: `comment-${Date.now()}`,
+      author: currentUser.name,
+      authorId: currentUser.id,
+      content: text,
+      mentions: mentions,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.comments.update(comments => [...comments, newComment]);
+    this.newCommentText.set('');
+    this.showMentionDropdown.set(false);
+    
+    // Notify mentioned users (you can emit an event here for parent component to handle)
+    if (mentions.length > 0) {
+      console.log('Mentioned users:', mentions);
+      // this.mentionNotification.emit({ issueId: this._issue()!.id, mentions });
+    }
+  }
+
+  protected deleteComment(commentId: string): void {
+    if (confirm('Are you sure you want to delete this comment?')) {
+      this.comments.update(comments => 
+        comments.filter(c => c.id !== commentId)
+      );
+    }
+  }
+
+  protected formatCommentDate(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  protected getCommentInitials(name: string): string {
+    return name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  }
+
+  protected highlightMentions(text: string): string {
+    return text.replace(/@(\w+(?:\s+\w+)*)/g, '<span class="mention">@$1</span>');
   }
 }

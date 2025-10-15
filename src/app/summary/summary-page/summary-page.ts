@@ -94,7 +94,7 @@ export class SummaryPage implements OnInit {
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
     }
-    
+
     // Load sprints for the filter
     this.sprints = this.issueSummaryService.getAllSprints();
 
@@ -110,7 +110,7 @@ export class SummaryPage implements OnInit {
   private updateDashboardData(): void {
     // Update issue summary cards
     this.issueCards = this.issueSummaryService.getIssueSummaryCards(this.selectedSprintId);
-
+    console.log(this.issueCards);
     // Update sprint status breakdown
     this.sprintStatuses = this.issueSummaryService.getSprintStatuses(this.selectedSprintId);
 
