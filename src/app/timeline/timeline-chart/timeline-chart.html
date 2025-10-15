@@ -52,7 +52,7 @@
                 <span class="font-medium text-sm flex-1 truncate">{{ row.name }}</span>
                 <span class="px-1.5 py-0.5 text-xs rounded font-medium text-white"
                       [ngClass]="getStatusBadgeClass(row.status)">
-                  {{ row.progress }}%
+                  {{ getStatusLabel(row.status) }}
                 </span>
               </div>
 
@@ -80,7 +80,7 @@
                 <span class="text-sm font-medium text-gray-700 flex-1 truncate">{{ row.name }}</span>
                 <span class="px-1.5 py-0.5 text-xs rounded font-medium text-white"
                       [ngClass]="getStatusBadgeClass(row.status)">
-                  {{ row.progress }}%
+                  {{ getStatusLabel(row.status) }}
                 </span>
               </div>
 
@@ -116,7 +116,7 @@
                   <span class="text-sm text-gray-800 flex-1 truncate">{{ row.name }}</span>
                   <span class="px-1.5 py-0.5 text-xs rounded text-white"
                         [ngClass]="getStatusBadgeClass(row.status)">
-                    {{ row.progress }}%
+                    {{ getStatusLabel(row.status) }}
                   </span>
                 </div>
               </div>
@@ -198,11 +198,11 @@
                        [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
-                       [title]="row.name + ' (' + row.progress + '%)'">
+                       [title]="row.name">
                     <div class="bar-resize-handle left" 
                          (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
-                      {{ row.name }} ({{ row.progress }}%)
+                      {{ row.name }}
                     </div>
                     <div class="bar-resize-handle right" 
                          (mousedown)="onBarResizeStart($event, row, 'right')"></div>
@@ -214,11 +214,11 @@
                        [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
-                       [title]="row.name + ' (' + row.progress + '%)'">
+                       [title]="row.name">
                     <div class="bar-resize-handle left" 
                          (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
-                      {{ row.name }} ({{ row.progress }}%)
+                      {{ row.name }}
                     </div>
                     <div class="bar-resize-handle right" 
                          (mousedown)="onBarResizeStart($event, row, 'right')"></div>
@@ -230,11 +230,11 @@
                        [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
-                       [title]="row.name + ' (' + row.progress + '%)'">
+                       [title]="row.name">
                     <div class="bar-resize-handle left" 
                          (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
-                      {{ row.progress }}%
+                      {{ row.name }}
                     </div>
                     <div class="bar-resize-handle right" 
                          (mousedown)="onBarResizeStart($event, row, 'right')"></div>

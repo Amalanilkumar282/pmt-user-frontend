@@ -558,6 +558,19 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     return statusMap[status] || 'bg-gray-500';
   }
 
+  getStatusLabel(status: string): string {
+    const statusLabelMap: { [key: string]: string } = {
+      'COMPLETED': 'Done',
+      'ACTIVE': 'In Progress',
+      'PLANNED': 'To Do',
+      'DONE': 'Done',
+      'IN_PROGRESS': 'In Progress',
+      'TODO': 'To Do',
+      'IN_REVIEW': 'In Progress'
+    };
+    return statusLabelMap[status] || 'To Do';
+  }
+
   getTypeIcon(issueType?: string): string {
     // Method kept for backward compatibility but no longer used in template
     return '';
