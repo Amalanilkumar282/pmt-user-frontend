@@ -26,16 +26,30 @@
             <label class="block text-sm font-medium text-gray-700">{{ field.label }} <span *ngIf="field.required"
                 class="text-red-500">*</span></label>
 
-            <!-- Text / Number / Date / File -->
-            <input *ngIf="field.type==='text' || field.type==='number' || field.type==='date' || field.type==='file'"
+
+            <!-- Text / Number / Date -->
+            <input *ngIf="field.type==='text' || field.type==='number' || field.type==='date'"
               [(ngModel)]="formData[field.model]" name="{{field.model}}" [type]="field.type"
               [min]="field.model === 'storyPoint' ? 0 : null"
-              (change)="field.type==='file' && handleFileSelect($event, field); field.type!=='file' && handleChange($event.target.value, field)"
+              (change)="handleChange($event.target.value, field)"
               [ngClass]="{
          'border-2 border-red-500': invalidFields.has(field.model),
          'border border-gray-300': !invalidFields.has(field.model),
          'shake': shakeFields.has(field.model)
        }" class="mt-1 block w-full rounded-md shadow shadow-slate-100 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-3 px-3" />
+
+            <!-- File Upload -->
+            <div *ngIf="field.type==='file'" class="mt-1 block w-full">
+              <label class="flex items-center gap-2 cursor-pointer border border-gray-300 rounded-md shadow shadow-slate-100 px-3 py-3 bg-white hover:bg-gray-50 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+                <span class="text-gray-700 text-sm">Choose file(s)</span>
+                <input type="file" name="{{field.model}}" multiple
+                  (change)="handleFileSelect($event, field)"
+                  class="hidden" />
+              </label>
+              <div *ngIf="formData[field.model]?.length" class="mt-2 text-xs text-gray-600">
+                <span *ngFor="let f of formData[field.model]" class="block truncate">{{ f.name }}</span>
+              </div>
+            </div>
 
             <!-- Textarea -->
             <textarea *ngIf="field.type==='textarea'" [(ngModel)]="formData[field.model]" name="{{field.model}}"
