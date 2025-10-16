@@ -1,18 +1,23 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import type { Issue } from '../../../shared/models/issue.model';
 import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe';
+import { BoardStore } from '../../board-store';
+import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [CommonModule, DragDropModule, AvatarClassPipe, InitialsPipe],
+  imports: [CommonModule, DragDropModule, FormsModule, AvatarClassPipe, InitialsPipe, ClickOutsideDirective],
   templateUrl: './task-card.html',
   styleUrls: ['./task-card.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskCard implements OnInit {
+  private store = inject(BoardStore);
+  
   // allow tests to create the component without providing an issue
   @Input() issue: Issue = {
     id: '',
@@ -26,10 +31,29 @@ export class TaskCard implements OnInit {
   };
   @Input() colorClass = '#A1C4FD'; // Default blue color
   @Output() open = new EventEmitter<Issue>();
-  // Basic metadata placeholders (can be wired to real fields if added later)
+  @Output() titleChanged = new EventEmitter<{ issueId: string, newTitle: string }>();
+  @Output() assigneeClicked = new EventEmitter<Issue>();
+  
+  // Editing state
+  isEditingTitle = signal(false);
+  editedTitle = signal('');
+  showAssigneeDropdown = signal(false);
+  showDatePicker = signal(false);
+  assigneeSearchQuery = signal('');
+  
+  // Available assignees
+  readonly availableAssignees = ['Alice Johnson', 'Bob Smith', 'Carol White', 'David Brown', 'Eve Davis', 'Unassigned'];
+  
+  // Filtered assignees based on search
+  readonly filteredAssignees = computed(() => {
+    const query = this.assigneeSearchQuery().toLowerCase();
+    if (!query) return this.availableAssignees;
+    return this.availableAssignees.filter(a => a.toLowerCase().includes(query));
+  });
+  
+  // Basic metadata placeholders
   commentsCount = 0;
   attachmentsCount = 0;
-  dueDate?: Date;
 
   // Label color palette - vibrant and varied
   private labelColors = [
@@ -78,11 +102,6 @@ export class TaskCard implements OnInit {
     const num = this.issue.id.split('').reduce((a,c)=>a + c.charCodeAt(0), 0);
     this.commentsCount = num % 10;          // 0..9
     this.attachmentsCount = num % 7;        // 0..6
-    // fake due date within the last 30 days for display
-    const daysAgo = (num % 24) + 1;
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    this.dueDate = d;
   }
 
   getProgressValue(): number {
@@ -95,5 +114,83 @@ export class TaskCard implements OnInit {
       BLOCKED: 5
     };
     return map[this.issue.status] ?? 10;
+  }
+  
+  // Title editing methods
+  startEditingTitle(event: Event): void {
+    event.stopPropagation(); // Prevent card click
+    this.editedTitle.set(this.issue.title);
+    this.isEditingTitle.set(true);
+  }
+  
+  saveTitle(): void {
+    const newTitle = this.editedTitle().trim();
+    if (newTitle && newTitle !== this.issue.title) {
+      // Update BoardStore directly
+      this.store.updateIssueTitle(this.issue.id, newTitle);
+    }
+    this.isEditingTitle.set(false);
+  }
+  
+  cancelEditTitle(event: Event): void {
+    event.stopPropagation();
+    this.isEditingTitle.set(false);
+  }
+  
+  onTitleKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.saveTitle();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelEditTitle(event);
+    }
+  }
+  
+  // Assignee click handler
+  onAssigneeClick(event: Event): void {
+    event.stopPropagation(); // Prevent card click
+    this.assigneeSearchQuery.set(''); // Reset search when opening
+    this.showAssigneeDropdown.set(!this.showAssigneeDropdown());
+  }
+  
+  selectAssignee(assignee: string): void {
+    const newAssignee = assignee === 'Unassigned' ? undefined : assignee;
+    this.store.updateIssueAssignee(this.issue.id, newAssignee);
+    this.showAssigneeDropdown.set(false);
+    this.assigneeSearchQuery.set(''); // Reset search
+  }
+  
+  closeAssigneeDropdown(): void {
+    this.showAssigneeDropdown.set(false);
+    this.assigneeSearchQuery.set(''); // Reset search
+  }
+  
+  // Due date handlers
+  onDueDateClick(event: Event): void {
+    event.stopPropagation();
+    this.showDatePicker.set(!this.showDatePicker());
+  }
+  
+  onDateChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const newDate = input.value ? new Date(input.value) : undefined;
+    this.store.updateIssueDueDate(this.issue.id, newDate);
+    this.showDatePicker.set(false);
+  }
+  
+  clearDueDate(): void {
+    this.store.updateIssueDueDate(this.issue.id, undefined);
+    this.showDatePicker.set(false);
+  }
+  
+  closeDatePicker(): void {
+    this.showDatePicker.set(false);
+  }
+  
+  formatDateForInput(date?: Date): string {
+    if (!date) return '';
+    const d = new Date(date);
+    return d.toISOString().split('T')[0];
   }
 }

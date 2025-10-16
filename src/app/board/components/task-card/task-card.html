@@ -1,10 +1,36 @@
 <div class="task-card bg-white rounded-xl p-2 mb-3 cursor-pointer hover:shadow-md transition-all duration-300" 
      [style.border-left]="'3px solid ' + colorClass"
+     [class.z-50]="showAssigneeDropdown() || showDatePicker()"
+     [style.position]="(showAssigneeDropdown() || showDatePicker()) ? 'relative' : 'relative'"
      (click)="open.emit(issue)">
   <div class="content" cdkDragHandle>
     <div class="content-header flex items-start justify-between">
-      <!-- Title -->
-    <div><h4 class="text-[14px] font-bold text-slate-600 mb-3 leading-snug ">{{ issue.title }}</h4></div>
+      <!-- Title - Click icon to edit -->
+      <div class="flex-1 mr-2 group">
+        @if (!isEditingTitle()) {
+          <div class="flex items-center gap-1.5">
+            <h4 class="flex-1 text-[14px] font-bold text-slate-600 mb-3 leading-snug px-1 -mx-1 rounded transition-colors">
+              {{ issue.title }}
+            </h4>
+            <svg class="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mb-3 cursor-pointer hover:text-blue-500" 
+                 (click)="startEditingTitle($event)"
+                 title="Edit title"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </div>
+        } @else {
+          <div appClickOutside (outsideClick)="saveTitle()">
+            <input 
+              type="text" 
+              [(ngModel)]="editedTitle"
+              (keydown)="onTitleKeydown($event)"
+              (click)="$event.stopPropagation()"
+              class="w-full text-[14px] font-bold text-slate-600 mb-3 leading-snug px-1 -mx-1 border-2 border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+              autofocus />
+          </div>
+        }
+      </div>
     
        <!-- Priority Badge (top right) -->
     <div class=" top-3 right-3 text-[10px] px-2.5 rounded-full py-1 rounded font-bold uppercase" [ngClass]="getPriorityPill(issue.priority)">
@@ -41,10 +67,58 @@
     <!-- Footer -->
     <div class="flex items-center justify-between text-xs text-slate-500">
       <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-[11px]"
-             [style.background-color]="issue.assignee | avatarClass"
-             [title]="issue.assignee || 'Unassigned'">
-          {{ issue.assignee | initials }}
+        <div class="relative">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-[11px] cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+               [style.background-color]="issue.assignee | avatarClass"
+               [title]="(issue.assignee || 'Unassigned') + ' (Click to change)'"
+               (click)="onAssigneeClick($event)">
+            {{ issue.assignee | initials }}
+          </div>
+          
+          <!-- Assignee Dropdown -->
+          @if (showAssigneeDropdown()) {
+            <div class="absolute z-[100] mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[200px] left-0"
+                 appClickOutside 
+                 (outsideClick)="closeAssigneeDropdown()"
+                 (click)="$event.stopPropagation()">
+              <!-- Search Bar -->
+              <div class="px-3 pb-2">
+                <input
+                  type="text"
+                  [(ngModel)]="assigneeSearchQuery"
+                  placeholder="Search assignees..."
+                  class="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  (click)="$event.stopPropagation()"
+                  autofocus />
+              </div>
+              
+              <!-- Scrollable List -->
+              <div class="max-h-[200px] overflow-y-auto">
+                @for (assignee of filteredAssignees(); track assignee) {
+                  <button
+                    type="button"
+                    (click)="selectAssignee(assignee)"
+                    class="w-full px-3 py-2 text-left text-xs hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                    [class.bg-blue-50]="assignee === (issue.assignee || 'Unassigned')">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                         [style.background-color]="assignee | avatarClass">
+                      {{ assignee | initials }}
+                    </div>
+                    <span class="font-medium text-slate-700">{{ assignee }}</span>
+                    @if (assignee === (issue.assignee || 'Unassigned')) {
+                      <svg class="w-3 h-3 ml-auto text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    }
+                  </button>
+                } @empty {
+                  <div class="px-3 py-2 text-xs text-slate-500 text-center">
+                    No assignees found
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
       </div>
       
@@ -55,11 +129,44 @@
           </svg>
           <span class="text-xs font-medium text-slate-600">{{ commentsCount }}</span>
         </div>
-        <div class="flex items-center gap-1.5" *ngIf="dueDate">
-          <svg class="w-4 h-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd"/>
-          </svg>
-          <span class="text-xs font-medium text-slate-600">{{ dueDate | date:'MMM d' }}</span>
+        
+        <!-- Due Date -->
+        <div class="relative">
+          <button
+            type="button"
+            (click)="onDueDateClick($event)"
+            class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-100 px-2 py-1 rounded transition-colors"
+            [title]="'Due date: ' + (issue.dueDate ? (issue.dueDate | date:'MMM d, yyyy') : 'Not set') + ' (click to change)'">
+            <svg class="w-4 h-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd"/>
+            </svg>
+            <span class="text-xs font-medium text-slate-600">
+              {{ issue.dueDate ? (issue.dueDate | date:'MMM d') : 'No due date' }}
+            </span>
+          </button>
+          
+          <!-- Date Picker Dropdown -->
+          @if (showDatePicker()) {
+            <div class="absolute z-50 mt-1 right-0 bg-white rounded-lg shadow-xl border border-slate-200 p-3 min-w-[200px]"
+                 appClickOutside
+                 (outsideClick)="closeDatePicker()"
+                 (click)="$event.stopPropagation()">
+              <div class="text-xs font-semibold text-slate-500 mb-2">Set Due Date</div>
+              <input
+                type="date"
+                [value]="formatDateForInput(issue.dueDate)"
+                (change)="onDateChange($event)"
+                class="w-full px-3 py-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+              @if (issue.dueDate) {
+                <button
+                  type="button"
+                  (click)="clearDueDate()"
+                  class="w-full mt-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded transition-colors">
+                  Clear due date
+                </button>
+              }
+            </div>
+          }
         </div>
       </div>
     </div>

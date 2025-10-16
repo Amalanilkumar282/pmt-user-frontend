@@ -3,7 +3,12 @@
   height: 100%;
   overflow: hidden;
   padding: 0;
+}
 
+.scroll-container {
+  position: relative;
+  height: 100%;
+  width: 100%;
 }
 
 .cdk-drag-preview {
@@ -22,15 +27,17 @@
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-/* Override global hiding and show only the horizontal (bottom) scrollbar for the columns wrapper */
+/* Scrollbar styles */
 .columns-scroll {
-  overflow-x: auto; /* ensure horizontal scrolling */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
   /* Firefox */
   scrollbar-width: thin;
   scrollbar-color: rgba(0,0,0,0.06) rgba(0,0,0,0.02);
 }
 .columns-scroll::-webkit-scrollbar {
-  height: 10px; /* show horizontal bar */
+  height: 10px;
 }
 .columns-scroll::-webkit-scrollbar-track {
   background: rgba(0,0,0,0.02);

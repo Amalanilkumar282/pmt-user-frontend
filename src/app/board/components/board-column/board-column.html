@@ -49,6 +49,12 @@
       </app-task-card>
     </ng-container>
     
+    <!-- Quick Create Issue -->
+    <app-quick-create-issue 
+      [status]="def.id"
+      (issueCreated)="onQuickCreate($event)">
+    </app-quick-create-issue>
+    
     <!-- spacer to ensure last task is fully scrollable into view -->
     <div class="column-end-spacer" aria-hidden="true"></div>
   </div>
