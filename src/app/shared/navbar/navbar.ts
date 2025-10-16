@@ -136,22 +136,43 @@ export class Navbar {
           colSpan: 1
         },
         {
-          label: 'Sprint',
-          type: 'select',
-          model: 'sprint',
-          options: ['Backlog', 'Sprint 1', 'Sprint 2', 'Sprint 3'],
-          colSpan: 1
-        },
-        {
-          label: 'Story Points',
-          type: 'number',
-          model: 'storyPoints',
+          label: 'Start Date',
+          type: 'date',
+          model: 'startDate',
           colSpan: 1
         },
         {
           label: 'Due Date',
           type: 'date',
           model: 'dueDate',
+          colSpan: 1
+        },
+        {
+          label: 'Sprint',
+          type: 'select',
+          model: 'sprint',
+          options: ['Sprint 1', 'Sprint 2', 'Sprint 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Story Point',
+          type: 'number',
+          model: 'storyPoint',
+          colSpan: 1
+        },
+        {
+          label: 'Parent Epic',
+          type: 'select',
+          model: 'parentEpic',
+          options: ['Epic 1', 'Epic 2', 'Epic 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Reporter',
+          type: 'select',
+          model: 'reporter',
+          options: userOptions,
+          required: true,
           colSpan: 1
         },
         {
@@ -167,9 +188,12 @@ export class Navbar {
         description: description,
         priority: priority,
         assignee: 'Unassigned',
-        sprint: 'Backlog',
-        storyPoints: '',
+        startDate: '',
         dueDate: '',
+        sprint: 'Sprint 1',
+        storyPoint: '',
+        parentEpic: '',
+        reporter: userOptions[0] || 'Unassigned',
         labels: [],
         attachments: []
       }
@@ -217,7 +241,7 @@ export class Navbar {
 
   const fields: FormField[] = [
     { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
-    { label: 'Summary', type: 'text', model: 'summary', colSpan: 2,required : true  },
+    { label: 'Summary', type: 'text', model: 'summary', colSpan: 2, required : true  },
     { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
     { label: 'Priority', type: 'select', model: 'priority', options: ['High','Medium','Low'], colSpan: 1 },
     { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
@@ -226,17 +250,26 @@ export class Navbar {
     { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
     { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
     { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
-    { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1,required : true  },
+    { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },
     { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
   ];
 
   this.modalService.open({
-    id: 'createIssue',          // matches your modal component's @Input modalId
-    title: 'Create New Issue',   // modal header
-    projectName: 'Project Beta',// optional project label
+    id: 'createIssue',
+    title: 'Create New Issue',
+    projectName: 'Project Beta',
     modalDesc : 'Create a new issue in your project',
-    fields,                     // dynamic fields
-    data: { priority: 'Medium', labels: [] }, // optional pre-filled data
+    fields,
+    data: { 
+      priority: 'Medium', 
+      labels: [],
+      startDate: '',
+      dueDate: '',
+      sprint: 'Sprint 1',
+      storyPoint: '',
+      parentEpic: '',
+      reporter: userOptions[0] || 'Unassigned'
+    },
     showLabels: true,
     submitText: 'Create Issue'
   });

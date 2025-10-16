@@ -73,4 +73,22 @@
   animation: shake 0.5s;
 }
 
+/* Ensure inputs maintain full width */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+  width: 100% !important;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Specific fix for summary field that spans 2 columns */
+input[name="summary"] {
+  flex: 1;
+  width: 100% !important;
+  min-width: 100%;
+  max-width: 100%;
+}
 

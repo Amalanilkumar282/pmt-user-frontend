@@ -41,6 +41,8 @@ export class Header {
     const description = fields.description || '';
     const priority = fields.priority || 'Medium';
 
+    const userOptions = ['Unassigned', 'John Doe', 'Jane Smith', 'Bob Johnson'];
+
     // Open the create issue modal with pre-filled data
     this.modalService.open({
       id: 'create-issue',
@@ -83,20 +85,13 @@ export class Header {
           label: 'Assignee',
           type: 'select',
           model: 'assignee',
-          options: ['Unassigned', 'John Doe', 'Jane Smith', 'Bob Johnson'],
+          options: userOptions,
           colSpan: 1
         },
         {
-          label: 'Sprint',
-          type: 'select',
-          model: 'sprint',
-          options: ['Backlog', 'Sprint 1', 'Sprint 2', 'Sprint 3'],
-          colSpan: 1
-        },
-        {
-          label: 'Story Points',
-          type: 'number',
-          model: 'storyPoints',
+          label: 'Start Date',
+          type: 'date',
+          model: 'startDate',
           colSpan: 1
         },
         {
@@ -104,6 +99,40 @@ export class Header {
           type: 'date',
           model: 'dueDate',
           colSpan: 1
+        },
+        {
+          label: 'Sprint',
+          type: 'select',
+          model: 'sprint',
+          options: ['Sprint 1', 'Sprint 2', 'Sprint 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Story Point',
+          type: 'number',
+          model: 'storyPoint',
+          colSpan: 1
+        },
+        {
+          label: 'Parent Epic',
+          type: 'select',
+          model: 'parentEpic',
+          options: ['Epic 1', 'Epic 2', 'Epic 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Reporter',
+          type: 'select',
+          model: 'reporter',
+          options: userOptions,
+          required: true,
+          colSpan: 1
+        },
+        {
+          label: 'Attachments',
+          type: 'file',
+          model: 'attachments',
+          colSpan: 2
         }
       ],
       data: {
@@ -112,9 +141,12 @@ export class Header {
         description: description,
         priority: priority,
         assignee: 'Unassigned',
-        sprint: 'Backlog',
-        storyPoints: '',
+        startDate: '',
         dueDate: '',
+        sprint: 'Sprint 1',
+        storyPoint: '',
+        parentEpic: '',
+        reporter: userOptions[0] || 'Unassigned',
         labels: [],
         attachments: []
       }

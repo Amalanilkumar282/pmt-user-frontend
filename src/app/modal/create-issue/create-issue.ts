@@ -68,9 +68,31 @@ showToast(message: string, duration: number = 3000) {
 
     if (cfg) {
       this.fields = cfg.fields ?? [];
-      this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
+      
+      // Initialize formData with default values for all fields
+      const defaultFormData: any = { labels: [], attachments: [] };
+      
+      // Set default values for all fields to prevent them from being undefined
+      this.fields.forEach(field => {
+        if (field.model === 'labels') {
+          defaultFormData[field.model] = [];
+        } else if (field.model === 'attachments') {
+          defaultFormData[field.model] = [];
+        } else if (field.type === 'number') {
+          defaultFormData[field.model] = '';
+        } else if (field.type === 'date') {
+          defaultFormData[field.model] = '';
+        } else if (field.type === 'select') {
+          defaultFormData[field.model] = '';
+        } else {
+          defaultFormData[field.model] = '';
+        }
+      });
+      
+      // Merge with provided data (AI autofill data takes precedence)
+      this.formData = cfg.data ? { ...defaultFormData, ...cfg.data } : defaultFormData;
+      
       this.modalTitle = cfg.title ?? 'Modal';
-  // Removed projectName
       this.modalDesc = cfg.modalDesc ?? '';
       this.showLabels = cfg.showLabels ?? false;
       this.submitButtonText = cfg.submitText ?? 'Create Issue';
