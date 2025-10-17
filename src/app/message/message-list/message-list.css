@@ -85,9 +85,15 @@
 }
 
 .message-timestamp {
-  font-size: 12px;
-  color: #9ca3af;
-  font-weight: 400;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: help;
+  transition: color 0.15s;
+}
+
+.message-timestamp:hover {
+  color: #374151;
 }
 
 .message-body {
@@ -97,6 +103,27 @@
   word-wrap: break-word;
   white-space: pre-wrap;
   margin-bottom: 4px;
+}
+
+.message-body strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.message-body em {
+  font-style: italic;
+}
+
+.message-body .message-link {
+  color: #3d62a8;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.message-body .message-link:hover {
+  text-decoration: underline;
+  color: #2c4a7e;
 }
 
 /* Reactions */
@@ -205,4 +232,13 @@
 
 .messages-container::-webkit-scrollbar-thumb:hover {
   background-color: #9ca3af;
+}
+
+/* Search Highlight */
+::ng-deep .search-highlight {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 600;
 }

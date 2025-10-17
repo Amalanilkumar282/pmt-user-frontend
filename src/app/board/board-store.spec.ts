@@ -522,6 +522,236 @@ describe('BoardStore', () => {
       expect(inProgressBucket?.items[0].assignee).toBe('Alice');
     });
   });
+
+  describe('new board methods', () => {
+    it('updateIssueTitle should update issue title and updatedAt', () => {
+      const issue = mkIssue({id:'x', title:'Old Title', updatedAt:new Date(2020,0,1)});
+      store.addBacklog([issue]);
+
+      const before = store.issues().find(i=>i.id==='x')!;
+      expect(before.title).toBe('Old Title');
+
+      store.updateIssueTitle('x', 'New Title');
+
+      const after = store.issues().find(i=>i.id==='x')!;
+      expect(after.title).toBe('New Title');
+      expect(after.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime());
+    });
+
+    it('updateIssueTitle should handle non-existent issue gracefully', () => {
+      expect(() => {
+        store.updateIssueTitle('non-existent', 'New Title');
+      }).not.toThrow();
+    });
+
+    it('updateIssueAssignee should update assignee', () => {
+      const issue = mkIssue({id:'x', assignee:'Old Assignee'});
+      store.addBacklog([issue]);
+
+      store.updateIssueAssignee('x', 'New Assignee');
+
+      const after = store.issues().find(i=>i.id==='x')!;
+      expect(after.assignee).toBe('New Assignee');
+    });
+
+    it('updateIssueAssignee should handle undefined assignee', () => {
+      const issue = mkIssue({id:'x', assignee:'Someone'});
+      store.addBacklog([issue]);
+
+      store.updateIssueAssignee('x', undefined);
+
+      const after = store.issues().find(i=>i.id==='x')!;
+      expect(after.assignee).toBeUndefined();
+    });
+
+    it('updateIssueAssignee should update updatedAt timestamp', () => {
+      const issue = mkIssue({id:'x', updatedAt:new Date(2020,0,1)});
+      store.addBacklog([issue]);
+
+      const before = store.issues().find(i=>i.id==='x')!;
+      store.updateIssueAssignee('x', 'New Assignee');
+
+      const after = store.issues().find(i=>i.id==='x')!;
+      expect(after.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime());
+    });
+
+    it('updateIssueAssignee should handle non-existent issue gracefully', () => {
+      expect(() => {
+        store.updateIssueAssignee('non-existent', 'Someone');
+      }).not.toThrow();
+    });
+
+    it('updateIssueDueDate should update due date', () => {
+      const issue = mkIssue({id:'x'});
+      store.addBacklog([issue]);
+
+      const dueDate = new Date('2024-12-31');
+      store.updateIssueDueDate('x', dueDate);
+
+      const after = store.issues().find(i=>i.id==='x')!;
+      expect(after.dueDate).toBe(dueDate);
+    });
+
+    it('updateIssueDueDate should handle undefined due date', () => {
+      const issue = mkIssue({id:'x', dueDate: new Date('2024-12-31')});
+      store.addBacklog([issue]);
+
+      store.updateIssueDueDate('x', undefined);
+
+      const after = store.issues().find(i=>i.id==='x')!;
+      expect(after.dueDate).toBeUndefined();
+    });
+
+    it('updateIssueDueDate should update updatedAt timestamp', () => {
+      const issue = mkIssue({id:'x', updatedAt:new Date(2020,0,1)});
+      store.addBacklog([issue]);
+
+      const before = store.issues().find(i=>i.id==='x')!;
+      store.updateIssueDueDate('x', new Date('2024-12-31'));
+
+      const after = store.issues().find(i=>i.id==='x')!;
+      expect(after.updatedAt.getTime()).toBeGreaterThan(before.updatedAt.getTime());
+    });
+
+    it('updateIssueDueDate should handle non-existent issue gracefully', () => {
+      expect(() => {
+        store.updateIssueDueDate('non-existent', new Date());
+      }).not.toThrow();
+    });
+
+    it('createIssue should create new issue with all fields', () => {
+      const issueData = {
+        title: 'New Issue',
+        status: 'TODO' as any,
+        type: 'TASK' as any,
+        priority: 'HIGH' as any,
+        assignee: 'Alice',
+        dueDate: new Date('2024-12-31')
+      };
+
+      store.createIssue(issueData);
+
+      const issues = store.issues();
+      expect(issues.length).toBe(1);
+      
+      const created = issues[0];
+      expect(created.title).toBe('New Issue');
+      expect(created.status).toBe('TODO');
+      expect(created.type).toBe('TASK');
+      expect(created.priority).toBe('HIGH');
+      expect(created.assignee).toBe('Alice');
+      expect(created.dueDate).toEqual(new Date('2024-12-31'));
+      expect(created.id).toBeDefined();
+      expect(created.createdAt).toBeDefined();
+      expect(created.updatedAt).toBeDefined();
+    });
+
+    it('createIssue should generate unique IDs', () => {
+      store.createIssue({
+        title: 'Issue 1',
+        status: 'TODO' as any,
+        type: 'TASK' as any,
+        priority: 'MEDIUM' as any
+      });
+
+      store.createIssue({
+        title: 'Issue 2',
+        status: 'TODO' as any,
+        type: 'TASK' as any,
+        priority: 'MEDIUM' as any
+      });
+
+      const issues = store.issues();
+      expect(issues.length).toBe(2);
+      expect(issues[0].id).not.toBe(issues[1].id);
+    });
+
+    it('createIssue should handle optional fields', () => {
+      store.createIssue({
+        title: 'Minimal Issue',
+        status: 'TODO' as any,
+        type: 'TASK' as any,
+        priority: 'LOW' as any
+      });
+
+      const created = store.issues()[0];
+      expect(created.assignee).toBeUndefined();
+      expect(created.dueDate).toBeUndefined();
+    });
+
+    it('createIssue should set default values for required fields', () => {
+      store.createIssue({
+        title: 'Test Issue',
+        status: 'TODO' as any,
+        type: 'TASK' as any,
+        priority: 'MEDIUM' as any
+      });
+
+      const created = store.issues()[0];
+      expect(created.description).toBe('');
+      expect(created.labels).toEqual([]);
+      expect(created.createdAt).toBeInstanceOf(Date);
+      expect(created.updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('createIssue should append to existing issues', () => {
+      const existing = mkIssue({id:'existing'});
+      store.addBacklog([existing]);
+
+      store.createIssue({
+        title: 'New',
+        status: 'TODO' as any,
+        type: 'TASK' as any,
+        priority: 'MEDIUM' as any
+      });
+
+      expect(store.issues().length).toBe(2);
+      expect(store.issues().find(i => i.id === 'existing')).toBeDefined();
+    });
+  });
+
+  describe('sorting by createdAt', () => {
+    it('should sort issues by createdAt instead of updatedAt to prevent card jumping', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', status:'TODO' as any, createdAt: new Date(2024,0,3), updatedAt: new Date(2024,0,10)}),
+        mkIssue({id:'2', status:'TODO' as any, createdAt: new Date(2024,0,1), updatedAt: new Date(2024,0,11)}),
+        mkIssue({id:'3', status:'TODO' as any, createdAt: new Date(2024,0,2), updatedAt: new Date(2024,0,9)})
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+
+      const buckets = store.columnBuckets();
+      const todoBucket = buckets.find(b => b.def.id === 'TODO');
+      
+      // Should be ordered by priority first, then by createdAt (oldest first)
+      // Since all have same priority, order should be by createdAt: 2, 3, 1
+      expect(todoBucket?.items[0].id).toBe('2'); // Created Jan 1
+      expect(todoBucket?.items[1].id).toBe('3'); // Created Jan 2
+      expect(todoBucket?.items[2].id).toBe('1'); // Created Jan 3
+    });
+
+    it('should maintain stable card positions when updating issue title', () => {
+      const s = mkSprint('s1', [
+        mkIssue({id:'1', status:'TODO' as any, title:'First', createdAt: new Date(2024,0,1)}),
+        mkIssue({id:'2', status:'TODO' as any, title:'Second', createdAt: new Date(2024,0,2)}),
+        mkIssue({id:'3', status:'TODO' as any, title:'Third', createdAt: new Date(2024,0,3)})
+      ]);
+      store.loadData([s]);
+      store.selectSprint('s1');
+
+      const beforeUpdate = store.columnBuckets().find(b => b.def.id === 'TODO')?.items.map(i => i.id);
+      
+      // Update middle card's title (this updates updatedAt but shouldn't change position)
+      store.updateIssueTitle('2', 'Second Updated');
+
+      const afterUpdate = store.columnBuckets().find(b => b.def.id === 'TODO')?.items.map(i => i.id);
+      
+      // Order should remain the same because sorting is by createdAt
+      expect(afterUpdate).toEqual(beforeUpdate);
+    });
+  });
 });
+
+
 
 
