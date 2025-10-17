@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule, CdkDropList, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { BoardColumnDef, GroupBy } from '../../models';
 import type { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardStore } from '../../board-store';
 import { TaskCard } from '../task-card/task-card';
+import { QuickCreateIssue, QuickCreateIssueData } from '../quick-create-issue/quick-create-issue';
 
 interface GroupedIssues {
   groupName: string;
@@ -14,13 +15,16 @@ interface GroupedIssues {
 @Component({
   selector: 'app-board-column',
   standalone: true,
-  imports: [CommonModule, DragDropModule, TaskCard],
+  imports: [CommonModule, DragDropModule, TaskCard, QuickCreateIssue],
   templateUrl: './board-column.html',
   styleUrls: ['./board-column.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BoardColumn {
+  private store = inject(BoardStore);
+  
   @Output() openIssue = new EventEmitter<Issue>();
+  @Output() quickCreateIssue = new EventEmitter<{ title: string, status: IssueStatus }>();
   // safe default to avoid undefined accesses in tests
   @Input() def: BoardColumnDef = { id: 'TODO', title: '', color: 'border-slate-200' };
   @Input() items: Issue[] = [];
@@ -76,8 +80,6 @@ export class BoardColumn {
   pageSize = 20;
   get pageItems() { return this.items.slice(0, this.pageSize); }
   loadMore() { this.pageSize += 20; }
-
-  constructor(private store: BoardStore) {}
 
   onOpen(issue: Issue) {
     this.openIssue.emit(issue);
@@ -138,5 +140,18 @@ export class BoardColumn {
       'border-yellow-300': 'bg-yellow-400'
     };
     return colorMap[this.def.color] || 'bg-gray-400';
+  }
+  
+  onQuickCreate(issueData: QuickCreateIssueData): void {
+    // Create issue directly in BoardStore
+    const currentBoard = this.store.currentBoard();
+    this.store.createIssue({
+      title: issueData.title,
+      status: issueData.status,
+      type: issueData.type,
+      priority: issueData.priority,
+      assignee: issueData.assignee === 'Unassigned' ? undefined : issueData.assignee,
+      teamId: currentBoard?.type === 'TEAM' ? currentBoard.teamId : undefined
+    });
   }
 }
