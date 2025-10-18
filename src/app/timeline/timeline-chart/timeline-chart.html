@@ -58,9 +58,9 @@
 
               <!-- Epic Row -->
               <div *ngIf="row.type === 'epic'" 
-                   class="row-content epic-content"
-                   (click)="toggleRow(row.id)">
-                <button class="w-4 h-4 flex items-center justify-center text-gray-500 hover:text-gray-700 ml-2">
+                   class="row-content epic-content">
+                <button class="w-4 h-4 flex items-center justify-center text-gray-500 hover:text-gray-700 ml-2"
+                        (click)="toggleRow(row.id)">
                   <svg *ngIf="isRowExpanded(row.id)" 
                        width="12" height="12" viewBox="0 0 24 24" fill="none" 
                        class="transition-transform duration-200">
@@ -72,21 +72,25 @@
                     <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-                <span class="w-5 h-5 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-                  </svg>
-                </span>
-                <span class="text-sm font-medium text-gray-700 flex-1 truncate">{{ row.name }}</span>
-                <span class="px-1.5 py-0.5 text-xs rounded font-medium text-white"
-                      [ngClass]="getStatusBadgeClass(row.status)">
-                  {{ getStatusLabel(row.status) }}
-                </span>
+                <div class="flex items-center flex-1 gap-2 cursor-pointer hover:bg-purple-50 transition-colors rounded px-2 py-1"
+                     (click)="onEpicClick($event, row.id)">
+                  <span class="w-5 h-5 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span class="text-sm font-medium text-gray-700 flex-1 truncate">{{ row.name }}</span>
+                  <span class="px-1.5 py-0.5 text-xs rounded font-medium text-white"
+                        [ngClass]="getStatusBadgeClass(row.status)">
+                    {{ getStatusLabel(row.status) }}
+                  </span>
+                </div>
               </div>
 
               <!-- Issue Row -->
               <div *ngIf="row.type === 'issue'" 
-                   class="row-content issue-content">
+                   class="row-content issue-content cursor-pointer hover:bg-blue-50 transition-colors rounded px-2 py-1"
+                   (click)="onIssueClick($event, row.id)">
                 <div class="flex items-center gap-1.5 w-full">
                   <!-- Story Icon -->
                   <svg *ngIf="row.issueType === 'STORY'" class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -214,7 +218,8 @@
                        [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
-                       [title]="row.name">
+                       [title]="row.name"
+                       (click)="onEpicClick($event, row.id)">
                     <div class="bar-resize-handle left" 
                          (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
@@ -230,7 +235,8 @@
                        [class.resizing]="resizingBar?.id === row.id"
                        [style.left.px]="getBarPosition(row.startDate)"
                        [style.width.px]="getBarWidth(row.startDate, row.endDate)"
-                       [title]="row.name">
+                       [title]="row.name"
+                       (click)="onIssueClick($event, row.id)">
                     <div class="bar-resize-handle left" 
                          (mousedown)="onBarResizeStart($event, row, 'left')"></div>
                     <div class="bar-label">
@@ -258,3 +264,23 @@
     </div>
   </div>
 </div>
+<!-- Epic Detailed View Side Panel -->
+@if (isEpicModalOpen && selectedEpicForModal) {
+  <div class="epic-detail-overlay" (click)="closeEpicModal()">
+    <div class="epic-detail-side-panel" (click)="$event.stopPropagation()">
+      <app-epic-detailed-view 
+        [epic]="selectedEpicForModal" 
+        (close)="closeEpicModal()" 
+        (epicUpdated)="onEpicUpdated($event)">
+      </app-epic-detailed-view>
+    </div>
+  </div>
+}
+
+<!-- Issue Detailed View Modal -->
+<app-issue-detailed-view 
+  [issue]="selectedIssueForModal"
+  [isOpen]="isIssueModalOpen"
+  (close)="closeIssueModal()" 
+  (deleteIssue)="onIssueDeleted($event)">
+</app-issue-detailed-view>

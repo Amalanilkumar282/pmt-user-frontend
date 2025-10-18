@@ -4,6 +4,8 @@ import { TimelineHeaderComponent, FilterState } from '../timeline-header/timelin
 import { sprints as sharedSprints, epics as sharedEpics } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
+import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
+import { IssueDetailedView } from '../../backlog/issue-detailed-view/issue-detailed-view';
 
 interface Sprint {
   id: string;
@@ -50,7 +52,7 @@ interface DayHeader {
 @Component({
   selector: 'app-timeline-chart',
   standalone: true,
-  imports: [CommonModule, TimelineHeaderComponent],
+  imports: [CommonModule, TimelineHeaderComponent, EpicDetailedView, IssueDetailedView],
   templateUrl: './timeline-chart.html',
   styleUrls: ['./timeline-chart.css']
 })
@@ -87,6 +89,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   // Display options
   showCompleted: boolean = true;
   displayRangeMonths: number = 12;
+  
+  // Modal state for epic and issue details
+  selectedEpicForModal: Epic | null = null;
+  selectedIssueForModal: Issue | null = null;
+  isEpicModalOpen: boolean = false;
+  isIssueModalOpen: boolean = false;
   
   // Scroll synchronization flags
   private isScrollingSidebar = false;
@@ -250,20 +258,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           }
           
           this.timelineRows.push({
-            id: `epic-${epic.id}`,
+            id: epic.id,  // Epic ID already has 'epic-' prefix (e.g., 'epic-1')
             type: 'epic',
             name: epic.name,
             status: epic.status || 'TODO',
             startDate: epicStart,
             endDate: epicEnd,
             progress: epicProgress,
-            expanded: this.isRowExpanded(`epic-${epic.id}`),
+            expanded: this.isRowExpanded(epic.id),
             level: 1,
             visible: this.isItemInDateRange(epicStart, epicEnd)
           });
 
           // Add issue rows if epic is expanded
-          if (this.isRowExpanded(`epic-${epic.id}`)) {
+          if (this.isRowExpanded(epic.id)) {
             issues.forEach(issue => {
               if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
                 this.timelineRows.push({
@@ -539,6 +547,80 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       this.expandedRows.add(rowId);
     }
     this.prepareTimelineData();
+  }
+
+  // Epic click handler - opens epic detail side panel
+  onEpicClick(event: Event, epicId: string): void {
+    event.stopPropagation(); // Prevent toggle from firing
+    
+    // Epic ID already has the correct format (e.g., 'epic-1')
+    const epic = this.epicsData.find(e => e.id === epicId);
+    
+    if (epic) {
+      this.selectedEpicForModal = { ...epic };
+      this.isEpicModalOpen = true;
+      this.cdr.detectChanges(); // Trigger change detection
+    }
+  }
+
+  // Issue click handler - opens issue detail modal
+  onIssueClick(event: Event, issueId: string): void {
+    event.stopPropagation(); // Prevent any parent clicks
+    
+    // Find the issue from all sprints
+    let foundIssue: Issue | null = null;
+    for (const sprint of this.projectData) {
+      if (sprint.issues) {
+        foundIssue = sprint.issues.find(i => i.id === issueId) || null;
+        if (foundIssue) break;
+      }
+    }
+    
+    if (foundIssue) {
+      this.selectedIssueForModal = { ...foundIssue };
+      this.isIssueModalOpen = true;
+      this.cdr.detectChanges(); // Trigger change detection
+    }
+  }
+
+  // Close epic modal
+  closeEpicModal(): void {
+    this.isEpicModalOpen = false;
+    setTimeout(() => {
+      this.selectedEpicForModal = null;
+    }, 300); // Wait for animation
+  }
+
+  // Close issue modal
+  closeIssueModal(): void {
+    this.isIssueModalOpen = false;
+    setTimeout(() => {
+      this.selectedIssueForModal = null;
+    }, 300); // Wait for animation
+  }
+
+  // Handle epic updates from the modal
+  onEpicUpdated(updatedEpic: Epic): void {
+    // Find and update the epic in the data
+    const index = this.epicsData.findIndex(e => e.id === updatedEpic.id);
+    if (index !== -1) {
+      this.epicsData[index] = { ...updatedEpic };
+    }
+    // Update the modal state
+    this.selectedEpicForModal = { ...updatedEpic };
+    this.prepareTimelineData(); // Refresh timeline display
+  }
+
+  // Handle issue deletion from the modal
+  onIssueDeleted(issueId: string): void {
+    // Remove the issue from sprint data
+    for (const sprint of this.projectData) {
+      if (sprint.issues) {
+        sprint.issues = sprint.issues.filter(i => i.id !== issueId);
+      }
+    }
+    this.closeIssueModal();
+    this.prepareTimelineData(); // Refresh timeline display
   }
 
   isRowExpanded(rowId: string): boolean {
