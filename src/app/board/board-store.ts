@@ -1,11 +1,14 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, signal, inject } from '@angular/core';
 import type { Issue } from '../shared/models/issue.model';
 import type { IssueStatus } from '../shared/models/issue.model';
 import type { FilterState, GroupBy, Sprint, BoardColumnDef } from './models';
 import { DEFAULT_COLUMNS, fuzzyIncludes, statusOrder, priorityOrder } from './utils';
+import { BoardService } from './services/board.service';
 
 @Injectable({ providedIn: 'root' })
 export class BoardStore {
+  private boardService = inject(BoardService);
+  
   // raw data (inject your dummy data at module bootstrap or here)
   private _issues = signal<Issue[]>([]);
   private _sprints = signal<Sprint[]>([]);
@@ -17,37 +20,61 @@ export class BoardStore {
   groupBy = signal<GroupBy>('NONE');
   columns = signal<BoardColumnDef[]>([...DEFAULT_COLUMNS]);
 
+  // Board context
+  currentBoard = this.boardService.currentBoard;
+
   // derived
   sprints = computed(() => this._sprints());
 
   issues = computed(() => this._issues());
 
-  // visible issues after sprint selection + filters + search
+  // visible issues after board context + sprint selection + filters + search
   visibleIssues = computed(() => {
+    const board = this.currentBoard();
     const sprintId = this.selectedSprintId();
     const f = this.filters();
     const q = this.search().trim();
 
     let list = this.issues();
 
-    // sprint filter
-    list = sprintId === 'BACKLOG'
-      ? list.filter(i => !i.sprintId)
-      : list.filter(i => i.sprintId === sprintId);
+    // Board-based filtering with null safety
+    if (board) {
+      // If board is team-based, filter issues by team
+      if (board.type === 'TEAM' && board.teamId) {
+        list = list.filter(i => i.teamId === board.teamId);
+      }
+      // If board is project-based, show all issues from the project
+      // (no additional filtering needed as issues are already project-scoped)
+    }
 
-    // filters
-    if (f.assignees.length) list = list.filter(i => i.assignee && f.assignees.includes(i.assignee));
-    if (f.workTypes.length) list = list.filter(i => f.workTypes.includes(i.type));
-    if (f.labels.length)    list = list.filter(i => (i.labels ?? []).some(l => f.labels.includes(l)));
-    if (f.statuses.length)  list = list.filter(i => f.statuses.includes(i.status));
-    if (f.priorities.length) list = list.filter(i => f.priorities.includes(i.priority));
+    // Sprint filter - only apply if board type is TEAM or if no board is loaded
+    if (!board || board.type === 'TEAM') {
+      // For team boards or no board, always apply sprint filtering
+      list = sprintId === 'BACKLOG'
+        ? list.filter(i => !i.sprintId)
+        : list.filter(i => i.sprintId === sprintId);
+    } else if (board.type === 'PROJECT') {
+      // For project boards, show all sprints combined (no sprint filtering)
+      // Only filter backlog items if includeBacklog is false
+      if (!board.includeBacklog) {
+        list = list.filter(i => i.sprintId); // Exclude backlog items
+      }
+      // Otherwise show all issues regardless of sprint
+    }
+
+    // filters with null safety
+    if (f.assignees?.length) list = list.filter(i => i.assignee && f.assignees.includes(i.assignee));
+    if (f.workTypes?.length) list = list.filter(i => f.workTypes.includes(i.type));
+    if (f.labels?.length)    list = list.filter(i => (i.labels ?? []).some(l => f.labels.includes(l)));
+    if (f.statuses?.length)  list = list.filter(i => f.statuses.includes(i.status));
+    if (f.priorities?.length) list = list.filter(i => f.priorities.includes(i.priority));
 
     // search (title + description + id)
     if (q) {
       list = list.filter(i =>
-        fuzzyIncludes(i.title, q) ||
-        fuzzyIncludes(i.description, q) ||
-        fuzzyIncludes(i.id, q)
+        fuzzyIncludes(i.title ?? '', q) ||
+        fuzzyIncludes(i.description ?? '', q) ||
+        fuzzyIncludes(i.id ?? '', q)
       );
     }
 
@@ -69,7 +96,8 @@ export class BoardStore {
         if (priorityA !== priorityB) {
           return priorityA - priorityB;
         }
-        return a.updatedAt.getTime() - b.updatedAt.getTime();
+        // Use createdAt for stable sorting (doesn't change when you edit)
+        return a.createdAt.getTime() - b.createdAt.getTime();
       });
     };
     
@@ -192,6 +220,42 @@ export class BoardStore {
     this._issues.update(list => [...list, ...backlog.map(i => ({...i, sprintId: i.sprintId}))]);
   }
 
+  // Load board context and apply board-specific settings
+  loadBoard(boardId: string): boolean {
+    const board = this.boardService.getBoardById(boardId);
+    
+    if (!board) {
+      console.warn(`Board with id ${boardId} not found`);
+      return false;
+    }
+
+    this.boardService.setCurrentBoard(boardId);
+    
+    // Update columns based on board configuration
+    if (board.columns && board.columns.length > 0) {
+      this.columns.set([...board.columns]);
+    }
+    
+    // Set sprint selection based on board type
+    if (board.type === 'TEAM') {
+      // Team boards: Show ACTIVE sprint issues by default
+      const activeSprint = this._sprints().find(s => s.status === 'ACTIVE');
+      if (activeSprint) {
+        console.log('📋 loadBoard - Team board, selecting active sprint:', activeSprint.id);
+        this.selectedSprintId.set(activeSprint.id);
+      } else {
+        console.log('📋 loadBoard - Team board, no active sprint, selecting BACKLOG');
+        this.selectedSprintId.set('BACKLOG');
+      }
+    } else if (board.type === 'PROJECT') {
+      // Project boards: Show ALL issues (BACKLOG shows everything)
+      console.log('📋 loadBoard - Project board, selecting BACKLOG (all issues)');
+      this.selectedSprintId.set('BACKLOG');
+    }
+    
+    return true;
+  }
+
   selectSprint(id: string | 'BACKLOG') { this.selectedSprintId.set(id); }
   setSearch(q: string) { this.search.set(q); }
   applyFilters(f: Partial<FilterState>) { this.filters.update(curr => ({...curr, ...f})); }
@@ -200,6 +264,41 @@ export class BoardStore {
 
   updateIssueStatus(issueId: string, status: IssueStatus) {
     this._issues.update(list => list.map(i => i.id === issueId ? ({...i, status, updatedAt: new Date()}) : i));
+  }
+
+  updateIssueTitle(issueId: string, newTitle: string) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, title: newTitle, updatedAt: new Date()}) : i));
+  }
+
+  updateIssueAssignee(issueId: string, assignee: string | undefined) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, assignee, updatedAt: new Date()}) : i));
+  }
+
+  updateIssueDueDate(issueId: string, dueDate: Date | undefined) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, dueDate, updatedAt: new Date()}) : i));
+  }
+
+  createIssue(issueData: Partial<Issue>): Issue {
+    const newIssue: Issue = {
+      id: `ISSUE-${Date.now()}`,
+      title: issueData.title || 'Untitled Issue',
+      status: issueData.status || 'TODO',
+      type: issueData.type || 'TASK',
+      priority: issueData.priority || 'MEDIUM',
+      assignee: issueData.assignee,
+      description: issueData.description || '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      labels: issueData.labels || [],
+      sprintId: issueData.sprintId || this.selectedSprintId(),
+      teamId: issueData.teamId,
+      storyPoints: issueData.storyPoints,
+      parentId: issueData.parentId,
+      epicId: issueData.epicId
+    };
+
+    this._issues.update(list => [...list, newIssue]);
+    return newIssue;
   }
 
   addColumn(def: BoardColumnDef) {

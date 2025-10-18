@@ -12,9 +12,11 @@
     <div class="message-content-wrapper">
       <div class="message-meta">
         <span class="message-author">{{ message.user }}</span>
-        <span class="message-timestamp">{{ formatTimestamp(message.timestamp) }}</span>
+        <span class="message-timestamp" [title]="formatFullDateTime(message.timestamp)">
+          {{ formatTimestamp(message.timestamp) }}
+        </span>
       </div>
-      <div class="message-body">{{ message.text }}</div>
+      <div class="message-body" [innerHTML]="renderMarkdown(message.text)"></div>
 
       <!-- Reactions -->
       @if (message.reactions && message.reactions.length > 0) {

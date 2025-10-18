@@ -1,3 +1,14 @@
+@keyframes jump {
+  0% { transform: translateY(0); }
+  10% { transform: translateY(-8px); }
+  20% { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+
+.jump-clip {
+  animation: jump 2.2s infinite;
+  display: inline-block;
+}
 .modal {
   position: fixed;
   top: 50%;

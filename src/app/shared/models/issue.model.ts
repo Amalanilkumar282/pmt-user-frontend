@@ -12,9 +12,11 @@ export interface Issue {
   assignee?: string;
   storyPoints?: number;
   sprintId?: string;
+  teamId?: string; // Team that owns this issue
   labels?: string[];
   createdAt: Date;
   updatedAt: Date;
+  dueDate?: Date;
   parentId?: string;
   epicId?: string;
 }

@@ -16,7 +16,7 @@
     </ng-container>
 
     <!-- Work Type Column with Badge -->
-    <ng-container matColumnDef="workType">
+    <!-- <ng-container matColumnDef="workType">
       <th mat-header-cell *matHeaderCellDef>Work Type</th>
       <td mat-cell *matCellDef="let row">
         <span class="badge" [ngClass]="{
@@ -28,7 +28,17 @@
           {{ row.workType|titlecase }}
         </span>
       </td>
-    </ng-container>
+    </ng-container> -->
+    <ng-container matColumnDef="workType">
+  <th mat-header-cell *matHeaderCellDef>Work Type</th>
+  <td mat-cell *matCellDef="let row">
+    <span class="badge"
+          [style.background-color]="getWorkTypeColor(row.workType)"
+          [style.color]="getDarkerColor(getWorkTypeColor(row.workType))">
+      {{ row.workType | titlecase }}
+    </span>
+  </td>
+</ng-container>
 
 
     <!-- Epic Column -->
@@ -41,9 +51,11 @@
     <ng-container matColumnDef="status">
       <th mat-header-cell *matHeaderCellDef>Status</th>
       <td mat-cell *matCellDef="let row">
-        <span class="badge" [style.background-color]="getStatusColor(row.status)" style="color: #fff;">
+        <span class="badge" [style.background-color]="getStatusColor(row.status)"
+          [style.color]="getDarkerColor(getStatusColor(row.status))">
           {{ row.status | titlecase }}
         </span>
+
       </td>
     </ng-container>
 
@@ -52,8 +64,8 @@
       <th mat-header-cell *matHeaderCellDef>Assignee</th>
       <td mat-cell *matCellDef="let row">
         <div class="assignee-cell">
-          <div class="avatar" matTooltip="{{ row.assignee }}" matTooltipClass="dark-tooltip" 
-            matTooltipShowDelay="300" matTooltipHideDelay="100">{{ getInitials(row.assignee) }}</div>
+          <div class="avatar" matTooltip="{{ row.assignee }}" matTooltipClass="dark-tooltip" matTooltipShowDelay="300"
+            matTooltipHideDelay="100">{{ getInitials(row.assignee) }}</div>
 
         </div>
       </td>

@@ -1,0 +1,153 @@
+<!-- Add Board Modal -->
+<div *ngIf="isOpen()" class="modal-overlay" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()" appClickOutside (outsideClick)="closeModal()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-content">
+        <h2 class="modal-title">Create a board</h2>
+        <p class="modal-subtitle">Sprint towards your team objectives with a board, backlog, and reports.</p>
+        <p class="modal-note">Required fields are marked with an asterisk *</p>
+      </div>
+      <button type="button" class="close-btn" (click)="closeModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <form [formGroup]="boardForm" (ngSubmit)="onSubmit()" class="modal-body">
+      <!-- Board Name -->
+      <div class="form-group">
+        <label for="boardName" class="form-label">
+          Name this board *
+        </label>
+        <input
+          id="boardName"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Enter a name for this board"
+          maxlength="100"
+        />
+        <div *ngIf="boardForm.get('name')?.invalid && boardForm.get('name')?.touched" class="error-message">
+          Board name is required (minimum 3 characters)
+        </div>
+      </div>
+
+      <!-- Choose what to include -->
+      <div class="form-group">
+        <label class="form-label">Choose what to include in this board *</label>
+        
+        <!-- Source Selection -->
+        <div class="source-options">
+          <div 
+            class="source-option" 
+            [class.selected]="selectedSource() === 'CUSTOM'"
+            (click)="onSourceChange('CUSTOM')"
+          >
+            <div class="radio-btn">
+              <div class="radio-inner" *ngIf="selectedSource() === 'CUSTOM'"></div>
+            </div>
+            <div class="source-content">
+              <div class="source-title">Work items based on Custom</div>
+              <div class="source-description">Include work items that meet your custom filter criteria</div>
+            </div>
+          </div>
+
+          <div 
+            class="source-option" 
+            [class.selected]="selectedSource() === 'TEAM'"
+            (click)="onSourceChange('TEAM')"
+          >
+            <div class="radio-btn">
+              <div class="radio-inner" *ngIf="selectedSource() === 'TEAM'"></div>
+            </div>
+            <div class="source-content">
+              <div class="source-title">Work items based on Team</div>
+              <div class="source-description">Include work items assigned to a specific team</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Selection (shown when TEAM source is selected) -->
+        <div *ngIf="selectedSource() === 'TEAM'" class="team-selection">
+          <label for="teamSelect" class="form-label-small">Team *</label>
+          <select 
+            id="teamSelect"
+            formControlName="teamId"
+            class="form-select"
+            (change)="onTeamChange($any($event.target).value)"
+          >
+            <option value="">Select a team</option>
+            <option *ngFor="let team of getProjectTeams()" [value]="team.id">
+              {{ team.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Column Selection -->
+      <div class="form-group">
+        <label class="form-label">Select columns for your board</label>
+        <p class="form-description">Choose which columns to display on your board</p>
+        
+        <div class="columns-grid">
+          <div 
+            *ngFor="let column of availableColumns()" 
+            class="column-checkbox"
+            [class.selected]="isColumnSelected(column.id)"
+            (click)="toggleColumn(column.id)"
+          >
+            <div class="checkbox">
+              <svg *ngIf="isColumnSelected(column.id)" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="column-info">
+              <div class="column-color" [style.background-color]="column.color"></div>
+              <span class="column-title">{{ column.title }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Options -->
+      <div class="form-group">
+        <label class="form-label">Additional options</label>
+        
+        <div class="checkbox-option" (click)="includeBacklog.set(!includeBacklog())">
+          <div class="checkbox">
+            <svg *ngIf="includeBacklog()" width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>Include backlog issues</span>
+        </div>
+
+        <div class="checkbox-option" (click)="includeDone.set(!includeDone())">
+          <div class="checkbox">
+            <svg *ngIf="includeDone()" width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>Show done issues</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModal()">
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="btn-primary"
+          [disabled]="!boardForm.valid || selectedColumns().size === 0"
+        >
+          Create
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

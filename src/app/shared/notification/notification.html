@@ -1,0 +1,31 @@
+<div style="position: relative; display: flex; align-items: center; height: 32px;">
+  <button class="btn-secondary" (click)="notificationClick.emit()" aria-label="Notifications" style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 2px;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C8.686 2 6 4.686 6 8v5c0 .553-.447 1-1 1H4c-.553 0-1 .447-1 1v1c0 .553.447 1 1 1h16c.553 0 1-.447 1-1v-1c0-.553-.447-1-1-1h-1c-.553 0-1-.447-1-1V8c0-3.314-2.686-6-6-6zm0 20c1.104 0 2-.896 2-2h-4c0 1.104.896 2 2 2z" fill="#3D62A8"/>
+    </svg>
+  <span *ngIf="unreadCount > 0" style="position: absolute; top: 2px; right: -10px; min-width: 18px; height: 18px; background: #ef4444; color: #fff; font-size: 12px; font-weight: bold; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #fff; pointer-events: none;">{{ unreadCount }}</span>
+  </button>
+  <div *ngIf="showNotificationModal" style="position: fixed; inset: 0; z-index: 1999;" (click)="closeNotificationModal.emit()">
+    <div style="position: absolute; top: 64px; right: 0; min-width: 300px; max-width: 400px; background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.22); border-radius: 8px; padding: 16px 28px;" (click)="$event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="text-2xl font-semibold mb-2">Notifications</h3>
+        <button (click)="closeNotificationModal.emit()" style="background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
+      </div>
+      <div *ngIf="notifications.length; else noNotifications" style="max-height: 320px; overflow-y: auto;">
+        <ul>
+          <li *ngFor="let n of notifications" class="mb-3 pb-2 border-b border-gray-200">
+            <div class="font-semibold text-[#3D62A8] text-base" style="display: flex; align-items: center; gap: 6px;">
+              <span *ngIf="n.unread" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span>
+              {{ n.title }}
+            </div>
+            <div class="text-sm text-gray-700">{{ n.message }}</div>
+            <div class="text-xs text-gray-400 mt-1">{{ n.time }}</div>
+          </li>
+        </ul>
+      </div>
+      <ng-template #noNotifications>
+        <div class="text-gray-500 text-sm">No notifications.</div>
+      </ng-template>
+    </div>
+  </div>
+</div>

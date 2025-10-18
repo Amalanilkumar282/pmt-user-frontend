@@ -55,6 +55,10 @@ export class MessagePage implements OnInit {
   messageText = signal<string>('');
   showTeamDropdown = signal<boolean>(false);
 
+  // Search functionality
+  showSearch = signal<boolean>(false);
+  searchQuery = signal<string>('');
+
   // Available teams with channels
   teams = signal<Team[]>([
     {
@@ -177,7 +181,7 @@ export class MessagePage implements OnInit {
         user: 'Tom Williams',
         userAvatar: 'TW',
         text: "Looks great! Let's schedule a meeting to discuss the rollout plan.",
-        timestamp: new Date('2025-10-15T08:30:00'),
+        timestamp: new Date('2025-10-13T08:30:00'),
       },
     ],
     'channel-5': [
@@ -193,10 +197,20 @@ export class MessagePage implements OnInit {
     ],
   });
 
-  // Computed messages for selected channel
+  // Computed messages for selected channel (with search filtering)
   messages = computed(() => {
     const channelId = this.selectedChannelId();
-    return this.allMessages()[channelId] || [];
+    const allChannelMessages = this.allMessages()[channelId] || [];
+
+    // If search is active and has a query, filter messages
+    if (this.showSearch() && this.searchQuery().trim()) {
+      const query = this.searchQuery().toLowerCase().trim();
+      return allChannelMessages.filter(
+        (msg) => msg.text.toLowerCase().includes(query) || msg.user.toLowerCase().includes(query)
+      );
+    }
+
+    return allChannelMessages;
   });
 
   // Computed selected team info
@@ -363,5 +377,21 @@ export class MessagePage implements OnInit {
       event.preventDefault();
       this.sendMessage();
     }
+  }
+
+  // Search functionality
+  toggleSearch(): void {
+    this.showSearch.update((v) => !v);
+    if (!this.showSearch()) {
+      this.searchQuery.set('');
+    }
+  }
+
+  onSearchQueryChange(query: string): void {
+    this.searchQuery.set(query);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
   }
 }
