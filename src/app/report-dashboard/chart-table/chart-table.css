@@ -275,8 +275,8 @@ tr.mat-mdc-row:hover {
 /* .badge-story { background-color: #bcecbe; }   /* green */
 /* .badge-task { background-color: #8bc3f1; }    blue */
 /* .badge-bug { background-color: #e76f66; }     red */
-/* .badge-epic { background-color: #efca93; }    orange */ */
-
+/* .badge-epic { background-color: #efca93; }    orange */
+/* .badge-improvement { background-color: #d3a4f1; } purple */
 
 /* global styles or component styles (with ::ng-deep) */
  /* Scoped to component using ::ng-deep to style Angular Material tooltip */
