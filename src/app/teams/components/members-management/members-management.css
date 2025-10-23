@@ -182,11 +182,46 @@
   color: white;
 }
 
-/* Members Grid */
-.members-grid {
+/* Members List */
+.members-list {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.list-header {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 1.2fr;
+  gap: 16px;
+  padding: 14px 20px;
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.list-column {
+  display: flex;
+  align-items: center;
+}
+
+.member-col {
+  justify-content: flex-start;
+}
+
+.role-col,
+.status-col,
+.team-col,
+.joined-col {
+  justify-content: flex-start;
+}
+
+.actions-col {
+  justify-content: flex-end;
 }
 
 /* Empty State */
@@ -403,8 +438,8 @@
     grid-template-columns: 1fr;
   }
 
-  .members-grid {
-    grid-template-columns: 1fr;
+  .list-header {
+    display: none;
   }
 
   .filter-buttons {
