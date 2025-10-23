@@ -25,7 +25,7 @@
   overflow: hidden;
 }
 
-/* FIXED: Header height now matches exactly based on view */
+/* FIXED: Header with consistent height */
 .sidebar-header {
   flex-shrink: 0;
   padding: 1rem;
@@ -35,21 +35,7 @@
   align-items: center;
   position: relative;
   z-index: 30;
-}
-
-/* Day view: 3 levels = 96px */
-.sidebar-header.day-view {
-  height: 96px;
-}
-
-/* Month view: 2 levels = 68px */
-.sidebar-header.month-view {
-  height: 68px;
-}
-
-/* Year view: 1 level = 40px */
-.sidebar-header.year-view {
-  height: 40px;
+  height: 60px;
 }
 
 .sidebar-content {
@@ -82,9 +68,10 @@
 .timeline-row.sprint-row {
   background-color: #eef2ff;
   border-bottom: 1px solid #c7d2fe;
-  height: 52px;
-  min-height: 52px;
-  max-height: 52px;
+  /* Keep sprint rows same height as Gantt rows for perfect alignment */
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
 }
 
 .timeline-row.epic-row {
@@ -95,9 +82,10 @@
 .timeline-row.issue-row {
   background-color: white;
   border-bottom: 1px solid #f3f4f6;
-  height: 44px;
-  min-height: 44px;
-  max-height: 44px;
+  /* Ensure issue rows match Gantt rows */
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
 }
 
 .row-content {
@@ -135,7 +123,7 @@
 }
 
 /* ===========================
-   RIGHT CHART AREA - FIXED ALIGNMENT
+   RIGHT CHART AREA - DHTMLX GANTT
    =========================== */
 .timeline-chart {
   flex: 1;
@@ -145,307 +133,78 @@
   position: relative;
 }
 
-/* FIXED: Chart header with exact heights */
-.chart-header {
-  flex-shrink: 0;
-  position: relative;
-  background-color: white;
-  border-bottom: 2px solid #d1d5db;
-  z-index: 25;
+.gantt-container {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
-/* Day view: 3 levels = 96px */
-.chart-header.day-view {
-  height: 96px;
+/* ===========================
+   DHTMLX GANTT CUSTOMIZATION
+   =========================== */
+
+/* Match header height with sidebar */
+.gantt_task .gantt_task_scale {
+  height: 60px !important;
 }
 
-/* Month view: 2 levels = 68px */
-.chart-header.month-view {
-  height: 68px;
+/* Match row heights with sidebar */
+.gantt_task_row {
+  height: 48px !important;
+  line-height: 48px !important;
 }
 
-/* Year view: 1 level = 40px */
-.chart-header.year-view {
-  height: 40px;
+.gantt_row {
+  height: 48px !important;
+  line-height: 48px !important;
 }
 
-.header-scroll-container {
-  width: 100%;
-  height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+.gantt_cell {
+  height: 48px !important;
 }
 
-.header-content {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+/* Ensure consistent task line height */
+.gantt_task_line {
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
 }
 
-/* FIXED: Header levels stack vertically */
-.header-level {
-  position: relative;
-  display: flex;
-  width: 100%;
-  flex-shrink: 0;
+/* Hover effect for resize handles */
+.gantt_task_line:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.header-level.month-header {
-  height: 40px;
+/* Hide default progress indicator */
+.gantt_task_progress {
+  opacity: 0.3;
+}
+
+/* Style the grid background */
+.gantt_task_bg {
+  background-color: #fafafa;
+}
+
+/* Alternate row colors */
+.gantt_row.odd {
+  background-color: #ffffff;
+}
+
+.gantt_row.even {
   background-color: #f9fafb;
-  border-bottom: 1px solid #d1d5db;
 }
 
-.header-level.week-header {
-  height: 28px;
-  background-color: white;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.header-level.day-header {
-  height: 28px;
-  background-color: white;
-}
-
-.header-cell {
-  position: absolute;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Remove vertical grid lines for cleaner look */
+.gantt_task_cell {
   border-right: 1px solid #e5e7eb;
-  font-size: 0.75rem;
 }
 
-.header-cell.month-cell {
-  background-color: #f9fafb;
-  font-weight: 600;
+/* Style scale cells */
+.gantt_scale_cell {
+  border-right: 1px solid #d1d5db;
   color: #374151;
-}
-
-.header-cell.week-cell {
-  font-size: 0.7rem;
-  color: #4b5563;
-  background-color: white;
-}
-
-.header-cell.day-cell {
-  font-size: 0.7rem;
-  color: #6b7280;
-  background-color: white;
-}
-
-.chart-content {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: auto;
-  position: relative;
-  scroll-behavior: auto;
-}
-
-.chart-canvas {
-  position: relative;
-  min-height: 100%;
-}
-
-/* Grid Lines */
-.chart-grid {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.grid-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: #e5e7eb;
-}
-
-.grid-line.major {
-  background-color: #d1d5db;
-}
-
-/* Chart Rows - EXACTLY MATCH SIDEBAR ROWS */
-.chart-rows {
-  position: relative;
-  z-index: 10;
-  min-height: 100%;
-}
-
-.chart-row {
-  height: 48px;
-  min-height: 48px;
-  max-height: 48px;
-  border-bottom: 1px solid #f3f4f6;
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.chart-row.sprint-row {
-  background-color: #eef2ff;
-  border-bottom: 1px solid #c7d2fe;
-  height: 52px;
-  min-height: 52px;
-  max-height: 52px;
-}
-
-.chart-row.epic-row {
-  background-color: white;
-}
-
-.chart-row.issue-row {
-  background-color: white;
-  height: 44px;
-  min-height: 44px;
-  max-height: 44px;
-}
-
-.chart-row:hover {
-  background-color: #f9fafb;
-}
-
-.chart-row.sprint-row:hover {
-  background-color: #dbeafe;
-}
-
-/* Timeline Bars - WITH RESIZE HANDLES */
-.timeline-bar {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-radius: 0.375rem;
-  overflow: visible;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  min-width: 20px;
-}
-
-.timeline-bar.resizing {
-  cursor: ew-resize;
-  z-index: 50;
-}
-
-.bar-resize-handle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.timeline-bar:hover .bar-resize-handle {
-  opacity: 1;
-}
-
-.bar-resize-handle.left {
-  left: 0;
-  background: rgba(255, 255, 255, 0.4);
-  border-top-left-radius: 0.375rem;
-  border-bottom-left-radius: 0.375rem;
-}
-
-.bar-resize-handle.right {
-  right: 0;
-  background: rgba(255, 255, 255, 0.4);
-  border-top-right-radius: 0.375rem;
-  border-bottom-right-radius: 0.375rem;
-}
-
-.sprint-bar {
-  height: 36px;
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-}
-
-.epic-bar {
-  height: 32px;
-  background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
-}
-
-.issue-bar {
-  height: 24px;
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-}
-
-.bar-label {
-  color: white;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  font-size: 0.7rem;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.sprint-bar .bar-label {
-  font-size: 0.75rem;
-}
-
-.epic-bar .bar-label {
-  font-size: 0.7rem;
-}
-
-.issue-bar .bar-label {
-  font-size: 0.65rem;
-}
-
-/* Today Marker - Z-INDEX below dropdowns */
-.today-marker {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background-color: #ef4444;
-  pointer-events: none;
-  z-index: 15;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.today-dot {
-  position: absolute;
-  top: -6px;
-  left: -5px;
-  width: 12px;
-  height: 12px;
-  background-color: #ef4444;
-  border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.today-label {
-  position: absolute;
-  top: 0;
-  left: 6px;
-  margin-top: -20px;
-  background-color: none;
-  color: white;
-  font-size: 0.65rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.25rem;
-  white-space: nowrap;
   font-weight: 600;
+  font-size: 0.875rem;
 }
 
 /* ===========================
@@ -470,9 +229,7 @@
   background: #555;
 }
 
-.header-scroll-container::-webkit-scrollbar {
-  display: none;
-}
+
 
 /* ===========================
    STATUS BADGE COLORS
@@ -556,14 +313,16 @@
   }
 
   .chart-row.sprint-row,
-  .timeline-row.sprint-row {
-    height: 44px;
-    min-height: 44px;
-    max-height: 44px;
+  .timeline-row.sprint-row,
+  .chart-row.sprint-row {
+    /* Slightly larger on small screens if you prefer, but keep consistent between panels */
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
   }
 
-  .chart-row.issue-row,
-  .timeline-row.issue-row {
+  .timeline-row.issue-row,
+  .chart-row.issue-row {
     height: 36px;
     min-height: 36px;
     max-height: 36px;
