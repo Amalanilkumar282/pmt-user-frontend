@@ -76,6 +76,7 @@ export class IssueDetailedView {
     { label: 'Story Points', type: 'number', model: 'storyPoints' },
     { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions },
     { label: 'Sprint', type: 'select', model: 'sprintId', options: this.availableSprints.map(s => s.name), colSpan: 2 }
+    ,{ label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
   ];
 
   this.modalService.open({
@@ -92,6 +93,7 @@ export class IssueDetailedView {
       storyPoints: issue.storyPoints,
       assignee: issue.assignee,
       sprintId: issue.sprintId
+      ,attachments: issue.attachments || []
     },
     showLabels: false,
     submitText: 'Save Changes'

@@ -19,4 +19,5 @@ export interface Issue {
   dueDate?: Date;
   parentId?: string;
   epicId?: string;
+  attachments?: File[];
 }

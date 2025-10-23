@@ -145,9 +145,17 @@
         </div>
       </div>
 
-      <!-- Members Grid -->
+      <!-- Members List -->
       @if (filteredMembers().length > 0) {
-        <div class="members-grid">
+        <div class="members-list">
+          <div class="list-header">
+            <div class="list-column member-col">Member</div>
+            <div class="list-column role-col">Role</div>
+            <div class="list-column status-col">Status</div>
+            <div class="list-column team-col">Team</div>
+            <div class="list-column joined-col">Joined</div>
+            <div class="list-column actions-col">Actions</div>
+          </div>
           @for (member of filteredMembers(); track member.id) {
             <app-member-card
               [member]="member"

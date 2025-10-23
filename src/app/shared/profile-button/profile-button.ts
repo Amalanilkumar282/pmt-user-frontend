@@ -10,6 +10,17 @@ import { CommonModule } from '@angular/common';
 })
 export class ProfileButton {
   @Input() showProfileModal: boolean = false;
+  @Input() userName: string = 'Nadim Naisam';
+  @Input() userEmail: string = 'nadim.naisam@experionglobal.com';
   @Output() profileClick = new EventEmitter<void>();
   @Output() closeProfileModal = new EventEmitter<void>();
+
+  get initials(): string {
+    if (!this.userName) return '';
+    return this.userName
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+  }
 }

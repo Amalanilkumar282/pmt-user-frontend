@@ -32,6 +32,8 @@ import { FormField, ModalService } from '../../modal/modal-service';
   styleUrl: './backlog-page.css'
 })
 export class BacklogPage implements OnInit {
+  // Dummy team names for dropdown
+  teamOptions: string[] = ['Frontend Team', 'Backend Team', 'QA Team', 'DevOps Team', 'Design Team'];
   constructor(private modalService: ModalService) {}
   
   private route = inject(ActivatedRoute);
@@ -111,8 +113,9 @@ export class BacklogPage implements OnInit {
 
   handleCreateSprint() {
       const sprintFields: FormField[] = [
-        { label: 'Sprint Name', type: 'text', model: 'sprintName',required:true, colSpan: 2 },
+        { label: 'Sprint Name', type: 'text', model: 'sprintName', required:true, colSpan: 2 },
         { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+        { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
         { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
         { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
         { label: 'Status', type: 'select', model: 'status', options: ['Planned','Active','Completed'], colSpan: 1 },
@@ -156,6 +159,7 @@ export class BacklogPage implements OnInit {
   const sprintFields: FormField[] = [
     { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required:true },
     { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+    { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
     { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
     { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
     { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
@@ -175,6 +179,7 @@ export class BacklogPage implements OnInit {
       dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
       status: sprint.status || 'Planned',
       storyPoint: totalStoryPoints,
+      teamAssigned: sprint.teamAssigned || '',
     },
     showLabels: false,
     submitText: 'Save Changes'
@@ -341,7 +346,7 @@ export class BacklogPage implements OnInit {
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
     if (this.isResizing) {
-      const deltaX = this.startX - event.clientX;
+      const deltaX = event.clientX - this.startX;
       const newWidth = this.startWidth + deltaX;
       
       // Set min and max width constraints
