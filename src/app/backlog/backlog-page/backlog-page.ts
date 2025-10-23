@@ -346,7 +346,7 @@ export class BacklogPage implements OnInit {
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
     if (this.isResizing) {
-      const deltaX = this.startX - event.clientX;
+      const deltaX = event.clientX - this.startX;
       const newWidth = this.startWidth + deltaX;
       
       // Set min and max width constraints
