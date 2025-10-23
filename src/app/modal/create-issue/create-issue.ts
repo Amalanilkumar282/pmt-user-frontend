@@ -13,6 +13,48 @@ import { isPlatformBrowser } from '@angular/common';
   imports: [NgIf, NgFor, FormsModule, NgClass, NgStyle]
 })
 export class CreateIssue implements OnInit, OnDestroy {
+  // Popup state for editing label
+  editingLabel: string | null = null;
+  editLabelName: string = '';
+  editLabelColor: string = '';
+
+  openEditLabel(label: string) {
+    this.editingLabel = label;
+    this.editLabelName = label;
+    this.editLabelColor = this.labelColors[label] || this.getRandomPastelColor();
+  }
+
+  closeEditLabel() {
+    this.editingLabel = null;
+    this.editLabelName = '';
+    this.editLabelColor = '';
+  }
+
+  saveEditLabel() {
+    if (!this.editingLabel) return;
+    const oldLabel = this.editingLabel;
+    const newLabel = this.editLabelName.trim();
+    if (!newLabel) return;
+    // Update label in formData.labels
+    const idx = this.formData.labels.indexOf(oldLabel);
+    if (idx !== -1) {
+      this.formData.labels[idx] = newLabel;
+      // Update color mapping
+      this.labelColors[newLabel] = this.editLabelColor;
+      if (oldLabel !== newLabel) {
+        delete this.labelColors[oldLabel];
+      }
+    }
+    // Update availableLabels
+    if (!this.availableLabels.includes(newLabel)) {
+      this.availableLabels.push(newLabel);
+    }
+    this.closeEditLabel();
+  }
+
+  onEditColorInput(event: any) {
+    this.editLabelColor = event.target.value;
+  }
   // Simulated backend label storage (replace with API call in future)
   availableLabels: string[] = ['bug', 'feature', 'urgent', 'frontend', 'backend', 'enhancement', 'help wanted'];
   labelInputValue: string = '';

@@ -103,12 +103,31 @@
         </div>
         <div class="flex flex-wrap gap-2 mt-2">
           <span *ngFor="let label of formData.labels"
-            class="inline-flex items-center px-2 py-1 rounded text-gray-700 text-sm"
-            [ngStyle]="{ 'background-color': labelColors[label] || '#f3f4f6' }">
+            class="inline-flex items-center px-2 py-1 rounded text-gray-700 text-sm relative cursor-pointer"
+            [ngStyle]="{ 'background-color': labelColors[label] || '#f3f4f6' }"
+            (click)="openEditLabel(label)">
             {{ label }}
-            <button type="button" (click)="removeLabel(label)"
+            <button type="button" (click)="removeLabel(label); $event.stopPropagation();"
               class="ml-2 text-gray-500 hover:text-gray-700">&times;</button>
           </span>
+
+        <!-- Centered Edit Label Modal -->
+        <div *ngIf="editingLabel" class="fixed inset-0 z-[2001] flex items-center justify-center bg-black/20">
+          <div class="bg-white border border-gray-200 rounded shadow-lg p-5 min-w-[220px] flex flex-col items-stretch animate-fade-in relative">
+            <button type="button" (click)="closeEditLabel()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-lg">&times;</button>
+            <label class="text-xs text-gray-500 mb-1">Edit Label</label>
+            <input type="text" [(ngModel)]="editLabelName" name="editLabelName" class="rounded border border-gray-300 px-2 py-1 text-sm mb-2 focus:ring-2 focus:ring-indigo-200" />
+            <div class="flex items-center gap-2 mb-2">
+              <label class="text-xs text-gray-500">Color:</label>
+              <input type="color" [(ngModel)]="editLabelColor" name="editLabelColor" (input)="onEditColorInput($event)" class="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer" />
+              <span class="w-4 h-4 rounded inline-block border border-gray-200" [ngStyle]="{ 'background-color': editLabelColor }"></span>
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button type="button" (click)="closeEditLabel()" class="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Cancel</button>
+              <button type="button" (click)="saveEditLabel()" class="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700">Save</button>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
     </form>
