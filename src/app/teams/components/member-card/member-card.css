@@ -1,21 +1,31 @@
-.member-card {
+.member-list-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.8fr 1fr 1fr 1.2fr;
+  gap: 16px;
+  padding: 16px 20px;
   background: white;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  padding: 20px;
-  transition: all 0.3s ease;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+  transition: all 0.2s ease;
 }
 
-.member-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+.member-list-row:hover {
+  background: #f9fafb;
 }
 
-.member-header {
+.member-list-row:last-child {
+  border-bottom: none;
+}
+
+.row-column {
+  display: flex;
+  align-items: center;
+}
+
+.member-col {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .member-avatar {
@@ -24,8 +34,8 @@
 
 .member-avatar img,
 .avatar-placeholder {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -36,7 +46,7 @@
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .member-info {
@@ -45,17 +55,17 @@
 }
 
 .member-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #111827;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .member-email {
-  font-size: 13px;
+  font-size: 12px;
   color: #6b7280;
   margin: 0;
   white-space: nowrap;
@@ -64,122 +74,101 @@
 }
 
 .status-badge {
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: white;
   white-space: nowrap;
-}
-
-.member-details {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 0;
-  border-top: 1px solid #f3f4f6;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.detail-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.detail-label {
-  font-size: 13px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.detail-value {
-  font-size: 13px;
-  color: #111827;
-  font-weight: 500;
+  display: inline-block;
 }
 
 .role-badge {
   padding: 4px 10px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: white;
+  display: inline-block;
 }
 
 .team-name {
   color: #3b82f6;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 13px;
 }
 
 .unassigned {
   color: #ef4444;
   font-style: italic;
+  font-size: 13px;
 }
 
-.member-actions {
+.joined-date {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.actions-col {
   display: flex;
   gap: 8px;
-  margin-top: 16px;
+  justify-content: flex-end;
 }
 
-.member-actions button {
-  flex: 1;
+.btn-icon {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  border: none;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.btn-secondary {
+.btn-icon:hover {
   background: #f3f4f6;
-  color: #374151;
+  color: #111827;
+  border-color: #d1d5db;
 }
 
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.btn-danger {
+.btn-icon.btn-danger:hover {
   background: #fee2e2;
   color: #dc2626;
-}
-
-.btn-danger:hover {
-  background: #fecaca;
-}
-
-.member-actions svg {
-  flex-shrink: 0;
+  border-color: #fecaca;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .member-card {
+  .member-list-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
     padding: 16px;
   }
 
-  .member-name {
-    font-size: 14px;
+  .row-column {
+    justify-content: space-between;
   }
 
-  .member-email {
+  .member-col {
+    grid-column: 1;
+  }
+
+  .role-col::before,
+  .status-col::before,
+  .team-col::before,
+  .joined-col::before {
+    content: attr(data-label);
     font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
   }
 
-  .member-actions {
-    flex-direction: column;
-  }
-
-  .member-actions button {
-    width: 100%;
+  .actions-col {
+    justify-content: flex-start;
   }
 }
