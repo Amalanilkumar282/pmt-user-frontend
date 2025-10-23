@@ -16,6 +16,7 @@ export interface Issue {
   labels?: string[];
   createdAt: Date;
   updatedAt: Date;
+  dueDate?: Date;
   parentId?: string;
   epicId?: string;
   attachments?: File[];

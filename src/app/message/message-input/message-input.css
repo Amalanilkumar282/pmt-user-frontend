@@ -1,6 +1,6 @@
 /* Message Input Area */
 .message-input-area {
-  padding: 16px 20px 24px;
+  padding: 12px 20px 16px;
   background-color: #ffffff;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
@@ -45,6 +45,45 @@
 .toolbar-btn:hover {
   background-color: #f3f4f6;
   color: #3d62a8;
+}
+
+.emoji-wrapper {
+  position: relative;
+}
+
+.emoji-picker {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 8px;
+  z-index: 200;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 28px);
+  gap: 6px;
+}
+
+.emoji-item {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  border-radius: 6px;
+}
+
+.emoji-item:hover {
+  background: #f3f4f6;
 }
 
 .toolbar-divider {

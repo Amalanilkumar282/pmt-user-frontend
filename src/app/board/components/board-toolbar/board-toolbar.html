@@ -25,20 +25,61 @@
     </div>
 
     <!-- Dynamic Assignees -->
-    <div class="hidden md:flex items-center gap-2 px-3 border-l border-slate-200">
+    <div class="hidden md:flex items-center gap-2 px-3 border-l border-slate-200 relative">
       <div class="flex -space-x-2">
         <ng-container *ngFor="let a of assignees() | slice:0:5">
-          <div class="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
-               [style.background-color]="a | avatarClass"
-               [title]="a">
+          <button
+            type="button"
+            (click)="toggleAssigneeFilter(a)"
+            class="w-6 h-6 rounded-full border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-sm transition-all cursor-pointer hover:scale-110"
+            [class.border-white]="!isAssigneeFiltered(a)"
+            [class.border-blue-500]="isAssigneeFiltered(a)"
+            [class.ring-2]="isAssigneeFiltered(a)"
+            [class.ring-blue-300]="isAssigneeFiltered(a)"
+            [style.background-color]="a | avatarClass"
+            [title]="a + (isAssigneeFiltered(a) ? ' (filtered)' : ' - click to filter')">
             {{ a | initials }}
-          </div>
+          </button>
         </ng-container>
-        <div *ngIf="assignees().length > 5"
-             class="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-slate-600 text-[10px] font-semibold shadow-sm">
-          +{{ assignees().length - 5 }}
-        </div>
+        @if (assignees().length > 5) {
+          <button
+            type="button"
+            (click)="toggleAllAssigneesDropdown($event)"
+            class="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-slate-600 text-[10px] font-semibold shadow-sm hover:bg-slate-300 transition-colors cursor-pointer">
+            +{{ assignees().length - 5 }}
+          </button>
+        }
       </div>
+      
+      <!-- All Assignees Dropdown -->
+      @if (showAllAssignees()) {
+        <div class="absolute z-50 top-full mt-2 right-0 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[200px]"
+             appClickOutside
+             (outsideClick)="closeAllAssigneesDropdown()"
+             (click)="$event.stopPropagation()">
+          <div class="px-3 py-1 text-xs font-semibold text-slate-500 uppercase">All Assignees</div>
+          <div class="max-h-[300px] overflow-y-auto">
+            @for (assignee of assignees(); track assignee) {
+              <button
+                type="button"
+                (click)="toggleAssigneeFilter(assignee)"
+                class="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                [class.bg-blue-50]="isAssigneeFiltered(assignee)">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                     [style.background-color]="assignee | avatarClass">
+                  {{ assignee | initials }}
+                </div>
+                <span class="flex-1 font-medium text-slate-700">{{ assignee }}</span>
+                @if (isAssigneeFiltered(assignee)) {
+                  <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      }
     </div>
 
     <!-- Actions -->
