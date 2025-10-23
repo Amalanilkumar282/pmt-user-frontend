@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { NgIf, NgFor, NgClass } from '@angular/common';
+import { NgIf, NgFor, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ModalService, FormField } from '../modal-service';
@@ -10,9 +10,45 @@ import { isPlatformBrowser } from '@angular/common';
   templateUrl: './create-issue.html',
   styleUrls: ['./create-issue.css'],
   standalone: true,
-  imports: [NgIf, NgFor, FormsModule, NgClass]
+  imports: [NgIf, NgFor, FormsModule, NgClass, NgStyle]
 })
 export class CreateIssue implements OnInit, OnDestroy {
+  // Simulated backend label storage (replace with API call in future)
+  availableLabels: string[] = ['bug', 'feature', 'urgent', 'frontend', 'backend', 'enhancement', 'help wanted'];
+  labelInputValue: string = '';
+  showLabelDropdown: boolean = false;
+  filteredLabels: string[] = [];
+  labelColors: { [label: string]: string } = {};
+
+  onLabelInput(value: string) {
+    this.labelInputValue = value;
+    if (value.trim().length === 0) {
+      this.showLabelDropdown = false;
+      this.filteredLabels = [];
+      return;
+    }
+    // Filter available labels that match input and are not already selected
+    const lower = value.toLowerCase();
+    this.filteredLabels = this.availableLabels.filter(l => l.toLowerCase().includes(lower) && !this.formData.labels.includes(l));
+    this.showLabelDropdown = this.filteredLabels.length > 0;
+  }
+
+  getRandomPastelColor(): string {
+    const hue = Math.floor(Math.random() * 360);
+    return `hsl(${hue}, 70%, 85%)`;
+  }
+
+  selectLabel(label: string) {
+    if (!this.formData.labels.includes(label)) {
+      this.formData.labels.push(label);
+      if (!this.labelColors[label]) {
+        this.labelColors[label] = this.getRandomPastelColor();
+      }
+    }
+    this.labelInputValue = '';
+    this.showLabelDropdown = false;
+    this.filteredLabels = [];
+  }
 
   removeFile(fieldModel: string, index: number) {
     if (Array.isArray(this.formData[fieldModel])) {
@@ -193,7 +229,19 @@ submit() {
   }
 
   addLabel(label: string) {
-    if (label && !this.formData.labels.includes(label)) this.formData.labels.push(label);
+    if (label && !this.formData.labels.includes(label)) {
+      this.formData.labels.push(label);
+      if (!this.labelColors[label]) {
+        this.labelColors[label] = this.getRandomPastelColor();
+      }
+      // Optionally add to availableLabels for future suggestions
+      if (!this.availableLabels.includes(label)) {
+        this.availableLabels.push(label);
+      }
+    }
+    this.labelInputValue = '';
+    this.showLabelDropdown = false;
+    this.filteredLabels = [];
   }
 
   removeLabel(label: string) {

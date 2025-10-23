@@ -18,4 +18,5 @@ export interface Issue {
   updatedAt: Date;
   parentId?: string;
   epicId?: string;
+  attachments?: File[];
 }
