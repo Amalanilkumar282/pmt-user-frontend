@@ -88,8 +88,10 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       return;
     }
 
-    const allIssues: Issue[] = sprint.issues ?? [];
-    const completedIssues = allIssues.filter(i => i.status === 'DONE');
+  const allIssues: Issue[] = sprint.issues ?? [];
+  const sprintEndDate = new Date(sprint.endDate);
+  // Only include issues that were completed on or before the sprint end date
+  const completedIssues = allIssues.filter(i => i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate);
     const totalScope = allIssues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
     const sorted = completedIssues.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime());
 
