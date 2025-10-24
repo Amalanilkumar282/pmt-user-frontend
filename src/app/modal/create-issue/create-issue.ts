@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { IssueService } from '../../shared/services/issue.service';
 import { NgIf, NgFor, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -130,6 +131,7 @@ showToast(message: string, duration: number = 3000) {
 
   constructor(
     private modalService: ModalService,
+    private issueService: IssueService,
     @Inject(PLATFORM_ID) platformId: Object
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
@@ -182,63 +184,85 @@ close() {
 
 shakeFields: Set<string> = new Set();
 
-submit() {
-  this.invalidFields.clear();
-  this.shakeFields.clear(); // reset shakes
+  submit() {
+    this.invalidFields.clear();
+    this.shakeFields.clear(); // reset shakes
 
+    // Validate required fields (skip hidden fields)
+    for (const field of this.fields) {
+      if (field.hidden) continue; // Skip validation for hidden fields
+      const value = this.formData[field.model];
+      if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
+        this.invalidFields.add(field.model);
+        this.shakeFields.add(field.model);
+        this.showToast('Story Points cannot be negative.');
+        setTimeout(() => this.shakeFields.clear(), 500);
+        return;
+      }
+      if (field.required && (value === null || value === undefined || value === '')) {
+        this.invalidFields.add(field.model);
+        this.shakeFields.add(field.model); // mark for shake
+      }
+    }
 
-  // Validate required fields (skip hidden fields)
-  for (const field of this.fields) {
-    if (field.hidden) continue; // Skip validation for hidden fields
-    const value = this.formData[field.model];
-    if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
-      this.invalidFields.add(field.model);
-      this.shakeFields.add(field.model);
-      this.showToast('Story Points cannot be negative.');
+    // Additional validation: start date should be before or on due date
+    const startDate = this.formData['startDate'];
+    const dueDate = this.formData['dueDate'];
+    if (startDate && dueDate) {
+      const start = new Date(startDate);
+      const due = new Date(dueDate);
+      if (start > due) {
+        this.invalidFields.add('startDate');
+        this.invalidFields.add('dueDate');
+        this.shakeFields.add('startDate');
+        this.shakeFields.add('dueDate');
+        this.showToast('Start date must be before or on Due date.');
+        setTimeout(() => this.shakeFields.clear(), 500);
+        return;
+      }
+    }
+
+    if (this.invalidFields.size > 0) {
+      // Remove shake class after animation ends (so it can trigger again next submit)
       setTimeout(() => this.shakeFields.clear(), 500);
+
+      // Scroll to first invalid field
+      setTimeout(() => {
+        const firstInvalid = document.querySelector('.input-error');
+        if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+
+      // Show toast
+      this.showToast('Please fill all required fields before submitting.');
       return;
     }
-    if (field.required && (value === null || value === undefined || value === '')) {
-      this.invalidFields.add(field.model);
-      this.shakeFields.add(field.model); // mark for shake
-    }
+
+    // Build request object for API (remove projectId)
+    const request = {
+      issueType: this.formData.issueType,
+      title: this.formData.title,
+      description: this.formData.description,
+      priority: this.formData.priority,
+      assigneeId: this.formData.assigneeId,
+      startDate: this.formData.startDate,
+      dueDate: this.formData.dueDate,
+      sprintId: this.formData.sprintId,
+      storyPoints: this.formData.storyPoints,
+      epicId: this.formData.epicId,
+      reporterId: this.formData.reporterId,
+      attachmentUrl: this.formData.attachmentUrl || null
+    };
+
+    this.issueService.createIssue(request).subscribe({
+      next: (response) => {
+        this.showToast('Issue created successfully!', 2000);
+        this.close();
+      },
+      error: (err) => {
+        this.showToast('Failed to create issue.');
+      }
+    });
   }
-
-  // Additional validation: start date should be before or on due date
-  const startDate = this.formData['startDate'];
-  const dueDate = this.formData['dueDate'];
-  if (startDate && dueDate) {
-    const start = new Date(startDate);
-    const due = new Date(dueDate);
-    if (start > due) {
-      this.invalidFields.add('startDate');
-      this.invalidFields.add('dueDate');
-      this.shakeFields.add('startDate');
-      this.shakeFields.add('dueDate');
-      this.showToast('Start date must be before or on Due date.');
-      setTimeout(() => this.shakeFields.clear(), 500);
-      return;
-    }
-  }
-
-  if (this.invalidFields.size > 0) {
-    // Remove shake class after animation ends (so it can trigger again next submit)
-    setTimeout(() => this.shakeFields.clear(), 500);
-
-    // Scroll to first invalid field
-    setTimeout(() => {
-      const firstInvalid = document.querySelector('.input-error');
-      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
-
-    // Show toast
-    this.showToast('Please fill all required fields before submitting.');
-    return;
-  }
-
-  console.log('Form submitted successfully:', this.formData);
-  this.close();
-}
 
 
 
