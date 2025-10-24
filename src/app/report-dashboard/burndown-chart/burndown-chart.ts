@@ -37,14 +37,7 @@ private projectContextService = inject(ProjectContextService);
   selectedSprintId: string | null = 'all';
   issues: Issue[] = [];
 
-  // ngOnInit(): void {
-  //   // Load all sprints from the service
-  //   this.sprints = this.issueSummaryService.getAllSprints();
-
-  //   // Load initial chart data
-  //   this.updatechartData();
-  // }
-
+   
   ngOnInit(): void {
     // Set project context from route params
     const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
@@ -94,8 +87,7 @@ private projectContextService = inject(ProjectContextService);
     // Get issues for the selected sprint
     this.issues = this.issueSummaryService.getIssuesBySprintId(this.selectedSprintId);
 
-    // You can add more chart-specific data updates here
-    // For example, pass the filtered data to your MetricsChart component
+     
   }
 
 

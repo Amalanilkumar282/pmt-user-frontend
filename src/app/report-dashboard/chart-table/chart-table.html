@@ -16,25 +16,16 @@
     </ng-container>
 
     <!-- Work Type Column with Badge -->
-    <!-- <ng-container matColumnDef="workType">
-      <th mat-header-cell *matHeaderCellDef>Work Type</th>
-      <td mat-cell *matCellDef="let row">
-        <span class="badge" [ngClass]="{
-        'badge-story': row.workType === 'STORY',
-        'badge-task': row.workType === 'TASK',
-        'badge-bug': row.workType === 'BUG',
-        'badge-epic': row.workType === 'EPIC'
-      }">
-          {{ row.workType|titlecase }}
-        </span>
-      </td>
-    </ng-container> -->
     <ng-container matColumnDef="workType">
   <th mat-header-cell *matHeaderCellDef>Work Type</th>
   <td mat-cell *matCellDef="let row">
     <span class="badge"
-          [style.background-color]="getWorkTypeColor(row.workType)"
-          [style.color]="getDarkerColor(getWorkTypeColor(row.workType))">
+          [ngClass]="{
+            'badge-story': row.workType === 'STORY',
+            'badge-task': row.workType === 'TASK',
+            'badge-bug': row.workType === 'BUG',
+            'badge-epic': row.workType === 'EPIC'
+          }">
       {{ row.workType | titlecase }}
     </span>
   </td>
@@ -51,8 +42,14 @@
     <ng-container matColumnDef="status">
       <th mat-header-cell *matHeaderCellDef>Status</th>
       <td mat-cell *matCellDef="let row">
-        <span class="badge" [style.background-color]="getStatusColor(row.status)"
-          [style.color]="getDarkerColor(getStatusColor(row.status))">
+        <span class="status-badge"
+              [ngClass]="{
+                'status-done': row.status === 'DONE',
+                'status-todo': row.status === 'TODO' || row.status === 'TO_DO',
+                'status-in-progress': row.status === 'IN_PROGRESS' || row.status === 'IN PROGRESS',
+                'status-on-hold': row.status === 'ON_HOLD' || row.status === 'ON HOLD',
+                'status-in-review': row.status === 'IN_REVIEW' || row.status === 'IN REVIEW'
+              }">
           {{ row.status | titlecase }}
         </span>
 
