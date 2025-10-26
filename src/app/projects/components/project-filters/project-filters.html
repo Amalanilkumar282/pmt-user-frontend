@@ -21,31 +21,22 @@
       </div>
     </div>
 
-    <!-- Filter Button -->
-    <button (click)="toggleFilters()" class="filter-button">
-      <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-        <path
-          d="M5 10H15M2.5 5H17.5M7.5 15H12.5"
-          stroke-width="1.66667"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-      Filter by type
-    </button>
-  </div>
+    <!-- Status Filter -->
+    <select
+      [ngModel]="selectedStatus"
+      (ngModelChange)="onStatusChange($event)"
+      class="filter-select"
+    >
+      <option *ngFor="let status of statuses" [value]="status.value">
+        {{ status.label }}
+      </option>
+    </select>
 
-  <!-- Filter Dropdown -->
-  <div *ngIf="showFilterDropdown" class="filter-dropdown">
-    <div class="filter-options">
-      <button
-        *ngFor="let type of projectTypes"
-        (click)="filterByType(type)"
-        class="type-filter-button"
-        [class.active]="searchQuery === type"
-      >
-        {{ type }}
-      </button>
-    </div>
+    <!-- DU Filter -->
+    <select [ngModel]="selectedDU" (ngModelChange)="onDUChange($event)" class="filter-select">
+      <option *ngFor="let du of dus" [value]="du.value">
+        {{ du.label }}
+      </option>
+    </select>
   </div>
 </div>

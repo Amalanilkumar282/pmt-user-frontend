@@ -28,6 +28,7 @@
         class="team-option"
         [class.active]="team.id === selectedTeamId()"
         (click)="onSelectTeam(team.id)"
+        [title]="team.name"
       >
         <div class="team-icon-badge small">{{ team.icon }}</div>
         <span class="team-option-name">{{ team.name }}</span>
@@ -65,17 +66,44 @@
         @if (channel.unreadCount > 0) {
         <span class="unread-badge">{{ channel.unreadCount }}</span>
         } @if (channel.isPrivate) {
-        <svg class="lock-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <!-- <svg class="lock-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
           <rect x="2" y="5" width="8" height="5" rx="1" stroke="currentColor" stroke-width="1.2" />
           <path
             d="M3.5 5V3.5C3.5 2.12 4.62 1 6 1C7.38 1 8.5 2.12 8.5 3.5V5"
             stroke="currentColor"
             stroke-width="1.2"
           />
-        </svg>
+        </svg> -->
         }
       </button>
       }
     </div>
+
+    <!-- Add Channel Button -->
+    @if (!showAddChannelInput()) {
+    <button class="add-channel-btn" (click)="onAddChannel()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 2V12M2 7H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span class="add-channel-mssg">Add Channel</span>
+    </button>
+    } @else {
+    <div class="add-channel-input-wrapper">
+      <span class="channel-hash">#</span>
+      <input
+        type="text"
+        class="add-channel-input"
+        placeholder="channel-name"
+        [(ngModel)]="newChannelName"
+        (keydown.enter)="onSaveChannel()"
+        (keydown.escape)="onCancelAddChannel()"
+        autofocus
+      />
+      <div class="add-channel-actions">
+        <button class="save-btn" (click)="onSaveChannel()">Save</button>
+        <button class="cancel-btn" (click)="onCancelAddChannel()">Cancel</button>
+      </div>
+    </div>
+    }
   </div>
 </aside>

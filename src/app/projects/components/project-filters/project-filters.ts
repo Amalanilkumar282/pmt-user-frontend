@@ -11,23 +11,39 @@ import { FormsModule } from '@angular/forms';
 })
 export class ProjectFilters {
   @Input() searchQuery: string = '';
-  @Input() projectTypes: string[] = [];
-  @Input() showFilterDropdown: boolean = false;
+  @Input() selectedStatus: string = 'all';
+  @Input() selectedDU: string = 'all';
 
   @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() filterDropdownToggle = new EventEmitter<void>();
-  @Output() typeFilter = new EventEmitter<string>();
+  @Output() statusFilterChange = new EventEmitter<string>();
+  @Output() duFilterChange = new EventEmitter<string>();
+
+  statuses = [
+    { value: 'all', label: 'All Status' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+  ];
+
+  dus = [
+    { value: 'all', label: 'All DU' },
+    { value: 'ATC', label: 'ATC' },
+    { value: 'DES', label: 'DES' },
+    { value: 'RWA', label: 'RWA' },
+    { value: 'DTS', label: 'DTS' },
+  ];
 
   onSearchChange(query: string): void {
     this.searchQuery = query;
     this.searchQueryChange.emit(query);
   }
 
-  toggleFilters(): void {
-    this.filterDropdownToggle.emit();
+  onStatusChange(status: string): void {
+    this.selectedStatus = status;
+    this.statusFilterChange.emit(status);
   }
 
-  filterByType(type: string): void {
-    this.typeFilter.emit(type);
+  onDUChange(du: string): void {
+    this.selectedDU = du;
+    this.duFilterChange.emit(du);
   }
 }
