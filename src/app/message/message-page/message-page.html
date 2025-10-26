@@ -16,6 +16,7 @@
           (channelSelected)="selectChannel($event)"
           (toggleDropdown)="toggleTeamDropdown()"
           (closeDropdown)="closeTeamDropdown()"
+          (addChannel)="addChannel($event)"
         ></app-channel-list>
 
         <!-- Main Chat Area -->
@@ -110,7 +111,6 @@
             [messages]="messages()"
             [channelName]="selectedChannel()?.name || ''"
             [searchQuery]="searchQuery()"
-            (reactionAdded)="onReactionAdded($event)"
           ></app-message-list>
 
           <!-- Message Input Component -->
