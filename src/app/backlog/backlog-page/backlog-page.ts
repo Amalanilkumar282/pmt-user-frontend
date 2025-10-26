@@ -107,6 +107,27 @@ export class BacklogPage implements OnInit {
   // Toggle completed sprints visibility
   toggleCompletedSprints(): void {
     this.showCompletedSprints = !this.showCompletedSprints;
+    
+    // Scroll to completed sprints section when enabled
+    if (this.showCompletedSprints) {
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const completedSprintsSection = document.querySelector('.completed-sprints-section');
+          if (completedSprintsSection) {
+            const navbarHeight = 60; // Approximate navbar height
+            const offsetTop = completedSprintsSection.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
+            
+            window.scrollTo({
+              top: offsetTop,
+              behavior: 'smooth'
+            });
+          } else {
+            console.warn('Completed sprints section not found in DOM');
+          }
+        }, 350); // Increased delay to ensure Angular rendering is complete
+      });
+    }
   }
 
   

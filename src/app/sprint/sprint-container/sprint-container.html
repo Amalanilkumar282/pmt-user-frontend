@@ -16,12 +16,16 @@
       <button 
         class="edit-btn" 
         (click)="onEdit()"
+        [disabled]="sprint.status === 'COMPLETED'"
+        [class.disabled]="sprint.status === 'COMPLETED'"
         aria-label="Edit sprint">
         Edit Sprint
       </button>
       <button 
         class="delete-btn-text" 
-        (click)="onDelete()" 
+        (click)="onDelete()"
+        [disabled]="sprint.status === 'COMPLETED'"
+        [class.disabled]="sprint.status === 'COMPLETED'"
         aria-label="Delete sprint">
         Delete Sprint
       </button>
@@ -41,10 +45,12 @@
       cdkDropList
       [id]="'sprint-' + sprint.id"
       [cdkDropListData]="sprint.issues || []"
-      [cdkDropListConnectedTo]="connectedDropLists"
+      [cdkDropListConnectedTo]="sprint.status === 'COMPLETED' ? [] : connectedDropLists"
+      [cdkDropListDisabled]="sprint.status === 'COMPLETED'"
       (cdkDropListDropped)="onDrop($event)">
       <app-issue-list 
         [issues]="sprint.issues || []"
+        [isReadOnly]="sprint.status === 'COMPLETED'"
         (issueClick)="onIssueClick($event)">
       </app-issue-list>
     </div>
@@ -55,6 +61,7 @@
 <app-issue-detailed-view
   [issue]="selectedIssue()"
   [isOpen]="isModalOpen()"
+  [isReadOnly]="sprint.status === 'COMPLETED'"
   [availableSprints]="availableSprints"
   (close)="onCloseModal()"
   (deleteIssue)="onDeleteIssue($event)"
