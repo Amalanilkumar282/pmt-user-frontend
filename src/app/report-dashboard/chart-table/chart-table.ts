@@ -183,9 +183,12 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       return;
     }
 
+    const sprintEndDate = new Date(sprint.endDate);
+
     const totalCommitted = sprint.issues.reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
+    // Count only issues that were completed on or before the sprint end date
     const completedPoints = sprint.issues
-      .filter(i => i.status === 'DONE')
+      .filter(i => i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate)
       .reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
 
     const rows = [
