@@ -212,8 +212,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       
       return `<b>${task.text}</b><br/>` +
              `<b>Start:</b> ${formatDate(start)}<br/>` +
-             `<b>End:</b> ${formatDate(end)}<br/>` +
-             `<b>Progress:</b> ${Math.round(task.progress * 100)}%`;
+             `<b>End:</b> ${formatDate(end)}`;
+    };
+
+    // Only show task name inside the bar, no percentage
+    gantt.gantt.templates.task_text = (start: Date, end: Date, task: any) => {
+      return task.text;
     };
     
     // Set scale based on current view (simplified - single level)
@@ -292,8 +296,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
             text: row.name,
             start_date: new Date(row.startDate),
             end_date: new Date(row.endDate),
-            duration: Math.ceil((new Date(row.endDate).getTime() - new Date(row.startDate).getTime()) / (1000 * 60 * 60 * 24)),
-            progress: (row.progress || 0) / 100,
             type: row.type,
             originalId: row.id
           };
@@ -347,8 +349,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
             text: row.name,
             start_date: new Date(row.startDate),
             end_date: new Date(row.endDate),
-            duration: Math.ceil((new Date(row.endDate).getTime() - new Date(row.startDate).getTime()) / (1000 * 60 * 60 * 24)),
-            progress: (row.progress || 0) / 100,
             type: row.type,
             originalId: row.id
           };
