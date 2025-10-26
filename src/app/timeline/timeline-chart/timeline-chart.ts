@@ -99,6 +99,9 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   // Scroll synchronization flags
   private isScrollingSidebar = false;
   private isScrollingGantt = false;
+  
+  // Debounce timer for Gantt updates
+  private ganttUpdateTimer: any = null;
 
   // Bar resize properties
   resizingBar: { id: string; side: 'left' | 'right'; startX: number; originalStart: Date; originalEnd: Date } | null = null;
@@ -117,10 +120,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    setTimeout(() => {
-      this.initializeGantt();
-      this.cdr.detectChanges();
-    }, 100);
+    // Use microtask queue to defer Gantt initialization without blocking parent rendering
+    // This ensures navbar/sidebar render first without a noticeable delay
+    Promise.resolve().then(() => {
+      setTimeout(() => {
+        if (this.ganttContainer && this.ganttContainer.nativeElement) {
+          try {
+            this.initializeGantt();
+          } catch (error) {
+            console.error('Failed to initialize Gantt:', error);
+          }
+          this.cdr.detectChanges();
+        }
+      }, 100); // Minimal delay just to ensure sidebar effect completes
+    });
   }
 
   ngOnDestroy() {
@@ -146,8 +159,18 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // Configure Gantt
+    // Configure Gantt BEFORE init
     gantt.gantt.config['date_format'] = '%Y-%m-%d %H:%i';
+    gantt.gantt.config['xml_date'] = '%Y-%m-%d %H:%i';
+    
+    // Enable smart rendering for better performance with many tasks
+    gantt.gantt.config['smart_rendering'] = true;
+    gantt.gantt.config['static_background'] = true;
+    
+    // Fix snapping issue - disable rounding to allow precise positioning
+    gantt.gantt.config['round_dnd_dates'] = false;
+    gantt.gantt.config['duration_unit'] = 'day';
+    gantt.gantt.config['duration_step'] = 1;
     
     // Enable drag and drop
     gantt.gantt.config['drag_move'] = true;
@@ -168,16 +191,42 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     gantt.gantt.config['readonly'] = false;
     gantt.gantt.config['show_errors'] = false;
     
+    // Enable "Today" marker
+    gantt.gantt.config['show_markers'] = true;
+    
     // Fit all tasks into view
-    gantt.gantt.config['fit_tasks'] = true;
+    gantt.gantt.config['fit_tasks'] = false;
+    
+    // Enable tooltip and marker plugins
+    gantt.gantt.plugins({
+      tooltip: true,
+      marker: true
+    });
+    
+    // Configure tooltip template to show start and end dates
+    gantt.gantt.templates.tooltip_text = (start: Date, end: Date, task: any) => {
+      const formatDate = (date: Date) => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+      };
+      
+      return `<b>${task.text}</b><br/>` +
+             `<b>Start:</b> ${formatDate(start)}<br/>` +
+             `<b>End:</b> ${formatDate(end)}<br/>` +
+             `<b>Progress:</b> ${Math.round(task.progress * 100)}%`;
+    };
     
     // Set scale based on current view (simplified - single level)
     this.updateGanttScale();
     
+    // Set explicit date range for the chart
+    gantt.gantt.config.start_date = this.dateRange.start;
+    gantt.gantt.config.end_date = this.dateRange.end;
+    
     // Initialize gantt
     gantt.gantt.init(this.ganttContainer.nativeElement);
     
-    // Load data
+    // Load data AFTER init
     this.loadGanttData();
     
     // Sync scroll with sidebar
@@ -201,66 +250,130 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private updateGanttScale(): void {
+    // Use the new scales configuration API instead of obsolete scale_unit/subscales
     switch (this.currentView) {
       case 'day':
         // Day view: Show Month as main header, Day as sub-header
-        gantt.gantt.config['scale_unit'] = 'month';
-        gantt.gantt.config['date_scale'] = '%M %Y';
-        gantt.gantt.config['subscales'] = [
-          { unit: 'day', step: 1, date: '%d' }
+        gantt.gantt.config['scales'] = [
+          { unit: 'month', step: 1, format: '%M %Y' },
+          { unit: 'day', step: 1, format: '%d' }
         ];
         gantt.gantt.config['scale_height'] = 60;
         break;
       case 'month':
         // Month view: Show only Month (no subscales)
-        gantt.gantt.config['scale_unit'] = 'month';
-        gantt.gantt.config['date_scale'] = '%M %Y';
-        gantt.gantt.config['subscales'] = [];
+        gantt.gantt.config['scales'] = [
+          { unit: 'month', step: 1, format: '%M %Y' }
+        ];
         gantt.gantt.config['scale_height'] = 60;
         break;
       case 'year':
         // Year view: Show only Year (no subscales)
-        gantt.gantt.config['scale_unit'] = 'year';
-        gantt.gantt.config['date_scale'] = '%Y';
-        gantt.gantt.config['subscales'] = [];
+        gantt.gantt.config['scales'] = [
+          { unit: 'year', step: 1, format: '%Y' }
+        ];
         gantt.gantt.config['scale_height'] = 60;
         break;
     }
   }
 
   private loadGanttData(): void {
-    const tasks: any[] = [];
-    let taskId = 1;
+    try {
+      const tasks: any[] = [];
+      let taskId = 1;
 
-    this.timelineRows.forEach(row => {
-      if (row.visible === false) return;
-      
-      if (row.startDate && row.endDate) {
-        const task: any = {
-          id: taskId++,
-          text: row.name,
-          start_date: this.formatDateForGantt(row.startDate),
-          end_date: this.formatDateForGantt(row.endDate),
-          progress: (row.progress || 0) / 100,
-          type: row.type,
-          originalId: row.id
-        };
+      this.timelineRows.forEach(row => {
+        if (row.visible === false) return;
+        
+        if (row.startDate && row.endDate) {
+          // Use Date objects directly instead of formatted strings
+          const task: any = {
+            id: taskId++,
+            text: row.name,
+            start_date: new Date(row.startDate),
+            end_date: new Date(row.endDate),
+            duration: Math.ceil((new Date(row.endDate).getTime() - new Date(row.startDate).getTime()) / (1000 * 60 * 60 * 24)),
+            progress: (row.progress || 0) / 100,
+            type: row.type,
+            originalId: row.id
+          };
 
-        // Set colors based on type
-        if (row.type === 'sprint') {
-          task.color = '#3b82f6';
-        } else if (row.type === 'epic') {
-          task.color = '#a855f7';
-        } else if (row.type === 'issue') {
-          task.color = '#10b981';
+          // Set colors based on type
+          if (row.type === 'sprint') {
+            task.color = '#3b82f6';
+          } else if (row.type === 'epic') {
+            task.color = '#a855f7';
+          } else if (row.type === 'issue') {
+            task.color = '#10b981';
+          }
+
+          tasks.push(task);
         }
+      });
 
-        tasks.push(task);
+      gantt.gantt.clearAll();
+      if (tasks.length > 0) {
+        gantt.gantt.parse({ data: tasks });
       }
-    });
+      this.drawTodayMarker();
+    } catch (error) {
+      console.error('Error loading Gantt data:', error);
+      // Don't crash the component - just skip Gantt rendering
+    }
+  }
 
-    gantt.gantt.clearAll();
-    gantt.gantt.parse({ data: tasks });
+  private drawTodayMarker(): void {
+    const today = new Date();
+    gantt.gantt.addMarker({
+        start_date: today,
+        css: "today-marker",
+        text: "Today",
+        title: "Today: " + today.toDateString()
+    });
+  }
+
+  private updateGanttData(): void {
+    try {
+      // More efficient update - only rebuild visible tasks without full reload
+      const tasks: any[] = [];
+      let taskId = 1;
+
+      this.timelineRows.forEach(row => {
+        if (row.visible === false) return;
+        
+        if (row.startDate && row.endDate) {
+          const task: any = {
+            id: taskId++,
+            text: row.name,
+            start_date: new Date(row.startDate),
+            end_date: new Date(row.endDate),
+            duration: Math.ceil((new Date(row.endDate).getTime() - new Date(row.startDate).getTime()) / (1000 * 60 * 60 * 24)),
+            progress: (row.progress || 0) / 100,
+            type: row.type,
+            originalId: row.id
+          };
+
+          if (row.type === 'sprint') {
+            task.color = '#3b82f6';
+          } else if (row.type === 'epic') {
+            task.color = '#a855f7';
+          } else if (row.type === 'issue') {
+            task.color = '#10b981';
+          }
+
+          tasks.push(task);
+        }
+      });
+
+      // Clear and parse without full re-initialization
+      gantt.gantt.clearAll();
+      if (tasks.length > 0) {
+        gantt.gantt.parse({ data: tasks });
+      }
+      this.drawTodayMarker();
+    } catch (error) {
+      console.error('Error updating Gantt data:', error);
+    }
   }
 
   private formatDateForGantt(date: Date): string {
@@ -277,23 +390,28 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     const dataArea = ganttElement.querySelector('.gantt_data_area');
     
     if (dataArea && this.sidebarContent && this.sidebarContent.nativeElement) {
-      // Listen to Gantt scroll and sync to sidebar
+      // Use passive listener for better scroll performance
       dataArea.addEventListener('scroll', (event: any) => {
         if (this.sidebarContent && this.sidebarContent.nativeElement) {
           // Prevent circular updates
           if (!this.isScrollingSidebar) {
             this.isScrollingGantt = true;
-            this.sidebarContent.nativeElement.scrollTop = event.target.scrollTop;
+            // Use requestAnimationFrame for smoother scrolling
+            requestAnimationFrame(() => {
+              if (this.sidebarContent && this.sidebarContent.nativeElement) {
+                this.sidebarContent.nativeElement.scrollTop = event.target.scrollTop;
+              }
+            });
             setTimeout(() => {
               this.isScrollingGantt = false;
             }, 50);
           }
         }
-      });
+      }, { passive: true });
     }
   }
 
-  // Sidebar scroll sync - updated to use flags
+  // Sidebar scroll sync - optimized with requestAnimationFrame
   onSidebarScroll(event: Event): void {
     const sidebar = event.target as HTMLElement;
     const scrollTop = sidebar.scrollTop;
@@ -303,7 +421,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     if (dataArea && !this.isScrollingGantt) {
       this.isScrollingSidebar = true;
-      dataArea.scrollTop = scrollTop;
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        if (dataArea) {
+          dataArea.scrollTop = scrollTop;
+        }
+      });
       setTimeout(() => {
         this.isScrollingSidebar = false;
       }, 50);
@@ -440,9 +563,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
     this.cdr.detectChanges();
     
-    // Refresh Gantt chart with new data
-    if (this.ganttContainer && this.ganttContainer.nativeElement) {
-      this.loadGanttData();
+    // Refresh Gantt chart with new data - only if Gantt is already initialized
+    // Use debouncing to prevent multiple rapid updates
+    if (this.ganttContainer && this.ganttContainer.nativeElement && gantt.gantt.$root) {
+      if (this.ganttUpdateTimer) {
+        clearTimeout(this.ganttUpdateTimer);
+      }
+      
+      this.ganttUpdateTimer = setTimeout(() => {
+        try {
+          this.updateGanttData();
+        } catch (error) {
+          console.error('Error refreshing Gantt:', error);
+        }
+      }, 150); // Debounce by 150ms
     }
   }
 

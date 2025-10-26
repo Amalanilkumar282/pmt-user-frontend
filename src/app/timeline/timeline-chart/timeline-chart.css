@@ -1,6 +1,13 @@
 /* Timeline Chart Styles - FIXED ALIGNMENT VERSION */
 
 /* ===========================
+   WRAPPER - No full-screen height
+   =========================== */
+.timeline-chart-wrapper {
+  width: 100%;
+}
+
+/* ===========================
    MAIN CONTAINER LAYOUT
    =========================== */
 .timeline-container {
@@ -382,4 +389,11 @@
   to {
     transform: translateX(0);
   }
+}
+
+/* Today Marker */
+.today-marker {
+    background-color: red;
+    opacity: 0.4;
+    width: 2px;
 }
