@@ -8,8 +8,6 @@ interface Message {
   userAvatar: string;
   text: string;
   timestamp: Date;
-  reactions?: { emoji: string; count: number; users: string[] }[];
-  threadCount?: number;
 }
 
 @Component({
@@ -24,13 +22,7 @@ export class MessageList {
   channelName = input<string>('');
   searchQuery = input<string>('');
 
-  reactionAdded = output<{ messageId: string; emoji: string }>();
-
   constructor(private sanitizer: DomSanitizer) {}
-
-  onAddReaction(messageId: string, emoji: string): void {
-    this.reactionAdded.emit({ messageId, emoji });
-  }
 
   formatTimestamp(date: Date): string {
     const now = new Date();
