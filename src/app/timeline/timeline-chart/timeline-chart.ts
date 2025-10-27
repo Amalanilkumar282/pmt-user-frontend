@@ -1006,4 +1006,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   private applyFilters() {
     this.prepareTimelineData();
   }
+
+  getTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'STORY': 'fa-solid fa-book',
+      'TASK': 'fa-solid fa-check-circle',
+      'BUG': 'fa-solid fa-bug',
+      'EPIC': 'fa-solid fa-bolt'
+    };
+    return icons[type] || 'fa-solid fa-file';
+  }
 }

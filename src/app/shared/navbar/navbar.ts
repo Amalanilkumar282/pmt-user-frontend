@@ -124,7 +124,7 @@ export class Navbar {
           label: 'Priority',
           type: 'select',
           model: 'priority',
-          options: ['High', 'Medium', 'Low'],
+          options: ['Critical', 'High', 'Medium', 'Low'],
           required: true,
           colSpan: 1
         },
@@ -219,7 +219,7 @@ export class Navbar {
     { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
     { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
     { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
-    { label: 'Priority', type: 'select', model: 'priority', options: ['High','Medium','Low'], colSpan: 1 },
+    { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
     { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
     { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
     { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
