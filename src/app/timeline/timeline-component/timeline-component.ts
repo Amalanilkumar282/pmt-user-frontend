@@ -5,11 +5,12 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { TimelineChart } from '../timeline-chart/timeline-chart';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-timeline-component',
   standalone: true,
-  imports: [Navbar, Sidebar, TimelineChart],
+  imports: [CommonModule, Navbar, Sidebar, TimelineChart],
   templateUrl: './timeline-component.html',
   styleUrl: './timeline-component.css'
 })

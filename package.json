@@ -39,6 +39,7 @@
     "apexcharts": "^5.3.5",
     "chart.js": "^4.5.0",
     "chartjs": "^0.3.24",
+    "dhtmlx-gantt": "^9.0.15",
     "echarts": "^6.0.0",
     "express": "^5.1.0",
     "frappe-gantt": "^1.0.3",
@@ -52,7 +53,7 @@
     "zone.js": "^0.15.1"
   },
   "devDependencies": {
-    "@angular/build": "^20.3.2",
+    "@angular/build": "^20.1.6",
     "@angular/cli": "^20.3.2",
     "@angular/compiler-cli": "^20.3.0",
     "@types/express": "^5.0.1",
@@ -64,6 +65,6 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.9.2"
+    "typescript": "^5.8.3"
   }
 }

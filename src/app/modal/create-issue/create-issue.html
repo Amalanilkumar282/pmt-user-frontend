@@ -5,11 +5,10 @@
 
     <!-- Header -->
     <div class="px-6 py-4 border-b border-gray-100 sticky top-0 bg-[#Fcffff] z-10">
-
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-semibold text-gray-800 mt-1">{{ modalTitle }}</h2>
+        <button type="button" (click)="close()" class="ml-2 text-gray-400 hover:text-gray-700 text-2xl font-bold bg-transparent border-none cursor-pointer" aria-label="Close modal">&times;</button>
       </div>
-      
       <p class="text-sm text-gray-500 mt-1 italic">{{modalDesc}}</p>
       <!-- Floating Toast -->
       <div *ngIf="showErrorToast"
@@ -42,17 +41,21 @@
             <div *ngIf="field.type==='file'" class="mt-1 w-full flex flex-col items-center justify-center border border-gray-300 rounded-md shadow shadow-slate-100 bg-white" style="width:100%;height:calc(33vw/2);max-height:120px;min-height:60px;">
               <label for="file-upload-{{field.model}}" class="flex flex-col items-center justify-center w-full h-full cursor-pointer">
                 <span class="text-3xl text-[#3D62A8] mb-1 jump-clip">📎</span>
-                <span class="text-gray-700 text-sm font-medium">Click or drag files to upload</span>
+                <ng-container *ngIf="!(isArray(formData[field.model]) && (formData[field.model] || []).length > 0)">
+                  <span class="text-gray-700 text-sm font-medium">Click or drag files to upload</span>
+                </ng-container>
+                <ng-container *ngIf="isArray(formData[field.model]) && (formData[field.model] || []).length > 0">
+                  <span class="text-gray-700 text-sm font-medium">
+                    <span *ngFor="let f of (formData[field.model] || []); let i = index" class="flex items-center justify-center gap-2 mb-1 truncate">
+                      {{ f.name }}
+                      <button type="button" (click)="removeFile(field.model, i)" class="ml-2 px-1 py-0.5 rounded bg-red-100 text-red-600 text-xs hover:bg-red-200" title="Remove file">&times;</button>
+                    </span>
+                  </span>
+                </ng-container>
                 <input id="file-upload-{{field.model}}" type="file" name="{{field.model}}" multiple
                   (change)="handleFileSelect($event, field)"
                   class="hidden" />
               </label>
-              <div *ngIf="formData[field.model]?.length" class="mt-2 text-xs text-gray-600 w-full text-center">
-                <span *ngFor="let f of formData[field.model]; let i = index" class="flex items-center justify-center gap-2 mb-1 truncate">
-                  {{ f.name }}
-                  <button type="button" (click)="removeFile(field.model, i)" class="ml-2 px-1 py-0.5 rounded bg-red-100 text-red-600 text-xs hover:bg-red-200" title="Remove file">&times;</button>
-                </span>
-              </div>
             </div>
 
             <!-- Textarea -->
@@ -83,21 +86,56 @@
       <div *ngIf="showLabels" class="mt-4">
         <label class="block text-sm font-medium text-gray-700">Labels</label>
         <div class="flex gap-2 mt-1">
-          <input #labelInput type="text" placeholder="Enter label"
-            class="flex-1 rounded-md border-gray-300 shadow shadow-slate-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-3 px-3" />
-          <button type="button" (click)="addLabel(labelInput.value); labelInput.value=''"
-            class="px-3 py-1 bg-black text-white rounded-md text-sm border-2 border-transparent hover:bg-white hover:text-black hover:border-black">
+          <div class="relative w-full flex-1">
+            <input type="text" placeholder="Enter label" [(ngModel)]="labelInputValue" name="labelInputValue" (input)="onLabelInput($event.target.value)"
+              class="flex-1 rounded-md border-gray-300 shadow shadow-slate-400 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-3 px-3 w-full" autocomplete="off" />
+            <!-- Dropdown for label suggestions -->
+            <div *ngIf="showLabelDropdown" class="absolute left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow z-50 max-h-40 overflow-y-auto">
+              <div *ngFor="let label of filteredLabels" (click)="selectLabel(label)" class="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm">
+                {{ label }}
+              </div>
+            </div>
+          </div>
+          <button type="button" (click)="addLabel(labelInputValue)"
+            class="px-3 py-1 bg-black text-white rounded-md text-sm border border-2 border-transparent hover:bg-white hover:text-black hover:border-black ml-2">
             Add
           </button>
         </div>
-        <div class="flex flex-wrap gap-2 mt-2">
-          <span *ngFor="let label of formData.labels"
-            class="inline-flex items-center px-2 py-1 rounded bg-gray-200 text-gray-700 text-sm">
-            {{ label }}
-            <button type="button" (click)="removeLabel(label)"
-              class="ml-2 text-gray-500 hover:text-gray-700">&times;</button>
-          </span>
+          <div class="flex items-center gap-2 mt-2">
+            <ng-container *ngIf="formData.labels && formData.labels.length > 0">
+              <span class="relative group">
+                <i class="fa fa-info-circle text-gray-500 cursor-pointer align-middle" style="font-size:16px;vertical-align:middle;"></i>
+                <span class="absolute left-0 bottom-full mb-2 px-2 py-1 rounded bg-black text-white text-xs whitespace-nowrap z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" style="font-size:11px;">Click a label to edit</span>
+              </span>
+            </ng-container>
+            <div class="flex flex-wrap gap-2">
+              <span *ngFor="let label of (formData.labels || [])"
+                class="inline-flex items-center px-2 py-1 rounded-full text-gray-700 text-sm relative cursor-pointer"
+                [ngStyle]="{ 'background-color': labelColors[label] || '#f3f4f6' }"
+                (click)="openEditLabel(label)">
+                {{ label }}
+                <button type="button" (click)="removeLabel(label); $event.stopPropagation();"
+                  class="ml-2 text-gray-500 hover:text-gray-700">&times;</button>
+              </span>
+            </div>
+          </div>
         </div>
+        <!-- Centered Edit Label Modal -->
+        <div *ngIf="editingLabel" class="fixed inset-0 z-[2001] flex items-center justify-center bg-black/20">
+          <div class="bg-white border border-gray-200 rounded shadow-lg p-5 min-w-[220px] flex flex-col items-stretch animate-fade-in relative">
+            <button type="button" (click)="closeEditLabel()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-lg">&times;</button>
+            <label class="text-xs text-gray-500 mb-1">Edit Label</label>
+            <input type="text" [(ngModel)]="editLabelName" name="editLabelName" class="rounded border border-gray-300 px-2 py-1 text-sm mb-2 focus:ring-2 focus:ring-indigo-200" />
+            <div class="flex items-center gap-2 mb-2">
+              <label class="text-xs text-gray-500">Color:</label>
+              <input type="color" [(ngModel)]="editLabelColor" name="editLabelColor" (input)="onEditColorInput($event)" class="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer" />
+              <span class="w-4 h-4 rounded inline-block border border-gray-200" [ngStyle]="{ 'background-color': editLabelColor }"></span>
+            </div>
+            <div class="flex gap-2 justify-end">
+              <button type="button" (click)="closeEditLabel()" class="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Cancel</button>
+              <button type="button" (click)="saveEditLabel()" class="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700">Save</button>
+            </div>
+          </div>
       </div>
     </form>
 

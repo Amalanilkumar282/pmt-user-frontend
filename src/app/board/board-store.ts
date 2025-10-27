@@ -96,7 +96,8 @@ export class BoardStore {
         if (priorityA !== priorityB) {
           return priorityA - priorityB;
         }
-        return a.updatedAt.getTime() - b.updatedAt.getTime();
+        // Use createdAt for stable sorting (doesn't change when you edit)
+        return a.createdAt.getTime() - b.createdAt.getTime();
       });
     };
     
@@ -263,6 +264,41 @@ export class BoardStore {
 
   updateIssueStatus(issueId: string, status: IssueStatus) {
     this._issues.update(list => list.map(i => i.id === issueId ? ({...i, status, updatedAt: new Date()}) : i));
+  }
+
+  updateIssueTitle(issueId: string, newTitle: string) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, title: newTitle, updatedAt: new Date()}) : i));
+  }
+
+  updateIssueAssignee(issueId: string, assignee: string | undefined) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, assignee, updatedAt: new Date()}) : i));
+  }
+
+  updateIssueDueDate(issueId: string, dueDate: Date | undefined) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, dueDate, updatedAt: new Date()}) : i));
+  }
+
+  createIssue(issueData: Partial<Issue>): Issue {
+    const newIssue: Issue = {
+      id: `ISSUE-${Date.now()}`,
+      title: issueData.title || 'Untitled Issue',
+      status: issueData.status || 'TODO',
+      type: issueData.type || 'TASK',
+      priority: issueData.priority || 'MEDIUM',
+      assignee: issueData.assignee,
+      description: issueData.description || '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      labels: issueData.labels || [],
+      sprintId: issueData.sprintId || this.selectedSprintId(),
+      teamId: issueData.teamId,
+      storyPoints: issueData.storyPoints,
+      parentId: issueData.parentId,
+      epicId: issueData.epicId
+    };
+
+    this._issues.update(list => [...list, newIssue]);
+    return newIssue;
   }
 
   addColumn(def: BoardColumnDef) {

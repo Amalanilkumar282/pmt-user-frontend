@@ -8,20 +8,21 @@
     @for (issue of issues$(); track issue.id) {
       <div 
         cdkDrag
+        [cdkDragDisabled]="isReadOnly"
         [cdkDragData]="issue"
-        [class]="'issue-card ' + (issue.status === 'DONE' ? 'completed-issue' : '')"
+        [class]="'issue-card ' + (issue.status === 'DONE' ? 'completed-issue' : '') + (isReadOnly ? ' read-only' : '')"
         (click)="onIssueClick(issue)">
         
         <div class="flex items-center justify-between gap-3">
           <!-- Left side: Icon, ID, Title -->
           <div class="flex items-center gap-2 flex-1 min-w-0">
-            <span class="text-base flex-shrink-0">{{ getTypeIcon(issue.type) }}</span>
+            <i [class]="getTypeIcon(issue.type)" class="flex-shrink-0"></i>
             <span [class]="'text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'text-green-600' : 'text-gray-500')">{{ issue.id }}</span>
             <h4 [class]="'font-medium text-sm truncate ' + (issue.status === 'DONE' ? 'text-green-700 line-through' : 'text-gray-900')">
               {{ issue.title }}
             </h4>
             @if (issue.status === 'DONE') {
-              <span class="completed-badge-inline">✓</span>
+              <i class="fa-solid fa-circle-check text-green-600 completed-badge-inline"></i>
             }
           </div>
           

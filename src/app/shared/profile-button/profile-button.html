@@ -1,26 +1,23 @@
-<button class="btn-profile" (click)="profileClick.emit()" aria-label="Profile" style="position: relative; width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: none; background: #f3f4f6; display: flex; align-items: center; justify-content: center; margin-left: 2px;">
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="8" r="4" fill="#3D62A8"/>
-    <rect x="6" y="16" width="12" height="4" rx="2" fill="#3D62A8"/>
-  </svg>
+<button class="btn-profile relative w-7 h-7 rounded-full overflow-hidden border-none bg-[#3D62A8] flex items-center justify-center ml-0.5" (click)="profileClick.emit()" aria-label="Profile">
+  <span class="text-white font-semibold text-xs">{{ initials }}</span>
 </button>
-<div *ngIf="showProfileModal" style="position: fixed; inset: 0; z-index: 1999;" (click)="closeProfileModal.emit()">
-  <div style="position: absolute; top: 72px; right: 56px; width: 340px; background: #fff; border-radius: 12px; box-shadow: 0 8px 32px rgba(60,72,100,0.16); padding: 0; display: flex; flex-direction: column; font-family: 'Segoe UI', Arial, sans-serif;" (click)="$event.stopPropagation()">
+<div *ngIf="showProfileModal" class="fixed inset-0 z-[1999]" (click)="closeProfileModal.emit()">
+  <div class="absolute top-18 right-14 w-[340px] bg-white rounded-xl shadow-2xl p-0 flex flex-col font-sans" (click)="$event.stopPropagation()">
     <!-- User Info Header -->
-    <div style="display: flex; align-items: center; padding: 20px 20px 16px 20px; border-bottom: 1px solid #ececec;">
-      <div style="width: 48px; height: 48px; border-radius: 50%; background: #D93025; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.25rem; color: #fff; margin-right: 16px; box-shadow: 0 2px 8px rgba(217,48,37,0.10);">NN</div>
-      <div style="flex: 1;">
-        <div style="font-weight: 600; color: #202124; font-size: 1.1rem;">Nadim Naisam</div>
-        <div style="font-size: 0.98rem; color: #5F6368; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">nadim.naisam@experionglobal.com</div>
+    <div class="flex items-center px-5 pt-5 pb-4 border-b border-gray-200">
+      <div class="w-12 h-12 rounded-full bg-[#D93025] flex items-center justify-center font-semibold text-lg text-white mr-4 shadow-md">{{ initials }}</div>
+      <div class="flex-1">
+        <div class="font-semibold text-gray-900 text-base">{{ userName }}</div>
+        <div class="text-sm text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]">{{ userEmail }}</div>
       </div>
     </div>
     <!-- Menu Options -->
-    <div style="display: flex; flex-direction: column; padding: 10px 0; gap: 2px;">
-      <button style="display: flex; align-items: center; gap: 12px; padding: 8px 20px; background: none; border: none; width: 100%; text-align: left; font-size: 1.05rem; color: #222; cursor: pointer; transition: background 0.18s; font-weight: normal;" onmouseover="this.style.background='#ededed'" onmouseout="this.style.background='none'">
-        <span><i class="fa-regular fa-user" style="color: #000000;"></i></span> Profile
+    <div class="flex flex-col py-2 gap-0.5">
+      <button class="flex items-center gap-3 px-5 py-2 bg-none border-none w-full text-left text-[1.05rem] text-gray-800 cursor-pointer transition-colors font-normal hover:bg-gray-200">
+        <span><i class="fa-regular fa-user text-black"></i></span> Profile
       </button>
-      <button style="display: flex; align-items: center; gap: 12px; padding: 8px 20px; background: none; border: none; width: 100%; text-align: left; font-size: 1.05rem; color: #222; cursor: pointer; transition: background 0.18s; font-weight: normal;" onmouseover="this.style.background='#ededed'" onmouseout="this.style.background='none'">
-        <span><i class="fa-solid fa-arrow-right-from-bracket" style="color: #030303;"></i></span> <span style="color:#222;">Log out</span>
+      <button class="flex items-center gap-3 px-5 py-2 bg-none border-none w-full text-left text-[1.05rem] text-gray-800 cursor-pointer transition-colors font-normal hover:bg-gray-200">
+        <span><i class="fa-solid fa-arrow-right-from-bracket text-black"></i></span> <span class="text-gray-800">Log out</span>
       </button>
     </div>
   </div>

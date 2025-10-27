@@ -199,11 +199,35 @@ tr.mat-mdc-row:hover {
 /* Badge Styling */
 .badge {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 6px 10px; /* match status badge spacing */
   border-radius: 8px;
   font-size: 12px;
+  font-weight: 600; /* match the stronger weight used for status */
   text-transform: capitalize;
 }
+
+/* Work type badge variants (backlog-like) */
+.badge-story { background-color: #e6f6ea; color: #0f5132; border: 1px solid #c9f0d4; }
+.badge-task { background-color: #e8f4ff; color: #0b3a66; border: 1px solid #d0e9ff; }
+.badge-bug { background-color: #fff1f0; color: #7a1f1d; border: 1px solid #ffd6d6; }
+.badge-epic { background-color: #fff8e6; color: #7a5b11; border: 1px solid #ffefc7; }
+
+/* Status badge styles that mimic backlog notation (pill + subtle bg) */
+.status-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 8px; /* match work-type badge radius */
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Slightly stronger backgrounds for better contrast */
+.status-done { background-color: #d2f6df; color: #05603a; border: 1px solid #9fe3b8; }
+.status-todo { background-color: #eef2f6; color: #26313b; border: 1px solid #dfe7ec; }
+.status-in-progress { background-color: #fff3e0; color: #944e00; border: 1px solid #ffdcb2; }
+.status-on-hold { background-color: #ffe7ea; color: #7a1230; border: 1px solid #ffc7d1; }
+.status-in-review { background-color: #efe9ff; color: #4b1c9f; border: 1px solid #dccfff; }
 
 /* .badge-worktype {
   background-color: #e3f2fd;
@@ -275,8 +299,8 @@ tr.mat-mdc-row:hover {
 /* .badge-story { background-color: #bcecbe; }   /* green */
 /* .badge-task { background-color: #8bc3f1; }    blue */
 /* .badge-bug { background-color: #e76f66; }     red */
-/* .badge-epic { background-color: #efca93; }    orange */ */
-
+/* .badge-epic { background-color: #efca93; }    orange */
+/* .badge-improvement { background-color: #d3a4f1; } purple 
 
 /* global styles or component styles (with ::ng-deep) */
  /* Scoped to component using ::ng-deep to style Angular Material tooltip */

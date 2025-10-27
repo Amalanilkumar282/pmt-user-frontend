@@ -1,0 +1,4 @@
+/* Quick create issue styles */
+:host {
+  display: block;
+}

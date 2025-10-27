@@ -39,6 +39,36 @@ export class BoardService {
     return this.boardsSignal().filter(b => b.teamId === teamId);
   }
   
+  // Get default board for a team (current sprint board)
+  getDefaultTeamBoard(teamId: string): Board | null {
+    const team = this.teamsService.getTeamById(teamId);
+    if (!team) return null;
+    
+    // Get the current sprint (first active sprint)
+    const currentSprintId = team.activeSprints[0];
+    
+    if (currentSprintId) {
+      // Look for a board with this sprint name
+      const sprintBoard = this.boardsSignal().find(
+        b => b.teamId === teamId && 
+             b.type === 'TEAM' && 
+             b.name.toLowerCase().includes('sprint')
+      );
+      
+      if (sprintBoard) return sprintBoard;
+    }
+    
+    // Fallback: return default team board or first team board
+    const defaultTeamBoard = this.boardsSignal().find(
+      b => b.teamId === teamId && b.type === 'TEAM' && b.isDefault
+    );
+    
+    if (defaultTeamBoard) return defaultTeamBoard;
+    
+    // Last fallback: return first team board
+    return this.getBoardsByTeam(teamId)[0] || null;
+  }
+  
   // Get default board for a user in a project
   getDefaultBoard(projectId: string, userId: string): Board | null {
     console.log('🔍 getDefaultBoard - ProjectId:', projectId, 'UserId:', userId);

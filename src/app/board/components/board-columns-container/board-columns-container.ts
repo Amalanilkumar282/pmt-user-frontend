@@ -19,6 +19,7 @@ export class BoardColumnsContainer {
   readonly buckets = this.store.columnBuckets;
   readonly groupBy = this.store.groupBy;
   @Output() openIssue = new EventEmitter<any>();
+  @Output() openIssueComments = new EventEmitter<any>();
 
   readonly dropListIds = computed(() => 
     this.buckets().map(b => b.def.id)
@@ -35,6 +36,10 @@ export class BoardColumnsContainer {
 
   onOpenIssue(issue: Issue) {
     this.openIssue.emit(issue);
+  }
+  
+  onOpenIssueComments(issue: Issue) {
+    this.openIssueComments.emit(issue);
   }
 
   onDrop(event: CdkDragDrop<Issue[]>) {

@@ -16,8 +16,6 @@ interface Message {
   userAvatar: string;
   text: string;
   timestamp: Date;
-  reactions?: { emoji: string; count: number; users: string[] }[];
-  threadCount?: number;
 }
 
 interface Channel {
@@ -55,12 +53,16 @@ export class MessagePage implements OnInit {
   messageText = signal<string>('');
   showTeamDropdown = signal<boolean>(false);
 
+  // Search functionality
+  showSearch = signal<boolean>(false);
+  searchQuery = signal<string>('');
+
   // Available teams with channels
   teams = signal<Team[]>([
     {
       id: 'team-1',
-      name: 'A1 Company Ltd.',
-      icon: 'A1',
+      name: 'Backend Development Team',
+      icon: 'BD',
       channels: [
         {
           id: 'channel-1',
@@ -89,8 +91,8 @@ export class MessagePage implements OnInit {
     },
     {
       id: 'team-2',
-      name: 'Tech Startup Inc.',
-      icon: 'TS',
+      name: 'Frontend Development Team',
+      icon: 'FD',
       channels: [
         { id: 'channel-6', name: 'general', type: 'channel', unreadCount: 2, isPrivate: false },
         { id: 'channel-7', name: 'dev-team', type: 'channel', unreadCount: 5, isPrivate: false },
@@ -98,8 +100,8 @@ export class MessagePage implements OnInit {
     },
     {
       id: 'team-3',
-      name: 'Design Agency',
-      icon: 'DA',
+      name: 'Mobile Development Team',
+      icon: 'MD',
       channels: [
         {
           id: 'channel-8',
@@ -122,11 +124,6 @@ export class MessagePage implements OnInit {
         userAvatar: 'SJ',
         text: 'Hey team! Just finished the wireframes for the new dashboard. Would love to get your feedback.',
         timestamp: new Date('2025-10-15T09:30:00'),
-        reactions: [
-          { emoji: '👍', count: 3, users: ['Alex', 'Mike', 'Emma'] },
-          { emoji: '🎨', count: 1, users: ['Lisa'] },
-        ],
-        threadCount: 2,
       },
       {
         id: 'm2',
@@ -141,7 +138,6 @@ export class MessagePage implements OnInit {
         userAvatar: 'AR',
         text: '@Sarah the color scheme is perfect. When can we start implementing this?',
         timestamp: new Date('2025-10-15T10:15:00'),
-        reactions: [{ emoji: '✅', count: 2, users: ['Sarah', 'Mike'] }],
       },
       {
         id: 'm4',
@@ -149,9 +145,6 @@ export class MessagePage implements OnInit {
         userAvatar: 'EW',
         text: 'Quick reminder: We have the Project Status Meeting today from 01:30-02:00 IST',
         timestamp: new Date('2025-10-15T11:00:00'),
-        reactions: [
-          { emoji: '📅', count: 6, users: ['Sarah', 'Mike', 'Alex', 'Lisa', 'Tom', 'John'] },
-        ],
       },
     ],
     'channel-1': [
@@ -170,14 +163,13 @@ export class MessagePage implements OnInit {
         userAvatar: 'LP',
         text: 'Marketing campaign for Q4 is ready for review. Check the shared drive!',
         timestamp: new Date('2025-10-15T08:00:00'),
-        reactions: [{ emoji: '🚀', count: 4, users: ['Tom', 'John', 'Sarah', 'Mike'] }],
       },
       {
         id: 'm7',
         user: 'Tom Williams',
         userAvatar: 'TW',
         text: "Looks great! Let's schedule a meeting to discuss the rollout plan.",
-        timestamp: new Date('2025-10-15T08:30:00'),
+        timestamp: new Date('2025-10-13T08:30:00'),
       },
     ],
     'channel-5': [
@@ -187,16 +179,24 @@ export class MessagePage implements OnInit {
         userAvatar: 'JD',
         text: 'Code review needed for PR #234. It includes the new authentication module.',
         timestamp: new Date('2025-10-15T07:15:00'),
-        reactions: [{ emoji: '👀', count: 3, users: ['Mike', 'Alex', 'Sarah'] }],
-        threadCount: 5,
       },
     ],
   });
 
-  // Computed messages for selected channel
+  // Computed messages for selected channel (with search filtering)
   messages = computed(() => {
     const channelId = this.selectedChannelId();
-    return this.allMessages()[channelId] || [];
+    const allChannelMessages = this.allMessages()[channelId] || [];
+
+    // If search is active and has a query, filter messages
+    if (this.showSearch() && this.searchQuery().trim()) {
+      const query = this.searchQuery().toLowerCase().trim();
+      return allChannelMessages.filter(
+        (msg) => msg.text.toLowerCase().includes(query) || msg.user.toLowerCase().includes(query)
+      );
+    }
+
+    return allChannelMessages;
   });
 
   // Computed selected team info
@@ -269,7 +269,6 @@ export class MessagePage implements OnInit {
       userAvatar: 'YO',
       text: text,
       timestamp: new Date(),
-      reactions: [],
     };
 
     const channelId = this.selectedChannelId();
@@ -284,54 +283,6 @@ export class MessagePage implements OnInit {
   onMessageSent(text: string): void {
     this.messageText.set(text);
     this.sendMessage();
-  }
-
-  onReactionAdded(event: { messageId: string; emoji: string }): void {
-    this.addReaction(event.messageId, event.emoji);
-  }
-
-  addReaction(messageId: string, emoji: string): void {
-    const channelId = this.selectedChannelId();
-    this.allMessages.update((messages) => {
-      const channelMessages = messages[channelId] || [];
-      return {
-        ...messages,
-        [channelId]: channelMessages.map((msg) => {
-          if (msg.id !== messageId) return msg;
-
-          const reactions = msg.reactions || [];
-          const existingReaction = reactions.find((r) => r.emoji === emoji);
-
-          if (existingReaction) {
-            // Toggle reaction
-            if (existingReaction.users.includes('You')) {
-              return {
-                ...msg,
-                reactions: reactions
-                  .map((r) =>
-                    r.emoji === emoji
-                      ? { ...r, count: r.count - 1, users: r.users.filter((u) => u !== 'You') }
-                      : r
-                  )
-                  .filter((r) => r.count > 0),
-              };
-            } else {
-              return {
-                ...msg,
-                reactions: reactions.map((r) =>
-                  r.emoji === emoji ? { ...r, count: r.count + 1, users: [...r.users, 'You'] } : r
-                ),
-              };
-            }
-          } else {
-            return {
-              ...msg,
-              reactions: [...reactions, { emoji, count: 1, users: ['You'] }],
-            };
-          }
-        }),
-      };
-    });
   }
 
   formatTime(date: Date): string {
@@ -363,5 +314,55 @@ export class MessagePage implements OnInit {
       event.preventDefault();
       this.sendMessage();
     }
+  }
+
+  // Search functionality
+  toggleSearch(): void {
+    this.showSearch.update((v) => !v);
+    if (!this.showSearch()) {
+      this.searchQuery.set('');
+    }
+  }
+
+  onSearchQueryChange(query: string): void {
+    this.searchQuery.set(query);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+  }
+
+  addChannel(channelName: string): void {
+    const teamId = this.selectedTeamId();
+    const newChannelId = 'channel-' + Date.now();
+
+    // Add the new channel to the selected team
+    this.teams.update((teams) =>
+      teams.map((team) => {
+        if (team.id !== teamId) return team;
+        return {
+          ...team,
+          channels: [
+            ...team.channels,
+            {
+              id: newChannelId,
+              name: channelName,
+              type: 'channel' as const,
+              unreadCount: 0,
+              isPrivate: false,
+            },
+          ],
+        };
+      })
+    );
+
+    // Initialize empty messages array for the new channel
+    this.allMessages.update((messages) => ({
+      ...messages,
+      [newChannelId]: [],
+    }));
+
+    // Select the newly created channel
+    this.selectedChannelId.set(newChannelId);
   }
 }

@@ -5,7 +5,7 @@
       <div class="modal-header">
         <div class="flex items-start justify-between gap-4 flex-1">
           <div class="flex items-start gap-3 flex-1">
-            <span class="text-3xl">{{ getTypeIcon(_issue()!.type) }}</span>
+            <i [class]="getTypeIcon(_issue()!.type)" class="text-3xl flex-shrink-0"></i>
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-1">
                 <span class="text-sm font-semibold text-gray-500">{{ _issue()!.id }}</span>
@@ -93,6 +93,26 @@
 
         <!-- Timestamps -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+          <!-- Start Date -->
+          @if (_issue()!.startDate) {
+            <div class="detail-section">
+              <h3 class="detail-label">
+                <i class="fa-regular fa-calendar mr-2"></i>Start Date
+              </h3>
+              <p class="text-gray-900 font-medium">{{ formatShortDate(_issue()!.startDate!) }}</p>
+            </div>
+          }
+          
+          <!-- Due Date -->
+          @if (_issue()!.dueDate) {
+            <div class="detail-section">
+              <h3 class="detail-label">
+                <i class="fa-regular fa-calendar-days mr-2"></i>Due Date
+              </h3>
+              <p class="text-gray-900 font-medium">{{ formatShortDate(_issue()!.dueDate!) }}</p>
+            </div>
+          }
+          
           <div class="detail-section">
             <h3 class="detail-label">Created</h3>
             <p class="text-gray-600 text-sm">{{ formatDate(_issue()!.createdAt) }}</p>
@@ -104,7 +124,7 @@
         </div>
 
         <!-- Comments Section -->
-        <div class="comments-section">
+        <div class="comments-section" id="issue-comments-section">
           <h3 class="section-title">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M21 11.5C21 16.75 16.75 21 11.5 21C6.25 21 2 16.75 2 11.5C2 6.25 6.25 2 11.5 2C16.75 2 21 6.25 21 11.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -114,6 +134,7 @@
           </h3>
 
           <!-- Comment Input -->
+          @if (!isReadOnly) {
           <div class="comment-input-container">
             <div class="comment-input-wrapper">
               <textarea
@@ -158,6 +179,7 @@
               </button>
             </div>
           </div>
+          }
 
           <!-- Comments List -->
           <div class="comments-list">
@@ -187,6 +209,7 @@
                         {{ comment.mentions.length }} user{{ comment.mentions.length > 1 ? 's' : '' }} mentioned
                       </div>
                     }
+                    @if (!isReadOnly) {
                     <button 
                       (click)="deleteComment(comment.id)"
                       class="btn-delete-comment"
@@ -195,6 +218,7 @@
                         <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
                     </button>
+                    }
                   </div>
                 </div>
               }
@@ -204,6 +228,7 @@
       </div>
 
       <!-- Footer -->
+      @if (!isReadOnly) {
       <div class="modal-footer">
         <button 
           (click)="onDelete()" 
@@ -278,6 +303,15 @@
           </button>
         </div>
       </div>
+      } @else {
+      <div class="modal-footer">
+        <button 
+          (click)="onClose()" 
+          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">
+          Close
+        </button>
+      </div>
+      }
     </div>
   </div>
 }

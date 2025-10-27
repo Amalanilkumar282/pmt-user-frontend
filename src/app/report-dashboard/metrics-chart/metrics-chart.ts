@@ -290,7 +290,7 @@ export class MetricsChart implements OnInit {
       plotOptions,
       colors,
       xaxis: { categories },
-      yaxis: { min: 0, title: { text: 'Story Points' } },
+      yaxis: { min: 0, title: { text: 'Story Points', style: { fontWeight: '500' } } },
       stroke: { curve: 'smooth', width: 3 },
       fill: chartType === 'bar'
         ? { type: 'solid' }

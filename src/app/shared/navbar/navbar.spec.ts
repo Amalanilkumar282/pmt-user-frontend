@@ -5,22 +5,26 @@ import { By } from '@angular/platform-browser';
 import { Navbar } from './navbar';
 import { ModalService } from '../../modal/modal-service';
 import { SidebarStateService } from '../services/sidebar-state.service';
+import { ProjectContextService } from '../services/project-context.service';
 
 describe('Navbar', () => {
   let component: Navbar;
   let fixture: ComponentFixture<Navbar>;
   let modalSpy: Partial<ModalService>;
   let sidebarStateMock: Partial<SidebarStateService>;
+  let projectContextMock: Partial<any>;
 
   beforeEach(async () => {
-    modalSpy = { open: jasmine.createSpy('open') };
-    sidebarStateMock = { getCollapsed: () => false } as any;
+  modalSpy = { open: jasmine.createSpy('open') };
+  sidebarStateMock = { isCollapsed: false } as any;
+  projectContextMock = { currentProjectId: () => '1' } as any;
 
     await TestBed.configureTestingModule({
       imports: [Navbar, RouterTestingModule],
       providers: [
         { provide: ModalService, useValue: modalSpy },
-        { provide: SidebarStateService, useValue: sidebarStateMock }
+        { provide: SidebarStateService, useValue: sidebarStateMock },
+        { provide: ProjectContextService as any, useValue: projectContextMock }
       ]
     }).compileComponents();
 
@@ -48,17 +52,17 @@ describe('Navbar', () => {
     expect(args.title).toContain('Create New Issue');
   });
 
-  it('should call modalService.open when onShareModal is called', () => {
-    component.onShareModal();
+  it('should call modalService.open when handleOpenCreateModal is called', () => {
+    component.handleOpenCreateModal({});
     expect((modalSpy.open as jasmine.Spy).calls.count()).toBe(1);
     const args = (modalSpy.open as jasmine.Spy).calls.mostRecent().args[0];
-    expect(args.id).toBe('shareModal');
-    expect(args.title).toBe('Share Project');
+    expect(args.id).toBe('create-issue');
+    expect(args.title).toContain('Create Issue');
   });
 
-  it('should have navTabs with Backlog active by default', () => {
-    const backlog = component.navTabs.find(t => t.label === 'Backlog');
-    expect(backlog).toBeDefined();
-    expect(backlog!.active).toBeTrue();
+  it('should render a Backlog link', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    const backlogLink = Array.from(compiled.querySelectorAll('a')).find(a => a.textContent?.trim() === 'Backlog');
+    expect(backlogLink).toBeTruthy();
   });
 });

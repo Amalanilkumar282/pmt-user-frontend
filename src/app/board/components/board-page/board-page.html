@@ -16,7 +16,9 @@
       <app-board-toolbar class="px-6 py-4 bg-white "></app-board-toolbar>
 
       <!-- Board Columns -->
-      <app-board-columns-container class="flex-1 bg-white overflow-x-auto overflow-y-hidden px-6 py-6" (openIssue)="onOpenIssue($event)">
+      <app-board-columns-container class="flex-1 bg-white overflow-x-auto overflow-y-hidden px-6 py-6" 
+        (openIssue)="onOpenIssue($event)"
+        (openIssueComments)="onOpenIssueComments($event)">
       </app-board-columns-container>
 
       <app-issue-detailed-view

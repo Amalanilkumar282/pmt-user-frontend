@@ -42,22 +42,18 @@ export class VelocityChart implements OnInit {
     }
     
     // Load all sprints from the service
-    // this.sprints = this.issueSummaryService.getAllSprints();
-     // Load all sprints
-  const allSprints = this.issueSummaryService.getAllSprints();
+    const allSprints = this.issueSummaryService.getAllSprints() || [];
 
-  
+    // Only populate the filter with completed sprints and default to the
+    // most recently completed sprint. Velocity should only be calculated
+    // for completed sprints (not active ones).
+    const completedSprints = allSprints
+      .filter(s => s.status === 'COMPLETED' && s.id !== 'all')
+      .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
 
-    // Find active sprint
-  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+    this.sprints = completedSprints;
+    this.selectedSprintId = completedSprints[0]?.id ?? null;
 
-  // Reorder: active sprint first, exclude 'all' placeholder if any exists
-  this.sprints = [
-    ...(activeSprint ? [activeSprint] : []),
-    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
-  ];
-
-  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
     // Load initial chart data
     this.updatechartData();
   }
@@ -79,6 +75,12 @@ export class VelocityChart implements OnInit {
   }
 
   private updatechartData(): void {
+    // If no completed sprint is selected, clear issues (no velocity to show)
+    if (!this.selectedSprintId) {
+      this.issues = [];
+      return;
+    }
+
     // Get issues for the selected sprint
     this.issues = this.issueSummaryService.getIssuesBySprintId(this.selectedSprintId);
 

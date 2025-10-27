@@ -132,11 +132,22 @@ export class BoardPage implements OnInit {
   }
   
   private loadDefaultBoard(projectId: string): void {
-    // TODO: Get actual userId from auth service
-    const userId = 'user-1';
-    console.log('🎲 loadDefaultBoard - ProjectId:', projectId, 'UserId:', userId);
+    // Check if we have a teamId in query params
+    const teamId = this.route.snapshot.queryParamMap.get('teamId');
     
-    const defaultBoard = this.boardService.getDefaultBoard(projectId, userId);
+    let defaultBoard;
+    
+    if (teamId) {
+      // Load team's current sprint board
+      console.log('🎲 loadDefaultBoard - Loading team board for team:', teamId);
+      defaultBoard = this.boardService.getDefaultTeamBoard(teamId);
+    } else {
+      // Load project's default board
+      const userId = 'user-1'; // TODO: Get actual userId from auth service
+      console.log('🎲 loadDefaultBoard - Loading project board - ProjectId:', projectId, 'UserId:', userId);
+      defaultBoard = this.boardService.getDefaultBoard(projectId, userId);
+    }
+    
     console.log('🎲 loadDefaultBoard - Default board returned:', defaultBoard);
     
     if (defaultBoard) {
@@ -160,6 +171,20 @@ export class BoardPage implements OnInit {
   onOpenIssue(issue: any) {
     this.selectedIssue.set(issue);
     this.isModalOpen.set(true);
+  }
+  
+  // open issue detailed view and scroll to comments
+  onOpenIssueComments(issue: any) {
+    this.selectedIssue.set(issue);
+    this.isModalOpen.set(true);
+    
+    // Use setTimeout to ensure modal is rendered before scrolling
+    setTimeout(() => {
+      const commentsSection = document.getElementById('issue-comments-section');
+      if (commentsSection) {
+        commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }
 
   // public handler for moveIssue emitted by issue-detailed-view

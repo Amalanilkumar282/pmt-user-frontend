@@ -12,50 +12,11 @@
     <div class="message-content-wrapper">
       <div class="message-meta">
         <span class="message-author">{{ message.user }}</span>
-        <span class="message-timestamp">{{ formatTimestamp(message.timestamp) }}</span>
+        <span class="message-timestamp" [title]="formatFullDateTime(message.timestamp)">
+          {{ formatTimestamp(message.timestamp) }}
+        </span>
       </div>
-      <div class="message-body">{{ message.text }}</div>
-
-      <!-- Reactions -->
-      @if (message.reactions && message.reactions.length > 0) {
-      <div class="reactions-row">
-        @for (reaction of message.reactions; track reaction.emoji) {
-        <button
-          class="reaction-bubble"
-          [class.user-reacted]="reaction.users.includes('You')"
-          (click)="onAddReaction(message.id, reaction.emoji)"
-        >
-          <span class="reaction-emoji">{{ reaction.emoji }}</span>
-          <span class="reaction-count">{{ reaction.count }}</span>
-        </button>
-        }
-        <button class="add-reaction-bubble" (click)="onAddReaction(message.id, '👍')">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M7 2V12M2 7H12"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
-        </button>
-      </div>
-      }
-
-      <!-- Thread Indicator -->
-      @if (message.threadCount) {
-      <button class="thread-link">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path
-            d="M2 2L12 2M2 5L9 5M2 8L12 8M2 11L9 11"
-            stroke="currentColor"
-            stroke-width="1.2"
-            stroke-linecap="round"
-          />
-        </svg>
-        <span>{{ message.threadCount }} {{ message.threadCount === 1 ? 'reply' : 'replies' }}</span>
-      </button>
-      }
+      <div class="message-body" [innerHTML]="renderMarkdown(message.text)"></div>
     </div>
   </div>
   } }

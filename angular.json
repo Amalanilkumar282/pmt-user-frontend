@@ -21,8 +21,11 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css",
-           "node_modules/@fortawesome/fontawesome-free/css/all.min.css"],
+            "styles": [
+              "src/styles.css",
+              "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
+              "node_modules/dhtmlx-gantt/codebase/dhtmlxgantt.css"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
@@ -34,8 +37,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "2MB",
-                  "maximumError": "4MB"
+                  "maximumWarning": "4MB",
+                  "maximumError": "8MB"
                 },
                 {
                   "type": "anyComponentStyle",

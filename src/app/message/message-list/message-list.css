@@ -85,9 +85,15 @@
 }
 
 .message-timestamp {
-  font-size: 12px;
-  color: #9ca3af;
-  font-weight: 400;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: help;
+  transition: color 0.15s;
+}
+
+.message-timestamp:hover {
+  color: #374151;
 }
 
 .message-body {
@@ -99,94 +105,25 @@
   margin-bottom: 4px;
 }
 
-/* Reactions */
-.reactions-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  flex-wrap: wrap;
+.message-body strong {
+  font-weight: 700;
+  color: #111827;
 }
 
-.reaction-bubble {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  cursor: pointer;
-  font-size: 14px;
+.message-body em {
+  font-style: italic;
+}
+
+.message-body .message-link {
+  color: #3d62a8;
+  text-decoration: none;
+  font-weight: 500;
   transition: all 0.15s;
 }
 
-.reaction-bubble:hover {
-  background-color: #f3f4f6;
-  border-color: #d1d5db;
-  transform: scale(1.05);
-}
-
-.reaction-bubble.user-reacted {
-  background-color: #dbeafe;
-  border-color: #93c5fd;
-}
-
-.reaction-emoji {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.reaction-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: #4b5563;
-}
-
-.add-reaction-bubble {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  cursor: pointer;
-  color: #9ca3af;
-  transition: all 0.15s;
-  opacity: 0;
-}
-
-.message-block:hover .add-reaction-bubble {
-  opacity: 1;
-}
-
-.add-reaction-bubble:hover {
-  background-color: #f3f4f6;
-  border-color: #3d62a8;
-  color: #3d62a8;
-}
-
-/* Thread Link */
-.thread-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 4px 0;
-  background-color: transparent;
-  border: none;
-  color: #3d62a8;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.thread-link:hover {
-  color: #2c4a7e;
+.message-body .message-link:hover {
   text-decoration: underline;
+  color: #2c4a7e;
 }
 
 /* Scrollbar Styling */
@@ -205,4 +142,13 @@
 
 .messages-container::-webkit-scrollbar-thumb:hover {
   background-color: #9ca3af;
+}
+
+/* Search Highlight */
+::ng-deep .search-highlight {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 600;
 }
