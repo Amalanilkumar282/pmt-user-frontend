@@ -10,7 +10,6 @@ export interface Issue {
   priority: IssuePriority;
   status: IssueStatus;
   assignee?: string;
-  startDate?: Date;
   storyPoints?: number;
   sprintId?: string;
   teamId?: string; // Team that owns this issue

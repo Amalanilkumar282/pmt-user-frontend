@@ -1,0 +1,53 @@
+<div *ngIf="isOpen" class="fixed inset-0 z-[9999] flex items-center justify-center">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="onCancel()"></div>
+  
+  <!-- Modal Content -->
+  <div class="relative w-full max-w-md mx-4 transform transition-all animate-scale-in">
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Icon & Title Section -->
+      <div class="px-6 pt-6 pb-4">
+        <div class="flex items-start gap-4">
+          <!-- Icon -->
+          <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" [ngClass]="getIconBgColor()">
+            <!-- Warning Icon -->
+            <svg *ngIf="type === 'warning'" class="w-6 h-6" [ngClass]="getIconColor()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <!-- Danger Icon -->
+            <svg *ngIf="type === 'danger'" class="w-6 h-6" [ngClass]="getIconColor()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <!-- Info Icon -->
+            <svg *ngIf="type === 'info'" class="w-6 h-6" [ngClass]="getIconColor()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          
+          <!-- Text Content -->
+          <div class="flex-1 pt-1">
+            <h3 class="text-lg font-bold text-slate-900 mb-2">{{ title }}</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">{{ message }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          (click)="onCancel()"
+          class="px-5 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-4 focus:ring-slate-200">
+          {{ cancelText }}
+        </button>
+        <button
+          type="button"
+          (click)="onConfirm()"
+          class="px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-4"
+          [ngClass]="getConfirmButtonColor()">
+          {{ confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

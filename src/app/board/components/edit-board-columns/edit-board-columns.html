@@ -14,7 +14,7 @@
         <h3 class="text-lg font-bold text-slate-900">Edit Board Columns</h3>
         <p class="text-sm text-slate-500 mt-0.5">Drag to reorder, click to rename</p>
       </div>
-      <button (click)="close()" class="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-100">
+      <button (click)="close()" class="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-100 cursor-pointer">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -66,10 +66,10 @@
         <span class="whitespace-nowrap pr-2">Changes affect all board views</span>
       </p>
       <div class="flex gap-2 flex-shrink-0">
-        <button (click)="close()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors whitespace-nowrap">
+        <button (click)="close()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors whitespace-nowrap cursor-pointer">
           Cancel
         </button>
-        <button (click)="save()" class="px-4 py-2 rounded-lg bg-[#3D62A8] text-white text-sm font-semibold hover:bg-[#2F4D8C] transition-colors shadow-sm whitespace-nowrap">
+        <button (click)="save()" class="px-4 py-2 rounded-lg bg-[#3D62A8] text-white text-sm font-semibold hover:bg-[#2F4D8C] transition-colors shadow-sm whitespace-nowrap cursor-pointer">
           Save Changes
         </button>
       </div>

@@ -1,0 +1,112 @@
+<div class="relative">
+  <!-- Options Button -->
+  <button
+    (click)="toggleMenu()"
+    class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+    title="Board Options">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+    </svg>
+  </button>
+
+  <!-- Dropdown Menu -->
+  <div *ngIf="showMenu()"
+       class="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-200 py-2 z-50"
+       appClickOutside
+       (outsideClick)="closeMenu()">
+    
+    <!-- Edit Board -->
+    <button
+      *ngIf="canEditBoard()"
+      type="button"
+      (click)="openEditModal()"
+      class="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors cursor-pointer">
+      <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+      <span class="font-medium">Edit Board Name</span>
+    </button>
+
+    <!-- Delete Board -->
+    <button
+      type="button"
+      (click)="openDeleteConfirmation()"
+      [disabled]="!canDeleteBoard()"
+      class="w-full px-4 py-2.5 text-left text-sm hover:bg-red-50 flex items-center gap-3 transition-colors"
+      [class.text-red-600]="canDeleteBoard()"
+      [class.text-slate-400]="!canDeleteBoard()"
+      [class.cursor-not-allowed]="!canDeleteBoard()"
+      [class.cursor-pointer]="canDeleteBoard()"
+      [title]="!canDeleteBoard() ? 'Cannot delete board with issues or custom columns' : 'Delete this board'">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+      <div class="flex-1">
+        <div class="font-medium">Delete Board</div>
+        <div *ngIf="!canDeleteBoard()" class="text-xs text-slate-400 mt-0.5">
+          Remove all issues & columns first
+        </div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- Edit Board Name Modal -->
+<div *ngIf="showEditModal()" class="fixed inset-0 z-[9999] flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="closeEditModal()"></div>
+  
+  <div class="relative w-full max-w-md mx-4">
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 pt-6 pb-4 border-b border-slate-200">
+        <h3 class="text-lg font-bold text-slate-900">Edit Board Name</h3>
+        <p class="text-sm text-slate-500 mt-1">Update the name of your board</p>
+      </div>
+      
+      <!-- Content -->
+      <div class="px-6 py-5">
+        <label class="block text-sm font-semibold text-slate-700 mb-2">
+          Board Name <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          [(ngModel)]="editedBoardName"
+          (keydown.enter)="saveEdit()"
+          (keydown.escape)="closeEditModal()"
+          class="w-full rounded-lg border-2 border-slate-200 px-4 py-3 text-sm focus:outline-none focus:border-[#3D62A8] focus:ring-2 focus:ring-[#3D62A8]/20 transition-all"
+          placeholder="Enter board name"
+          maxlength="100"
+          autofocus />
+      </div>
+      
+      <!-- Actions -->
+      <div class="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          (click)="closeEditModal()"
+          class="px-5 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer">
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="saveEdit()"
+          [disabled]="!editedBoardName().trim()"
+          class="px-5 py-2.5 rounded-lg bg-[#3D62A8] text-white text-sm font-semibold hover:bg-[#2F4D8C] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg cursor-pointer">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<app-confirmation-modal
+  [isOpen]="showDeleteConfirmation()"
+  [title]="'Delete Board?'"
+  [message]="'Are you sure you want to delete &quot;' + currentBoard()?.name + '&quot;? This action cannot be undone.'"
+  [confirmText]="'Delete Board'"
+  [cancelText]="'Cancel'"
+  [type]="'danger'"
+  (confirm)="confirmDelete()"
+  (cancel)="closeDeleteConfirmation()">
+</app-confirmation-modal>
