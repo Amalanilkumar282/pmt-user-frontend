@@ -13,6 +13,9 @@ import { isPlatformBrowser } from '@angular/common';
   imports: [NgIf, NgFor, FormsModule, NgClass, NgStyle]
 })
 export class CreateIssue implements OnInit, OnDestroy {
+  isArray(val: any): boolean {
+    return Array.isArray(val);
+  }
   // Popup state for editing label
   editingLabel: string | null = null;
   editLabelName: string = '';
@@ -147,12 +150,18 @@ showToast(message: string, duration: number = 3000) {
     if (cfg) {
       this.fields = cfg.fields ?? [];
       this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
+      // Ensure all file fields are initialized as arrays
+      for (const field of this.fields) {
+        if (field.type === 'file') {
+          if (!Array.isArray(this.formData[field.model])) {
+            this.formData[field.model] = [];
+          }
+        }
+      }
       this.modalTitle = cfg.title ?? 'Modal';
-  // Removed projectName
       this.modalDesc = cfg.modalDesc ?? '';
       this.showLabels = cfg.showLabels ?? false;
       this.submitButtonText = cfg.submitText ?? 'Create Issue';
-      
       // Check initial issue type and update field visibility
       if (this.formData.issueType) {
         this.updateFieldVisibility(this.formData.issueType);
@@ -267,8 +276,9 @@ shakeFields: Set<string> = new Set();
   }
 
   handleFileSelect(event: any, field: FormField) {
-    this.formData[field.model] = Array.from(event.target.files);
-    field.onChange?.(this.formData[field.model], this.formData);
+  // Always initialize as array for safety
+  this.formData[field.model] = Array.isArray(event.target.files) ? Array.from(event.target.files) : [];
+  field.onChange?.(this.formData[field.model], this.formData);
   }
 
   addLabel(label: string) {
