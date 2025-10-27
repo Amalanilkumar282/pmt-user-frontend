@@ -12,6 +12,7 @@ export interface Sprint {
   endDate: Date;
   status: 'ACTIVE' | 'COMPLETED' | 'PLANNED';
   issues?: Issue[];
+  teamAssigned?: string;
 }
 
 @Component({

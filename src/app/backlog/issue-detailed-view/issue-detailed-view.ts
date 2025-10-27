@@ -32,6 +32,8 @@ export class IssueDetailedView {
     this._isOpen.set(value);
   }
   
+  @Input() isReadOnly: boolean = false;
+  
   @Output() close = new EventEmitter<void>();
   @Output() updateIssue = new EventEmitter<Partial<Issue>>();
   @Output() deleteIssue = new EventEmitter<string>();
@@ -62,6 +64,7 @@ export class IssueDetailedView {
   });
 
   protected onEditIssue(): void {
+  if (this.isReadOnly) return;
   const issue = this._issue();
   if (!issue) return;
 
@@ -76,6 +79,7 @@ export class IssueDetailedView {
     { label: 'Story Points', type: 'number', model: 'storyPoints' },
     { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions },
     { label: 'Sprint', type: 'select', model: 'sprintId', options: this.availableSprints.map(s => s.name), colSpan: 2 }
+    ,{ label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
   ];
 
   this.modalService.open({
@@ -92,6 +96,7 @@ export class IssueDetailedView {
       storyPoints: issue.storyPoints,
       assignee: issue.assignee,
       sprintId: issue.sprintId
+      ,attachments: issue.attachments || []
     },
     showLabels: false,
     submitText: 'Save Changes'
@@ -102,12 +107,12 @@ export class IssueDetailedView {
 
   protected getTypeIcon(type: string): string {
     const icons: Record<string, string> = {
-      'STORY': '📖',
-      'TASK': '✓',
-      'BUG': '🐛',
-      'EPIC': '⚡'
+      'STORY': 'fa-solid fa-book',
+      'TASK': 'fa-solid fa-check-circle',
+      'BUG': 'fa-solid fa-bug',
+      'EPIC': 'fa-solid fa-bolt'
     };
-    return icons[type] || '📝';
+    return icons[type] || 'fa-solid fa-file';
   }
 
   protected getPriorityClass(priority: string): string {
@@ -140,6 +145,14 @@ export class IssueDetailedView {
     });
   }
 
+  protected formatShortDate(date: Date): string {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
   protected onClose(): void {
     this.close.emit();
   }
@@ -151,6 +164,7 @@ export class IssueDetailedView {
   }
 
   protected onDelete(): void {
+    if (this.isReadOnly) return;
     const issue = this._issue();
     if (issue && confirm(`Are you sure you want to delete issue ${issue.id}?`)) {
       this.deleteIssue.emit(issue.id);
@@ -159,10 +173,12 @@ export class IssueDetailedView {
   }
 
   protected toggleMoveDropdown(): void {
+    if (this.isReadOnly) return;
     this.showMoveDropdown.set(!this.showMoveDropdown());
   }
 
   protected onMove(destinationSprintId: string | null, destinationName: string): void {
+    if (this.isReadOnly) return;
     const issue = this._issue();
     if (issue) {
       if (confirm(`Move issue ${issue.id} to ${destinationName}?`)) {
@@ -242,6 +258,7 @@ export class IssueDetailedView {
   }
 
   protected addComment(): void {
+    if (this.isReadOnly) return;
     const text = this.newCommentText().trim();
     if (!text) return;
     
@@ -270,6 +287,7 @@ export class IssueDetailedView {
   }
 
   protected deleteComment(commentId: string): void {
+    if (this.isReadOnly) return;
     if (confirm('Are you sure you want to delete this comment?')) {
       this.comments.update(comments => 
         comments.filter(c => c.id !== commentId)

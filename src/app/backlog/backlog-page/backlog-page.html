@@ -22,16 +22,12 @@
   @if (selectedEpic) {
     <div class="epic-detail-panel-wrapper" 
          [class.sidebar-collapsed]="isSidebarCollapsed()"
-         [class.epic-panel-open]="isEpicPanelOpen"
-         [style.width.px]="epicDetailPanelWidth">
+         [class.epic-panel-open]="isEpicPanelOpen">
       <app-epic-detailed-view 
         [epic]="selectedEpic"
         (close)="closeEpicDetailView()"
         (epicUpdated)="onEpicUpdated($event)">
       </app-epic-detailed-view>
-      <div class="resize-handle" 
-           (mousedown)="startResize($event)">
-      </div>
     </div>
   }
 
@@ -106,7 +102,7 @@
 
     <!-- Completed Sprints Section - conditionally shown -->
     @if (showCompletedSprints && completedSprints.length > 0) {
-      <section class="section">
+      <section class="section completed-sprints-section">
         <h2 class="section-title">
           Completed Sprints ({{ completedSprints.length }})
         </h2>

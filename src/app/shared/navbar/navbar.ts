@@ -83,10 +83,10 @@ export class Navbar {
     console.log('Navbar received openCreateModal event with fields:', fields);
    
     // Map the fields to the modal configuration
-    const issueType = fields.issueType || 'Task';
-    const summary = fields.summary || '';
-    const description = fields.description || '';
-    const priority = fields.priority || 'Medium';
+  const issueType = fields.issueType || 'Task';
+  const title = fields.title || '';
+  const description = fields.description || '';
+  const priority = fields.priority || 'Medium';
 
     const userOptions = users.map(u => u.name);
 
@@ -108,9 +108,9 @@ export class Navbar {
           colSpan: 1
         },
         {
-          label: 'Summary',
+          label: 'Title',
           type: 'text',
-          model: 'summary',
+          model: 'title',
           required: true,
           colSpan: 2
         },
@@ -163,7 +163,7 @@ export class Navbar {
       ],
       data: {
         issueType: issueType,
-        summary: summary,
+        title: title,
         description: description,
         priority: priority,
         assignee: 'Unassigned',
@@ -217,7 +217,7 @@ export class Navbar {
 
   const fields: FormField[] = [
     { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
-    { label: 'Summary', type: 'text', model: 'summary', colSpan: 2,required : true  },
+    { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
     { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
     { label: 'Priority', type: 'select', model: 'priority', options: ['High','Medium','Low'], colSpan: 1 },
     { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
@@ -236,7 +236,7 @@ export class Navbar {
     projectName: 'Project Beta',// optional project label
     modalDesc : 'Create a new issue in your project',
     fields,                     // dynamic fields
-    data: { priority: 'Medium', labels: [] }, // optional pre-filled data
+  data: { priority: 'Medium', labels: [] }, // optional pre-filled data
     showLabels: true,
     submitText: 'Create Issue'
   });

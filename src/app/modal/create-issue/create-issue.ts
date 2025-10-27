@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { NgIf, NgFor, NgClass } from '@angular/common';
+import { NgIf, NgFor, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ModalService, FormField } from '../modal-service';
@@ -10,9 +10,87 @@ import { isPlatformBrowser } from '@angular/common';
   templateUrl: './create-issue.html',
   styleUrls: ['./create-issue.css'],
   standalone: true,
-  imports: [NgIf, NgFor, FormsModule, NgClass]
+  imports: [NgIf, NgFor, FormsModule, NgClass, NgStyle]
 })
 export class CreateIssue implements OnInit, OnDestroy {
+  // Popup state for editing label
+  editingLabel: string | null = null;
+  editLabelName: string = '';
+  editLabelColor: string = '';
+
+  openEditLabel(label: string) {
+    this.editingLabel = label;
+    this.editLabelName = label;
+    this.editLabelColor = this.labelColors[label] || this.getRandomPastelColor();
+  }
+
+  closeEditLabel() {
+    this.editingLabel = null;
+    this.editLabelName = '';
+    this.editLabelColor = '';
+  }
+
+  saveEditLabel() {
+    if (!this.editingLabel) return;
+    const oldLabel = this.editingLabel;
+    const newLabel = this.editLabelName.trim();
+    if (!newLabel) return;
+    // Update label in formData.labels
+    const idx = this.formData.labels.indexOf(oldLabel);
+    if (idx !== -1) {
+      this.formData.labels[idx] = newLabel;
+      // Update color mapping
+      this.labelColors[newLabel] = this.editLabelColor;
+      if (oldLabel !== newLabel) {
+        delete this.labelColors[oldLabel];
+      }
+    }
+    // Update availableLabels
+    if (!this.availableLabels.includes(newLabel)) {
+      this.availableLabels.push(newLabel);
+    }
+    this.closeEditLabel();
+  }
+
+  onEditColorInput(event: any) {
+    this.editLabelColor = event.target.value;
+  }
+  // Simulated backend label storage (replace with API call in future)
+  availableLabels: string[] = ['bug', 'feature', 'urgent', 'frontend', 'backend', 'enhancement', 'help wanted'];
+  labelInputValue: string = '';
+  showLabelDropdown: boolean = false;
+  filteredLabels: string[] = [];
+  labelColors: { [label: string]: string } = {};
+
+  onLabelInput(value: string) {
+    this.labelInputValue = value;
+    if (value.trim().length === 0) {
+      this.showLabelDropdown = false;
+      this.filteredLabels = [];
+      return;
+    }
+    // Filter available labels that match input and are not already selected
+    const lower = value.toLowerCase();
+    this.filteredLabels = this.availableLabels.filter(l => l.toLowerCase().includes(lower) && !this.formData.labels.includes(l));
+    this.showLabelDropdown = this.filteredLabels.length > 0;
+  }
+
+  getRandomPastelColor(): string {
+    const hue = Math.floor(Math.random() * 360);
+    return `hsl(${hue}, 70%, 85%)`;
+  }
+
+  selectLabel(label: string) {
+    if (!this.formData.labels.includes(label)) {
+      this.formData.labels.push(label);
+      if (!this.labelColors[label]) {
+        this.labelColors[label] = this.getRandomPastelColor();
+      }
+    }
+    this.labelInputValue = '';
+    this.showLabelDropdown = false;
+    this.filteredLabels = [];
+  }
 
   removeFile(fieldModel: string, index: number) {
     if (Array.isArray(this.formData[fieldModel])) {
@@ -104,63 +182,64 @@ close() {
 
 shakeFields: Set<string> = new Set();
 
-submit() {
-  this.invalidFields.clear();
-  this.shakeFields.clear(); // reset shakes
+  submit() {
+    this.invalidFields.clear();
+    this.shakeFields.clear(); // reset shakes
 
+    // Validate required fields (skip hidden fields)
+    for (const field of this.fields) {
+      if (field.hidden) continue; // Skip validation for hidden fields
+      const value = this.formData[field.model];
+      if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
+        this.invalidFields.add(field.model);
+        this.shakeFields.add(field.model);
+        this.showToast('Story Points cannot be negative.');
+        setTimeout(() => this.shakeFields.clear(), 500);
+        return;
+      }
+      if (field.required && (value === null || value === undefined || value === '')) {
+        this.invalidFields.add(field.model);
+        this.shakeFields.add(field.model); // mark for shake
+      }
+    }
 
-  // Validate required fields (skip hidden fields)
-  for (const field of this.fields) {
-    if (field.hidden) continue; // Skip validation for hidden fields
-    const value = this.formData[field.model];
-    if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
-      this.invalidFields.add(field.model);
-      this.shakeFields.add(field.model);
-      this.showToast('Story Points cannot be negative.');
+    // Additional validation: start date should be before or on due date
+    const startDate = this.formData['startDate'];
+    const dueDate = this.formData['dueDate'];
+    if (startDate && dueDate) {
+      const start = new Date(startDate);
+      const due = new Date(dueDate);
+      if (start > due) {
+        this.invalidFields.add('startDate');
+        this.invalidFields.add('dueDate');
+        this.shakeFields.add('startDate');
+        this.shakeFields.add('dueDate');
+        this.showToast('Start date must be before or on Due date.');
+        setTimeout(() => this.shakeFields.clear(), 500);
+        return;
+      }
+    }
+
+    if (this.invalidFields.size > 0) {
+      // Remove shake class after animation ends (so it can trigger again next submit)
       setTimeout(() => this.shakeFields.clear(), 500);
+
+      // Scroll to first invalid field
+      setTimeout(() => {
+        const firstInvalid = document.querySelector('.input-error');
+        if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+
+      // Show toast
+      this.showToast('Please fill all required fields before submitting.');
       return;
     }
-    if (field.required && (value === null || value === undefined || value === '')) {
-      this.invalidFields.add(field.model);
-      this.shakeFields.add(field.model); // mark for shake
-    }
+
+    // No backend integration: just log and close
+    console.log('Form submitted (no API):', this.formData);
+    this.showToast('Issue saved locally (no backend).', 1500);
+    this.close();
   }
-
-  // Additional validation: start date should be before or on due date
-  const startDate = this.formData['startDate'];
-  const dueDate = this.formData['dueDate'];
-  if (startDate && dueDate) {
-    const start = new Date(startDate);
-    const due = new Date(dueDate);
-    if (start > due) {
-      this.invalidFields.add('startDate');
-      this.invalidFields.add('dueDate');
-      this.shakeFields.add('startDate');
-      this.shakeFields.add('dueDate');
-      this.showToast('Start date must be before or on Due date.');
-      setTimeout(() => this.shakeFields.clear(), 500);
-      return;
-    }
-  }
-
-  if (this.invalidFields.size > 0) {
-    // Remove shake class after animation ends (so it can trigger again next submit)
-    setTimeout(() => this.shakeFields.clear(), 500);
-
-    // Scroll to first invalid field
-    setTimeout(() => {
-      const firstInvalid = document.querySelector('.input-error');
-      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
-
-    // Show toast
-    this.showToast('Please fill all required fields before submitting.');
-    return;
-  }
-
-  console.log('Form submitted successfully:', this.formData);
-  this.close();
-}
 
 
 
@@ -193,7 +272,19 @@ submit() {
   }
 
   addLabel(label: string) {
-    if (label && !this.formData.labels.includes(label)) this.formData.labels.push(label);
+    if (label && !this.formData.labels.includes(label)) {
+      this.formData.labels.push(label);
+      if (!this.labelColors[label]) {
+        this.labelColors[label] = this.getRandomPastelColor();
+      }
+      // Optionally add to availableLabels for future suggestions
+      if (!this.availableLabels.includes(label)) {
+        this.availableLabels.push(label);
+      }
+    }
+    this.labelInputValue = '';
+    this.showLabelDropdown = false;
+    this.filteredLabels = [];
   }
 
   removeLabel(label: string) {
