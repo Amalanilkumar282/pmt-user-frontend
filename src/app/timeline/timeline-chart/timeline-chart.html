@@ -68,12 +68,10 @@
                     <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-                <div class="flex items-center flex-1 gap-2 cursor-pointer hover:bg-purple-50 transition-colors rounded px-2 py-1"
+                <div class="flex items-center flex-1 gap-2 cursor-pointer hover:bg-gray-50 transition-colors rounded px-2 py-1"
                      (click)="onEpicClick($event, row.id)">
-                  <span class="w-5 h-5 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-                    </svg>
+                  <span class="w-5 h-5 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-bolt text-black"></i>
                   </span>
                   <span class="text-sm font-medium text-gray-700 flex-1 truncate">{{ row.name }}</span>
                   <span class="px-1.5 py-0.5 text-xs rounded font-medium text-white"
@@ -88,30 +86,7 @@
                    class="row-content issue-content cursor-pointer hover:bg-blue-50 transition-colors rounded px-2 py-1"
                    (click)="onIssueClick($event, row.id)">
                 <div class="flex items-center gap-1.5 w-full">
-                  <!-- Story Icon -->
-                  <svg *ngIf="row.issueType === 'STORY'" class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="2" y="2" width="12" height="12" rx="2" stroke="#10b981" stroke-width="1.5" fill="none"/>
-                    <path d="M5 6h6M5 8h6M5 10h4" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                  <!-- Task Icon -->
-                  <svg *ngIf="row.issueType === 'TASK'" class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="2" y="2" width="12" height="12" rx="2" stroke="#3b82f6" stroke-width="1.5" fill="none"/>
-                    <path d="M5 8l2 2 4-4" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <!-- Bug Icon -->
-                  <svg *ngIf="row.issueType === 'BUG'" class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="8" cy="8" r="6" stroke="#ef4444" stroke-width="1.5" fill="none"/>
-                    <path d="M5.5 6.5L10.5 11.5M10.5 6.5L5.5 11.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                  <!-- Epic Icon -->
-                  <svg *ngIf="row.issueType === 'EPIC'" class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z" stroke="#a855f7" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-                  </svg>
-                  <!-- Default Icon -->
-                  <svg *ngIf="!row.issueType || (row.issueType !== 'STORY' && row.issueType !== 'TASK' && row.issueType !== 'BUG' && row.issueType !== 'EPIC')" 
-                       class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
-                  </svg>
+                  <i class="flex-shrink-0 w-4 h-4 text-center" [ngClass]="getTypeIcon(row.issueType || '')"></i>
                   <span class="text-xs text-gray-600 truncate max-w-[70px]">{{ row.id }}</span>
                   <span class="text-sm text-gray-800 flex-1 truncate">{{ row.name }}</span>
                   <span class="px-1.5 py-0.5 text-xs rounded text-white"
