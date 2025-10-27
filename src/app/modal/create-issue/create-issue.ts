@@ -182,63 +182,64 @@ close() {
 
 shakeFields: Set<string> = new Set();
 
-submit() {
-  this.invalidFields.clear();
-  this.shakeFields.clear(); // reset shakes
+  submit() {
+    this.invalidFields.clear();
+    this.shakeFields.clear(); // reset shakes
 
+    // Validate required fields (skip hidden fields)
+    for (const field of this.fields) {
+      if (field.hidden) continue; // Skip validation for hidden fields
+      const value = this.formData[field.model];
+      if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
+        this.invalidFields.add(field.model);
+        this.shakeFields.add(field.model);
+        this.showToast('Story Points cannot be negative.');
+        setTimeout(() => this.shakeFields.clear(), 500);
+        return;
+      }
+      if (field.required && (value === null || value === undefined || value === '')) {
+        this.invalidFields.add(field.model);
+        this.shakeFields.add(field.model); // mark for shake
+      }
+    }
 
-  // Validate required fields (skip hidden fields)
-  for (const field of this.fields) {
-    if (field.hidden) continue; // Skip validation for hidden fields
-    const value = this.formData[field.model];
-    if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
-      this.invalidFields.add(field.model);
-      this.shakeFields.add(field.model);
-      this.showToast('Story Points cannot be negative.');
+    // Additional validation: start date should be before or on due date
+    const startDate = this.formData['startDate'];
+    const dueDate = this.formData['dueDate'];
+    if (startDate && dueDate) {
+      const start = new Date(startDate);
+      const due = new Date(dueDate);
+      if (start > due) {
+        this.invalidFields.add('startDate');
+        this.invalidFields.add('dueDate');
+        this.shakeFields.add('startDate');
+        this.shakeFields.add('dueDate');
+        this.showToast('Start date must be before or on Due date.');
+        setTimeout(() => this.shakeFields.clear(), 500);
+        return;
+      }
+    }
+
+    if (this.invalidFields.size > 0) {
+      // Remove shake class after animation ends (so it can trigger again next submit)
       setTimeout(() => this.shakeFields.clear(), 500);
+
+      // Scroll to first invalid field
+      setTimeout(() => {
+        const firstInvalid = document.querySelector('.input-error');
+        if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+
+      // Show toast
+      this.showToast('Please fill all required fields before submitting.');
       return;
     }
-    if (field.required && (value === null || value === undefined || value === '')) {
-      this.invalidFields.add(field.model);
-      this.shakeFields.add(field.model); // mark for shake
-    }
+
+    // No backend integration: just log and close
+    console.log('Form submitted (no API):', this.formData);
+    this.showToast('Issue saved locally (no backend).', 1500);
+    this.close();
   }
-
-  // Additional validation: start date should be before or on due date
-  const startDate = this.formData['startDate'];
-  const dueDate = this.formData['dueDate'];
-  if (startDate && dueDate) {
-    const start = new Date(startDate);
-    const due = new Date(dueDate);
-    if (start > due) {
-      this.invalidFields.add('startDate');
-      this.invalidFields.add('dueDate');
-      this.shakeFields.add('startDate');
-      this.shakeFields.add('dueDate');
-      this.showToast('Start date must be before or on Due date.');
-      setTimeout(() => this.shakeFields.clear(), 500);
-      return;
-    }
-  }
-
-  if (this.invalidFields.size > 0) {
-    // Remove shake class after animation ends (so it can trigger again next submit)
-    setTimeout(() => this.shakeFields.clear(), 500);
-
-    // Scroll to first invalid field
-    setTimeout(() => {
-      const firstInvalid = document.querySelector('.input-error');
-      if (firstInvalid) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
-
-    // Show toast
-    this.showToast('Please fill all required fields before submitting.');
-    return;
-  }
-
-  console.log('Form submitted successfully:', this.formData);
-  this.close();
-}
 
 
 
