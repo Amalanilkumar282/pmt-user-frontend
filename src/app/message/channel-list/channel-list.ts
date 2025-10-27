@@ -1,5 +1,6 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 interface Channel {
   id: string;
@@ -19,7 +20,7 @@ interface Team {
 @Component({
   selector: 'app-channel-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './channel-list.html',
   styleUrls: ['./channel-list.css'],
 })
@@ -33,6 +34,10 @@ export class ChannelList {
   channelSelected = output<string>();
   toggleDropdown = output<void>();
   closeDropdown = output<void>();
+  addChannel = output<string>();
+
+  showAddChannelInput = signal<boolean>(false);
+  newChannelName = '';
 
   get selectedTeam(): Team | undefined {
     return this.teams().find((t) => t.id === this.selectedTeamId());
@@ -60,5 +65,24 @@ export class ChannelList {
 
   onCloseDropdown(): void {
     this.closeDropdown.emit();
+  }
+
+  onAddChannel(): void {
+    this.showAddChannelInput.set(true);
+    this.newChannelName = '';
+  }
+
+  onSaveChannel(): void {
+    const channelName = this.newChannelName.trim();
+    if (channelName) {
+      this.addChannel.emit(channelName);
+      this.showAddChannelInput.set(false);
+      this.newChannelName = '';
+    }
+  }
+
+  onCancelAddChannel(): void {
+    this.showAddChannelInput.set(false);
+    this.newChannelName = '';
   }
 }

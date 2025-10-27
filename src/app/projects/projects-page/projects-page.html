@@ -10,14 +10,19 @@
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
         <app-project-filters
           [searchQuery]="searchQuery"
+          [selectedStatus]="selectedStatus"
+          [selectedDU]="selectedDU"
           (searchQueryChange)="searchQuery = $event; filterProjects()"
+          (statusFilterChange)="onStatusFilterChange($event)"
+          (duFilterChange)="onDUFilterChange($event)"
         ></app-project-filters>
 
         <app-project-list
           [projects]="projects()"
           [filteredProjects]="filteredProjects()"
-          [sortBy]="currentSort"
+          [showStarredOnly]="showStarredOnly"
           (projectAction)="toggleProjectStar($event.projectId)"
+          (starFilterToggle)="toggleStarredFilter()"
         ></app-project-list>
       </div>
     </main>
