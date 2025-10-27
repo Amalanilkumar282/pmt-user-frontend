@@ -14,6 +14,8 @@ export class IssueList {
     this._issues.set(value);
   }
   
+  @Input() isReadOnly: boolean = false;
+  
   @Output() issueClick = new EventEmitter<Issue>();
   @Output() issueStatusChange = new EventEmitter<{ issue: Issue; newStatus: string }>();
 
@@ -33,12 +35,12 @@ export class IssueList {
 
   protected getTypeIcon(type: string): string {
     const icons: Record<string, string> = {
-      'STORY': '📖',
-      'TASK': '✓',
-      'BUG': '🐛',
-      'EPIC': '⚡'
+      'STORY': 'fa-solid fa-book',
+      'TASK': 'fa-solid fa-check-circle',
+      'BUG': 'fa-solid fa-bug',
+      'EPIC': 'fa-solid fa-bolt'
     };
-    return icons[type] || '📝';
+    return icons[type] || 'fa-solid fa-file';
   }
 
   protected getPriorityClass(priority: string): string {

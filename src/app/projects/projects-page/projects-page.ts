@@ -22,17 +22,16 @@ export class ProjectsPage implements OnInit {
 
   searchQuery = '';
   currentSort: ProjectSortOption = 'recent';
+  showStarredOnly = false;
+  selectedStatus = 'all';
+  selectedDU = 'all';
 
   private _projects = signal<Project[]>([
     {
       id: '1',
       name: 'Website Redesign',
-      activeSprint: {
-        name: 'Sprint 1',
-        startDate: '2025-10-01',
-        endDate: '2025-10-14',
-      },
-      issueCount: 12,
+      status: 'active',
+      du: 'ATC',
       lastUpdated: '2025-10-07T10:30:00Z',
       teamMembers: ['JD', 'SM', 'AK'],
       starred: true,
@@ -40,12 +39,8 @@ export class ProjectsPage implements OnInit {
     {
       id: '2',
       name: 'Mobile App Development',
-      activeSprint: {
-        name: 'Sprint 3',
-        startDate: '2025-10-05',
-        endDate: '2025-10-19',
-      },
-      issueCount: 8,
+      status: 'active',
+      du: 'DES',
       lastUpdated: '2025-10-06T15:20:00Z',
       teamMembers: ['SM', 'RK'],
       starred: false,
@@ -53,12 +48,8 @@ export class ProjectsPage implements OnInit {
     {
       id: '3',
       name: 'Marketing Campaign',
-      activeSprint: {
-        name: 'Sprint 2',
-        startDate: '2025-09-28',
-        endDate: '2025-10-12',
-      },
-      issueCount: 15,
+      status: 'inactive',
+      du: 'RWA',
       lastUpdated: '2025-10-05T09:45:00Z',
       teamMembers: ['AK', 'LM'],
       starred: false,
@@ -66,12 +57,8 @@ export class ProjectsPage implements OnInit {
     {
       id: '4',
       name: 'Backend Infrastructure',
-      activeSprint: {
-        name: 'Sprint 4',
-        startDate: '2025-10-07',
-        endDate: '2025-10-21',
-      },
-      issueCount: 20,
+      status: 'active',
+      du: 'DTS',
       lastUpdated: '2025-10-07T08:15:00Z',
       teamMembers: ['RK', 'JD'],
       starred: true,
@@ -79,12 +66,8 @@ export class ProjectsPage implements OnInit {
     {
       id: '5',
       name: 'Customer Portal',
-      activeSprint: {
-        name: 'Sprint 2',
-        startDate: '2025-10-03',
-        endDate: '2025-10-17',
-      },
-      issueCount: 10,
+      status: 'active',
+      du: 'ATC',
       lastUpdated: '2025-10-06T11:00:00Z',
       teamMembers: ['LM', 'SM'],
       starred: false,
@@ -107,12 +90,15 @@ export class ProjectsPage implements OnInit {
 
   toggleProjectStar(projectId: string) {
     const projects = this._projects();
-    const project = projects.find((p) => p.id === projectId);
-    if (project) {
-      this._projects.set(
-        projects.map((p) => (p.id === projectId ? { ...p, starred: !p.starred } : p))
-      );
-    }
+    this._projects.set(
+      projects.map((p) => (p.id === projectId ? { ...p, starred: !p.starred } : p))
+    );
+    this.filterProjects();
+  }
+
+  toggleStarredFilter() {
+    this.showStarredOnly = !this.showStarredOnly;
+    this.filterProjects();
   }
 
   filterProjects() {
@@ -120,13 +106,29 @@ export class ProjectsPage implements OnInit {
     this._filteredProjects.set(
       projects
         .filter((project) => {
+          // Filter by starred if toggled
+          if (this.showStarredOnly && !project.starred) {
+            return false;
+          }
+
+          // Filter by status
+          if (this.selectedStatus !== 'all' && project.status !== this.selectedStatus) {
+            return false;
+          }
+
+          // Filter by DU
+          if (this.selectedDU !== 'all' && project.du !== this.selectedDU) {
+            return false;
+          }
+
+          // Filter by search query
           if (!this.searchQuery) return true;
 
           const searchLower = this.searchQuery.toLowerCase();
           return (
             project.name.toLowerCase().includes(searchLower) ||
-            project.activeSprint?.name.toLowerCase().includes(searchLower) ||
-            String(project.issueCount).includes(searchLower)
+            project.status.toLowerCase().includes(searchLower) ||
+            project.du.toLowerCase().includes(searchLower)
           );
         })
         .sort((a, b) => {
@@ -135,8 +137,8 @@ export class ProjectsPage implements OnInit {
               return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime();
             case 'name':
               return a.name.localeCompare(b.name);
-            case 'issues':
-              return b.issueCount - a.issueCount;
+            case 'status':
+              return a.status.localeCompare(b.status);
             case 'starred':
               return (b.starred ? 1 : 0) - (a.starred ? 1 : 0);
             default:
@@ -146,29 +148,23 @@ export class ProjectsPage implements OnInit {
     );
   }
 
+  onStatusFilterChange(status: string) {
+    this.selectedStatus = status;
+    this.filterProjects();
+  }
+
+  onDUFilterChange(du: string) {
+    this.selectedDU = du;
+    this.filterProjects();
+  }
+
   updateSort(sortBy: ProjectSortOption) {
     this.currentSort = sortBy;
     this.filterProjects();
   }
 
-  getLeadName(initials: string): string {
-    const names: { [key: string]: string } = {
-      JD: 'John Doe',
-      SM: 'Sarah Miller',
-      AK: 'Alex Kim',
-      RK: 'Rachel Kumar',
-      LM: 'Luis Martinez',
-    };
-    return names[initials] || 'Unknown';
-  }
-
   createProject() {
     console.log('Create new project');
     // Implement project creation logic
-  }
-
-  openProjectMenu(projectId: string) {
-    console.log('Open menu for project:', projectId);
-    // Implement project menu logic
   }
 }
