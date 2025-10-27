@@ -64,43 +64,69 @@ export class IssueDetailedView {
   });
 
   protected onEditIssue(): void {
-  if (this.isReadOnly) return;
-  const issue = this._issue();
-  if (!issue) return;
+    if (this.isReadOnly) return;
+    const issue = this._issue();
+    if (!issue) return;
 
-  // Dynamically map user names
-  const userOptions = users.map(u => u.name);
+    const userOptions = users.map(u => u.name);
+    const fields: FormField[] = [
+      { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required: true },
+      { label: 'Title', type: 'text', model: 'title', colSpan: 2, required: true },
+      { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
+      { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
+      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
+      { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+      { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+      { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
+      { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 2 },
+      { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
+    ];
 
-  const fields: FormField[] = [
-    { label: 'Title', type: 'text', model: 'title', colSpan: 2, required:true },
-    { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
-    { label: 'Priority', type: 'select', model: 'priority', options: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-    { label: 'Status', type: 'select', model: 'status', options: ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] },
-    { label: 'Story Points', type: 'number', model: 'storyPoints' },
-    { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions },
-    { label: 'Sprint', type: 'select', model: 'sprintId', options: this.availableSprints.map(s => s.name), colSpan: 2 }
-    ,{ label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
-  ];
+    // Map priority to modal field options
+    let priority = '';
+    switch ((issue.priority || '').toUpperCase()) {
+      case 'CRITICAL': priority = 'Critical'; break;
+      case 'HIGH': priority = 'High'; break;
+      case 'MEDIUM': priority = 'Medium'; break;
+      case 'LOW': priority = 'Low'; break;
+      default: priority = ''; break;
+    }
 
-  this.modalService.open({
-    id: 'editIssueModal',
-    title: `Edit Issue`,
-    projectName: 'Project Alpha',
-    modalDesc : 'Edit an existing issue in your project',
-    fields,
-    data: {
-      title: issue.title,
-      description: issue.description,
-      priority: issue.priority,
-      status: issue.status,
-      storyPoints: issue.storyPoints,
-      assignee: issue.assignee,
-      sprintId: issue.sprintId
-      ,attachments: issue.attachments || []
-    },
-    showLabels: false,
-    submitText: 'Save Changes'
-  });
+    // Helper function to convert Date to YYYY-MM-DD format for date inputs
+    const formatDateForInput = (date: Date | string | undefined): string => {
+      if (!date) return '';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    this.modalService.open({
+      id: 'editIssueModal',
+      title: `Edit Issue`,
+      projectName: 'Project Alpha',
+      modalDesc: 'Edit an existing issue in your project',
+      fields,
+      data: {
+        issueType: issue.type || '',
+        title: issue.title || '',
+        description: issue.description || '',
+        priority,
+        assignee: issue.assignee || '',
+        startDate: formatDateForInput(issue.startDate),
+        dueDate: formatDateForInput(issue.dueDate),
+        sprint: issue.sprintId || '',
+        storyPoint: issue.storyPoints || '',
+        parentEpic: issue.epicId || '',
+        attachments: issue.attachments || [],
+        labels: issue.labels || []
+      },
+      showLabels: true,
+      submitText: 'Save Changes'
+    });
 }
 
 
