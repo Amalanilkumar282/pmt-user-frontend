@@ -1,4 +1,4 @@
-import { Component, inject, HostListener, OnInit } from '@angular/core';
+import { Component, inject, HostListener, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
@@ -24,10 +24,13 @@ import {
   epics as sharedEpics
 } from '../../shared/data/dummy-backlog-data';
 import { FormField, ModalService } from '../../modal/modal-service';
+import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
+import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/services/ai-sprint-planning.service';
+import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
+  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -37,6 +40,11 @@ export class BacklogPage implements OnInit {
   private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  private aiSprintPlanningService = inject(AiSprintPlanningService);
+  private toastService = inject(ToastService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+  
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
     const svc: any = this.sidebarStateService as any;
@@ -56,6 +64,12 @@ export class BacklogPage implements OnInit {
   private isResizing = false;
   private startX = 0;
   private startWidth = 0;
+  
+  // AI Sprint Planning state
+  isAIModalOpen = false;
+  aiSuggestions: AISuggestionResponse | null = null;
+  isLoadingAISuggestions = false;
+  
   // Use shared dummy data from shared/data/dummy-backlog-data.ts
   private completedSprint1Issues: Issue[] = completedSprint1Issues;
   private completedSprint2Issues: Issue[] = completedSprint2Issues;
@@ -356,6 +370,37 @@ export class BacklogPage implements OnInit {
     if (this.isResizing) {
       this.isResizing = false;
     }
+  }
+
+  // AI Sprint Planning Methods
+  handleAISprintSuggestion(): void {
+    this.isAIModalOpen = true;
+    this.isLoadingAISuggestions = true;
+    this.aiSuggestions = null;
+
+    // Run async operation inside NgZone to ensure change detection
+    this.ngZone.run(async () => {
+      try {
+        this.aiSuggestions = await this.aiSprintPlanningService.generateSprintSuggestions();
+        this.toastService.success('AI suggestions generated successfully!');
+      } catch (error) {
+        console.error('Failed to generate AI suggestions:', error);
+        // Toast already shown by service
+      } finally {
+        this.isLoadingAISuggestions = false;
+      }
+    });
+  }
+
+  closeAIModal(): void {
+    this.isAIModalOpen = false;
+    this.aiSuggestions = null;
+  }
+
+  handleCommitAISuggestions(): void {
+    // Placeholder for future implementation
+    this.toastService.info('Commit functionality coming soon!');
+    console.log('Commit AI suggestions:', this.aiSuggestions);
   }
 
   ngOnInit(): void {

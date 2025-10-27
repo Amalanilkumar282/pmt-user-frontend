@@ -90,12 +90,49 @@
   justify-content: flex-end;
   align-items: center;
   margin-bottom: 24px;
+  gap: 12px;
 }
 
 .page-title {
   margin: 0;
   color: #1f2937;
   font-size: 24px;
+}
+
+.ai-sprint-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  outline: none;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ai-sprint-btn:hover {
+  background-color: #059669;
+}
+
+.ai-sprint-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.ai-sprint-btn:active {
+  transform: translateY(1px);
+}
+
+.ai-sprint-btn .btn-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .create-sprint-btn {
@@ -159,8 +196,11 @@
 
   .page-header {
     justify-content: center;
+    flex-direction: column;
+    gap: 8px;
   }
 
+  .ai-sprint-btn,
   .create-sprint-btn {
     padding: 6px 14px;
     font-size: 12px;
