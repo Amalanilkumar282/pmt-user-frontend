@@ -45,6 +45,7 @@
         [issue]="issue"
         [colorClass]="def.color"
         (open)="onOpen($event)"
+        (openComments)="onOpenComments($event)"
         class="cursor-move">
       </app-task-card>
     </ng-container>
@@ -63,7 +64,7 @@
   <button 
     *ngIf="items.length > pageItems.length"
     (click)="loadMore()"
-    class="mt-3 w-full rounded-lg border border-slate-200 bg-white py-2 text-sm hover:bg-slate-50">
+    class="mt-3 w-full rounded-lg border border-slate-200 bg-white py-2 text-sm hover:bg-slate-50 cursor-pointer">
     Load more
   </button>
 </div>

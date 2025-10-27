@@ -161,6 +161,20 @@ export class BoardPage implements OnInit {
     this.selectedIssue.set(issue);
     this.isModalOpen.set(true);
   }
+  
+  // open issue detailed view and scroll to comments
+  onOpenIssueComments(issue: any) {
+    this.selectedIssue.set(issue);
+    this.isModalOpen.set(true);
+    
+    // Use setTimeout to ensure modal is rendered before scrolling
+    setTimeout(() => {
+      const commentsSection = document.getElementById('issue-comments-section');
+      if (commentsSection) {
+        commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  }
 
   // public handler for moveIssue emitted by issue-detailed-view
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }) {

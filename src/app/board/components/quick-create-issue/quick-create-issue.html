@@ -1,7 +1,7 @@
 @if (!isCreating()) {
   <button 
     type="button"
-    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
     (click)="startCreating()">
     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -29,7 +29,7 @@
         <button 
           type="button"
           (click)="showTypeDropdown.set(!showTypeDropdown()); showPriorityDropdown.set(false); showAssigneeDropdown.set(false)"
-          class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer">
           <span class="text-base">{{ getTypeIcon(issueType()) }}</span>
           <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -41,7 +41,7 @@
               <button
                 type="button"
                 (click)="selectType(type)"
-                class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 flex items-center gap-2"
+                class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
                 [class.bg-blue-50]="type === issueType()">
                 <span class="text-base">{{ getTypeIcon(type) }}</span>
                 <span>{{ type }}</span>
@@ -56,7 +56,7 @@
         <button 
           type="button"
           (click)="showPriorityDropdown.set(!showPriorityDropdown()); showTypeDropdown.set(false); showAssigneeDropdown.set(false)"
-          class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer">
           <svg class="w-3 h-3" [ngClass]="getPriorityColor(issuePriority())" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
           </svg>
@@ -70,7 +70,7 @@
               <button
                 type="button"
                 (click)="selectPriority(priority)"
-                class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 flex items-center gap-2"
+                class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
                 [class.bg-blue-50]="priority === issuePriority()">
                 <span [ngClass]="getPriorityColor(priority)">●</span>
                 <span>{{ priority }}</span>
@@ -93,7 +93,7 @@
         <button 
           type="button"
           (click)="showAssigneeDropdown.set(!showAssigneeDropdown()); showTypeDropdown.set(false); showPriorityDropdown.set(false)"
-          class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors">
+          class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer">
           <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-[9px] flex items-center justify-center font-bold">
             {{ getAssigneeInitials(issueAssignee()) }}
           </div>
@@ -107,7 +107,7 @@
               <button
                 type="button"
                 (click)="selectAssignee(assignee)"
-                class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 flex items-center gap-2"
+                class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
                 [class.bg-blue-50]="assignee === (issueAssignee() || 'Unassigned')">
                 <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-[9px] flex items-center justify-center font-bold">
                   {{ getAssigneeInitials(assignee) }}
@@ -126,13 +126,13 @@
         type="button"
         (click)="create()"
         [disabled]="!issueTitle().trim()"
-        class="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">
+        class="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors cursor-pointer">
         Add
       </button>
       <button 
         type="button"
         (click)="cancel()"
-        class="px-3 py-1.5 text-slate-600 text-xs font-medium rounded hover:bg-slate-100 transition-colors">
+        class="px-3 py-1.5 text-slate-600 text-xs font-medium rounded hover:bg-slate-100 transition-colors cursor-pointer">
         Cancel
       </button>
     </div>

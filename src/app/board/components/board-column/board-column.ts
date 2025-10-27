@@ -24,6 +24,7 @@ export class BoardColumn {
   private store = inject(BoardStore);
   
   @Output() openIssue = new EventEmitter<Issue>();
+  @Output() openIssueComments = new EventEmitter<Issue>();
   @Output() quickCreateIssue = new EventEmitter<{ title: string, status: IssueStatus }>();
   // safe default to avoid undefined accesses in tests
   @Input() def: BoardColumnDef = { id: 'TODO', title: '', color: 'border-slate-200' };
@@ -83,6 +84,10 @@ export class BoardColumn {
 
   onOpen(issue: Issue) {
     this.openIssue.emit(issue);
+  }
+  
+  onOpenComments(issue: Issue) {
+    this.openIssueComments.emit(issue);
   }
 
   drop(event: CdkDragDrop<Issue[]>) {

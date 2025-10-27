@@ -245,6 +245,8 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     teamId: 'team-1', // Frontend Development Team
     epicId: 'epic-2',
+    startDate: new Date('2025-10-01'),
+    dueDate: new Date('2025-10-30'),
     createdAt: new Date('2025-09-25'),
     updatedAt: new Date('2025-10-08'),
   },
@@ -260,6 +262,8 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     teamId: 'team-1', // Frontend Development Team
     epicId: 'epic-2',
+    startDate: new Date('2025-10-15'),
+    dueDate: new Date('2025-10-28'),
     createdAt: new Date('2025-09-26'),
     updatedAt: new Date('2025-10-07'),
   },
@@ -275,6 +279,8 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     teamId: 'team-1', // Frontend Development Team
     epicId: 'epic-2',
+    startDate: new Date('2025-09-20'),
+    dueDate: new Date('2025-10-15'),
     createdAt: new Date('2025-09-20'),
     updatedAt: new Date('2025-10-06'),
   },
@@ -290,6 +296,8 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     teamId: 'team-1', // Frontend Development Team
     epicId: 'epic-2',
+    startDate: new Date('2025-10-05'),
+    dueDate: new Date('2025-10-25'),
     createdAt: new Date('2025-09-27'),
     updatedAt: new Date('2025-10-05'),
   },
@@ -305,6 +313,8 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     teamId: 'team-1', // Frontend Development Team
     epicId: 'epic-2',
+    startDate: new Date('2025-10-20'),
+    dueDate: new Date('2025-11-10'),
     createdAt: new Date('2025-09-28'),
     updatedAt: new Date('2025-10-13'),
   }, 
@@ -320,6 +330,8 @@ export const activeSprintIssues: Issue[] = [
     sprintId: 'active-1',
     teamId: 'team-1', // Frontend Development Team
     epicId: 'epic-2',
+    startDate: new Date('2025-10-18'),
+    dueDate: new Date('2025-10-29'),
     createdAt: new Date('2025-09-29'),
     updatedAt: new Date('2025-09-29'),
   },
@@ -563,6 +575,8 @@ export const epic1WorkItems: Issue[] = [
     assignee: 'Noah Garcia',
     storyPoints: 13,
     epicId: 'epic-1',
+    startDate: new Date('2025-09-15'),
+    dueDate: new Date('2025-10-20'), // Overdue by 7 days! (today is Oct 27)
     createdAt: new Date('2025-09-20'),
     updatedAt: new Date('2025-10-02'),
   },
@@ -576,6 +590,8 @@ export const epic1WorkItems: Issue[] = [
     assignee: 'Unassigned',
     storyPoints: 5,
     epicId: 'epic-1',
+    startDate: new Date('2025-10-22'),
+    dueDate: new Date('2025-10-31'),
     createdAt: new Date('2025-09-25'),
     updatedAt: new Date('2025-09-25'),
   },
