@@ -1,5 +1,4 @@
 import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
-import { IssueService } from '../../shared/services/issue.service';
 import { NgIf, NgFor, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -131,7 +130,6 @@ showToast(message: string, duration: number = 3000) {
 
   constructor(
     private modalService: ModalService,
-    private issueService: IssueService,
     @Inject(PLATFORM_ID) platformId: Object
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
@@ -237,31 +235,10 @@ shakeFields: Set<string> = new Set();
       return;
     }
 
-    // Build request object for API (remove projectId)
-    const request = {
-      issueType: this.formData.issueType,
-      title: this.formData.title,
-      description: this.formData.description,
-      priority: this.formData.priority,
-      assigneeId: this.formData.assigneeId,
-      startDate: this.formData.startDate,
-      dueDate: this.formData.dueDate,
-      sprintId: this.formData.sprintId,
-      storyPoints: this.formData.storyPoints,
-      epicId: this.formData.epicId,
-      reporterId: this.formData.reporterId,
-      attachmentUrl: this.formData.attachmentUrl || null
-    };
-
-    this.issueService.createIssue(request).subscribe({
-      next: (response) => {
-        this.showToast('Issue created successfully!', 2000);
-        this.close();
-      },
-      error: (err) => {
-        this.showToast('Failed to create issue.');
-      }
-    });
+    // No backend integration: just log and close
+    console.log('Form submitted (no API):', this.formData);
+    this.showToast('Issue saved locally (no backend).', 1500);
+    this.close();
   }
 
 

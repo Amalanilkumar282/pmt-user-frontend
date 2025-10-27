@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 
 export interface CreateIssueRequest {
+	projectId?: string;
 	issueType: string;
 	title: string;
 	description: string;
@@ -25,11 +25,9 @@ export interface CreateIssueResponse {
 
 @Injectable({ providedIn: 'root' })
 export class IssueService {
-	private apiUrl = 'https://localhost:7117/api/issue'; // Full backend API URL
-
-	constructor(private http: HttpClient) {}
-
-		createIssue(issue: Omit<CreateIssueRequest, 'projectId'>): Observable<CreateIssueResponse> {
-			return this.http.post<CreateIssueResponse>(this.apiUrl, issue);
-		}
+	// Backend integration removed — return a local observable instead
+	createIssue(issue: CreateIssueRequest): Observable<CreateIssueResponse> {
+		console.warn('IssueService.createIssue called but backend integration was removed.');
+		return of({ status: 0, data: issue, message: 'Backend integration disabled' });
+	}
 }
