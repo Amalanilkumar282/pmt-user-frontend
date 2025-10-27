@@ -6,6 +6,7 @@ import type { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardStore } from '../../board-store';
 import { TaskCard } from '../task-card/task-card';
 import { QuickCreateIssue, QuickCreateIssueData } from '../quick-create-issue/quick-create-issue';
+import { ConfirmationModal } from '../../../shared/components/confirmation-modal/confirmation-modal';
 
 interface GroupedIssues {
   groupName: string;
@@ -15,7 +16,7 @@ interface GroupedIssues {
 @Component({
   selector: 'app-board-column',
   standalone: true,
-  imports: [CommonModule, DragDropModule, TaskCard, QuickCreateIssue],
+  imports: [CommonModule, DragDropModule, TaskCard, QuickCreateIssue, ConfirmationModal],
   templateUrl: './board-column.html',
   styleUrls: ['./board-column.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -24,12 +25,16 @@ export class BoardColumn {
   private store = inject(BoardStore);
   
   @Output() openIssue = new EventEmitter<Issue>();
+  @Output() openIssueComments = new EventEmitter<Issue>();
   @Output() quickCreateIssue = new EventEmitter<{ title: string, status: IssueStatus }>();
   // safe default to avoid undefined accesses in tests
   @Input() def: BoardColumnDef = { id: 'TODO', title: '', color: 'border-slate-200' };
   @Input() items: Issue[] = [];
   @Input() connectedTo: string[] = [];
   @Input() groupBy: GroupBy = 'NONE';
+
+  // Confirmation modal state
+  showDeleteConfirmation = signal(false);
 
   trackById(index: number, item: Issue): string {
     return item.id;
@@ -84,6 +89,10 @@ export class BoardColumn {
   onOpen(issue: Issue) {
     this.openIssue.emit(issue);
   }
+  
+  onOpenComments(issue: Issue) {
+    this.openIssueComments.emit(issue);
+  }
 
   drop(event: CdkDragDrop<Issue[]>) {
     // Same container - reorder within column
@@ -118,14 +127,27 @@ export class BoardColumn {
   }
 
   onDeleteColumn() {
-    // if there are items in the column, ask user to move them first
+    // Always show confirmation modal before deleting
+    this.showDeleteConfirmation.set(true);
+    return false;
+  }
+
+  confirmDeleteColumn() {
+    this.showDeleteConfirmation.set(false);
+    
+    // If there are items in the column, don't delete
     if ((this.items ?? []).length > 0) {
-      const ok = confirm('This column is not empty. Please move or remove the issues before deleting the column.');
-      return ok; // returns true/false for possible callers, but we don't delete unless empty
+      // User confirmed but column has items - we don't actually delete
+      // This shouldn't happen since we check in the modal, but just in case
+      return;
     }
-    // delete column via store
+    
+    // Delete column via store if empty
     this.store.removeColumn(this.def.id as any);
-    return true;
+  }
+
+  cancelDeleteColumn() {
+    this.showDeleteConfirmation.set(false);
   }
 
   getColumnColorClass(): string {

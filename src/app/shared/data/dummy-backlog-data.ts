@@ -605,6 +605,8 @@ export const epic1WorkItems: Issue[] = [
     assignee: 'Noah Garcia',
     storyPoints: 13,
     epicId: 'epic-1',
+    startDate: new Date('2025-09-15'),
+    dueDate: new Date('2025-10-20'), // Overdue by 7 days! (today is Oct 27)
     createdAt: new Date('2025-09-20'),
     updatedAt: new Date('2025-10-02'),
   },
@@ -618,6 +620,8 @@ export const epic1WorkItems: Issue[] = [
     assignee: 'Unassigned',
     storyPoints: 5,
     epicId: 'epic-1',
+    startDate: new Date('2025-10-22'),
+    dueDate: new Date('2025-10-31'),
     createdAt: new Date('2025-09-25'),
     updatedAt: new Date('2025-09-25'),
   },

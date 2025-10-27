@@ -13,6 +13,7 @@ import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe
 import { EditBoardColumns } from '../edit-board-columns/edit-board-columns';
 import { BoardSelector } from '../board-selector/board-selector';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
+import { BoardOptionsMenu } from '../board-options-menu/board-options-menu';
 
 @Component({
   selector: 'app-board-toolbar',
@@ -29,7 +30,8 @@ import { ClickOutsideDirective } from '../../../shared/directives/click-outside.
     InitialsPipe,
     EditBoardColumns,
     BoardSelector,
-    ClickOutsideDirective
+    ClickOutsideDirective,
+    BoardOptionsMenu
   ],
   templateUrl: './board-toolbar.html',
   styleUrls: ['./board-toolbar.css'],

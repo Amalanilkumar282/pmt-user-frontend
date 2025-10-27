@@ -203,6 +203,88 @@ describe('TaskCard', () => {
       component.issue = createMockIssue({ status: 'UNKNOWN' as any });
       expect(component.getProgressValue()).toBe(10);
     });
+
+    it('should compute time-based progress when startDate and dueDate present', () => {
+      const now = new Date();
+      const start = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 days ago
+      const due = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000); // in 2 days
+
+      component.issue = createMockIssue({ status: 'IN_PROGRESS', createdAt: start, updatedAt: start, startDate: start, dueDate: due });
+      const progress = component.getProgressValue();
+      // elapsed is 2 days of 4 total => ~50%; combined with baseline 55 -> close to mid
+      expect(progress).toBeGreaterThan(30);
+      expect(progress).toBeLessThan(90);
+    });
+
+    it('should mark overdue and color red when past due date and not done', () => {
+      const now = new Date();
+      const start = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+      const due = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000); // 1 day ago
+
+      component.issue = createMockIssue({ status: 'IN_PROGRESS', createdAt: start, updatedAt: start, startDate: start, dueDate: due });
+      expect(component.isOverdue()).toBeTrue();
+      expect(component.progressColor()).toBe('#ef4444');
+    });
+
+    it('should not mark as overdue when status is DONE', () => {
+      const now = new Date();
+      const due = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000); // 1 day ago
+
+      component.issue = createMockIssue({ status: 'DONE', dueDate: due });
+      expect(component.isOverdue()).toBeFalse();
+    });
+
+    it('should adjust progress down for large story points', () => {
+      const now = new Date();
+      const start = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 5 days ago
+      const due = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000); // 5 days from now
+
+      component.issue = createMockIssue({ 
+        status: 'IN_PROGRESS', 
+        createdAt: start, 
+        startDate: start, 
+        dueDate: due,
+        storyPoints: 21
+      });
+      
+      const progress = component.getProgressValue();
+      // With 21 story points, there should be ~10% reduction
+      expect(progress).toBeLessThan(60); // Less than the unadjusted value
+    });
+
+    it('should return descriptive tooltip with days remaining', () => {
+      const now = new Date();
+      const start = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      const due = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days from now
+
+      component.issue = createMockIssue({ 
+        status: 'IN_PROGRESS', 
+        createdAt: start,
+        startDate: start,
+        dueDate: due 
+      });
+
+      const tooltip = component.getProgressTooltip();
+      expect(tooltip).toContain('complete');
+      expect(tooltip).toContain('days left');
+    });
+
+    it('should return overdue warning in tooltip when past due', () => {
+      const now = new Date();
+      const start = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+      const due = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000); // 1 day ago
+
+      component.issue = createMockIssue({ 
+        status: 'IN_PROGRESS',
+        createdAt: start,
+        startDate: start,
+        dueDate: due 
+      });
+
+      const tooltip = component.getProgressTooltip();
+      expect(tooltip).toContain('OVERDUE');
+      expect(tooltip).toContain('⚠️');
+    });
   });
 
   describe('title editing', () => {

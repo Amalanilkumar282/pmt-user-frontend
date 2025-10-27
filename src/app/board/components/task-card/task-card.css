@@ -18,3 +18,8 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
+/* Elevate card when hovering over description to show full description tooltip on top */
+.task-card:has(.group\/desc:hover) {
+  z-index: 9999 !important;
+}

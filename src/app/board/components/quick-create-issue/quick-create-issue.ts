@@ -103,13 +103,13 @@ export class QuickCreateIssue {
   
   getTypeIcon(type: IssueType): string {
     const icons: Record<IssueType, string> = {
-      TASK: '✓',
-      BUG: '🐛',
-      STORY: '📖',
-      EPIC: '⚡',
-      SUBTASK: '📋'
+      STORY: 'fa-solid fa-book',
+      TASK: 'fa-solid fa-check-circle',
+      BUG: 'fa-solid fa-bug',
+      EPIC: 'fa-solid fa-bolt',
+      SUBTASK: 'fa-solid fa-list-check'
     };
-    return icons[type] || '✓';
+    return icons[type] || 'fa-solid fa-file';
   }
   
   getPriorityColor(priority: IssuePriority): string {
