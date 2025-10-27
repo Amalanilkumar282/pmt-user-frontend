@@ -125,4 +125,14 @@ export class TimelineHeaderComponent {
   onCollapseAllEpics() {
     this.collapseAllEpics.emit();
   }
+
+  getIssueTypeIcon(type: string): string {
+    const iconMap: { [key: string]: string } = {
+      'epic': 'fa-solid fa-bolt text-black',
+      'story': 'fa-solid fa-book text-green-500',
+      'task': 'fa-solid fa-circle-check text-blue-500',
+      'bug': 'fa-solid fa-bug text-red-500'
+    };
+    return iconMap[type] || 'fa-solid fa-question-circle';
+  }
 }
