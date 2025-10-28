@@ -276,9 +276,9 @@ shakeFields: Set<string> = new Set();
   }
 
   handleFileSelect(event: any, field: FormField) {
-  // Always initialize as array for safety
-  this.formData[field.model] = Array.isArray(event.target.files) ? Array.from(event.target.files) : [];
-  field.onChange?.(this.formData[field.model], this.formData);
+    // Always convert FileList to array for display
+    this.formData[field.model] = event.target.files ? Array.from(event.target.files) : [];
+    field.onChange?.(this.formData[field.model], this.formData);
   }
 
   addLabel(label: string) {
