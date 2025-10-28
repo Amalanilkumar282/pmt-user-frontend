@@ -26,39 +26,6 @@
     
     <!-- Filters Container -->
     <div class="flex items-center gap-3">
-        <!-- Sprint Filter -->
-        <div class="relative filter-container">
-            <button class="min-w-[90px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
-                    (click)="toggleDropdown($event)">
-                <span class="flex-1 text-left">Sprint</span>
-                <!-- Show count when filters are selected -->
-                <span class="bg-indigo-500 text-white rounded-full px-2 py-0.5 text-xs font-bold min-w-[20px] text-center" 
-                      *ngIf="getFilterCount('sprints') > 0">
-                    {{getFilterCount('sprints')}}
-                </span>
-                <!-- Show arrow only when no filters are selected -->
-                <svg *ngIf="getFilterCount('sprints') === 0" 
-                     class="dropdown-arrow transition-transform duration-300" 
-                     width="12" height="12" viewBox="0 0 24 24" fill="none"
-                     [class.rotate-down]="isDropdownOpen('sprint-dropdown')">
-                    <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-            <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
-                 id="sprint-dropdown">
-                <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer" 
-                     *ngFor="let sprint of availableSprints">
-                    <input type="checkbox" 
-                           class="cursor-pointer w-4 h-4"
-                           [id]="'sprint-' + sprint"
-                           [value]="sprint"
-                           [checked]="selectedFilters.sprints.includes(sprint)"
-                           (change)="toggleFilter('sprints', sprint, $event)">
-                    <label class="cursor-pointer flex-1 m-0" [for]="'sprint-' + sprint">{{sprint}}</label>
-                </div>
-            </div>
-        </div>
-        
         <!-- Epic Filter -->
         <div class="relative filter-container">
             <button class="min-w-[90px] px-3 py-1.5 border border-gray-300 bg-white rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-300 hover:bg-gray-50"
@@ -87,7 +54,7 @@
                            [value]="epic"
                            [checked]="selectedFilters.epics.includes(epic)"
                            (change)="toggleFilter('epics', epic, $event)">
-                    <i class="fa-solid fa-bolt text-black w-4 h-4"></i>
+                    <i class="fa-solid fa-bolt text-gray-600"></i>
                     <label class="cursor-pointer flex-1 m-0" [for]="'epic-' + epic">{{epic}}</label>
                 </div>
             </div>
@@ -120,7 +87,7 @@
                            id="type-story"
                            [checked]="selectedFilters.types.includes('story')"
                            (change)="toggleFilter('types', 'story', $event)">
-                    <i class="fa-solid fa-book text-black w-4 h-4"></i>
+                    <i class="fa-solid fa-book text-gray-600"></i>
                     <label class="cursor-pointer flex-1 m-0" for="type-story">Story</label>
                 </div>
                 <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
@@ -130,7 +97,7 @@
                            id="type-task"
                            [checked]="selectedFilters.types.includes('task')"
                            (change)="toggleFilter('types', 'task', $event)">
-                    <i class="fa-solid fa-circle-check text-black w-4 h-4"></i>
+                    <i class="fa-solid fa-check-circle text-gray-600"></i>
                     <label class="cursor-pointer flex-1 m-0" for="type-task">Task</label>
                 </div>
                 <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
@@ -140,7 +107,7 @@
                            id="type-bug"
                            [checked]="selectedFilters.types.includes('bug')"
                            (change)="toggleFilter('types', 'bug', $event)">
-                    <i class="fa-solid fa-bug text-black w-4 h-4"></i>
+                    <i class="fa-solid fa-bug text-gray-600"></i>
                     <label class="cursor-pointer flex-1 m-0" for="type-bug">Bug</label>
                 </div>
             </div>
