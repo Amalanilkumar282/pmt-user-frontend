@@ -107,27 +107,35 @@ export class BacklogPage implements OnInit {
   // Toggle completed sprints visibility
   toggleCompletedSprints(): void {
     this.showCompletedSprints = !this.showCompletedSprints;
-    
+
     // Scroll to completed sprints section when enabled
     if (this.showCompletedSprints) {
-      // Use requestAnimationFrame to ensure DOM is updated
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          const completedSprintsSection = document.querySelector('.completed-sprints-section');
-          if (completedSprintsSection) {
-            const navbarHeight = 60; // Approximate navbar height
-            const offsetTop = completedSprintsSection.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
-            
-            window.scrollTo({
-              top: offsetTop,
-              behavior: 'smooth'
-            });
-          } else {
-            console.warn('Completed sprints section not found in DOM');
-          }
-        }, 350); // Increased delay to ensure Angular rendering is complete
-      });
+      this.scrollToCompletedSprints();
     }
+  }
+
+  /**
+   * Scroll helper used by both the toggle button and the filters component
+   * Ensures DOM is rendered and then scrolls the completed sprints section into view
+   */
+  private scrollToCompletedSprints(): void {
+    // Use requestAnimationFrame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const completedSprintsSection = document.querySelector('.completed-sprints-section');
+        if (completedSprintsSection) {
+          const navbarHeight = 60; // Approximate navbar height
+          const offsetTop = completedSprintsSection.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
+
+          window.scrollTo({
+            top: offsetTop,
+            behavior: 'smooth'
+          });
+        } else {
+          console.warn('Completed sprints section not found in DOM');
+        }
+      }, 350); // Increased delay to ensure Angular rendering is complete
+    });
   }
 
   
@@ -221,7 +229,13 @@ export class BacklogPage implements OnInit {
     console.log('Filters changed:', criteria);
     // Update view states from filter criteria
     this.currentView = criteria.view;
+    // detect transition from hidden -> shown so we can scroll into view
+    const prevShowCompleted = this.showCompletedSprints;
     this.showCompletedSprints = criteria.showCompletedSprints;
+    if (this.showCompletedSprints && !prevShowCompleted) {
+      // ensure we scroll to the newly revealed section
+      this.scrollToCompletedSprints();
+    }
     this.isEpicPanelOpen = criteria.showEpicPanel;
     this.selectedEpicFilter = criteria.epicId;
     // Additional filter logic can be implemented here
