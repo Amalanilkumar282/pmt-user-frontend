@@ -6,7 +6,6 @@ import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
 import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
 import { IssueDetailedView } from '../../backlog/issue-detailed-view/issue-detailed-view';
-import * as gantt from 'dhtmlx-gantt';
 
 interface Sprint {
   id: string;
@@ -19,7 +18,7 @@ interface Sprint {
 
 interface TimelineRow {
   id: string;
-  type: 'sprint' | 'epic' | 'issue';
+  type: 'sprints-overview' | 'sprint' | 'epic' | 'issue';
   name: string;
   status: string;
   startDate?: Date;
@@ -29,6 +28,7 @@ interface TimelineRow {
   expanded?: boolean;
   level?: number;
   visible?: boolean;
+  sprints?: Sprint[]; // For sprints-overview row to hold multiple sprint bars
 }
 
 interface MonthHeader {
@@ -50,6 +50,12 @@ interface DayHeader {
   date: Date;
 }
 
+interface YearHeader {
+  name: string;
+  left: number;
+  width: number;
+}
+
 @Component({
   selector: 'app-timeline-chart',
   standalone: true,
@@ -60,11 +66,12 @@ interface DayHeader {
 export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('chartContainer', { static: false }) chartContainer!: ElementRef;
   @ViewChild('sidebarContent', { static: false }) sidebarContent!: ElementRef;
-  @ViewChild('ganttContainer', { static: false }) ganttContainer!: ElementRef;
+  @ViewChild('chartContent', { static: false }) chartContent!: ElementRef;
+  @ViewChild('headerScroll', { static: false }) headerScroll!: ElementRef;
+  @ViewChild('fixedScrollbar', { static: false }) fixedScrollbar!: ElementRef;
   
   currentView: 'day' | 'month' | 'year' = 'month';
   selectedFilters: FilterState = {
-    sprints: [],
     epics: [],
     types: [],
     status: []
@@ -74,7 +81,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   epicsData: Epic[] = sharedEpics;
   displayMode: 'epics' | 'issues' = 'epics';
   selectedEpic: string | null = null;
-  availableSprints: string[] = [];
   availableEpics: string[] = [];
 
   // Timeline properties
@@ -82,6 +88,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   monthHeaders: MonthHeader[] = [];
   weekHeaders: WeekHeader[] = [];
   dayHeaders: DayHeader[] = [];
+  yearHeaders: YearHeader[] = [];
   expandedRows: Set<string> = new Set();
   dateRange: { start: Date; end: Date } = { start: new Date(), end: new Date() };
   chartWidth: number = 0;
@@ -98,10 +105,16 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   
   // Scroll synchronization flags
   private isScrollingSidebar = false;
-  private isScrollingGantt = false;
-  
-  // Debounce timer for Gantt updates
-  private ganttUpdateTimer: any = null;
+  private isScrollingChart = false;
+  private isScrollingHeader = false;
+  private isScrollingFixedBar = false;
+
+  // Mouse drag scrolling properties
+  private isDraggingScroll = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private scrollStartX = 0;
+  private scrollStartY = 0;
 
   // Bar resize properties
   resizingBar: { id: string; side: 'left' | 'right'; startX: number; originalStart: Date; originalEnd: Date } | null = null;
@@ -110,474 +123,278 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.initializeFilters();
-    this.setLatestSprintAsDefault();
     this.availableEpics = this.getUniqueEpics();
     
-    // FIXED: Only expand sprints by default, NOT epics
-    this.expandSprintsOnly();
+    // No need to expand sprints anymore
     
     this.prepareTimelineData();
   }
 
   ngAfterViewInit() {
-    // Use microtask queue to defer Gantt initialization without blocking parent rendering
-    // This ensures navbar/sidebar render first without a noticeable delay
-    Promise.resolve().then(() => {
-      setTimeout(() => {
-        if (this.ganttContainer && this.ganttContainer.nativeElement) {
-          try {
-            this.initializeGantt();
-          } catch (error) {
-            console.error('Failed to initialize Gantt:', error);
-          }
-          this.cdr.detectChanges();
-        }
-      }, 100); // Minimal delay just to ensure sidebar effect completes
-    });
+    setTimeout(() => {
+      this.updateDateHeaders();
+      this.scrollToTodayCenter();
+      this.cdr.detectChanges();
+    }, 100);
+
+    // Add mouse move and up listeners for bar resize
+    document.addEventListener('mousemove', this.onBarResizeMove.bind(this));
+    document.addEventListener('mouseup', this.onBarResizeEnd.bind(this));
+    
+    // Add drag scrolling listeners
+    if (this.chartContent && this.chartContent.nativeElement) {
+      const chartEl = this.chartContent.nativeElement;
+      chartEl.addEventListener('mousedown', this.onDragScrollStart.bind(this));
+      document.addEventListener('mousemove', this.onDragScrollMove.bind(this));
+      document.addEventListener('mouseup', this.onDragScrollEnd.bind(this));
+    }
   }
 
   ngOnDestroy() {
-    if (gantt.gantt) {
-      gantt.gantt.clearAll();
-    }
-  }
-
-  // FIXED: Only expand sprints, keep epics collapsed by default
-  private expandSprintsOnly(): void {
-    const filteredSprints = this.getFilteredSprints();
+    // Cleanup bar resize listeners
+    document.removeEventListener('mousemove', this.onBarResizeMove.bind(this));
+    document.removeEventListener('mouseup', this.onBarResizeEnd.bind(this));
     
-    filteredSprints.forEach(sprint => {
-      const sprintId = `sprint-${sprint.id}`;
-      this.expandedRows.add(sprintId);
-      // Do NOT expand epics by default
-    });
+    // Cleanup drag scroll listeners
+    document.removeEventListener('mousemove', this.onDragScrollMove.bind(this));
+    document.removeEventListener('mouseup', this.onDragScrollEnd.bind(this));
   }
 
-  // Initialize DHTMLX Gantt
-  private initializeGantt(): void {
-    if (!this.ganttContainer || !this.ganttContainer.nativeElement) {
+  // Bar resize functionality
+  onBarResizeStart(event: MouseEvent, row: TimelineRow, side: 'left' | 'right'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (!row.startDate || !row.endDate) return;
+    
+    this.resizingBar = {
+      id: row.id,
+      side: side,
+      startX: event.clientX,
+      originalStart: new Date(row.startDate),
+      originalEnd: new Date(row.endDate)
+    };
+  }
+
+  // Drag scrolling functionality
+  private onDragScrollStart(event: MouseEvent): void {
+    // Don't start drag scroll if clicking on a bar or resize handle
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('timeline-bar') || 
+        target.classList.contains('bar-resize-handle') ||
+        target.closest('.timeline-bar')) {
       return;
     }
+    
+    this.isDraggingScroll = true;
+    this.dragStartX = event.clientX;
+    this.dragStartY = event.clientY;
+    
+    if (this.chartContent && this.chartContent.nativeElement) {
+      this.scrollStartX = this.chartContent.nativeElement.scrollLeft;
+      this.scrollStartY = this.chartContent.nativeElement.scrollTop;
+      this.chartContent.nativeElement.style.cursor = 'grabbing';
+    }
+  }
 
-    // Configure Gantt BEFORE init
-    gantt.gantt.config['date_format'] = '%Y-%m-%d %H:%i';
-    gantt.gantt.config['xml_date'] = '%Y-%m-%d %H:%i';
+  private onDragScrollMove(event: MouseEvent): void {
+    if (!this.isDraggingScroll || !this.chartContent || !this.chartContent.nativeElement) return;
     
-    // Enable smart rendering for better performance with many tasks
-    gantt.gantt.config['smart_rendering'] = true;
-    gantt.gantt.config['static_background'] = true;
+    event.preventDefault();
     
-    // Fix snapping issue - disable rounding to allow precise positioning
-    gantt.gantt.config['round_dnd_dates'] = false;
-    gantt.gantt.config['duration_unit'] = 'day';
-    gantt.gantt.config['duration_step'] = 1;
+    const deltaX = this.dragStartX - event.clientX;
+    const deltaY = this.dragStartY - event.clientY;
     
-    // Enable drag and drop
-    gantt.gantt.config['drag_move'] = true;
-    gantt.gantt.config['drag_progress'] = false;
-    gantt.gantt.config['drag_resize'] = true;
+    this.chartContent.nativeElement.scrollLeft = this.scrollStartX + deltaX;
+    this.chartContent.nativeElement.scrollTop = this.scrollStartY + deltaY;
+  }
+
+  private onDragScrollEnd(event: MouseEvent): void {
+    if (this.isDraggingScroll && this.chartContent && this.chartContent.nativeElement) {
+      this.chartContent.nativeElement.style.cursor = 'grab';
+    }
+    this.isDraggingScroll = false;
+  }
+
+  private onBarResizeMove(event: MouseEvent): void {
+    if (!this.resizingBar) return;
     
-    // Enable double-click to enable dragging
-    gantt.gantt.config['details_on_dblclick'] = false;
+    const deltaX = event.clientX - this.resizingBar.startX;
+    const deltaDays = Math.round(deltaX / this.getPixelsPerDay());
     
-    // Hide the left grid (we're using our custom left panel)
-    gantt.gantt.config['show_grid'] = false;
+    const row = this.timelineRows.find(r => r.id === this.resizingBar!.id);
+    if (!row || !row.startDate || !row.endDate) return;
     
-    // Set row height to match our left panel
-    gantt.gantt.config['row_height'] = 48;
-    gantt.gantt.config['bar_height'] = 28;
-    
-    // Configure appearance
-    gantt.gantt.config['readonly'] = false;
-    gantt.gantt.config['show_errors'] = false;
-    
-    // Enable "Today" marker
-    gantt.gantt.config['show_markers'] = true;
-    
-    // Fit all tasks into view
-    gantt.gantt.config['fit_tasks'] = false;
-    
-    // Enable tooltip and marker plugins
-    gantt.gantt.plugins({
-      tooltip: true,
-      marker: true
-    });
-    
-    // Configure tooltip template to show start and end dates
-    gantt.gantt.templates.tooltip_text = (start: Date, end: Date, task: any) => {
-      const formatDate = (date: Date) => {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-      };
+    if (this.resizingBar.side === 'left') {
+      const newStart = new Date(this.resizingBar.originalStart);
+      newStart.setDate(newStart.getDate() + deltaDays);
       
-      return `<b>${task.text}</b><br/>` +
-             `<b>Start:</b> ${formatDate(start)}<br/>` +
-             `<b>End:</b> ${formatDate(end)}`;
-    };
-
-    // Only show task name inside the bar, no percentage
-    gantt.gantt.templates.task_text = (start: Date, end: Date, task: any) => {
-      return task.text;
-    };
-    
-    // Set scale based on current view (simplified - single level)
-    this.updateGanttScale();
-    
-    // Set explicit date range for the chart
-    gantt.gantt.config.start_date = this.dateRange.start;
-    gantt.gantt.config.end_date = this.dateRange.end;
-    
-    // Initialize gantt
-    gantt.gantt.init(this.ganttContainer.nativeElement);
-    
-    // Load data AFTER init
-    this.loadGanttData();
-    
-    // Sync scroll with sidebar
-    this.setupGanttScrollSync();
-    
-    // Handle task updates
-    gantt.gantt.attachEvent('onAfterTaskDrag', (id: any, mode: any) => {
-      this.onTaskUpdated(id);
-      return true;
-    });
-    
-    gantt.gantt.attachEvent('onTaskDblClick', (id: any) => {
-      const task = gantt.gantt.getTask(id);
-      if (task['type'] === 'epic') {
-        this.onEpicClickById(task['originalId']);
-      } else if (task['type'] === 'issue') {
-        this.onIssueClickById(task['originalId']);
+      // Ensure start doesn't go beyond end
+      if (newStart < row.endDate) {
+        row.startDate = newStart;
+        // Update the underlying data
+        this.updateUnderlyingData(row.id, newStart, row.endDate);
       }
-      return false; // Prevent default behavior
-    });
-  }
-
-  private updateGanttScale(): void {
-    // Use the new scales configuration API instead of obsolete scale_unit/subscales
-    switch (this.currentView) {
-      case 'day':
-        // Day view: Show Month as main header, Day as sub-header
-        gantt.gantt.config['scales'] = [
-          { unit: 'month', step: 1, format: '%M %Y' },
-          { unit: 'day', step: 1, format: '%d' }
-        ];
-        gantt.gantt.config['scale_height'] = 60;
-        break;
-      case 'month':
-        // Month view: Show only Month (no subscales)
-        gantt.gantt.config['scales'] = [
-          { unit: 'month', step: 1, format: '%M %Y' }
-        ];
-        gantt.gantt.config['scale_height'] = 60;
-        break;
-      case 'year':
-        // Year view: Show only Year (no subscales)
-        gantt.gantt.config['scales'] = [
-          { unit: 'year', step: 1, format: '%Y' }
-        ];
-        gantt.gantt.config['scale_height'] = 60;
-        break;
-    }
-  }
-
-  private loadGanttData(): void {
-    try {
-      const tasks: any[] = [];
-      let taskId = 1;
-
-      this.timelineRows.forEach(row => {
-        if (row.visible === false) return;
-        
-        if (row.startDate && row.endDate) {
-          // Use Date objects directly instead of formatted strings
-          const task: any = {
-            id: taskId++,
-            text: row.name,
-            start_date: new Date(row.startDate),
-            end_date: new Date(row.endDate),
-            type: row.type,
-            originalId: row.id
-          };
-
-          // Set colors based on type
-          if (row.type === 'sprint') {
-            task.color = '#3b82f6';
-          } else if (row.type === 'epic') {
-            task.color = '#a855f7';
-          } else if (row.type === 'issue') {
-            task.color = '#10b981';
-          }
-
-          tasks.push(task);
-        }
-      });
-
-      gantt.gantt.clearAll();
-      if (tasks.length > 0) {
-        gantt.gantt.parse({ data: tasks });
+    } else {
+      const newEnd = new Date(this.resizingBar.originalEnd);
+      newEnd.setDate(newEnd.getDate() + deltaDays);
+      
+      // Ensure end doesn't go before start
+      if (newEnd > row.startDate) {
+        row.endDate = newEnd;
+        // Update the underlying data
+        this.updateUnderlyingData(row.id, row.startDate, newEnd);
       }
-      this.drawTodayMarker();
-    } catch (error) {
-      console.error('Error loading Gantt data:', error);
-      // Don't crash the component - just skip Gantt rendering
     }
-  }
-
-  private drawTodayMarker(): void {
-    const today = new Date();
-    gantt.gantt.addMarker({
-        start_date: today,
-        css: "today-marker",
-        text: "Today",
-        title: "Today: " + today.toDateString()
-    });
-  }
-
-  private updateGanttData(): void {
-    try {
-      // More efficient update - only rebuild visible tasks without full reload
-      const tasks: any[] = [];
-      let taskId = 1;
-
-      this.timelineRows.forEach(row => {
-        if (row.visible === false) return;
-        
-        if (row.startDate && row.endDate) {
-          const task: any = {
-            id: taskId++,
-            text: row.name,
-            start_date: new Date(row.startDate),
-            end_date: new Date(row.endDate),
-            type: row.type,
-            originalId: row.id
-          };
-
-          if (row.type === 'sprint') {
-            task.color = '#3b82f6';
-          } else if (row.type === 'epic') {
-            task.color = '#a855f7';
-          } else if (row.type === 'issue') {
-            task.color = '#10b981';
-          }
-
-          tasks.push(task);
-        }
-      });
-
-      // Clear and parse without full re-initialization
-      gantt.gantt.clearAll();
-      if (tasks.length > 0) {
-        gantt.gantt.parse({ data: tasks });
-      }
-      this.drawTodayMarker();
-    } catch (error) {
-      console.error('Error updating Gantt data:', error);
-    }
-  }
-
-  private formatDateForGantt(date: Date): string {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day} 00:00`;
-  }
-
-  private setupGanttScrollSync(): void {
-    const ganttElement = this.ganttContainer.nativeElement;
-    const taskArea = ganttElement.querySelector('.gantt_task');
-    const dataArea = ganttElement.querySelector('.gantt_data_area');
     
-    if (dataArea && this.sidebarContent && this.sidebarContent.nativeElement) {
-      // Use passive listener for better scroll performance
-      dataArea.addEventListener('scroll', (event: any) => {
-        if (this.sidebarContent && this.sidebarContent.nativeElement) {
-          // Prevent circular updates
-          if (!this.isScrollingSidebar) {
-            this.isScrollingGantt = true;
-            // Use requestAnimationFrame for smoother scrolling
-            requestAnimationFrame(() => {
-              if (this.sidebarContent && this.sidebarContent.nativeElement) {
-                this.sidebarContent.nativeElement.scrollTop = event.target.scrollTop;
-              }
-            });
-            setTimeout(() => {
-              this.isScrollingGantt = false;
-            }, 50);
-          }
-        }
-      }, { passive: true });
-    }
+    this.cdr.detectChanges();
   }
 
-  // Sidebar scroll sync - optimized with requestAnimationFrame
-  onSidebarScroll(event: Event): void {
-    const sidebar = event.target as HTMLElement;
-    const scrollTop = sidebar.scrollTop;
-    
-    const ganttElement = this.ganttContainer?.nativeElement;
-    const dataArea = ganttElement?.querySelector('.gantt_data_area');
-    
-    if (dataArea && !this.isScrollingGantt) {
-      this.isScrollingSidebar = true;
-      // Use requestAnimationFrame for smoother scrolling
-      requestAnimationFrame(() => {
-        if (dataArea) {
-          dataArea.scrollTop = scrollTop;
-        }
-      });
-      setTimeout(() => {
-        this.isScrollingSidebar = false;
-      }, 50);
-    }
+  private onBarResizeEnd(event: MouseEvent): void {
+    if (!this.resizingBar) return;
+    this.resizingBar = null;
+    this.cdr.detectChanges();
   }
 
-  private onTaskUpdated(taskId: any): void {
-    const task = gantt.gantt.getTask(taskId);
-    const row = this.timelineRows.find(r => r.id === task['originalId']);
+  private updateUnderlyingData(rowId: string, startDate: Date, endDate: Date): void {
+    // Update the actual data based on row type
     
-    if (row && task['start_date'] && task['end_date']) {
-      row.startDate = new Date(task['start_date']);
-      row.endDate = new Date(task['end_date']);
-      this.cdr.detectChanges();
-    }
-  }
-
-  private onEpicClickById(epicId: string): void {
-    const epic = this.epicsData.find(e => e.id === epicId);
+    // Check if it's an epic
+    const epic = this.epicsData.find(e => e.id === rowId);
     if (epic) {
-      this.selectedEpicForModal = { ...epic };
-      this.isEpicModalOpen = true;
-      this.cdr.detectChanges();
+      // Note: Epic model might not have startDate/endDate properties
+      // This is a placeholder for future database update
+      console.log(`Epic ${epic.name} dates updated:`, { startDate, endDate });
+      // TODO: Call API service to update epic dates in database
+      // this.epicService.updateEpicDates(epic.id, startDate, endDate).subscribe();
+      return;
     }
-  }
-
-  private onIssueClickById(issueId: string): void {
-    let foundIssue: Issue | null = null;
+    
+    // Check if it's an issue
     for (const sprint of this.projectData) {
       if (sprint.issues) {
-        foundIssue = sprint.issues.find(i => i.id === issueId) || null;
-        if (foundIssue) break;
+        const issue = sprint.issues.find(i => i.id === rowId);
+        if (issue) {
+          issue.createdAt = startDate;
+          issue.updatedAt = endDate;
+          console.log(`Issue ${issue.title} dates updated:`, { startDate, endDate });
+          // TODO: Call API service to update issue dates in database
+          // this.issueService.updateIssueDates(issue.id, startDate, endDate).subscribe();
+          return;
+        }
       }
     }
     
-    if (foundIssue) {
-      this.selectedIssueForModal = { ...foundIssue };
-      this.isIssueModalOpen = true;
-      this.cdr.detectChanges();
+    // Check if it's a sprint
+    const sprint = this.projectData.find(s => `sprint-${s.id}` === rowId);
+    if (sprint) {
+      sprint.startDate = startDate;
+      sprint.endDate = endDate;
+      console.log(`Sprint ${sprint.name} dates updated:`, { startDate, endDate });
+      // TODO: Call API service to update sprint dates in database
+      // this.sprintService.updateSprintDates(sprint.id, startDate, endDate).subscribe();
+      return;
     }
   }
 
-
+  private getPixelsPerDay(): number {
+    const totalDays = Math.ceil((this.dateRange.end.getTime() - this.dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    return this.chartWidth / totalDays;
+  }
 
   // Dynamic timeline preparation
   private prepareTimelineData(): void {
     this.timelineRows = [];
-    const filteredSprints = this.getFilteredSprints();
+    
+    // Calculate date range based on all data
+    this.calculateDynamicDateRange(this.projectData);
 
-    // Calculate date range based on current view and filters
-    this.calculateDynamicDateRange(filteredSprints);
+    // 1. Add single "Sprints" overview row showing all sprints
+    this.timelineRows.push({
+      id: 'sprints-overview',
+      type: 'sprints-overview',
+      name: 'Sprints',
+      status: '',
+      sprints: this.projectData, // Pass all sprints to display multiple bars
+      level: 0,
+      visible: true
+    });
 
-    filteredSprints.forEach(sprint => {
-      // Add sprint row
+    // 2. Add all epics directly (not grouped under sprints)
+    const allIssues: Issue[] = [];
+    this.projectData.forEach(sprint => {
+      if (sprint.issues) {
+        allIssues.push(...sprint.issues);
+      }
+    });
+
+    // Group issues by epic
+    const epicGroups = this.groupIssuesByEpicId(allIssues);
+    
+    Object.entries(epicGroups).forEach(([epicId, issues]) => {
+      const epic = this.epicsData.find(e => e.id === epicId);
+      if (!epic) return;
+      
+      // Apply epic filter if any
+      if (this.selectedFilters.epics.length > 0 && 
+          !this.selectedFilters.epics.includes(epic.name)) {
+        return;
+      }
+
+      const epicStart = this.getEarliestDate(issues.map(i => i.createdAt));
+      const epicEnd = this.getLatestDate(issues.map(i => i.updatedAt));
+      
+      // Calculate epic progress
+      const epicProgress = this.calculateEpicProgress(issues);
+      
+      // Filter completed epics based on display options
+      const isEpicCompleted = epicProgress === 100 || epic.status === 'DONE';
+      if (!this.showCompleted && isEpicCompleted) {
+        return;
+      }
+      
+      // Filter epics by display range (only for completed epics)
+      if (isEpicCompleted && !this.isEpicInDisplayRange(epic, epicEnd)) {
+        return;
+      }
+      
+      // Add epic row
       this.timelineRows.push({
-        id: `sprint-${sprint.id}`,
-        type: 'sprint',
-        name: sprint.name,
-        status: sprint.status,
-        startDate: sprint.startDate,
-        endDate: sprint.endDate,
-        progress: this.calculateSprintProgress(sprint),
-        expanded: this.isRowExpanded(`sprint-${sprint.id}`),
-        level: 0,
-        visible: this.isItemInDateRange(sprint.startDate, sprint.endDate)
+        id: epic.id,
+        type: 'epic',
+        name: epic.name,
+        status: epic.status || 'TODO',
+        startDate: epicStart,
+        endDate: epicEnd,
+        progress: epicProgress,
+        expanded: this.isRowExpanded(epic.id),
+        level: 0, // Epics are now at root level, not nested
+        visible: this.isItemInDateRange(epicStart, epicEnd)
       });
 
-      // Add epic rows if sprint is expanded
-      if (this.isRowExpanded(`sprint-${sprint.id}`) && sprint.issues) {
-        const epicGroups = this.groupIssuesByEpicId(sprint.issues);
-        
-        Object.entries(epicGroups).forEach(([epicId, issues]) => {
-          const epic = this.epicsData.find(e => e.id === epicId);
-          if (!epic) return;
-          
-          if (this.selectedFilters.epics.length > 0 && 
-              !this.selectedFilters.epics.includes(epic.name)) {
-            return;
-          }
-
-          const epicStart = this.getEarliestDate(issues.map(i => i.createdAt));
-          const epicEnd = this.getLatestDate(issues.map(i => i.updatedAt));
-          
-          // Calculate epic progress
-          const epicProgress = this.calculateEpicProgress(issues);
-          
-          // Filter completed epics based on display options
-          // An epic is considered completed if it has 100% progress OR status is 'DONE'
-          const isEpicCompleted = epicProgress === 100 || epic.status === 'DONE';
-          if (!this.showCompleted && isEpicCompleted) {
-            return;
-          }
-          
-          // Filter epics by display range (only for completed epics)
-          if (isEpicCompleted && !this.isEpicInDisplayRange(epic, epicEnd)) {
-            return;
-          }
-          
-          this.timelineRows.push({
-            id: epic.id,  // Epic ID already has 'epic-' prefix (e.g., 'epic-1')
-            type: 'epic',
-            name: epic.name,
-            status: epic.status || 'TODO',
-            startDate: epicStart,
-            endDate: epicEnd,
-            progress: epicProgress,
-            expanded: this.isRowExpanded(epic.id),
-            level: 1,
-            visible: this.isItemInDateRange(epicStart, epicEnd)
-          });
-
-          // Add issue rows if epic is expanded
-          if (this.isRowExpanded(epic.id)) {
-            issues.forEach(issue => {
-              if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
-                this.timelineRows.push({
-                  id: issue.id,
-                  type: 'issue',
-                  name: issue.title,
-                  status: issue.status,
-                  startDate: issue.createdAt,
-                  endDate: issue.updatedAt,
-                  progress: this.getIssueProgress(issue),
-                  issueType: issue.type,
-                  level: 2,
-                  visible: this.isItemInDateRange(issue.createdAt, issue.updatedAt)
-                });
-              }
+      // Add issue rows if epic is expanded
+      if (this.isRowExpanded(epic.id)) {
+        issues.forEach(issue => {
+          if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
+            this.timelineRows.push({
+              id: issue.id,
+              type: 'issue',
+              name: issue.title,
+              status: issue.status,
+              startDate: issue.createdAt,
+              endDate: issue.updatedAt,
+              progress: this.getIssueProgress(issue),
+              issueType: issue.type,
+              level: 1, // Issues are one level below epics
+              visible: this.isItemInDateRange(issue.createdAt, issue.updatedAt)
             });
           }
         });
       }
     });
 
+    this.updateDateHeaders();
     this.cdr.detectChanges();
-    
-    // Refresh Gantt chart with new data - only if Gantt is already initialized
-    // Use debouncing to prevent multiple rapid updates
-    if (this.ganttContainer && this.ganttContainer.nativeElement && gantt.gantt.$root) {
-      if (this.ganttUpdateTimer) {
-        clearTimeout(this.ganttUpdateTimer);
-      }
-      
-      this.ganttUpdateTimer = setTimeout(() => {
-        try {
-          this.updateGanttData();
-        } catch (error) {
-          console.error('Error refreshing Gantt:', error);
-        }
-      }, 150); // Debounce by 150ms
-    }
   }
 
   private calculateDynamicDateRange(sprints: Sprint[]): void {
@@ -687,7 +504,175 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     return true;
   }
 
+  // Date header management
+  private updateDateHeaders(): void {
+    this.calculateChartWidth();
+    this.updateYearHeaders();
+    this.updateMonthHeaders();
+    this.updateWeekHeaders();
+    this.updateDayHeaders();
+  }
 
+  private calculateChartWidth(): void {
+    const totalDays = Math.ceil((this.dateRange.end.getTime() - this.dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+    
+    switch (this.currentView) {
+      case 'day':
+        this.chartWidth = Math.max(totalDays * 50, 2000); // Reduced from 100 to 50
+        break;
+      case 'month':
+        this.chartWidth = Math.max(totalDays * 5, 1500); // Reduced from 10 to 5
+        break;
+      case 'year':
+        this.chartWidth = Math.max(totalDays * 1.5, 1200); // Reduced from 2 to 1.5
+        break;
+    }
+  }
+
+  private updateYearHeaders(): void {
+    this.yearHeaders = [];
+    if (!this.dateRange.start || !this.dateRange.end || this.currentView !== 'year') return;
+    
+    const start = new Date(this.dateRange.start);
+    const end = new Date(this.dateRange.end);
+    
+    let currentYear = start.getFullYear();
+    
+    while (currentYear <= end.getFullYear()) {
+      const yearStart = new Date(Math.max(
+        new Date(currentYear, 0, 1).getTime(),
+        start.getTime()
+      ));
+      const yearEnd = new Date(Math.min(
+        new Date(currentYear, 11, 31, 23, 59, 59).getTime(),
+        end.getTime()
+      ));
+      
+      const left = this.getDatePositionInPixels(yearStart);
+      const width = this.getDatePositionInPixels(yearEnd) - left;
+      
+      if (width > 30) {
+        this.yearHeaders.push({
+          name: currentYear.toString(),
+          left: left,
+          width: width
+        });
+      }
+      
+      currentYear++;
+    }
+  }
+
+  private updateMonthHeaders(): void {
+    this.monthHeaders = [];
+    if (!this.dateRange.start || !this.dateRange.end) return;
+    
+    const start = new Date(this.dateRange.start);
+    const end = new Date(this.dateRange.end);
+    
+    let current = new Date(start.getFullYear(), start.getMonth(), 1);
+    
+    while (current <= end) {
+      const monthName = this.currentView === 'year' 
+        ? current.toLocaleDateString('en-US', { month: 'short' })
+        : current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      
+      const monthStart = new Date(Math.max(current.getTime(), start.getTime()));
+      const monthEnd = new Date(Math.min(
+        new Date(current.getFullYear(), current.getMonth() + 1, 0, 23, 59, 59).getTime(),
+        end.getTime()
+      ));
+      
+      const left = this.getDatePositionInPixels(monthStart);
+      const width = this.getDatePositionInPixels(monthEnd) - left;
+      
+      if (width > 30) {
+        this.monthHeaders.push({
+          name: monthName,
+          left: left,
+          width: width
+        });
+      }
+      
+      current.setMonth(current.getMonth() + 1);
+    }
+  }
+
+  private updateWeekHeaders(): void {
+    this.weekHeaders = [];
+    if (!this.dateRange.start || !this.dateRange.end || this.currentView === 'year') return;
+    
+    const start = new Date(this.dateRange.start);
+    const end = new Date(this.dateRange.end);
+    
+    let current = new Date(start);
+    current.setDate(current.getDate() - current.getDay());
+    
+    while (current < end) {
+      const weekStart = new Date(Math.max(current.getTime(), start.getTime()));
+      const weekEnd = new Date(Math.min(
+        new Date(current.getFullYear(), current.getMonth(), current.getDate() + 6, 23, 59, 59).getTime(),
+        end.getTime()
+      ));
+      
+      const left = this.getDatePositionInPixels(weekStart);
+      const width = this.getDatePositionInPixels(weekEnd) - left;
+      
+      if (width > 20) {
+        this.weekHeaders.push({
+          name: `W${this.getWeekNumber(current)}`,
+          left: left,
+          width: width
+        });
+      }
+      
+      current.setDate(current.getDate() + 7);
+    }
+  }
+
+  private updateDayHeaders(): void {
+    this.dayHeaders = [];
+    if (!this.dateRange.start || !this.dateRange.end || this.currentView !== 'day') return;
+    
+    const start = new Date(this.dateRange.start);
+    const end = new Date(this.dateRange.end);
+    
+    let current = new Date(start);
+    
+    while (current <= end) {
+      const dayStart = new Date(current);
+      const dayEnd = new Date(current);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const left = this.getDatePositionInPixels(dayStart);
+      const width = this.getDatePositionInPixels(dayEnd) - left;
+      
+      if (width > 10) {
+        this.dayHeaders.push({
+          name: current.getDate().toString(),
+          left: left,
+          width: width,
+          date: new Date(current)
+        });
+      }
+      
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  private getDatePositionInPixels(date: Date): number {
+    if (!this.dateRange.start || !this.dateRange.end) return 0;
+    const totalDuration = this.dateRange.end.getTime() - this.dateRange.start.getTime();
+    const position = date.getTime() - this.dateRange.start.getTime();
+    const percentage = totalDuration > 0 ? Math.max(0, Math.min(1, position / totalDuration)) : 0;
+    return percentage * this.chartWidth;
+  }
+
+  private getWeekNumber(date: Date): number {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  }
 
   // Template methods
   toggleRow(rowId: string): void {
@@ -803,13 +788,66 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     return statusLabelMap[status] || 'To Do';
   }
 
+  getTypeIcon(issueType?: string): string {
+    // Method kept for backward compatibility but no longer used in template
+    return '';
+  }
+
+  getBarPosition(startDate?: Date): number {
+    if (!startDate) return 0;
+    return this.getDatePositionInPixels(startDate);
+  }
+
+  getBarWidth(startDate?: Date, endDate?: Date): number {
+    if (!startDate || !endDate) return 0;
+    const startPos = this.getDatePositionInPixels(startDate);
+    const endPos = this.getDatePositionInPixels(endDate);
+    return Math.max(endPos - startPos, 20);
+  }
+
+  getTooltipText(name: string, startDate?: Date, endDate?: Date): string {
+    if (!startDate || !endDate) return name;
+    
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    };
+    
+    return `${name}\nStart: ${formatDate(startDate)}\nEnd: ${formatDate(endDate)}`;
+  }
+
+  getTodayPosition(): number {
+    return this.getDatePositionInPixels(new Date());
+  }
+
+  getChartWidth(): number {
+    return this.chartWidth;
+  }
+
+  getHeaderHeight(): number {
+    switch (this.currentView) {
+      case 'day':
+        return 68; // Month + Day (no week)
+      case 'month':
+        return 40; // Month only (no week)
+      case 'year':
+        return 68; // Year + Month
+      default:
+        return 40;
+    }
+  }
+
   // Get dynamic container height based on visible rows
   getContainerHeight(): number {
     const visibleRows = this.getVisibleRowCount();
-    const baseHeight = 400;
+    const headerHeight = this.getHeaderHeight();
+    const baseHeight = 300;
     const maxHeight = 700;
     
-    let calculatedHeight = (visibleRows * 48) + 50;
+    let calculatedHeight = headerHeight + (visibleRows * 48) + 50;
     
     return Math.max(baseHeight, Math.min(calculatedHeight, maxHeight));
   }
@@ -819,17 +857,135 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     return this.timelineRows.filter(row => row.visible !== false).length;
   }
 
+  // FIXED: Scroll synchronization methods with header sync
+  onSidebarScroll(event: Event): void {
+    if (this.isScrollingChart) {
+      return;
+    }
+    
+    this.isScrollingSidebar = true;
+    const sidebar = event.target as HTMLElement;
+    const scrollTop = sidebar.scrollTop;
+    
+    if (this.chartContent && this.chartContent.nativeElement) {
+      this.chartContent.nativeElement.scrollTop = scrollTop;
+    }
+    
+    setTimeout(() => {
+      this.isScrollingSidebar = false;
+    }, 10);
+  }
+
+  onChartScroll(event: Event): void {
+    if (this.isScrollingSidebar || this.isScrollingHeader || this.isScrollingFixedBar) {
+      return;
+    }
+    
+    this.isScrollingChart = true;
+    const chart = event.target as HTMLElement;
+    const scrollTop = chart.scrollTop;
+    const scrollLeft = chart.scrollLeft;
+    
+    // Sync vertical scroll with sidebar
+    if (this.sidebarContent && this.sidebarContent.nativeElement) {
+      this.sidebarContent.nativeElement.scrollTop = scrollTop;
+    }
+    
+    // FIXED: Sync horizontal scroll with header
+    if (this.headerScroll && this.headerScroll.nativeElement) {
+      this.headerScroll.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    // Sync horizontal scroll with fixed bottom scrollbar
+    if (this.fixedScrollbar && this.fixedScrollbar.nativeElement) {
+      this.fixedScrollbar.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    setTimeout(() => {
+      this.isScrollingChart = false;
+    }, 10);
+  }
+
+  // FIXED: Add header scroll handler to sync with chart content
+  onHeaderScroll(event: Event): void {
+    if (this.isScrollingChart || this.isScrollingFixedBar) {
+      return;
+    }
+    
+    this.isScrollingHeader = true;
+    const header = event.target as HTMLElement;
+    const scrollLeft = header.scrollLeft;
+    
+    // Sync horizontal scroll with chart content
+    if (this.chartContent && this.chartContent.nativeElement) {
+      this.chartContent.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    // Sync horizontal scroll with fixed bottom scrollbar
+    if (this.fixedScrollbar && this.fixedScrollbar.nativeElement) {
+      this.fixedScrollbar.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    setTimeout(() => {
+      this.isScrollingHeader = false;
+    }, 10);
+  }
+
+  // Fixed bottom scrollbar handler
+  onFixedScrollbarScroll(event: Event): void {
+    if (this.isScrollingChart || this.isScrollingHeader) {
+      return;
+    }
+    
+    this.isScrollingFixedBar = true;
+    const scrollbar = event.target as HTMLElement;
+    const scrollLeft = scrollbar.scrollLeft;
+    
+    // Sync horizontal scroll with chart content
+    if (this.chartContent && this.chartContent.nativeElement) {
+      this.chartContent.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    // Sync horizontal scroll with header
+    if (this.headerScroll && this.headerScroll.nativeElement) {
+      this.headerScroll.nativeElement.scrollLeft = scrollLeft;
+    }
+    
+    setTimeout(() => {
+      this.isScrollingFixedBar = false;
+    }, 10);
+  }
+
+  // Scroll to center the timeline on today's date
+  scrollToTodayCenter(): void {
+    if (!this.chartContent || !this.chartContent.nativeElement) {
+      return;
+    }
+
+    const todayPosition = this.getTodayPosition();
+    const chartElement = this.chartContent.nativeElement;
+    const chartVisibleWidth = chartElement.clientWidth;
+    
+    // Calculate scroll position to center today's line in the viewport
+    const scrollLeft = todayPosition - (chartVisibleWidth / 2);
+    
+    // Apply the scroll position to both chart content and header
+    chartElement.scrollLeft = Math.max(0, scrollLeft);
+    
+    if (this.headerScroll && this.headerScroll.nativeElement) {
+      this.headerScroll.nativeElement.scrollLeft = Math.max(0, scrollLeft);
+    }
+  }
+
   // Event handlers
   onViewChanged(view: 'day' | 'month' | 'year') {
     this.currentView = view;
-    this.updateGanttScale();
-    if (gantt.gantt) {
-      gantt.gantt.render();
-    }
     this.prepareTimelineData();
     setTimeout(() => {
+      this.updateDateHeaders();
+      this.scrollToTodayCenter();
       this.cdr.detectChanges();
-    }, 0);
+    }, 100);
   }
 
   onFilterToggled(event: { type: string; value: string; checked: boolean }) {
@@ -846,29 +1002,16 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       }
     }
     
-    if (event.type === 'sprints') {
-      this.availableEpics = this.getUniqueEpics();
-      
-      if (this.selectedFilters.epics.length > 0) {
-        this.selectedFilters.epics = this.selectedFilters.epics.filter(epic => 
-          this.availableEpics.includes(epic)
-        );
-      }
-    }
-    
     this.applyFilters();
   }
 
   onFiltersCleared() {
     this.selectedFilters = {
-      sprints: [],
       epics: [],
       types: [],
       status: []
     };
     
-    this.setLatestSprintAsDefault();
-    this.expandSprintsOnly();
     this.availableEpics = this.getUniqueEpics();
     this.applyFilters();
   }
@@ -916,16 +1059,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   // Existing private methods
   private initializeFilters() {
-    this.availableSprints = this.projectData.map(s => s.name);
+    // No sprint filtering needed anymore
   }
 
   private getUniqueEpics(): string[] {
     const epicSet = new Set<string>();
-    const filteredSprints = this.selectedFilters.sprints.length > 0 
-      ? this.getFilteredSprints() 
-      : this.projectData;
     
-    filteredSprints.forEach(sprint => {
+    // Get epics from all sprints (no filtering)
+    this.projectData.forEach(sprint => {
       if (sprint.issues && sprint.issues.length > 0) {
         sprint.issues.forEach((issue: Issue) => {
           if (issue.epicId) {
@@ -938,15 +1079,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       }
     });
     return Array.from(epicSet);
-  }
-
-  private setLatestSprintAsDefault() {
-    const activeSprint = this.projectData.find(s => s.status === 'ACTIVE');
-    const latestSprint = activeSprint || this.projectData[this.projectData.length - 1];
-    
-    if (latestSprint) {
-      this.selectedFilters.sprints = [latestSprint.name];
-    }
   }
 
   private groupIssuesByEpicId(issues: Issue[]): Record<string, Issue[]> {
@@ -962,15 +1094,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     });
     
     return groups;
-  }
-
-  private getFilteredSprints(): Sprint[] {
-    if (this.selectedFilters.sprints.length === 0) {
-      return this.projectData;
-    }
-    return this.projectData.filter(s => 
-      this.selectedFilters.sprints.includes(s.name)
-    );
   }
 
   private calculateSprintProgress(sprint: Sprint): number {
@@ -1005,15 +1128,5 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private applyFilters() {
     this.prepareTimelineData();
-  }
-
-  getTypeIcon(type: string): string {
-    const icons: Record<string, string> = {
-      'STORY': 'fa-solid fa-book',
-      'TASK': 'fa-solid fa-check-circle',
-      'BUG': 'fa-solid fa-bug',
-      'EPIC': 'fa-solid fa-bolt'
-    };
-    return icons[type] || 'fa-solid fa-file';
   }
 }
