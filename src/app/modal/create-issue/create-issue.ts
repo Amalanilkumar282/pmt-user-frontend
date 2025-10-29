@@ -16,6 +16,22 @@ export class CreateIssue implements OnInit, OnDestroy {
   isArray(val: any): boolean {
     return Array.isArray(val);
   }
+  
+  // Track mousedown on overlay
+  private mouseDownOnOverlay = false;
+
+  onOverlayMouseDown(event: MouseEvent) {
+    this.mouseDownOnOverlay = event.target === event.currentTarget;
+  }
+
+  onOverlayClick(event: MouseEvent) {
+    // Only close if both mousedown and click happened on overlay
+    if (this.mouseDownOnOverlay && event.target === event.currentTarget) {
+      this.close();
+    }
+    this.mouseDownOnOverlay = false;
+  }
+
   // Popup state for editing label
   editingLabel: string | null = null;
   editLabelName: string = '';
