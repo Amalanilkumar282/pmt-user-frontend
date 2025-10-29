@@ -17,6 +17,8 @@ export interface BoardColumnDef {
   id: Status;
   title: string;
   color: string;
+  position: number;  // Position order (1 for first column, 2 for second, etc.)
+  status?: string;   // Optional status mapping for the column
 }
 
 export type GroupBy = 'NONE' | 'ASSIGNEE' | 'EPIC' | 'SUBTASK';

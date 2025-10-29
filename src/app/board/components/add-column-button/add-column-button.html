@@ -46,6 +46,44 @@
 					</div>
 				</div>
 
+				<!-- Position and Status in same row -->
+				<div class="grid grid-cols-2 gap-4">
+					<!-- Position -->
+					<div>
+						<label class="block text-sm font-semibold text-slate-700 mb-2">
+							Position <span class="text-red-500">*</span>
+						</label>
+						<input 
+							type="number" 
+							[(ngModel)]="position" 
+							min="1" 
+							[max]="maxPosition()"
+							class="w-full rounded-lg border-2 border-slate-200 px-4 py-3 text-sm focus:outline-none focus:border-[#3D62A8] focus:ring-2 focus:ring-[#3D62A8]/20 transition-all" 
+							placeholder="Enter position" />
+						<div class="mt-2">
+							<span class="text-xs text-slate-500">Shifts columns right</span>
+						</div>
+					</div>
+
+					<!-- Status Dropdown -->
+					<div>
+						<label class="block text-sm font-semibold text-slate-700 mb-2">
+							Status (Optional)
+						</label>
+						<select 
+							[(ngModel)]="selectedStatus"
+							class="w-full rounded-lg border-2 border-slate-200 px-4 py-3 text-sm focus:outline-none focus:border-[#3D62A8] focus:ring-2 focus:ring-[#3D62A8]/20 transition-all bg-white">
+							<option value="">Select a status</option>
+							<option *ngFor="let status of availableStatuses" [value]="status">
+								{{ status.replace('_', ' ') }}
+							</option>
+						</select>
+						<div class="mt-2">
+							<span class="text-xs text-slate-500">Map to project status</span>
+						</div>
+					</div>
+				</div>
+
 				<!-- Color Selection -->
 				<div>
 					<label class="block text-sm font-semibold text-slate-700 mb-3">Column Color</label>

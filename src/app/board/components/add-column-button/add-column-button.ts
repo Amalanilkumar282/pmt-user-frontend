@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BoardStore } from '../../board-store';
+import { IssueStatus } from '../../../shared/models/issue.model';
 
 @Component({
   selector: 'app-add-column-button',
@@ -15,6 +16,20 @@ export class AddColumnButton {
   isOpen = false;
   name = '';
   color = '#3D62A8'; // Default to primary color
+  position = 1; // Default position
+  selectedStatus: IssueStatus | '' = ''; // Selected status
+
+  // Available statuses for dropdown
+  availableStatuses: IssueStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE'];
+
+  // Get current columns to determine max position
+  currentColumns = computed(() => this.store.columns());
+  
+  // Get max position for validation
+  maxPosition = computed(() => {
+    const columns = this.currentColumns();
+    return columns.length > 0 ? Math.max(...columns.map(c => c.position)) + 1 : 1;
+  });
 
   // Jira-like: Only 6 essential preset colors for quick access
   presetColors = [
@@ -44,16 +59,23 @@ export class AddColumnButton {
     this.isOpen = true; 
     this.name = '';
     this.color = '#3D62A8';
+    this.position = this.maxPosition();
+    this.selectedStatus = '';
   }
   
   close() { 
     this.isOpen = false; 
     this.name = ''; 
     this.color = '#3D62A8';
+    this.position = 1;
+    this.selectedStatus = '';
   }
 
   isValid(): boolean {
-    return this.name.trim().length > 0 && this.isValidHexColor(this.color);
+    return this.name.trim().length > 0 && 
+           this.isValidHexColor(this.color) &&
+           this.position > 0 &&
+           this.position <= this.maxPosition();
   }
 
   isValidHexColor(hex: string): boolean {
@@ -87,7 +109,9 @@ export class AddColumnButton {
     this.store.addColumn({ 
       id: id as any, 
       title: this.name.trim(), 
-      color: this.color 
+      color: this.color,
+      position: this.position,
+      status: this.selectedStatus || undefined
     });
     this.close();
   }
