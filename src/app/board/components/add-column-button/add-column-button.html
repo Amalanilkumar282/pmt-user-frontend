@@ -66,20 +66,56 @@
 					</div>
 
 					<!-- Status Dropdown -->
-					<div>
+					<div class="relative">
 						<label class="block text-sm font-semibold text-slate-700 mb-2">
 							Status (Optional)
 						</label>
-						<select 
-							[(ngModel)]="selectedStatus"
-							class="w-full rounded-lg border-2 border-slate-200 px-4 py-3 text-sm focus:outline-none focus:border-[#3D62A8] focus:ring-2 focus:ring-[#3D62A8]/20 transition-all bg-white">
-							<option value="">Select a status</option>
-							<option *ngFor="let status of availableStatuses" [value]="status">
+						<input 
+							type="text"
+							[(ngModel)]="statusSearchQuery"
+							(input)="onStatusSearch($event)"
+							(focus)="onStatusInputFocus()"
+							(blur)="onStatusInputBlur()"
+							class="w-full rounded-lg border-2 border-slate-200 px-4 py-3 text-sm focus:outline-none focus:border-[#3D62A8] focus:ring-2 focus:ring-[#3D62A8]/20 transition-all"
+							placeholder="Search or create status" />
+						
+						<!-- Dropdown List -->
+						<div *ngIf="showStatusDropdown" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+							<!-- Existing statuses -->
+							<div 
+								*ngFor="let status of filteredStatuses"
+								(click)="selectStatus(status)"
+								class="px-4 py-2.5 hover:bg-[#3D62A8] hover:text-white cursor-pointer transition-colors text-sm">
 								{{ status.replace('_', ' ') }}
-							</option>
-						</select>
+							</div>
+							
+							<!-- No results message -->
+							<div *ngIf="filteredStatuses.length === 0 && !isNewStatus" class="px-4 py-2.5 text-sm text-slate-500 italic">
+								No matching statuses
+							</div>
+							
+							<!-- Create new status option -->
+							<div 
+								*ngIf="isNewStatus"
+								(click)="useNewStatus()"
+								class="px-4 py-2.5 border-t-2 border-slate-200 hover:bg-green-50 cursor-pointer transition-colors">
+								<div class="flex items-center gap-2">
+									<svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+									</svg>
+									<div>
+										<div class="text-sm font-semibold text-green-600">Create new status</div>
+										<div class="text-xs text-slate-500 font-mono">{{ statusSearchQuery }}</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
 						<div class="mt-2">
-							<span class="text-xs text-slate-500">Map to project status</span>
+							<span class="text-xs text-slate-500">
+								<span *ngIf="!isNewStatus">Search existing or type new</span>
+								<span *ngIf="isNewStatus" class="text-green-600 font-semibold">⚡ New status will be created</span>
+							</span>
 						</div>
 					</div>
 				</div>

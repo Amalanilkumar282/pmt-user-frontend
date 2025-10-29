@@ -17,7 +17,9 @@ export class AddColumnButton {
   name = '';
   color = '#3D62A8'; // Default to primary color
   position = 1; // Default position
-  selectedStatus: IssueStatus | '' = ''; // Selected status
+  selectedStatus: string = ''; // Selected or new status
+  statusSearchQuery = ''; // Search query for status
+  showStatusDropdown = false; // Show/hide status dropdown
 
   // Available statuses for dropdown
   availableStatuses: IssueStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE'];
@@ -30,6 +32,23 @@ export class AddColumnButton {
     const columns = this.currentColumns();
     return columns.length > 0 ? Math.max(...columns.map(c => c.position)) + 1 : 1;
   });
+
+  // Filtered statuses based on search
+  get filteredStatuses(): string[] {
+    if (!this.statusSearchQuery.trim()) {
+      return this.availableStatuses;
+    }
+    const query = this.statusSearchQuery.toUpperCase();
+    return this.availableStatuses.filter(status => 
+      status.includes(query)
+    );
+  }
+
+  // Check if the entered status is new (not in existing statuses)
+  get isNewStatus(): boolean {
+    const query = this.statusSearchQuery.trim().toUpperCase();
+    return query.length > 0 && !this.availableStatuses.includes(query as IssueStatus);
+  }
 
   // Jira-like: Only 6 essential preset colors for quick access
   presetColors = [
@@ -61,6 +80,8 @@ export class AddColumnButton {
     this.color = '#3D62A8';
     this.position = this.maxPosition();
     this.selectedStatus = '';
+    this.statusSearchQuery = '';
+    this.showStatusDropdown = false;
   }
   
   close() { 
@@ -69,6 +90,44 @@ export class AddColumnButton {
     this.color = '#3D62A8';
     this.position = 1;
     this.selectedStatus = '';
+    this.statusSearchQuery = '';
+    this.showStatusDropdown = false;
+  }
+
+  onStatusInputFocus() {
+    this.showStatusDropdown = true;
+  }
+
+  onStatusInputBlur() {
+    // Delay to allow click on dropdown item
+    setTimeout(() => {
+      this.showStatusDropdown = false;
+    }, 200);
+  }
+
+  onStatusSearch(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.trim();
+    
+    // Convert to uppercase and replace spaces with underscores
+    value = value.toUpperCase().replace(/\s+/g, '_');
+    
+    this.statusSearchQuery = value;
+    this.showStatusDropdown = true;
+  }
+
+  selectStatus(status: string) {
+    this.selectedStatus = status;
+    this.statusSearchQuery = status;
+    this.showStatusDropdown = false;
+  }
+
+  useNewStatus() {
+    const newStatus = this.statusSearchQuery.trim().toUpperCase().replace(/\s+/g, '_');
+    if (newStatus) {
+      this.selectedStatus = newStatus;
+      this.showStatusDropdown = false;
+    }
   }
 
   isValid(): boolean {
@@ -106,12 +165,14 @@ export class AddColumnButton {
     if (!this.isValid()) return;
     
     const id = this.name.toUpperCase().replace(/\s+/g, '_');
+    const finalStatus = this.selectedStatus || this.statusSearchQuery.trim().toUpperCase().replace(/\s+/g, '_');
+    
     this.store.addColumn({ 
       id: id as any, 
       title: this.name.trim(), 
       color: this.color,
       position: this.position,
-      status: this.selectedStatus || undefined
+      status: finalStatus || undefined
     });
     this.close();
   }
