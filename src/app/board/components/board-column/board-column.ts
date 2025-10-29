@@ -28,7 +28,7 @@ export class BoardColumn {
   @Output() openIssueComments = new EventEmitter<Issue>();
   @Output() quickCreateIssue = new EventEmitter<{ title: string, status: IssueStatus }>();
   // safe default to avoid undefined accesses in tests
-  @Input() def: BoardColumnDef = { id: 'TODO', title: '', color: 'border-slate-200' };
+  @Input() def: BoardColumnDef = { id: 'TODO', title: '', color: 'border-slate-200', position: 1 };
   @Input() items: Issue[] = [];
   @Input() connectedTo: string[] = [];
   @Input() groupBy: GroupBy = 'NONE';

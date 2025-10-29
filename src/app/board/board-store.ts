@@ -302,10 +302,34 @@ export class BoardStore {
   }
 
   addColumn(def: BoardColumnDef) {
-    this.columns.update(cols => [...cols, def]);
+    this.columns.update(cols => {
+      // Shift all columns at or after the new position to the right
+      const updatedCols = cols.map(col => {
+        if (col.position >= def.position) {
+          return { ...col, position: col.position + 1 };
+        }
+        return col;
+      });
+      
+      // Insert the new column and sort by position
+      const newCols = [...updatedCols, def];
+      return newCols.sort((a, b) => a.position - b.position);
+    });
   }
 
   removeColumn(id: string) {
-    this.columns.update(cols => cols.filter(c => c.id !== id));
+    this.columns.update(cols => {
+      const removedCol = cols.find(c => c.id === id);
+      if (!removedCol) return cols;
+      
+      // Remove the column and shift remaining columns left
+      const filtered = cols.filter(c => c.id !== id);
+      return filtered.map(col => {
+        if (col.position > removedCol.position) {
+          return { ...col, position: col.position - 1 };
+        }
+        return col;
+      }).sort((a, b) => a.position - b.position);
+    });
   }
 }
