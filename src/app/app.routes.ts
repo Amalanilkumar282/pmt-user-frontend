@@ -16,7 +16,6 @@ export const routes: Routes = [
   { path: '', redirectTo: '/projects', pathMatch: 'full' },
   { path: 'dashboard', component: MainDashboardHome },
   { path: 'projects', component: ProjectsPage },
-  { path: 'teams', component: TeamsPage },
   {
     path: 'projects/:projectId',
     children: [
