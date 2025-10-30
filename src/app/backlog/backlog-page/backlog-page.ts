@@ -146,17 +146,15 @@ export class BacklogPage implements OnInit {
   
 
   handleCreateSprint() {
-    const sprintFields: FormField[] = [
-      { label: 'Sprint Name', type: 'text', model: 'sprintName', required:true, colSpan: 2 },
-      { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
-      { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
-      { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-      { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-      { label: 'Status', type: 'select', model: 'status', options: ['Planned','Active','Completed'], colSpan: 1 },
-      { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-    ];
-
-    this.modalService.open({
+      const sprintFields: FormField[] = [
+        { label: 'Sprint Name', type: 'text', model: 'sprintName', required:true, colSpan: 2 },
+        { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+        { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
+        { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+        { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+        { label: 'Status', type: 'select', model: 'status', options: ['PLANNED','ACTIVE','COMPLETED'], colSpan: 1 },
+        { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
+      ];    this.modalService.open({
       id: 'sprintModal',
       title: 'Create Sprint',
       projectName: 'Project Alpha',
@@ -172,7 +170,7 @@ export class BacklogPage implements OnInit {
           projectId: '2373d1ec-dc5b-4a9a-b174-7ad870d5918f',
           sprintName: formData.sprintName,
           sprintGoal: formData.sprintGoal,
-          teamAssigned: Number(formData.teamAssigned) || 0,
+          teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
           startDate: formData.startDate,
           dueDate: formData.dueDate,
           status: formData.status,
@@ -187,7 +185,11 @@ export class BacklogPage implements OnInit {
           },
           error: (err) => {
             console.error('Failed to create sprint:', err);
-            alert(`Failed to create sprint: ${err.message}`);
+            console.error('Validation errors:', err.error?.errors);
+            const errorMsg = err.error?.errors ? 
+              JSON.stringify(err.error.errors, null, 2) : 
+              err.message;
+            alert(`Failed to create sprint:\n${errorMsg}`);
           }
         });
       }

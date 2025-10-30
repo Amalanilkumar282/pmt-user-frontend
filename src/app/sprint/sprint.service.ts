@@ -6,7 +6,7 @@ export interface SprintRequest {
   projectId: string;
   sprintName: string;
   sprintGoal: string;
-  teamAssigned: number;
+  teamAssigned: number | null;
   startDate: string;
   dueDate: string;
   status: string;
@@ -36,8 +36,8 @@ export class SprintService {
   constructor(private http: HttpClient) {}
 
   createSprint(sprint: SprintRequest): Observable<SprintResponse> {
-    // TODO: Replace with actual token from login/auth service
-    const token = 'YOUR_AUTH_TOKEN_HERE';
+    const token = sessionStorage.getItem('accessToken') || '';
+    console.log('Auth token from sessionStorage:', token ? 'Token found' : 'No token found');
     const headers = { 'Authorization': `Bearer ${token}` };
     return this.http.post<SprintResponse>(`${this.baseUrl}`, sprint, { headers });
   }
