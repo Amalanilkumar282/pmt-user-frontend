@@ -21,6 +21,7 @@ export interface FormField {
   onChange?: (value: any, formData: any) => void;
   required?: boolean;
   hidden?: boolean; // For conditional visibility
+  showDropdown?: boolean; // For custom select dropdowns
 }
 
 @Injectable({ providedIn: 'root' })

@@ -16,6 +16,22 @@ export class CreateIssue implements OnInit, OnDestroy {
   isArray(val: any): boolean {
     return Array.isArray(val);
   }
+
+  // Icon mapping for issue types
+  getTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'STORY': 'fa-solid fa-book',
+      'TASK': 'fa-solid fa-check-circle',
+      'BUG': 'fa-solid fa-bug',
+      'EPIC': 'fa-solid fa-bolt',
+      'FEATURE': 'fa-solid fa-star',
+      'CRITICAL': 'fa-solid fa-fire',
+      'OTHER': 'fa-solid fa-file'
+    };
+    // Accept both uppercase and capitalized types
+    const key = (type || '').toUpperCase();
+    return icons[key] || icons['OTHER'];
+  }
   
   // Track mousedown on overlay
   private mouseDownOnOverlay = false;
@@ -172,6 +188,10 @@ showToast(message: string, duration: number = 3000) {
           if (!Array.isArray(this.formData[field.model])) {
             this.formData[field.model] = [];
           }
+        }
+        // Add showDropdown property for issueType field for custom dropdown
+        if (field.type === 'select' && field.model === 'issueType' && field.showDropdown === undefined) {
+          (field as any).showDropdown = false;
         }
       }
       this.modalTitle = cfg.title ?? 'Modal';
