@@ -9,7 +9,8 @@ export interface ModalConfig {
   fields?: FormField[];       // dynamic fields
   data?: any;                 // pre-filled form values
   showLabels?: boolean;
-  submitText?: string;   
+  submitText?: string;
+  onSubmit?: (formData: any) => void; // callback for modal form submission
 }
 
 export interface FormField {
@@ -21,6 +22,7 @@ export interface FormField {
   onChange?: (value: any, formData: any) => void;
   required?: boolean;
   hidden?: boolean; // For conditional visibility
+  showDropdown?: boolean; // For custom select dropdowns
 }
 
 @Injectable({ providedIn: 'root' })
