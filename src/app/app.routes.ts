@@ -11,9 +11,11 @@ import { VelocityChart } from './report-dashboard/velocity-chart/velocity-chart'
 import { MainDashboardHome } from './main-dashboard/main-dashboard-home/main-dashboard-home';
 import { ProjectsPage } from './projects/projects-page/projects-page';
 import { TeamsPage } from './teams/teams-page/teams-page';
+import { LoginComponent } from './auth/login/login';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/projects', pathMatch: 'full' },
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: 'login', component: LoginComponent },
   { path: 'dashboard', component: MainDashboardHome },
   { path: 'projects', component: ProjectsPage },
   {
