@@ -35,6 +35,22 @@ export interface LoginResponse {
   message: string;
 }
 
+export interface RefreshTokenResponse {
+  status: number;
+  data: {
+    userId: number;
+    email: string;
+    name: string;
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpires: string;
+    refreshTokenExpires: string;
+    isActive: boolean;
+    isSuperAdmin: boolean;
+  };
+  message: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -154,19 +170,44 @@ export class AuthService {
       return throwError(() => new Error('No refresh token available'));
     }
 
-    return this.http.post<any>(`${this.apiUrl}/api/Auth/refresh`, { refreshToken })
+    return this.http.post<RefreshTokenResponse>(`${this.apiUrl}/api/Auth/refresh`, { refreshToken })
       .pipe(
         map(response => {
+          console.log('Token refresh response:', response);
+          
           if (response.data && response.data.accessToken) {
+            // Update user information if it changed
+            const user: User = {
+              userId: response.data.userId,
+              email: response.data.email,
+              name: response.data.name,
+              isActive: response.data.isActive,
+              isSuperAdmin: response.data.isSuperAdmin
+            };
+
+            // Store updated user details and tokens in session storage
             if (this.isBrowser) {
+              sessionStorage.setItem('currentUser', JSON.stringify(user));
               sessionStorage.setItem('accessToken', response.data.accessToken);
+              sessionStorage.setItem('refreshToken', response.data.refreshToken);
               sessionStorage.setItem('accessTokenExpires', response.data.accessTokenExpires);
+              sessionStorage.setItem('refreshTokenExpires', response.data.refreshTokenExpires);
             }
+            
+            // Update current user subject
+            this.currentUserSubject.next(user);
+            console.log('Tokens refreshed successfully');
+            
             return response.data.accessToken;
           }
           throw new Error('Failed to refresh token');
         }),
-        catchError(this.handleError)
+        catchError((error) => {
+          // If refresh token is invalid or expired, logout user
+          console.error('Token refresh failed:', error);
+          this.logout();
+          return throwError(() => error);
+        })
       );
   }
 
