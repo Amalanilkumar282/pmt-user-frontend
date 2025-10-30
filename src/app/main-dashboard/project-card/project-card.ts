@@ -7,10 +7,9 @@ export interface ProjectCardModel {
   name: string;
   type: string;
   status: 'Active' | 'Completed';
-  sprint: string;
-  tasks: { toDo: number; inProgress: number; done: number };
-  teamMembers: string[];
-  deadline: string;
+  du: string;
+  lead: string;
+  created: string;
   updated: string;
   starred?: boolean;
 }
@@ -31,5 +30,15 @@ export class ProjectCard {
     if (!this.project) return;
     const newState = !this.project.starred;
     this.starToggled.emit({ id: this.project.id, starred: newState });
+  }
+
+  getLeadInitials(): string {
+    if (!this.project?.lead) return '';
+    return this.project.lead
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   }
 }
