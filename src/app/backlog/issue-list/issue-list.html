@@ -11,7 +11,9 @@
         [cdkDragDisabled]="isReadOnly"
         [cdkDragData]="issue"
         [class]="'issue-card ' + (issue.status === 'DONE' ? 'completed-issue' : '') + (isReadOnly ? ' read-only' : '')"
-        (click)="onIssueClick(issue)">
+        (click)="onIssueClick(issue)"
+        (cdkDragStarted)="onDragStarted()"
+        (cdkDragEnded)="onDragEnded()">
         
         <div class="flex items-center justify-between gap-3">
           <!-- Left side: Icon, ID, Title -->

@@ -15,7 +15,13 @@
     @if (activeIssues().length > 0) {
       <div class="issues-group">
         <h4 class="issues-group-title">Active Issues ({{ activeIssues().length }})</h4>
-        <div class="issues-section">
+        <div 
+          class="issues-section"
+          cdkDropList
+          id="all-issues-active"
+          [cdkDropListData]="activeIssues()"
+          [cdkDropListConnectedTo]="[]"
+          (cdkDropListDropped)="onDropActiveIssues($event)">
           <app-issue-list 
             [issues]="activeIssues()"
             (issueClick)="onIssueClick($event)">
@@ -30,7 +36,13 @@
         <h4 class="issues-group-title">
           <span class="completed-badge">✓</span> Completed Issues ({{ completedIssues().length }})
         </h4>
-        <div class="issues-section">
+        <div 
+          class="issues-section"
+          cdkDropList
+          id="all-issues-completed"
+          [cdkDropListData]="completedIssues()"
+          [cdkDropListConnectedTo]="[]"
+          (cdkDropListDropped)="onDropCompletedIssues($event)">
           <app-issue-list 
             [issues]="completedIssues()"
             (issueClick)="onIssueClick($event)">
