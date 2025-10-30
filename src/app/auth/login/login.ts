@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -15,6 +15,7 @@ export class LoginComponent implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
 
   loginForm: FormGroup;
   isLoading = false;
@@ -47,19 +48,26 @@ export class LoginComponent implements OnInit {
       const credentials = this.loginForm.value;
 
       this.authService.login(credentials).subscribe({
-        next: (user) => {
+        next: async (user) => {
+          console.log('Login successful:', user);
           this.isLoading = false;
-          // Success - navigate to projects
-          this.router.navigate(['/projects']);
+
+          // Success - navigate to projects page
+          console.log('Attempting navigation to /projects');
+
+          // Force navigation using location
+          window.location.href = '/projects';
         },
         error: (error) => {
           this.isLoading = false;
-          this.errorMessage = error.message || 'Invalid email or password';
-        }
+          console.error('Login error:', error);
+          this.errorMessage = 'Invalid email or password.';
+          this.cdr.markForCheck();
+        },
       });
     } else {
       // Mark all fields as touched to show validation errors
-      Object.keys(this.loginForm.controls).forEach(key => {
+      Object.keys(this.loginForm.controls).forEach((key) => {
         this.loginForm.get(key)?.markAsTouched();
       });
     }

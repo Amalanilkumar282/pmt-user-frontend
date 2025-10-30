@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3d62a8 0%, #2d4a7d 100%);
   padding: 20px;
   position: relative;
   overflow: hidden;
@@ -97,10 +97,10 @@
   justify-content: center;
   width: 72px;
   height: 72px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3d62a8 0%, #2d4a7d 100%);
   border-radius: 16px;
   margin-bottom: 24px;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 24px rgba(61, 98, 168, 0.3);
 }
 
 .brand-logo svg {
@@ -198,8 +198,8 @@
 .form-input:focus {
   outline: none;
   background: white;
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  border-color: #3d62a8;
+  box-shadow: 0 0 0 4px rgba(61, 98, 168, 0.1);
 }
 
 .form-input::placeholder {
@@ -270,7 +270,7 @@
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: #3d62a8;
 }
 
 .checkbox-text {
@@ -280,14 +280,14 @@
 
 .forgot-password-link {
   font-size: 14px;
-  color: #667eea;
+  color: #3d62a8;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .forgot-password-link:hover {
-  color: #5568d3;
+  color: #2d4a7d;
   text-decoration: underline;
 }
 
@@ -302,18 +302,18 @@
   font-size: 15px;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3d62a8 0%, #2d4a7d 100%);
   border: none;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 8px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(61, 98, 168, 0.4);
 }
 
 .login-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 8px 20px rgba(61, 98, 168, 0.5);
 }
 
 .login-button:active:not(:disabled) {
@@ -355,14 +355,14 @@
 }
 
 .signup-link {
-  color: #667eea;
+  color: #3d62a8;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .signup-link:hover {
-  color: #5568d3;
+  color: #2d4a7d;
   text-decoration: underline;
 }
 
@@ -399,6 +399,6 @@
 .toggle-password-btn:focus-visible,
 .forgot-password-link:focus-visible,
 .signup-link:focus-visible {
-  outline: 2px solid #667eea;
+  outline: 2px solid #3d62a8;
   outline-offset: 2px;
 }
