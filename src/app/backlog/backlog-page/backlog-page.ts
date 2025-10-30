@@ -1,4 +1,4 @@
-import { Component, inject, HostListener, OnInit } from '@angular/core';
+import { Component, inject, HostListener, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
@@ -39,6 +39,10 @@ export class BacklogPage implements OnInit {
   private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  
+  // ViewChild to access the filters component
+  @ViewChild(Filters) filtersComponent?: Filters;
+  
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
     const svc: any = this.sidebarStateService as any;
@@ -339,6 +343,10 @@ export class BacklogPage implements OnInit {
 
   closeEpicPanel(): void {
     this.isEpicPanelOpen = false;
+    // Directly update the filters component's epic panel state
+    if (this.filtersComponent) {
+      this.filtersComponent.showEpicPanel.set(false);
+    }
   }
 
   // Epic detail view methods
