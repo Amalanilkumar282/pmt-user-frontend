@@ -13,6 +13,7 @@ import { isPlatformBrowser } from '@angular/common';
   imports: [NgIf, NgFor, FormsModule, NgClass, NgStyle]
 })
 export class CreateIssue implements OnInit, OnDestroy {
+  private activeModalId: string | null = null;
   isArray(val: any): boolean {
     return Array.isArray(val);
   }
@@ -169,43 +170,44 @@ showToast(message: string, duration: number = 3000) {
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
   ngOnInit() {
-  this.sub = this.modalService.activeModal$.subscribe((id) => {
-    if (!id) {
-      this.show = false;
-      if (this.isBrowser) document.body.style.overflow = '';
-      return;
-    }
+    this.sub = this.modalService.activeModal$.subscribe((id) => {
+      this.activeModalId = id;
+      if (!id) {
+        this.show = false;
+        if (this.isBrowser) document.body.style.overflow = '';
+        return;
+      }
 
-    const cfg = this.modalService.getConfig(id);
-    this.show = !!cfg;
+      const cfg = this.modalService.getConfig(id);
+      this.show = !!cfg;
 
-    if (cfg) {
-      this.fields = cfg.fields ?? [];
-      this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
-      // Ensure all file fields are initialized as arrays
-      for (const field of this.fields) {
-        if (field.type === 'file') {
-          if (!Array.isArray(this.formData[field.model])) {
-            this.formData[field.model] = [];
+      if (cfg) {
+        this.fields = cfg.fields ?? [];
+        this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
+        // Ensure all file fields are initialized as arrays
+        for (const field of this.fields) {
+          if (field.type === 'file') {
+            if (!Array.isArray(this.formData[field.model])) {
+              this.formData[field.model] = [];
+            }
+          }
+          // Add showDropdown property for issueType field for custom dropdown
+          if (field.type === 'select' && field.model === 'issueType' && field.showDropdown === undefined) {
+            (field as any).showDropdown = false;
           }
         }
-        // Add showDropdown property for issueType field for custom dropdown
-        if (field.type === 'select' && field.model === 'issueType' && field.showDropdown === undefined) {
-          (field as any).showDropdown = false;
+        this.modalTitle = cfg.title ?? 'Modal';
+        this.modalDesc = cfg.modalDesc ?? '';
+        this.showLabels = cfg.showLabels ?? false;
+        this.submitButtonText = cfg.submitText ?? 'Create Issue';
+        // Check initial issue type and update field visibility
+        if (this.formData.issueType) {
+          this.updateFieldVisibility(this.formData.issueType);
         }
       }
-      this.modalTitle = cfg.title ?? 'Modal';
-      this.modalDesc = cfg.modalDesc ?? '';
-      this.showLabels = cfg.showLabels ?? false;
-      this.submitButtonText = cfg.submitText ?? 'Create Issue';
-      // Check initial issue type and update field visibility
-      if (this.formData.issueType) {
-        this.updateFieldVisibility(this.formData.issueType);
-      }
-    }
 
-    if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
-  });
+      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
+    });
 }
 
 
@@ -278,6 +280,15 @@ shakeFields: Set<string> = new Set();
       // Show toast
       this.showToast('Please fill all required fields before submitting.');
       return;
+    }
+
+    // If modal config has onSubmit, call it
+    if (this.activeModalId) {
+      const cfg = this.modalService.getConfig(this.activeModalId);
+      if (cfg && typeof cfg.onSubmit === 'function') {
+        cfg.onSubmit(this.formData);
+        return;
+      }
     }
 
     // No backend integration: just log and close

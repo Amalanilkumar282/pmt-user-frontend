@@ -9,7 +9,8 @@ export interface ModalConfig {
   fields?: FormField[];       // dynamic fields
   data?: any;                 // pre-filled form values
   showLabels?: boolean;
-  submitText?: string;   
+  submitText?: string;
+  onSubmit?: (formData: any) => void; // callback for modal form submission
 }
 
 export interface FormField {
