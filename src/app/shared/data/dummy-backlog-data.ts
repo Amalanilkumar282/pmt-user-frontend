@@ -15,14 +15,9 @@ export interface DashboardProject {
   name: string;
   type: string;
   status: 'Active' | 'Completed';
-  sprint: string;
-  tasks: {
-    toDo: number;
-    inProgress: number;
-    done: number;
-  };
-  teamMembers: string[];
-  deadline: string;
+  du: string;
+  lead: string;
+  created: string;
   updated: string;
   starred?: boolean;
 }
@@ -322,7 +317,7 @@ export const activeSprintIssues: Issue[] = [
     endDate: new Date('2025-10-24'),
     createdAt: new Date('2025-09-28'),
     updatedAt: new Date('2025-10-13'),
-  }, 
+  },
   {
     id: 'PMT-106',
     title: 'Update dependencies',
@@ -715,25 +710,23 @@ export const dashboardTaskStatus: TaskStatus = {
 export const dashboardProjects: DashboardProject[] = [
   {
     id: '1',
-    name: 'Mobile App Revamp',
+    name: 'Website Redesign',
     type: 'Scrum Project',
     status: 'Active',
-    sprint: 'Sprint Alpha',
-    tasks: { toDo: 15, inProgress: 8, done: 25 },
-    teamMembers: ['A', 'B', 'C', '+2'],
-    deadline: 'Oct 5, 2025',
+    du: 'ATC',
+    lead: 'Sarah Johnson',
+    created: 'Sep 1, 2025',
     updated: '2h ago',
     starred: true,
   },
   {
     id: '2',
-    name: 'Web Dashboard',
+    name: 'Backend Infrastructure',
     type: 'Scrum Project',
     status: 'Completed',
-    sprint: 'Sprint Beta',
-    tasks: { toDo: 8, inProgress: 4, done: 32 },
-    teamMembers: ['D', 'E', 'F', '+3'],
-    deadline: 'Oct 12, 2025',
+    du: 'DTS',
+    lead: 'Michael Chen',
+    created: 'Aug 15, 2025',
     updated: '5h ago',
     starred: false,
   },
