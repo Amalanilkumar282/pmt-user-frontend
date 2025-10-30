@@ -2,7 +2,6 @@ import { Component, EventEmitter, Input, Output, HostListener } from '@angular/c
 import { CommonModule } from '@angular/common';
 
 export interface FilterState {
-  sprints: string[];
   epics: string[];
   types: string[];
   status: string[];
@@ -19,12 +18,10 @@ export class TimelineHeaderComponent {
   @Input() currentView: 'day' | 'month' | 'year' = 'month';
   @Input() displayMode: 'epics' | 'issues' = 'epics';
   @Input() selectedFilters: FilterState = {
-    sprints: [],
     epics: [],
     types: [],
     status: []
   };
-  @Input() availableSprints: string[] = [];
   @Input() availableEpics: string[] = [];
   @Input() selectedEpic: string | null = null;
 
@@ -124,15 +121,5 @@ export class TimelineHeaderComponent {
 
   onCollapseAllEpics() {
     this.collapseAllEpics.emit();
-  }
-
-  getIssueTypeIcon(type: string): string {
-    const iconMap: { [key: string]: string } = {
-      'epic': 'fa-solid fa-bolt text-black',
-      'story': 'fa-solid fa-book text-green-500',
-      'task': 'fa-solid fa-circle-check text-blue-500',
-      'bug': 'fa-solid fa-bug text-red-500'
-    };
-    return iconMap[type] || 'fa-solid fa-question-circle';
   }
 }

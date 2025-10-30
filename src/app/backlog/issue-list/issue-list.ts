@@ -21,6 +21,9 @@ export class IssueList {
 
   private _issues = signal<Issue[]>([]);
   protected issues$ = computed(() => this._issues());
+  
+  // Track if an issue is being dragged to prevent click events
+  private isDragging = false;
 
   // Group issues by status for better organization
   protected issuesByStatus = computed(() => {
@@ -54,6 +57,20 @@ export class IssueList {
   }
 
   protected onIssueClick(issue: Issue): void {
-    this.issueClick.emit(issue);
+    // Only emit click event if not dragging
+    if (!this.isDragging) {
+      this.issueClick.emit(issue);
+    }
+  }
+  
+  protected onDragStarted(): void {
+    this.isDragging = true;
+  }
+  
+  protected onDragEnded(): void {
+    // Reset drag state after a brief delay to prevent click event
+    setTimeout(() => {
+      this.isDragging = false;
+    }, 100);
   }
 }

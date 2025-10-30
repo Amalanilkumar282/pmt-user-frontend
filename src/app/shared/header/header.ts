@@ -2,13 +2,15 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarStateService } from '../services/sidebar-state.service';
 import { ModalService } from '../../modal/modal-service';
-import { Searchbar } from "../searchbar/searchbar";
+import { Searchbar } from '../searchbar/searchbar';
 import { SummaryModal } from '../summary-modal/summary-modal';
+import { Notification } from '../notification/notification';
+import { ProfileButton } from '../profile-button/profile-button';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, Searchbar, SummaryModal],
+  imports: [CommonModule, Searchbar, SummaryModal, Notification, ProfileButton],
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
@@ -24,6 +26,35 @@ export class Header {
   showWarningModal: boolean = false;
   warningText: string = '';
 
+  // Notification state
+  showNotificationModal: boolean = false;
+  notificationCount: number = 3;
+  notifications = [
+    {
+      title: 'New Issue Assigned',
+      message: 'PMT-101 has been assigned to you',
+      time: '5 mins ago',
+      unread: true,
+    },
+    {
+      title: 'Sprint Updated',
+      message: 'Sprint 3 deadline extended',
+      time: '2 hours ago',
+      unread: true,
+    },
+    {
+      title: 'Comment on PMT-089',
+      message: 'John commented on your issue',
+      time: '1 day ago',
+      unread: false,
+    },
+  ];
+
+  // Profile state
+  showProfileModal: boolean = false;
+  userName: string = 'Harrel Alex';
+  userEmail: string = 'harrel.alex@example.com';
+
   toggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
@@ -34,7 +65,7 @@ export class Header {
    */
   handleOpenCreateModal(fields: any): void {
     console.log('Header received openCreateModal event with fields:', fields);
-    
+
     // Map the fields to the modal configuration
     const issueType = fields.issueType || 'Task';
     const title = fields.title || '';
@@ -60,20 +91,20 @@ export class Header {
           model: 'issueType',
           options: ['Task', 'Bug', 'Story', 'Epic'],
           required: true,
-          colSpan: 1
+          colSpan: 1,
         },
         {
           label: 'Summary',
           type: 'text',
           model: 'summary',
           required: true,
-          colSpan: 2
+          colSpan: 2,
         },
         {
           label: 'Description',
           type: 'textarea',
           model: 'description',
-          colSpan: 2
+          colSpan: 2,
         },
         {
           label: 'Priority',
@@ -81,7 +112,7 @@ export class Header {
           model: 'priority',
           options: ['High', 'Medium', 'Low'],
           required: true,
-          colSpan: 1
+          colSpan: 1,
         },
         {
           label: 'Assignee',
@@ -150,8 +181,8 @@ export class Header {
         parentEpic: '',
         reporter: userOptions[0] || 'Unassigned',
         labels: [],
-        attachments: []
-      }
+        attachments: [],
+      },
     });
   }
 
@@ -187,5 +218,35 @@ export class Header {
   closeWarningModal(): void {
     this.showWarningModal = false;
     this.warningText = '';
+  }
+
+  /**
+   * Toggle notification modal
+   */
+  toggleNotificationModal(): void {
+    this.showNotificationModal = !this.showNotificationModal;
+    this.showProfileModal = false; // Close profile if open
+  }
+
+  /**
+   * Close notification modal
+   */
+  closeNotificationModal(): void {
+    this.showNotificationModal = false;
+  }
+
+  /**
+   * Toggle profile modal
+   */
+  toggleProfileModal(): void {
+    this.showProfileModal = !this.showProfileModal;
+    this.showNotificationModal = false; // Close notification if open
+  }
+
+  /**
+   * Close profile modal
+   */
+  closeProfileModal(): void {
+    this.showProfileModal = false;
   }
 }

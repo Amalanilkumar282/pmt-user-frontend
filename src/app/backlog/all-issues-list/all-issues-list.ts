@@ -1,13 +1,14 @@
 import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IssueDetailedView } from '../issue-detailed-view/issue-detailed-view';
 import { IssueList } from '../issue-list/issue-list';
 import { Issue } from '../../shared/models/issue.model';
 
 @Component({
   selector: 'app-all-issues-list',
-  imports: [CommonModule, FormsModule, IssueDetailedView, IssueList],
+  imports: [CommonModule, FormsModule, DragDropModule, IssueDetailedView, IssueList],
   templateUrl: './all-issues-list.html',
   styleUrl: './all-issues-list.css'
 })
@@ -128,5 +129,18 @@ export class AllIssuesList {
 
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
+  }
+  
+  onDropActiveIssues(event: CdkDragDrop<Issue[]>): void {
+    // Don't do anything - issues should stay in their original location
+    // The drag-drop in all-issues view is for visual feedback only
+    // We're not reordering or moving issues within the all-issues list
+    console.log('Drop event in all-issues (active):', event);
+  }
+  
+  onDropCompletedIssues(event: CdkDragDrop<Issue[]>): void {
+    // Don't do anything - issues should stay in their original location
+    // The drag-drop in all-issues view is for visual feedback only
+    console.log('Drop event in all-issues (completed):', event);
   }
 }

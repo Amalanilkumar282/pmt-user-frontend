@@ -3,19 +3,52 @@
   <div class="navbar-top">
     <div class="navbar-container">
       <!-- Left Section: Hamburger Menu + Project Info -->
-      <div class="navbar-left" style="display:flex; align-items:center; gap:12px;">
+      <div class="navbar-left" style="display: flex; align-items: center; gap: 12px">
         <button class="hamburger-btn" (click)="onToggleSidebar()" aria-label="Toggle sidebar">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 12h18M3 6h18M3 18h18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
           </svg>
         </button>
 
         <!-- Project title / icon -->
-        <div class="project-info" style="display:flex; align-items:center; gap:10px;">
-          <div class="project-icon" style="width:36px; height:36px; border-radius:6px; background:#e6eefc; display:flex; align-items:center; justify-content:center; font-weight:700; color:#1f4db0;">
+        <div class="project-info" style="display: flex; align-items: center; gap: 10px">
+          <div
+            class="project-icon"
+            style="
+              width: 36px;
+              height: 36px;
+              border-radius: 6px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 700;
+            "
+          >
             {{ projectInfo().icon }}
           </div>
-          <div class="project-title" style="font-size:1rem; font-weight:600; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;">
+          <div
+            class="project-title"
+            style="
+              font-size: 1rem;
+              font-weight: 600;
+              color: #1f2937;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 220px;
+            "
+          >
             {{ projectInfo().name }}
           </div>
         </div>
@@ -26,7 +59,8 @@
         <app-searchbar
           (openCreateModal)="handleOpenCreateModal($event)"
           (showSummary)="handleShowSummary($event)"
-          (showWarning)="handleShowWarning($event)">
+          (showWarning)="handleShowWarning($event)"
+        >
         </app-searchbar>
         <button class="btn-primary" (click)="onCreate()">Create</button>
         <div class="flex items-center gap-2">
@@ -61,30 +95,65 @@
     <div class="navbar-container">
       <div class="navbar-center">
         <!-- Always render the main tabs. If no currentProjectId is set, links fall back to the projects list. -->
-        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'summary'] : ['/projects']" routerLinkActive="active" class="nav-tab">Summary</a>
-        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'backlog'] : ['/projects']" routerLinkActive="active" class="nav-tab">Backlog</a>
-        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'board'] : ['/projects']" routerLinkActive="active" class="nav-tab">Board</a>
-        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'timeline'] : ['/projects']" routerLinkActive="active" class="nav-tab">Timeline</a>
-        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'report-dashboard'] : ['/projects']" routerLinkActive="active" class="nav-tab">Reports</a>
-        <a [routerLink]="currentProjectId() ? ['/projects', currentProjectId(), 'messages'] : ['/projects']" routerLinkActive="active" class="nav-tab">Messages</a>
+        <a
+          [routerLink]="
+            currentProjectId() ? ['/projects', currentProjectId(), 'summary'] : ['/projects']
+          "
+          routerLinkActive="active"
+          class="nav-tab"
+          >Summary</a
+        >
+        <a
+          [routerLink]="
+            currentProjectId() ? ['/projects', currentProjectId(), 'backlog'] : ['/projects']
+          "
+          routerLinkActive="active"
+          class="nav-tab"
+          >Backlog</a
+        >
+        <a
+          [routerLink]="
+            currentProjectId() ? ['/projects', currentProjectId(), 'board'] : ['/projects']
+          "
+          routerLinkActive="active"
+          class="nav-tab"
+          >Board</a
+        >
+        <a
+          [routerLink]="
+            currentProjectId() ? ['/projects', currentProjectId(), 'timeline'] : ['/projects']
+          "
+          routerLinkActive="active"
+          class="nav-tab"
+          >Timeline</a
+        >
+        <a
+          [routerLink]="
+            currentProjectId()
+              ? ['/projects', currentProjectId(), 'report-dashboard']
+              : ['/projects']
+          "
+          routerLinkActive="active"
+          class="nav-tab"
+          >Reports</a
+        >
+        <a
+          [routerLink]="
+            currentProjectId() ? ['/projects', currentProjectId(), 'messages'] : ['/projects']
+          "
+          routerLinkActive="active"
+          class="nav-tab"
+          >Messages</a
+        >
       </div>
     </div>
   </div>
-
- 
 </nav>
 
 <!-- Summary Modal -->
-<app-summary-modal
-  [show]="showSummaryModal"
-  [summary]="summaryText"
-  (close)="closeSummaryModal()">
+<app-summary-modal [show]="showSummaryModal" [summary]="summaryText" (close)="closeSummaryModal()">
 </app-summary-modal>
 
 <!-- Warning Modal (reuse summary modal with different styling) -->
-<app-summary-modal
-  [show]="showWarningModal"
-  [summary]="warningText"
-  (close)="closeWarningModal()">
+<app-summary-modal [show]="showWarningModal" [summary]="warningText" (close)="closeWarningModal()">
 </app-summary-modal>
-  

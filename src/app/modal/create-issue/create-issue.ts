@@ -16,6 +16,22 @@ export class CreateIssue implements OnInit, OnDestroy {
   isArray(val: any): boolean {
     return Array.isArray(val);
   }
+  
+  // Track mousedown on overlay
+  private mouseDownOnOverlay = false;
+
+  onOverlayMouseDown(event: MouseEvent) {
+    this.mouseDownOnOverlay = event.target === event.currentTarget;
+  }
+
+  onOverlayClick(event: MouseEvent) {
+    // Only close if both mousedown and click happened on overlay
+    if (this.mouseDownOnOverlay && event.target === event.currentTarget) {
+      this.close();
+    }
+    this.mouseDownOnOverlay = false;
+  }
+
   // Popup state for editing label
   editingLabel: string | null = null;
   editLabelName: string = '';
@@ -291,9 +307,9 @@ shakeFields: Set<string> = new Set();
   }
 
   handleFileSelect(event: any, field: FormField) {
-  // Always initialize as array for safety
-  this.formData[field.model] = Array.isArray(event.target.files) ? Array.from(event.target.files) : [];
-  field.onChange?.(this.formData[field.model], this.formData);
+    // Always convert FileList to array for display
+    this.formData[field.model] = event.target.files ? Array.from(event.target.files) : [];
+    field.onChange?.(this.formData[field.model], this.formData);
   }
 
   addLabel(label: string) {
