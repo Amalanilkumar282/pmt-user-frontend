@@ -37,9 +37,11 @@ export class Header {
     
     // Map the fields to the modal configuration
     const issueType = fields.issueType || 'Task';
+    const title = fields.title || '';
     const summary = fields.summary || '';
     const description = fields.description || '';
     const priority = fields.priority || 'Medium';
+    const storyPoint = fields.storyPoint || '';
 
     const userOptions = ['Unassigned', 'John Doe', 'Jane Smith', 'Bob Johnson'];
 
@@ -137,14 +139,14 @@ export class Header {
       ],
       data: {
         issueType: issueType,
-        summary: summary,
+        summary: title || summary,
         description: description,
         priority: priority,
         assignee: 'Unassigned',
         startDate: '',
         dueDate: '',
         sprint: 'Sprint 1',
-        storyPoint: '',
+        storyPoint: storyPoint,
         parentEpic: '',
         reporter: userOptions[0] || 'Unassigned',
         labels: [],

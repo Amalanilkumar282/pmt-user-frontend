@@ -10,9 +10,11 @@ export interface GeminiActionResponse {
   modal?: string;
   fields?: {
     issueType?: string;
+    title?: string;
     summary?: string;
     description?: string;
     priority?: string;
+    storyPoint?: number;
     [key: string]: any;
   };
   summary?: string;
@@ -147,9 +149,10 @@ ${projectId ? `- Use /projects/${projectId} as the base for all project-scoped r
   "modal": "create-issue" (only for create_issue),
   "fields": {
     "issueType": "Task" | "Bug" | "Story" | "Epic",
-    "summary": "short descriptive title",
-    "description": "detailed description",
-    "priority": "High" | "Medium" | "Low"
+    "title": "short descriptive title for the issue",
+    "description": "detailed description formatted as:\n\n**User Story:**\nAs a [user type], I want [goal] so that [reason].\n\n**Acceptance Criteria:**\n- [ ] Criterion 1\n- [ ] Criterion 2\n- [ ] Criterion 3\n\n**Non-Functional Requirements:**\n- Performance: [specify any performance requirements]\n- Security: [specify any security requirements]\n- Accessibility: [specify any accessibility requirements]",
+    "priority": "High" | "Medium" | "Low",
+    "storyPoint": <estimated story points as a number (1, 2, 3, 5, 8, 13, etc.)>
   },
   "summary": "short plain sentence summarizing what was done or will be done"
 }
@@ -161,7 +164,12 @@ ${projectId ? `- Use /projects/${projectId} as the base for all project-scoped r
 2. If the user's request contains words like *create, add, make, open new issue*, set \`"action": "create_issue"\`.
 3. If the request is about moving to a section or viewing something, set \`"action": "navigate"\` and map to the correct route.
 4. If the request is informational or exploratory, use \`"action": "search"\`.
-5. Always infer reasonable \`"fields"\` (summary, description, priority, issueType) for create actions.
+5. For create actions, always infer reasonable \`"fields"\`:
+   - "title": A clear, concise title for the issue
+   - "description": A detailed description following the User Story format with Acceptance Criteria and Non-Functional Requirements
+   - "priority": Based on urgency indicators in the request (High/Medium/Low)
+   - "issueType": Task/Bug/Story/Epic based on the nature of the request
+   - "storyPoint": An estimated complexity (1, 2, 3, 5, 8, 13) based on the scope of work
 6. Include the \`"summary"\` field describing in one sentence what the action represents — this is displayed in a modal.
 7. Use project-scoped paths (e.g., "/projects/{id}/backlog") whenever the action happens inside a project context.
 ${projectId ? `8. IMPORTANT: Use "/projects/${projectId}" as the base for all routes in this context.` : ''}

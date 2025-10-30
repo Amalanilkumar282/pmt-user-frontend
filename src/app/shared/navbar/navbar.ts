@@ -87,6 +87,7 @@ export class Navbar {
   const title = fields.title || '';
   const description = fields.description || '';
   const priority = fields.priority || 'Medium';
+  const storyPoint = fields.storyPoint || '';
 
     const userOptions = users.map(u => u.name);
 
@@ -191,7 +192,7 @@ export class Navbar {
         startDate: '',
         dueDate: '',
         sprint: 'Sprint 1',
-        storyPoint: '',
+        storyPoint: storyPoint,
         parentEpic: '',
         reporter: userOptions[0] || 'Unassigned',
         labels: [],
