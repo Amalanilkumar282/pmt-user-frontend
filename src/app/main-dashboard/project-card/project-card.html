@@ -1,23 +1,32 @@
-<div class="project-card">
-  <div class="project-header">
-    <div class="project-info">
-      <div class="project-avatar">{{ project.name.charAt(0) }}</div>
-      <div class="project-details">
-        <h3>{{ project.name }}</h3>
-        <p>{{ project.type }}</p>
+<div
+  class="group relative bg-white rounded-xl border border-gray-200 p-5 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+>
+  <!-- Header: Title + Actions -->
+  <div class="flex items-start justify-between mb-4">
+    <div class="flex items-center gap-3 flex-1 min-w-0">
+      <div
+        class="w-11 h-11 rounded-lg flex bg-gradient-to-br from-[#3D62A8] to-[#5580c9] items-center justify-center text-white font-semibold text-lg flex-shrink-0 shadow-sm"
+      >
+        {{ project.name.charAt(0) }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <h3 class="text-base font-semibold text-gray-900 truncate mb-0.5">{{ project.name }}</h3>
+        <p class="text-sm text-gray-500">{{ project.type }}</p>
       </div>
     </div>
-    <div class="project-actions">
-      <span class="status-badge" [class.completed]="project.status === 'Completed'">
+    <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+      <span
+        class="px-2.5 py-1 text-xs font-medium rounded-full"
+        [class]="
+          project.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+        "
+      >
         {{ project.status }}
       </span>
       <button
-        class="star-btn"
+        class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
         (click)="$event.preventDefault(); $event.stopPropagation(); toggleStar()"
-        [class.starred]="project.starred"
-        aria-pressed="{{ project.starred }}"
         [attr.aria-label]="project.starred ? 'Unstar project' : 'Star project'"
-        title="{{ project.starred ? 'Unstar' : 'Star' }}"
       >
         <svg
           width="18"
@@ -25,38 +34,61 @@
           viewBox="0 0 24 24"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
         >
           <path
-            *ngIf="!project.starred"
             d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-            fill="#cbd5e1"
-          />
-          <path
-            *ngIf="project.starred"
-            d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-            fill="#f59e0b"
+            [attr.fill]="project.starred ? '#f59e0b' : 'none'"
+            [attr.stroke]="project.starred ? '#f59e0b' : '#94a3b8'"
+            stroke-width="1.5"
           />
         </svg>
       </button>
     </div>
   </div>
 
-  <div class="sprint-info">
-    <span class="sprint-badge">{{ project.sprint }}</span>
-    <div class="sprint-stats">
-      <span class="stat">{{ project.tasks.toDo }} todo</span>
-      <span class="divider">•</span>
-      <span class="stat">{{ project.tasks.inProgress }} in progress</span>
-      <span class="divider">•</span>
-      <span class="stat">{{ project.tasks.done }} done</span>
+  <!-- Project Lead + DU -->
+  <div
+    class="flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg mb-4"
+  >
+    <div
+      class="w-9 h-9 bg-gradient-to-br from-[#3D62A8] to-[#5580c9] rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm flex-shrink-0"
+    >
+      {{ getLeadInitials() }}
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mb-0.5">Project Lead</p>
+      <p class="text-sm font-semibold text-gray-900 truncate">{{ project.lead }}</p>
+    </div>
+    <div
+      class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200 flex-shrink-0"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style="color: #3d62a8"
+      >
+        <path
+          d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span class="text-sm font-semibold text-gray-700">{{ project.du }}</span>
     </div>
   </div>
 
-  <div class="project-footer">
-    <div class="team-members">
-      <span class="member-avatar" *ngFor="let member of project.teamMembers">{{ member }}</span>
-    </div>
-    <span class="text-muted">Updated {{ project.updated }}</span>
+  <!-- Footer: Created + Updated -->
+  <div class="flex items-center justify-between text-xs pt-3 border-t border-gray-100">
+    <span class="text-gray-500"
+      >Created: <span class="text-gray-700 font-medium">{{ project.created }}</span></span
+    >
+    <span class="text-gray-500"
+      >Updated: <span class="text-gray-700 font-medium">{{ project.updated }}</span></span
+    >
   </div>
 </div>

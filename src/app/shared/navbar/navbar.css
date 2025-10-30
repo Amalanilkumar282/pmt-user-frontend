@@ -85,7 +85,7 @@
 .project-icon {
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #3D62A8 0%, #5580c9 100%);
+  background: linear-gradient(135deg, #3d62a8 0%, #5580c9 100%);
   border-radius: 3px;
   display: flex;
   align-items: center;
@@ -155,9 +155,9 @@
 }
 
 .nav-tab.active {
-  color: #3D62A8;
+  color: #3d62a8;
   font-weight: 500;
-  border-bottom-color: #3D62A8;
+  border-bottom-color: #3d62a8;
 }
 
 .nav-tab.active:hover {
@@ -215,8 +215,8 @@
 
 .navbar-right app-searchbar ::ng-deep .search-box:focus-within {
   background-color: #ffffff;
-  border-color: #3D62A8;
-  box-shadow: 0 0 0 1px #3D62A8;
+  border-color: #3d62a8;
+  box-shadow: 0 0 0 1px #3d62a8;
 }
 
 .navbar-right app-searchbar ::ng-deep .ai-toggle-btn {
@@ -233,8 +233,8 @@
 }
 
 .navbar-right app-searchbar ::ng-deep .ai-toggle-btn.active {
-  background-color: #3D62A8;
-  border-color: #3D62A8;
+  background-color: #3d62a8;
+  border-color: #3d62a8;
 }
 
 .btn-secondary {
@@ -256,7 +256,7 @@
 
 .btn-primary {
   padding: 6px 12px;
-  background-color: #3D62A8;
+  background-color: #3d62a8;
   color: white;
   border: none;
   border-radius: 3px;
@@ -353,14 +353,15 @@
   .navbar-right app-searchbar ::ng-deep .search-box {
     width: 150px;
   }
-  
+
   .navbar-right app-searchbar ::ng-deep .search-box input::placeholder {
     font-size: 12px;
   }
 }
 
-@media (min-width: 769px) {
+/* Hamburger button is now visible on all screen sizes */
+/* @media (min-width: 769px) {
   .hamburger-btn {
     display: none !important;
   }
-}
+} */
