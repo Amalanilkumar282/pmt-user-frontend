@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarStateService } from '../services/sidebar-state.service';
 import { ModalService } from '../../modal/modal-service';
@@ -6,6 +6,7 @@ import { Searchbar } from '../searchbar/searchbar';
 import { SummaryModal } from '../summary-modal/summary-modal';
 import { Notification } from '../notification/notification';
 import { ProfileButton } from '../profile-button/profile-button';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -14,9 +15,10 @@ import { ProfileButton } from '../profile-button/profile-button';
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
-export class Header {
+export class Header implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private modalService = inject(ModalService);
+  private authService = inject(AuthService);
 
   // Summary modal state
   showSummaryModal: boolean = false;
@@ -54,6 +56,16 @@ export class Header {
   showProfileModal: boolean = false;
   userName: string = 'Harrel Alex';
   userEmail: string = 'harrel.alex@example.com';
+
+  ngOnInit(): void {
+    // Get user info from auth service
+    this.authService.currentUser.subscribe(user => {
+      if (user) {
+        this.userName = user.name;
+        this.userEmail = user.email;
+      }
+    });
+  }
 
   toggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();

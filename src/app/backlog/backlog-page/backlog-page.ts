@@ -27,6 +27,7 @@ import { FormField, ModalService } from '../../modal/modal-service';
 import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
 import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/services/ai-sprint-planning.service';
 import { ToastService } from '../../shared/services/toast.service';
+import { SprintService, SprintRequest } from '../../sprint/sprint.service';
 
 @Component({
   selector: 'app-backlog-page',
@@ -37,7 +38,7 @@ import { ToastService } from '../../shared/services/toast.service';
 export class BacklogPage implements OnInit {
   // Dummy team names for dropdown
   teamOptions: string[] = ['Frontend Team', 'Backend Team', 'QA Team', 'DevOps Team', 'Design Team'];
-  constructor(private modalService: ModalService) {}
+  constructor(private modalService: ModalService, private sprintService: SprintService) {}
   
   private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
@@ -165,20 +166,48 @@ export class BacklogPage implements OnInit {
         { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
         { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
         { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-        { label: 'Status', type: 'select', model: 'status', options: ['Planned','Active','Completed'], colSpan: 1 },
+        { label: 'Status', type: 'select', model: 'status', options: ['PLANNED','ACTIVE','COMPLETED'], colSpan: 1 },
         { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      ];
-  
-      
-        this.modalService.open({
-          id: 'sprintModal',
-          title: 'Create Sprint',
-          projectName: 'Project Alpha',
-          modalDesc : 'Create a new sprint in your project',
-          fields: sprintFields,
-          data: { shareWith: '', message: '' },  //optional prefilled,
-          submitText: 'Create Sprint'
+      ];    this.modalService.open({
+      id: 'sprintModal',
+      title: 'Create Sprint',
+      projectName: 'Project Alpha',
+      modalDesc : 'Create a new sprint in your project',
+      fields: sprintFields,
+      data: {},
+      submitText: 'Create Sprint',
+      // Add onSubmit handler for modal
+      // This will be called from the modal component when the form is submitted
+      onSubmit: (formData: any) => {
+        // Prepare request body for API
+        const sprintReq: SprintRequest = {
+          projectId: '2373d1ec-dc5b-4a9a-b174-7ad870d5918f',
+          sprintName: formData.sprintName,
+          sprintGoal: formData.sprintGoal,
+          teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
+          startDate: formData.startDate,
+          dueDate: formData.dueDate,
+          status: formData.status,
+          storyPoint: Number(formData.storyPoint) || 0
+        };
+        console.log('Sending sprint request:', sprintReq);
+        this.sprintService.createSprint(sprintReq).subscribe({
+          next: (res) => {
+            console.log('Sprint created successfully:', res);
+            alert('Sprint created successfully!');
+            this.modalService.close();
+          },
+          error: (err) => {
+            console.error('Failed to create sprint:', err);
+            console.error('Validation errors:', err.error?.errors);
+            const errorMsg = err.error?.errors ? 
+              JSON.stringify(err.error.errors, null, 2) : 
+              err.message;
+            alert(`Failed to create sprint:\n${errorMsg}`);
+          }
         });
+      }
+    });
     }
 
   handleStart(sprintId: string): void {

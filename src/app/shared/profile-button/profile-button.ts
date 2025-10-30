@@ -1,5 +1,6 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-profile-button',
@@ -15,12 +16,19 @@ export class ProfileButton {
   @Output() profileClick = new EventEmitter<void>();
   @Output() closeProfileModal = new EventEmitter<void>();
 
+  private authService = inject(AuthService);
+
   get initials(): string {
     if (!this.userName) return '';
     return this.userName
       .split(' ')
       .map(part => part[0])
       .join('')
-      .toUpperCase();
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 }

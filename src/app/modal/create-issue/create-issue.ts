@@ -13,8 +13,25 @@ import { isPlatformBrowser } from '@angular/common';
   imports: [NgIf, NgFor, FormsModule, NgClass, NgStyle]
 })
 export class CreateIssue implements OnInit, OnDestroy {
+  private activeModalId: string | null = null;
   isArray(val: any): boolean {
     return Array.isArray(val);
+  }
+
+  // Icon mapping for issue types
+  getTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'STORY': 'fa-solid fa-book',
+      'TASK': 'fa-solid fa-check-circle',
+      'BUG': 'fa-solid fa-bug',
+      'EPIC': 'fa-solid fa-bolt',
+      'FEATURE': 'fa-solid fa-star',
+      'CRITICAL': 'fa-solid fa-fire',
+      'OTHER': 'fa-solid fa-file'
+    };
+    // Accept both uppercase and capitalized types
+    const key = (type || '').toUpperCase();
+    return icons[key] || icons['OTHER'];
   }
   
   // Track mousedown on overlay
@@ -153,15 +170,16 @@ showToast(message: string, duration: number = 3000) {
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
   ngOnInit() {
-  this.sub = this.modalService.activeModal$.subscribe((id) => {
-    if (!id) {
-      this.show = false;
-      if (this.isBrowser) document.body.style.overflow = '';
-      return;
-    }
+    this.sub = this.modalService.activeModal$.subscribe((id) => {
+      this.activeModalId = id;
+      if (!id) {
+        this.show = false;
+        if (this.isBrowser) document.body.style.overflow = '';
+        return;
+      }
 
-    const cfg = this.modalService.getConfig(id);
-    this.show = !!cfg;
+      const cfg = this.modalService.getConfig(id);
+      this.show = !!cfg;
 
     if (cfg) {
       this.fields = cfg.fields ?? [];
@@ -199,8 +217,8 @@ showToast(message: string, duration: number = 3000) {
       }
     }
 
-    if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
-  });
+      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
+    });
 }
 
 
@@ -273,6 +291,15 @@ shakeFields: Set<string> = new Set();
       // Show toast
       this.showToast('Please fill all required fields before submitting.');
       return;
+    }
+
+    // If modal config has onSubmit, call it
+    if (this.activeModalId) {
+      const cfg = this.modalService.getConfig(this.activeModalId);
+      if (cfg && typeof cfg.onSubmit === 'function') {
+        cfg.onSubmit(this.formData);
+        return;
+      }
     }
 
     // No backend integration: just log and close
