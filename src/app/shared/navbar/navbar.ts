@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, inject, computed } from '@angular/core';
+import { Component, Output, EventEmitter, inject, computed, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { users } from '../../shared/data/dummy-backlog-data';
@@ -11,6 +11,7 @@ import { ProfileButton } from '../profile-button/profile-button';
 import { Notification } from '../notification/notification';
 import { SummaryModal } from '../summary-modal/summary-modal';
 import { IssueService, CreateIssueRequest } from '../services/issue.service';
+import { ActivityService, ActivityLogDto } from '../services/activity.service';
 import { filter } from 'rxjs';
 
 @Component({
@@ -20,7 +21,7 @@ import { filter } from 'rxjs';
   styleUrls: ['./navbar.css'],
   standalone: true
 })
-export class Navbar {
+export class Navbar implements OnInit {
   showProfileModal = false;
 
   onProfileClick() {
@@ -30,16 +31,18 @@ export class Navbar {
   closeProfileModal() {
     this.showProfileModal = false;
   }
-  get unreadCount(): number {
-    return this.notifications ? this.notifications.filter(n => n.unread).length : 0;
-  }
+  
+  unreadCount: number = 0;
+  
   @Output() toggleSidebar = new EventEmitter<void>();
 
   private modalService = inject(ModalService);
   private issueService = inject(IssueService);
+  private activityService = inject(ActivityService);
   private sidebarState = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
  
   isSidebarCollapsed = this.sidebarState.isCollapsed;
   currentProjectId = this.projectContextService.currentProjectId;
@@ -324,28 +327,198 @@ export class Navbar {
 
   // Notification modal state
   showNotificationModal = false;
-  notifications: Array<{ title: string; message: string; time: string; unread?: boolean }> = [
-    { title: 'Issue Assigned', message: 'You have been assigned to Issue #123', time: '2 min ago', unread: true },
-    { title: 'Sprint Started', message: 'Sprint 5 has started', time: '1 hr ago', unread: true },
-    { title: 'Comment Added', message: 'A comment was added to Issue #456', time: '5 hrs ago' },
-    { title: 'System Update', message: 'The system will be updated tonight at 2 AM.', time: 'Today' },
-    { title: 'New Member Joined', message: 'Alice has joined your project team.', time: '2 days ago' },
-    { title: 'Deadline Reminder', message: 'Project deadline is approaching in 3 days.', time: '3 days ago' },
-    { title: 'Comment Mention', message: 'You were mentioned in a comment on Issue #789.', time: 'Last week' },
-    { title: 'Task Completed', message: 'Task "Design Review" was marked as completed.', time: 'Last week' }
-  ];
+  notifications: Array<{ title: string; message: string; time: string; unread?: boolean }> = [];
+
+  ngOnInit() {
+    this.loadUserActivities();
+  }
+
+  /**
+   * Load user activities and convert them to notifications
+   */
+  loadUserActivities(): void {
+    // Get user ID from sessionStorage or your auth service
+    const userId = this.getUserIdFromSession();
+    
+    console.log('Loading user activities for userId:', userId);
+    
+    if (!userId) {
+      console.warn('No user ID found in session');
+      return;
+    }
+
+    this.activityService.getUserActivities(userId, 20).subscribe({
+      next: (response) => {
+        console.log('Activities API response:', response);
+        if (response.status === 200 && response.data) {
+          // The data is an array directly, not nested in activities property
+          const activities = Array.isArray(response.data) ? response.data : [];
+          console.log('Activities found:', activities.length);
+          this.notifications = this.transformActivitiesToNotifications(activities);
+          console.log('Transformed notifications:', this.notifications);
+          // Update unread count
+          this.updateUnreadCount();
+        } else {
+          console.log('No activities in response or status not 200');
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load activities:', error);
+      }
+    });
+  }
+
+  /**
+   * Transform activity logs into notification format
+   */
+  private transformActivitiesToNotifications(activities: ActivityLogDto[]): Array<{ title: string; message: string; time: string; unread?: boolean }> {
+    return activities.map(activity => ({
+      title: this.getActivityTitle(activity),
+      message: activity.description || this.getDefaultMessage(activity),
+      time: this.formatTime(activity.createdAt),
+      unread: this.isRecent(activity.createdAt) // Mark as unread if within last 24 hours
+    }));
+  }
+
+  /**
+   * Generate a title based on activity action and entity type
+   */
+  private getActivityTitle(activity: ActivityLogDto): string {
+    const actionMap: { [key: string]: string } = {
+      'CREATED': 'Created',
+      'UPDATED': 'Updated',
+      'DELETED': 'Deleted',
+      'ASSIGNED': 'Assigned',
+      'COMMENTED': 'Commented on',
+      'COMPLETED': 'Completed'
+    };
+
+    const action = actionMap[activity.action] || activity.action;
+    const entityType = activity.entityType || 'Item';
+
+    return `${action} ${entityType}`;
+  }
+
+  /**
+   * Generate default message if description is missing
+   */
+  private getDefaultMessage(activity: ActivityLogDto): string {
+    return `You ${activity.action.toLowerCase()} a ${activity.entityType.toLowerCase()}`;
+  }
+
+  /**
+   * Format timestamp to relative time
+   */
+  private formatTime(timestamp: string): string {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString();
+  }
+
+  /**
+   * Check if activity is within last 24 hours (mark as unread)
+   */
+  private isRecent(timestamp: string): boolean {
+    const activityDate = new Date(timestamp);
+    const lastReadTime = this.getLastReadTime();
+    
+    // If we have a last read time, compare activity with it
+    if (lastReadTime) {
+      return activityDate.getTime() > lastReadTime.getTime();
+    }
+    
+    // Fallback: mark as unread if within last 24 hours
+    const now = new Date();
+    const diffHours = (now.getTime() - activityDate.getTime()) / 3600000;
+    return diffHours < 24;
+  }
+
+  /**
+   * Get the last time notifications were marked as read
+   */
+  private getLastReadTime(): Date | null {
+    const userId = this.getUserIdFromSession();
+    if (!userId) return null;
+    
+    const lastReadStr = localStorage.getItem(`notifications_last_read_${userId}`);
+    if (lastReadStr) {
+      return new Date(lastReadStr);
+    }
+    return null;
+  }
+
+  /**
+   * Save the current time as last read time
+   */
+  private saveLastReadTime(): void {
+    const userId = this.getUserIdFromSession();
+    if (!userId) return;
+    
+    const now = new Date().toISOString();
+    localStorage.setItem(`notifications_last_read_${userId}`, now);
+    console.log('Saved last read time:', now);
+  }
+
+  /**
+   * Get user ID from session storage
+   */
+  private getUserIdFromSession(): number | null {
+    // Try to get from sessionStorage - adjust key name based on your auth implementation
+    const userIdStr = sessionStorage.getItem('userId');
+    console.log('Checking userId from sessionStorage:', userIdStr);
+    if (userIdStr) {
+      return parseInt(userIdStr, 10);
+    }
+
+    // Alternative: parse from JWT token
+    const token = sessionStorage.getItem('accessToken');
+    console.log('Checking JWT token:', token ? 'Token exists' : 'No token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('JWT payload:', payload);
+        const userId = parseInt(payload.sub || payload.userId || payload.id, 10);
+        console.log('Extracted userId from JWT:', userId);
+        return userId;
+      } catch (e) {
+        console.error('Failed to parse user ID from token:', e);
+      }
+    }
+
+    return null;
+  }
 
   onNotificationClick() {
     this.showNotificationModal = true;
-    // Unread notifications remain until modal is closed
+    this.loadUserActivities(); // Refresh activities when notification bell is clicked
   }
 
   closeNotificationModal() {
     this.showNotificationModal = false;
-    // Mark unread notifications as read when modal is closed
-    this.notifications = this.notifications.map((n, i) =>
-      i < 2 ? { ...n, unread: false } : n
-    );
+    // Save the current time as last read
+    this.saveLastReadTime();
+    // Mark all notifications as read when modal is closed
+    this.notifications = [...this.notifications.map(n => ({ ...n, unread: false }))];
+    this.updateUnreadCount();
+    console.log('Notifications marked as read. Unread count:', this.unreadCount);
+  }
+
+  /**
+   * Update the unread count based on current notifications
+   */
+  private updateUnreadCount(): void {
+    this.unreadCount = this.notifications.filter(n => n.unread).length;
+    this.cdr.detectChanges(); // Force change detection
   }
 
   onMenuClick(): void {
