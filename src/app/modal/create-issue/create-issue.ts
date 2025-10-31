@@ -237,6 +237,10 @@ shakeFields: Set<string> = new Set();
     for (const field of this.fields) {
       if (field.hidden) continue; // Skip validation for hidden fields
       const value = this.formData[field.model];
+      
+      // Debug logging
+      console.log(`Field: ${field.model}, Required: ${field.required}, Value: ${value}`);
+      
       if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
         this.invalidFields.add(field.model);
         this.shakeFields.add(field.model);
@@ -245,6 +249,7 @@ shakeFields: Set<string> = new Set();
         return;
       }
       if (field.required && (value === null || value === undefined || value === '')) {
+        console.log(`Field ${field.model} is required but empty!`);
         this.invalidFields.add(field.model);
         this.shakeFields.add(field.model); // mark for shake
       }
