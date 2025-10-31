@@ -196,7 +196,7 @@ export class Navbar {
           storyPoints: Number(formData.storyPoints) || 0,
           epicId: null, // TODO: Map epic to actual ID
           reporterId: 1, // TODO: Map reporter to actual ID
-          attachmentUrl: null, // TODO: Handle file upload
+          attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
           labels: JSON.stringify(formData.labels || [])
         };
 
@@ -301,7 +301,7 @@ export class Navbar {
           storyPoints: Number(formData.storyPoint) || 0,
           epicId: null, // TODO: Map epic to actual ID
           reporterId: 1, // TODO: Map reporter to actual ID
-          attachmentUrl: null, // TODO: Handle file upload
+          attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
           labels: JSON.stringify(formData.labels || [])
         };
 
