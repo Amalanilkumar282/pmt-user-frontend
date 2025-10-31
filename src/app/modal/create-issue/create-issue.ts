@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ModalService, FormField } from '../modal-service';
 import { isPlatformBrowser } from '@angular/common';
+import { LabelService, Label, CreateLabelRequest, UpdateLabelRequest } from '../../shared/services/label.service';
 
 @Component({
   selector: 'app-create-issue',
@@ -68,31 +69,73 @@ export class CreateIssue implements OnInit, OnDestroy {
 
   saveEditLabel() {
     if (!this.editingLabel) return;
-    const oldLabel = this.editingLabel;
-    const newLabel = this.editLabelName.trim();
-    if (!newLabel) return;
-    // Update label in formData.labels
-    const idx = this.formData.labels.indexOf(oldLabel);
-    if (idx !== -1) {
-      this.formData.labels[idx] = newLabel;
-      // Update color mapping
-      this.labelColors[newLabel] = this.editLabelColor;
-      if (oldLabel !== newLabel) {
-        delete this.labelColors[oldLabel];
+    const oldLabelName = this.editingLabel;
+    const newLabelName = this.editLabelName.trim();
+    if (!newLabelName) return;
+
+    // Find the label in backend labels to get its ID
+    const labelToUpdate = this.backendLabels.find(l => l.name === oldLabelName);
+    
+    if (labelToUpdate) {
+      // Label exists in backend - update via API
+      const updateRequest: UpdateLabelRequest = {
+        id: labelToUpdate.id,
+        name: newLabelName,
+        colour: this.editLabelColor
+      };
+
+      // Optimistic update - update UI immediately
+      const idx = this.formData.labels.indexOf(oldLabelName);
+      if (idx !== -1) {
+        this.formData.labels[idx] = newLabelName;
+        this.labelColors[newLabelName] = this.editLabelColor;
+        if (oldLabelName !== newLabelName) {
+          delete this.labelColors[oldLabelName];
+        }
+      }
+
+      // Update in backend labels array
+      labelToUpdate.name = newLabelName;
+      labelToUpdate.colour = this.editLabelColor;
+
+      // Call API to update in backend
+      this.labelService.updateLabel(updateRequest).subscribe({
+        next: (response) => {
+          console.log('Label updated successfully:', response);
+        },
+        error: (err) => {
+          console.error('Failed to update label:', err);
+          // Revert changes if API fails
+          if (idx !== -1) {
+            this.formData.labels[idx] = oldLabelName;
+            this.labelColors[oldLabelName] = labelToUpdate.colour;
+            if (oldLabelName !== newLabelName) {
+              delete this.labelColors[newLabelName];
+            }
+          }
+          labelToUpdate.name = oldLabelName;
+        }
+      });
+    } else {
+      // Label doesn't exist in backend (local only) - just update locally
+      const idx = this.formData.labels.indexOf(oldLabelName);
+      if (idx !== -1) {
+        this.formData.labels[idx] = newLabelName;
+        this.labelColors[newLabelName] = this.editLabelColor;
+        if (oldLabelName !== newLabelName) {
+          delete this.labelColors[oldLabelName];
+        }
       }
     }
-    // Update availableLabels
-    if (!this.availableLabels.includes(newLabel)) {
-      this.availableLabels.push(newLabel);
-    }
+
     this.closeEditLabel();
   }
 
   onEditColorInput(event: any) {
     this.editLabelColor = event.target.value;
   }
-  // Simulated backend label storage (replace with API call in future)
-  availableLabels: string[] = ['bug', 'feature', 'urgent', 'frontend', 'backend', 'enhancement', 'help wanted'];
+  // Available labels from backend
+  backendLabels: Label[] = [];
   labelInputValue: string = '';
   showLabelDropdown: boolean = false;
   filteredLabels: string[] = [];
@@ -105,9 +148,14 @@ export class CreateIssue implements OnInit, OnDestroy {
       this.filteredLabels = [];
       return;
     }
-    // Filter available labels that match input and are not already selected
+    // Filter backend labels that match input and are not already selected
     const lower = value.toLowerCase();
-    this.filteredLabels = this.availableLabels.filter(l => l.toLowerCase().includes(lower) && !this.formData.labels.includes(l));
+    this.filteredLabels = this.backendLabels
+      .filter(label => 
+        label && label.name && label.name.toLowerCase().includes(lower) && 
+        !this.formData.labels.includes(label.name)
+      )
+      .map(label => label.name);
     this.showLabelDropdown = this.filteredLabels.length > 0;
   }
 
@@ -119,6 +167,8 @@ export class CreateIssue implements OnInit, OnDestroy {
   selectLabel(label: string) {
     if (!this.formData.labels.includes(label)) {
       this.formData.labels.push(label);
+      // Color is already set from backend in loadLabelsFromBackend()
+      // If for some reason it's not there, use a fallback
       if (!this.labelColors[label]) {
         this.labelColors[label] = this.getRandomPastelColor();
       }
@@ -166,10 +216,14 @@ showToast(message: string, duration: number = 3000) {
 
   constructor(
     private modalService: ModalService,
+    private labelService: LabelService,
     @Inject(PLATFORM_ID) platformId: Object
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
   ngOnInit() {
+    // Load labels from backend
+    this.loadLabelsFromBackend();
+
     this.sub = this.modalService.activeModal$.subscribe((id) => {
       this.activeModalId = id;
       if (!id) {
@@ -210,6 +264,24 @@ showToast(message: string, duration: number = 3000) {
     });
 }
 
+  loadLabelsFromBackend() {
+    this.labelService.getAllLabels().subscribe({
+      next: (response) => {
+        console.log('Labels fetched from backend:', response);
+        this.backendLabels = response.data;
+        // Map backend colors to labelColors
+        response.data.forEach(label => {
+          this.labelColors[label.name] = label.colour;
+        });
+      },
+      error: (err) => {
+        console.error('Failed to fetch labels:', err);
+        // Fallback to empty array if API fails
+        this.backendLabels = [];
+      }
+    });
+  }
+
 
 
   ngOnDestroy() {
@@ -238,9 +310,6 @@ shakeFields: Set<string> = new Set();
       if (field.hidden) continue; // Skip validation for hidden fields
       const value = this.formData[field.model];
       
-      // Debug logging
-      console.log(`Field: ${field.model}, Required: ${field.required}, Value: ${value}`);
-      
       if (field.model === 'storyPoint' && value !== undefined && value !== null && value < 0) {
         this.invalidFields.add(field.model);
         this.shakeFields.add(field.model);
@@ -249,7 +318,6 @@ shakeFields: Set<string> = new Set();
         return;
       }
       if (field.required && (value === null || value === undefined || value === '')) {
-        console.log(`Field ${field.model} is required but empty!`);
         this.invalidFields.add(field.model);
         this.shakeFields.add(field.model); // mark for shake
       }
@@ -334,19 +402,66 @@ shakeFields: Set<string> = new Set();
   }
 
   addLabel(label: string) {
-    if (label && !this.formData.labels.includes(label)) {
-      this.formData.labels.push(label);
-      if (!this.labelColors[label]) {
-        this.labelColors[label] = this.getRandomPastelColor();
-      }
-      // Optionally add to availableLabels for future suggestions
-      if (!this.availableLabels.includes(label)) {
-        this.availableLabels.push(label);
-      }
+    if (!label || label.trim() === '') return;
+
+    const trimmedLabel = label.trim();
+
+    // If label already selected, don't add it again
+    if (this.formData.labels.includes(trimmedLabel)) {
+      this.labelInputValue = '';
+      this.showLabelDropdown = false;
+      this.filteredLabels = [];
+      return;
     }
-    this.labelInputValue = '';
-    this.showLabelDropdown = false;
-    this.filteredLabels = [];
+
+    // Check if label exists in backend labels
+    const existingLabel = this.backendLabels.find(l => l.name.toLowerCase() === trimmedLabel.toLowerCase());
+
+    if (existingLabel) {
+      // Label exists in backend, just add it to formData
+      this.formData.labels.push(existingLabel.name);
+      if (!this.labelColors[existingLabel.name]) {
+        this.labelColors[existingLabel.name] = existingLabel.colour;
+      }
+      this.labelInputValue = '';
+      this.showLabelDropdown = false;
+      this.filteredLabels = [];
+    } else {
+      // Label doesn't exist - create it in backend
+      const randomColor = this.getRandomPastelColor();
+      const createRequest: CreateLabelRequest = {
+        name: trimmedLabel,
+        colour: randomColor
+      };
+
+      // Add label immediately (optimistic update) for instant UI feedback
+      this.formData.labels.push(trimmedLabel);
+      this.labelColors[trimmedLabel] = randomColor;
+
+      // Clear input immediately for better UX
+      this.labelInputValue = '';
+      this.showLabelDropdown = false;
+      this.filteredLabels = [];
+
+      this.labelService.createLabel(createRequest).subscribe({
+        next: (response) => {
+          console.log('Label created successfully:', response);
+          const newLabel = response.data;
+          
+          // Add to backend labels
+          this.backendLabels.push(newLabel);
+          
+          // Update color with backend color if different
+          if (newLabel.colour !== randomColor) {
+            this.labelColors[newLabel.name] = newLabel.colour;
+          }
+        },
+        error: (err) => {
+          console.error('Failed to create label:', err);
+          // Label already added optimistically, no need to add again
+        }
+      });
+    }
   }
 
   removeLabel(label: string) {

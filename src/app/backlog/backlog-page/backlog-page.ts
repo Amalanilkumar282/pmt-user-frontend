@@ -184,20 +184,18 @@ export class BacklogPage implements OnInit {
           status: formData.status,
           storyPoint: Number(formData.storyPoint) || 0
         };
+        
+        // Close modal immediately for instant feedback
+        this.modalService.close();
+        
         console.log('Sending sprint request:', sprintReq);
         this.sprintService.createSprint(sprintReq).subscribe({
           next: (res) => {
             console.log('Sprint created successfully:', res);
-            alert('Sprint created successfully!');
-            this.modalService.close();
           },
           error: (err) => {
             console.error('Failed to create sprint:', err);
             console.error('Validation errors:', err.error?.errors);
-            const errorMsg = err.error?.errors ? 
-              JSON.stringify(err.error.errors, null, 2) : 
-              err.message;
-            alert(`Failed to create sprint:\n${errorMsg}`);
           }
         });
       }
