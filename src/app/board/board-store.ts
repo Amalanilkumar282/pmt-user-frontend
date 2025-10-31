@@ -4,14 +4,21 @@ import type { IssueStatus } from '../shared/models/issue.model';
 import type { FilterState, GroupBy, Sprint, BoardColumnDef } from './models';
 import { DEFAULT_COLUMNS, fuzzyIncludes, statusOrder, priorityOrder } from './utils';
 import { BoardService } from './services/board.service';
+import { IssueApiService } from './services/issue-api.service';
+import { SprintApiService } from './services/sprint-api.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class BoardStore {
   private boardService = inject(BoardService);
+  private issueApiService = inject(IssueApiService);
+  private sprintApiService = inject(SprintApiService);
   
-  // raw data (inject your dummy data at module bootstrap or here)
+  // raw data
   private _issues = signal<Issue[]>([]);
   private _sprints = signal<Sprint[]>([]);
+  private _loadingIssues = signal<boolean>(false);
+  private _loadingSprints = signal<boolean>(false);
 
   // UI state
   selectedSprintId = signal<string | 'BACKLOG'>('BACKLOG');
@@ -25,8 +32,65 @@ export class BoardStore {
 
   // derived
   sprints = computed(() => this._sprints());
-
   issues = computed(() => this._issues());
+  loadingIssues = this._loadingIssues.asReadonly();
+  loadingSprints = this._loadingSprints.asReadonly();
+  
+  /**
+   * Load issues from backend API
+   */
+  async loadIssuesByProject(projectId: string): Promise<void> {
+    try {
+      console.log('🔄 BoardStore - Loading issues for project:', projectId);
+      this._loadingIssues.set(true);
+      const issues = await firstValueFrom(this.issueApiService.getIssuesByProject(projectId));
+      this._issues.set(issues);
+      console.log('✅ BoardStore - Loaded issues from API:', issues.length, issues);
+      
+      // Log issue distribution by status
+      if (issues.length > 0) {
+        const statusCounts = issues.reduce((acc, issue) => {
+          acc[issue.status] = (acc[issue.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        console.log('📊 Issue distribution by status:', statusCounts);
+      } else {
+        console.warn('⚠️ No issues returned from API');
+      }
+    } catch (error) {
+      console.error('❌ BoardStore - Error loading issues:', error);
+      this._issues.set([]);
+    } finally {
+      this._loadingIssues.set(false);
+    }
+  }
+  
+  /**
+   * Load sprints from backend API
+   */
+  async loadSprintsByProject(projectId: string): Promise<void> {
+    try {
+      this._loadingSprints.set(true);
+      const sprints = await firstValueFrom(this.sprintApiService.getSprintsByProject(projectId));
+      this._sprints.set(sprints);
+      console.log('✅ Loaded sprints from API:', sprints.length);
+    } catch (error) {
+      console.error('❌ Error loading sprints:', error);
+      this._sprints.set([]);
+    } finally {
+      this._loadingSprints.set(false);
+    }
+  }
+  
+  /**
+   * Load all board data (issues + sprints) for a project
+   */
+  async loadBoardData(projectId: string): Promise<void> {
+    await Promise.all([
+      this.loadIssuesByProject(projectId),
+      this.loadSprintsByProject(projectId)
+    ]);
+  }
 
   // visible issues after board context + sprint selection + filters + search
   visibleIssues = computed(() => {
@@ -88,6 +152,13 @@ export class BoardStore {
     const issues = this.visibleIssues();
     const groupByType = this.groupBy();
     
+    console.log('🔧 Computing columnBuckets:', {
+      columnsCount: cols.length,
+      columns: cols.map(c => c.id),
+      issuesCount: issues.length,
+      issues: issues.map(i => ({ id: i.id, title: i.title, status: i.status }))
+    });
+    
     // Helper function to sort issues by priority
     const sortByPriority = (issueList: Issue[]): Issue[] => {
       return issueList.sort((a, b) => {
@@ -103,10 +174,16 @@ export class BoardStore {
     
     // If no grouping, return regular columns with priority-sorted issues
     if (groupByType === 'NONE') {
-      return cols.map(c => ({
-        def: c,
-        items: sortByPriority(issues.filter(i => i.status === c.id))
-      }));
+      const buckets = cols.map(c => {
+        const columnIssues = issues.filter(i => i.status === c.id);
+        console.log(`📦 Column ${c.id}: ${columnIssues.length} issues`, columnIssues);
+        return {
+          def: c,
+          items: sortByPriority(columnIssues)
+        };
+      });
+      console.log('✅ Final buckets:', buckets.map(b => ({ column: b.def.id, count: b.items.length })));
+      return buckets;
     }
     
     // Group by Assignee - within each column, group issues by assignee
@@ -262,6 +339,38 @@ export class BoardStore {
   clearFilters() { this.filters.set({ assignees: [], workTypes: [], labels: [], statuses: [], priorities: [] }); }
   setGroupBy(g: GroupBy) { this.groupBy.set(g); }
 
+  /**
+   * Update issue status (API-backed)
+   */
+  async updateIssueStatusApi(issueId: string, statusId: number, projectId: string): Promise<void> {
+    try {
+      await firstValueFrom(this.issueApiService.updateIssueStatus(issueId, statusId, projectId));
+      // Update local state after successful API call
+      this.updateIssueStatus(issueId, 'TODO' as any); // TODO: Map statusId to IssueStatus
+      console.log('✅ Issue status updated');
+    } catch (error) {
+      console.error('❌ Error updating issue status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create new issue (API-backed)
+   */
+  async createIssueApi(issueData: Partial<Issue>, projectId: string): Promise<void> {
+    try {
+      const dto = this.issueApiService.mapIssueToCreateDto(issueData, projectId);
+      await firstValueFrom(this.issueApiService.createIssue(dto));
+      // Reload issues after creation
+      await this.loadIssuesByProject(projectId);
+      console.log('✅ Issue created');
+    } catch (error) {
+      console.error('❌ Error creating issue:', error);
+      throw error;
+    }
+  }
+
+  // Legacy local-only methods (for offline mode or fallback)
   updateIssueStatus(issueId: string, status: IssueStatus) {
     this._issues.update(list => list.map(i => i.id === issueId ? ({...i, status, updatedAt: new Date()}) : i));
   }

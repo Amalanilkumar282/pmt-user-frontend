@@ -2,34 +2,83 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { Board, CreateBoardDto, UpdateBoardDto, RecentProject, BoardType } from '../models/board.model';
 import { DEFAULT_COLUMNS } from '../utils';
 import { TeamsService } from '../../teams/services/teams.service';
+import { BoardApiService } from './board-api.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BoardService {
   private teamsService = inject(TeamsService);
+  private boardApiService = inject(BoardApiService);
   
   // Signal-based state
-  private boardsSignal = signal<Board[]>(this.getInitialBoards());
+  private boardsSignal = signal<Board[]>([]);
   private recentProjectsSignal = signal<RecentProject[]>(this.getInitialRecentProjects());
   private currentBoardIdSignal = signal<string | null>(null);
+  private loadingSignal = signal<boolean>(false);
   
   // Public computed signals
   boards = this.boardsSignal.asReadonly();
   recentProjects = this.recentProjectsSignal.asReadonly();
   currentBoardId = this.currentBoardIdSignal.asReadonly();
+  loading = this.loadingSignal.asReadonly();
   
   currentBoard = computed(() => {
     const id = this.currentBoardIdSignal();
     return id ? this.boardsSignal().find(b => b.id === id) : null;
   });
   
-  // Get boards by project
+  // Load boards from backend
+  async loadBoardsByProject(projectId: string): Promise<void> {
+    try {
+      this.loadingSignal.set(true);
+      const boards = await firstValueFrom(this.boardApiService.getBoardsByProject(projectId));
+      this.boardsSignal.set(boards);
+      console.log('✅ Loaded boards from API:', boards);
+    } catch (error) {
+      console.error('❌ Error loading boards:', error);
+      // Fallback to empty boards on error
+      this.boardsSignal.set([]);
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Load single board from backend
+  async loadBoardById(boardId: number): Promise<Board | null> {
+    try {
+      this.loadingSignal.set(true);
+      const board = await firstValueFrom(this.boardApiService.getBoardById(boardId));
+      
+      // Update the board in the signal if it exists
+      const currentBoards = this.boardsSignal();
+      const boardIndex = currentBoards.findIndex(b => b.id === board.id);
+      
+      if (boardIndex >= 0) {
+        const updatedBoards = [...currentBoards];
+        updatedBoards[boardIndex] = board;
+        this.boardsSignal.set(updatedBoards);
+      } else {
+        this.boardsSignal.set([...currentBoards, board]);
+      }
+      
+      console.log('✅ Loaded board from API:', board);
+      return board;
+    } catch (error) {
+      console.error('❌ Error loading board:', error);
+      return null;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Get boards by project (from cache)
   getBoardsByProject(projectId: string): Board[] {
     return this.boardsSignal().filter(b => b.projectId === projectId);
   }
   
-  // Get board by ID
+  // Get board by ID (from cache)
   getBoardById(boardId: string): Board | undefined {
     return this.boardsSignal().find(b => b.id === boardId);
   }
