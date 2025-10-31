@@ -10,6 +10,7 @@ import { Searchbar } from '../searchbar/searchbar';
 import { ProfileButton } from '../profile-button/profile-button';
 import { Notification } from '../notification/notification';
 import { SummaryModal } from '../summary-modal/summary-modal';
+import { IssueService, CreateIssueRequest } from '../services/issue.service';
 import { filter } from 'rxjs';
 
 @Component({
@@ -35,6 +36,7 @@ export class Navbar {
   @Output() toggleSidebar = new EventEmitter<void>();
 
   private modalService = inject(ModalService);
+  private issueService = inject(IssueService);
   private sidebarState = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private router = inject(Router);
@@ -172,6 +174,45 @@ export class Navbar {
         dueDate: '',
         labels: [],
         attachments: []
+      },
+      onSubmit: (formData: any) => {
+        // Convert dates to ISO string format (UTC) for PostgreSQL
+        const formatDateToUTC = (dateStr: string) => {
+          if (!dateStr) return undefined;
+          const date = new Date(dateStr);
+          return date.toISOString();
+        };
+
+        const issueReq: CreateIssueRequest = {
+          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
+          issueType: formData.issueType?.toUpperCase() || 'TASK',
+          title: formData.title,
+          description: formData.description || '',
+          priority: formData.priority?.toUpperCase() || 'MEDIUM',
+          assigneeId: 1, // TODO: Map assignee to actual ID
+          startDate: formatDateToUTC(formData.startDate),
+          dueDate: formatDateToUTC(formData.dueDate),
+          sprintId: null, // TODO: Map sprint to actual ID
+          storyPoints: Number(formData.storyPoints) || 0,
+          epicId: null, // TODO: Map epic to actual ID
+          reporterId: 1, // TODO: Map reporter to actual ID
+          attachmentUrl: null, // TODO: Handle file upload
+          labels: JSON.stringify(formData.labels || [])
+        };
+
+        // Close modal immediately for instant feedback
+        this.modalService.close();
+
+        console.log('Sending issue request:', issueReq);
+        this.issueService.createIssue(issueReq).subscribe({
+          next: (res) => {
+            console.log('Issue created successfully:', res);
+          },
+          error: (err) => {
+            console.error('Failed to create issue:', err);
+            console.error('Validation errors:', err.error?.errors);
+          }
+        });
       }
     });
   }
@@ -213,34 +254,73 @@ export class Navbar {
  
 
   onCreate() {
-  const userOptions = users.map(u => u.name);
+    const userOptions = users.map(u => u.name);
 
-  const fields: FormField[] = [
-    { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
-    { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
-    { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
-    { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
-    { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
-    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-    { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
-    { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-    { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
-    { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1,required : true  },
-    { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
-  ];
+    const fields: FormField[] = [
+      { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
+      { label: 'Title', type: 'text', model: 'title', colSpan: 2, required : true  },
+      { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
+      { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
+      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
+      { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+      { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+      { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
+      { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
+      { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },
+      { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
+    ];
 
-  this.modalService.open({
-    id: 'createIssue',          // matches your modal component's @Input modalId
-    title: 'Create New Issue',   // modal header
-    projectName: 'Project Beta',// optional project label
-    modalDesc : 'Create a new issue in your project',
-    fields,                     // dynamic fields
-  data: { priority: 'Medium', labels: [] }, // optional pre-filled data
-    showLabels: true,
-    submitText: 'Create Issue'
-  });
-}
+    this.modalService.open({
+      id: 'createIssue',
+      title: 'Create New Issue',
+      projectName: 'Project Beta',
+      modalDesc : 'Create a new issue in your project',
+      fields,
+      data: { priority: 'Medium', labels: [] },
+      showLabels: true,
+      submitText: 'Create Issue',
+      onSubmit: (formData: any) => {
+        // Convert dates to ISO string format (UTC) for PostgreSQL
+        const formatDateToUTC = (dateStr: string) => {
+          if (!dateStr) return undefined;
+          const date = new Date(dateStr);
+          return date.toISOString();
+        };
+
+        const issueReq: CreateIssueRequest = {
+          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
+          issueType: formData.issueType?.toUpperCase() || 'TASK',
+          title: formData.title,
+          description: formData.description || '',
+          priority: formData.priority?.toUpperCase() || 'MEDIUM',
+          assigneeId: 1, // TODO: Map assignee to actual ID
+          startDate: formatDateToUTC(formData.startDate),
+          dueDate: formatDateToUTC(formData.dueDate),
+          sprintId: null, // TODO: Map sprint to actual ID
+          storyPoints: Number(formData.storyPoint) || 0,
+          epicId: null, // TODO: Map epic to actual ID
+          reporterId: 1, // TODO: Map reporter to actual ID
+          attachmentUrl: null, // TODO: Handle file upload
+          labels: JSON.stringify(formData.labels || [])
+        };
+
+        // Close modal immediately for instant feedback
+        this.modalService.close();
+
+        console.log('Sending issue request:', issueReq);
+        this.issueService.createIssue(issueReq).subscribe({
+          next: (res) => {
+            console.log('Issue created successfully:', res);
+          },
+          error: (err) => {
+            console.error('Failed to create issue:', err);
+            console.error('Validation errors:', err.error?.errors);
+          }
+        });
+      }
+    });
+  }
 
   // Notification modal state
   showNotificationModal = false;
