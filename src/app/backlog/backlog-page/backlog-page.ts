@@ -147,32 +147,40 @@ export class BacklogPage implements OnInit {
 
   handleCreateSprint() {
       const sprintFields: FormField[] = [
-        { label: 'Sprint Name', type: 'text', model: 'sprintName', required:true, colSpan: 2 },
-        { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+        { label: 'Sprint Name', type: 'text', model: 'sprintName', required: true, colSpan: 2 },
+        { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2, required: false },
         { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
-        { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-        { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-        { label: 'Status', type: 'select', model: 'status', options: ['PLANNED','ACTIVE','COMPLETED'], colSpan: 1 },
-        { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      ];    this.modalService.open({
-      id: 'sprintModal',
-      title: 'Create Sprint',
-      projectName: 'Project Alpha',
-      modalDesc : 'Create a new sprint in your project',
-      fields: sprintFields,
-      data: {},
-      submitText: 'Create Sprint',
-      // Add onSubmit handler for modal
-      // This will be called from the modal component when the form is submitted
-      onSubmit: (formData: any) => {
+        { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1, required: false },
+        { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1, required: false },
+        { label: 'Status', type: 'select', model: 'status', options: ['PLANNED','ACTIVE','COMPLETED'], colSpan: 1, required: false },
+        { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1, required: false },
+      ];
+      this.modalService.open({
+        id: 'sprintModal',
+        title: 'Create Sprint',
+        projectName: 'Project Alpha',
+        modalDesc : 'Create a new sprint in your project',
+        fields: sprintFields,
+        data: { status: 'PLANNED' }, // Default status value
+        submitText: 'Create Sprint',
+        // Add onSubmit handler for modal
+        // This will be called from the modal component when the form is submitted
+        onSubmit: (formData: any) => {
         // Prepare request body for API
+        // Convert dates to ISO string format (UTC) for PostgreSQL
+        const formatDateToUTC = (dateStr: string) => {
+          if (!dateStr) return undefined;
+          const date = new Date(dateStr);
+          return date.toISOString();
+        };
+
         const sprintReq: SprintRequest = {
-          projectId: '2373d1ec-dc5b-4a9a-b174-7ad870d5918f',
+          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
           sprintName: formData.sprintName,
-          sprintGoal: formData.sprintGoal,
+          sprintGoal: formData.sprintGoal || null,
           teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
-          startDate: formData.startDate,
-          dueDate: formData.dueDate,
+          startDate: formatDateToUTC(formData.startDate),
+          dueDate: formatDateToUTC(formData.dueDate),
           status: formData.status,
           storyPoint: Number(formData.storyPoint) || 0
         };
