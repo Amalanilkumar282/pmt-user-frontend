@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal, inject, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal, inject, computed, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -15,8 +15,10 @@ import { ClickOutsideDirective } from '../../../shared/directives/click-outside.
   styleUrls: ['./task-card.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TaskCard implements OnInit {
+export class TaskCard implements OnInit, AfterViewInit {
   private store = inject(BoardStore);
+  
+  @ViewChild('titleTextarea') titleTextarea?: ElementRef<HTMLTextAreaElement>;
   
   // allow tests to create the component without providing an issue
   @Input() issue: Issue = {
@@ -38,6 +40,8 @@ export class TaskCard implements OnInit {
   // Editing state
   isEditingTitle = signal(false);
   editedTitle = signal('');
+  isEditingDescription = signal(false);
+  editedDescription = signal('');
   showAssigneeDropdown = signal(false);
   showDatePicker = signal(false);
   assigneeSearchQuery = signal('');
@@ -78,6 +82,12 @@ export class TaskCard implements OnInit {
     return this.labelColors[hash % this.labelColors.length].text;
   }
 
+  getEpicName(epicId: string): string {
+    // In real app, this would fetch from a service
+    // For now, return a simple formatted version
+    return `Epic: ${epicId.replace('epic-', '').toUpperCase()}`;
+  }
+
   getPriorityClass(priority: string): string {
     const classes = {
       CRITICAL: 'bg-red-100 text-red-800',
@@ -96,6 +106,13 @@ export class TaskCard implements OnInit {
       LOW: 'bg-emerald-100 text-emerald-700'
     } as const;
     return classes[priority as keyof typeof classes] || 'bg-slate-100 text-slate-700';
+  }
+
+  ngAfterViewInit(): void {
+    // Auto-resize title textarea after view initialization
+    if (this.titleTextarea && this.isEditingTitle()) {
+      this.resizeTitleTextarea();
+    }
   }
 
   ngOnInit() {
@@ -300,17 +317,13 @@ export class TaskCard implements OnInit {
    * Returns the appropriate color for the progress bar.
    * 
    * Logic:
-   * - Overdue issues (not DONE): #ef4444 (red) for high visibility
-   * - Normal issues: Use provided colorClass (column color)
+   * - Always use the column's color for consistency
+   * - Overdue status is shown via the red badge and subtle overlay
    * 
    * @returns Hex color string for progress bar
    */
   progressColor(): string {
-    // Overdue takes precedence - always show red for late items
-    if (this.isOverdue() && this.getProgressValue() < 100) {
-      return '#ef4444'; // Tailwind red-500
-    }
-    // Use column color for non-overdue items
+    // Always use column color - overdue is indicated by badge
     return this.colorClass;
   }
 
@@ -343,6 +356,8 @@ export class TaskCard implements OnInit {
     event.stopPropagation(); // Prevent card click
     this.editedTitle.set(this.issue.title);
     this.isEditingTitle.set(true);
+    // Resize after Angular renders the textarea
+    setTimeout(() => this.resizeTitleTextarea(), 0);
   }
   
   saveTitle(): void {
@@ -368,11 +383,46 @@ export class TaskCard implements OnInit {
       this.cancelEditTitle(event);
     }
   }
+
+  autoResizeTitleTextarea(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    this.resizeTitleTextarea(textarea);
+  }
+
+  private resizeTitleTextarea(textarea?: HTMLTextAreaElement): void {
+    const element = textarea || this.titleTextarea?.nativeElement;
+    if (element) {
+      // Reset height to auto to get the correct scrollHeight
+      element.style.height = 'auto';
+      // Set height to scrollHeight to fit content
+      element.style.height = element.scrollHeight + 'px';
+    }
+  }
+  
+  // Description editing
+  startEditingDescription(event: Event): void {
+    event.stopPropagation();
+    this.editedDescription.set(this.issue.description || '');
+    this.isEditingDescription.set(true);
+  }
+  
+  saveDescription(): void {
+    const newDescription = this.editedDescription().trim();
+    if (newDescription !== this.issue.description) {
+      this.store.updateIssueDescription(this.issue.id, newDescription);
+    }
+    this.isEditingDescription.set(false);
+  }
+  
+  cancelEditingDescription(): void {
+    this.isEditingDescription.set(false);
+  }
   
   // Assignee click handler
   onAssigneeClick(event: Event): void {
     event.stopPropagation(); // Prevent card click
     this.assigneeSearchQuery.set(''); // Reset search when opening
+    this.showDatePicker.set(false); // Close date picker if open
     this.showAssigneeDropdown.set(!this.showAssigneeDropdown());
   }
   
@@ -391,6 +441,7 @@ export class TaskCard implements OnInit {
   // Due date handlers
   onDueDateClick(event: Event): void {
     event.stopPropagation();
+    this.showAssigneeDropdown.set(false); // Close assignee dropdown if open
     this.showDatePicker.set(!this.showDatePicker());
   }
   

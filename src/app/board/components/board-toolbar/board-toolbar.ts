@@ -56,7 +56,8 @@ export class BoardToolbar {
   
   readonly assignees = computed(() => {
     const set = new Set<string>();
-    for (const i of this.store.visibleIssues()) {
+    // Use all issues, not filtered ones, so avatars remain visible
+    for (const i of this.store.issues()) {
       if (i.assignee) set.add(i.assignee);
     }
     return Array.from(set).sort((a,b)=>a.localeCompare(b));

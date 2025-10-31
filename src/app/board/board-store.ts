@@ -270,6 +270,10 @@ export class BoardStore {
     this._issues.update(list => list.map(i => i.id === issueId ? ({...i, title: newTitle, updatedAt: new Date()}) : i));
   }
 
+  updateIssueDescription(issueId: string, newDescription: string) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, description: newDescription, updatedAt: new Date()}) : i));
+  }
+
   updateIssueAssignee(issueId: string, assignee: string | undefined) {
     this._issues.update(list => list.map(i => i.id === issueId ? ({...i, assignee, updatedAt: new Date()}) : i));
   }
