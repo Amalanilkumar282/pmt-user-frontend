@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import { ModalService, FormField } from '../modal-service';
 import { isPlatformBrowser } from '@angular/common';
 import { LabelService, Label, CreateLabelRequest, UpdateLabelRequest } from '../../shared/services/label.service';
+import { AttachmentService } from '../../shared/services/attachment.service';
 
 @Component({
   selector: 'app-create-issue',
@@ -192,6 +193,7 @@ export class CreateIssue implements OnInit, OnDestroy {
   formData: any = { labels: [], attachments: [] };
   fields: FormField[] = [];
   invalidFields: Set<string> = new Set();
+  uploadedFileUrl: string | null = null; // Store the uploaded file URL
 
   // Dynamic title
   modalTitle = '';
@@ -217,6 +219,7 @@ showToast(message: string, duration: number = 3000) {
   constructor(
     private modalService: ModalService,
     private labelService: LabelService,
+    private attachmentService: AttachmentService,
     @Inject(PLATFORM_ID) platformId: Object
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
@@ -359,7 +362,12 @@ shakeFields: Set<string> = new Set();
     if (this.activeModalId) {
       const cfg = this.modalService.getConfig(this.activeModalId);
       if (cfg && typeof cfg.onSubmit === 'function') {
-        cfg.onSubmit(this.formData);
+        // Include uploaded file URL in formData
+        const submissionData = {
+          ...this.formData,
+          uploadedFileUrl: this.uploadedFileUrl
+        };
+        cfg.onSubmit(submissionData);
         return;
       }
     }
@@ -398,6 +406,29 @@ shakeFields: Set<string> = new Set();
   handleFileSelect(event: any, field: FormField) {
     // Always convert FileList to array for display
     this.formData[field.model] = event.target.files ? Array.from(event.target.files) : [];
+    
+    // Upload file to Supabase if a file was selected
+    if (event.target.files && event.target.files.length > 0) {
+      const file: File = event.target.files[0]; // Get the first file
+      
+      console.log('Uploading file to Supabase:', file.name);
+      
+      this.attachmentService.uploadFile(file, 'attachments').subscribe({
+        next: (response) => {
+          console.log('File uploaded successfully:', response);
+          this.uploadedFileUrl = response.data; // Store the URL
+          console.log('Stored attachment URL:', this.uploadedFileUrl);
+        },
+        error: (error) => {
+          console.error('Error uploading file:', error);
+          this.showToast('Failed to upload file. Please try again.');
+          this.uploadedFileUrl = null;
+        }
+      });
+    } else {
+      this.uploadedFileUrl = null;
+    }
+    
     field.onChange?.(this.formData[field.model], this.formData);
   }
 
