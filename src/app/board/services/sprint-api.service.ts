@@ -8,7 +8,7 @@ import { Sprint } from '../models';
 @Injectable({ providedIn: 'root' })
 export class SprintApiService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/api/sprints`;
+  private baseUrl = `${environment.apiUrl}/api/Sprint`;
 
   private getAuthHeaders(): HttpHeaders {
     // Check if running in browser (not SSR)

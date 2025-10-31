@@ -31,7 +31,7 @@ export interface SprintResponse {
 
 @Injectable({ providedIn: 'root' })
 export class SprintService {
-  private baseUrl = '/api/sprints';
+  private baseUrl = '/api/Sprint';
 
   constructor(private http: HttpClient) {}
 
