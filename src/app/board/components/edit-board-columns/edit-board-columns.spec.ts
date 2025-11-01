@@ -6,9 +6,9 @@ import { BoardColumnDef } from '../../models';
 
 class BoardStoreMock {
   columns = signal<BoardColumnDef[]>([
-    { id: 'TODO', title: 'To Do', color: '#3D62A8' },
-    { id: 'IN_PROGRESS', title: 'In Progress', color: '#10B981' },
-    { id: 'DONE', title: 'Done', color: '#EF4444' }
+    { id: 'TODO', title: 'To Do', color: '#3D62A8', position: 1 },
+    { id: 'IN_PROGRESS', title: 'In Progress', color: '#10B981', position: 2 },
+    { id: 'DONE', title: 'Done', color: '#EF4444', position: 3 }
   ]);
 }
 
@@ -423,7 +423,7 @@ describe('EditBoardColumns', () => {
     });
 
     it('should handle single column', () => {
-      storeMock.columns.set([{ id: 'TODO', title: 'To Do', color: '#3D62A8' }]);
+      storeMock.columns.set([{ id: 'TODO', title: 'To Do', color: '#3D62A8', position: 1 }]);
       
       component.open();
       component.editableColumns()[0].title = 'Changed';

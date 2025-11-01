@@ -142,8 +142,18 @@ export class BoardStore {
       );
     }
 
-    // stable ordering
-    return list.sort((a,b) => statusOrder[a.status]-statusOrder[b.status] || a.updatedAt.getTime()-b.updatedAt.getTime());
+    // stable ordering - sort by status first, then by createdAt, then by updatedAt as tiebreaker
+    // This prevents card jumping when titles are updated while maintaining predictable order
+    return list.sort((a,b) => {
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      
+      const createdDiff = a.createdAt.getTime() - b.createdAt.getTime();
+      if (createdDiff !== 0) return createdDiff;
+      
+      // Tiebreaker: use updatedAt for items created at the same time
+      return a.updatedAt.getTime() - b.updatedAt.getTime();
+    });
   });
 
   // columns with their issues
@@ -393,12 +403,15 @@ export class BoardStore {
 
   createIssue(issueData: Partial<Issue>): Issue {
     const newIssue: Issue = {
-      id: `ISSUE-${Date.now()}`,
+      // Use timestamp plus a small random suffix to avoid collisions when
+      // createIssue is called multiple times rapidly in tests.
+      id: `ISSUE-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
       title: issueData.title || 'Untitled Issue',
       status: issueData.status || 'TODO',
       type: issueData.type || 'TASK',
       priority: issueData.priority || 'MEDIUM',
       assignee: issueData.assignee,
+      dueDate: issueData.dueDate,
       description: issueData.description || '',
       createdAt: new Date(),
       updatedAt: new Date(),

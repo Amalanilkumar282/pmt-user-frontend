@@ -317,13 +317,17 @@ export class TaskCard implements OnInit, AfterViewInit {
    * Returns the appropriate color for the progress bar.
    * 
    * Logic:
-   * - Always use the column's color for consistency
-   * - Overdue status is shown via the red badge and subtle overlay
+   * - Red (#ef4444) when overdue to provide visual warning
+   * - Column color otherwise for consistency
    * 
    * @returns Hex color string for progress bar
    */
   progressColor(): string {
-    // Always use column color - overdue is indicated by badge
+    // Show red for overdue items
+    if (this.isOverdue()) {
+      return '#ef4444';
+    }
+    // Use column color for normal items
     return this.colorClass;
   }
 
@@ -464,7 +468,11 @@ export class TaskCard implements OnInit, AfterViewInit {
   formatDateForInput(date?: Date): string {
     if (!date) return '';
     const d = new Date(date);
-    return d.toISOString().split('T')[0];
+    // Format as YYYY-MM-DD in local timezone (not UTC)
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
   
   // Comments click handler - opens modal and scrolls to comments
