@@ -28,10 +28,11 @@ import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
 import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/services/ai-sprint-planning.service';
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
+import { CreateSprintModal } from '../create-sprint-modal/create-sprint-modal';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal],
+  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal, CreateSprintModal],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -51,6 +52,9 @@ export class BacklogPage implements OnInit {
   private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
+  
+  // Create Sprint Modal state
+  isCreateSprintModalOpen = false;
   
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
@@ -159,62 +163,33 @@ export class BacklogPage implements OnInit {
 
   
 
+  /**
+   * Open Create Sprint Modal
+   */
   handleCreateSprint() {
-      const sprintFields: FormField[] = [
-        { label: 'Sprint Name', type: 'text', model: 'sprintName', required: true, colSpan: 2 },
-        { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2, required: false },
-        { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
-        { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1, required: false },
-        { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1, required: false },
-        { label: 'Status', type: 'select', model: 'status', options: ['PLANNED','ACTIVE','COMPLETED'], colSpan: 1, required: false },
-        { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1, required: false },
-      ];
-      this.modalService.open({
-        id: 'sprintModal',
-        title: 'Create Sprint',
-        projectName: 'Project Alpha',
-        modalDesc : 'Create a new sprint in your project',
-        fields: sprintFields,
-        data: { status: 'PLANNED' }, // Default status value
-        submitText: 'Create Sprint',
-        // Add onSubmit handler for modal
-        // This will be called from the modal component when the form is submitted
-        onSubmit: (formData: any) => {
-        // Prepare request body for API
-        // Convert dates to ISO string format (UTC) for PostgreSQL
-        const formatDateToUTC = (dateStr: string) => {
-          if (!dateStr) return undefined;
-          const date = new Date(dateStr);
-          return date.toISOString();
-        };
+    this.isCreateSprintModalOpen = true;
+  }
 
-        const sprintReq: SprintRequest = {
-          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
-          sprintName: formData.sprintName,
-          sprintGoal: formData.sprintGoal || null,
-          teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
-          startDate: formatDateToUTC(formData.startDate),
-          dueDate: formatDateToUTC(formData.dueDate),
-          status: formData.status,
-          storyPoint: Number(formData.storyPoint) || 0
-        };
-        
-        // Close modal immediately for instant feedback
-        this.modalService.close();
-        
-        console.log('Sending sprint request:', sprintReq);
-        this.sprintService.createSprint(sprintReq).subscribe({
-          next: (res) => {
-            console.log('Sprint created successfully:', res);
-          },
-          error: (err) => {
-            console.error('Failed to create sprint:', err);
-            console.error('Validation errors:', err.error?.errors);
-          }
-        });
-      }
-    });
-    }
+  /**
+   * Handle Create Sprint Modal Close
+   */
+  onCloseCreateSprintModal() {
+    this.isCreateSprintModalOpen = false;
+  }
+
+  /**
+   * Handle Sprint Created Event
+   * Refresh the sprint list and show success message
+   */
+  onSprintCreated(event: any) {
+    console.log('Sprint created:', event);
+    // TODO: Refresh sprint list from backend
+    // For now, just close the modal and show success
+    this.isCreateSprintModalOpen = false;
+    
+    // Optionally reload sprints from backend
+    // this.loadSprints();
+  }
 
   handleStart(sprintId: string): void {
     console.log('Start sprint:', sprintId);
