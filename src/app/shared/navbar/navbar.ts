@@ -187,7 +187,7 @@ export class Navbar implements OnInit {
         };
 
         const issueReq: CreateIssueRequest = {
-          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
+          projectId: '44444444-4444-4444-4444-444444444444',
           issueType: formData.issueType?.toUpperCase() || 'TASK',
           title: formData.title,
           description: formData.description || '',
@@ -292,7 +292,7 @@ export class Navbar implements OnInit {
         };
 
         const issueReq: CreateIssueRequest = {
-          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
+          projectId: '44444444-4444-4444-4444-444444444444',
           issueType: formData.issueType?.toUpperCase() || 'TASK',
           title: formData.title,
           description: formData.description || '',
