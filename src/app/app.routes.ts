@@ -14,7 +14,7 @@ import { TeamsPage } from './teams/teams-page/teams-page';
 import { LoginComponent } from './auth/login/login';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'dashboard', component: MainDashboardHome },
   { path: 'projects', component: ProjectsPage },
