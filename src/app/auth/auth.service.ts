@@ -7,11 +7,12 @@ import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface User {
-  userId: number;
+  userId: string; // Changed to string to support GUID format
   email: string;
   name: string;
   isActive: boolean;
   isSuperAdmin: boolean;
+  avatarUrl?: string; // Optional avatar URL
 }
 
 export interface LoginCredentials {
@@ -20,35 +21,43 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  status: number;
+  // Support both old and new API response formats
+  succeeded?: boolean; // New format
+  status?: number; // Old format
+  statusCode?: number; // New format
   data: {
-    userId: number;
+    userId: string | number; // Support both string (GUID) and number formats
     email: string;
     name: string;
     accessToken: string;
     refreshToken: string;
-    accessTokenExpires: string;
-    refreshTokenExpires: string;
-    isActive: boolean;
-    isSuperAdmin: boolean;
+    avatarUrl?: string; // Optional field from API
+    accessTokenExpires?: string; // Optional - may not be in response
+    refreshTokenExpires?: string; // Optional - may not be in response
+    isActive?: boolean; // Optional - may not be in response
+    isSuperAdmin?: boolean; // Optional - may not be in response
   };
-  message: string;
+  message?: string; // Optional error message
 }
 
 export interface RefreshTokenResponse {
-  status: number;
+  // Support both old and new API response formats
+  succeeded?: boolean; // New format
+  status?: number; // Old format
+  statusCode?: number; // New format
   data: {
-    userId: number;
+    userId: string | number; // Support both string (GUID) and number formats
     email: string;
     name: string;
     accessToken: string;
     refreshToken: string;
-    accessTokenExpires: string;
-    refreshTokenExpires: string;
-    isActive: boolean;
-    isSuperAdmin: boolean;
+    avatarUrl?: string; // Optional field
+    accessTokenExpires?: string; // Optional
+    refreshTokenExpires?: string; // Optional
+    isActive?: boolean; // Optional
+    isSuperAdmin?: boolean; // Optional
   };
-  message: string;
+  message?: string; // Optional error message
 }
 
 @Injectable({
@@ -85,16 +94,25 @@ export class AuthService {
       .pipe(
         map(response => {
           console.log('Login response:', response);
-          console.log('Response status:', response.status);
+          console.log('Response succeeded:', response.succeeded);
+          console.log('Response statusCode:', response.statusCode);
+          console.log('Response status (old format):', response.status);
           console.log('Response data:', response.data);
           
-          if (response.data) {
+          // Check if login was successful (support both old and new API formats)
+          const isSuccess = response.succeeded === true || response.status === 200;
+          
+          if (isSuccess && response.data) {
+            // Convert userId to string for consistency
+            const userIdString = String(response.data.userId);
+            
             const user: User = {
-              userId: response.data.userId,
+              userId: userIdString,
               email: response.data.email,
               name: response.data.name,
-              isActive: response.data.isActive,
-              isSuperAdmin: response.data.isSuperAdmin
+              isActive: response.data.isActive ?? true, // Default to true if not provided
+              isSuperAdmin: response.data.isSuperAdmin ?? false, // Default to false if not provided
+              avatarUrl: response.data.avatarUrl
             };
 
             // Store user details and tokens in session storage (browser only)
@@ -102,15 +120,32 @@ export class AuthService {
               sessionStorage.setItem('currentUser', JSON.stringify(user));
               sessionStorage.setItem('accessToken', response.data.accessToken);
               sessionStorage.setItem('refreshToken', response.data.refreshToken);
-              sessionStorage.setItem('accessTokenExpires', response.data.accessTokenExpires);
-              sessionStorage.setItem('refreshTokenExpires', response.data.refreshTokenExpires);
+              
+              // Store userId separately for easy access by other components
+              sessionStorage.setItem('userId', userIdString);
+              
+              // Only store expiry dates if they exist in the response
+              if (response.data.accessTokenExpires) {
+                sessionStorage.setItem('accessTokenExpires', response.data.accessTokenExpires);
+              }
+              if (response.data.refreshTokenExpires) {
+                sessionStorage.setItem('refreshTokenExpires', response.data.refreshTokenExpires);
+              }
+              
+              console.log('✅ Token stored in sessionStorage:', {
+                userId: userIdString,
+                email: response.data.email,
+                tokenLength: response.data.accessToken.length
+              });
             }
             
             this.currentUserSubject.next(user);
-            console.log('User logged in successfully:', user);
+            console.log('✅ User logged in successfully:', user);
             return user;
           } else {
-            throw new Error(response.message || 'Login failed');
+            const errorMsg = response.message || 'Login failed';
+            console.error('❌ Login failed:', errorMsg);
+            throw new Error(errorMsg);
           }
         }),
         catchError(this.handleError)
@@ -175,14 +210,21 @@ export class AuthService {
         map(response => {
           console.log('Token refresh response:', response);
           
-          if (response.data && response.data.accessToken) {
+          // Check if refresh was successful (support both old and new API formats)
+          const isSuccess = response.succeeded === true || response.status === 200;
+          
+          if (isSuccess && response.data && response.data.accessToken) {
+            // Convert userId to string for consistency
+            const userIdString = String(response.data.userId);
+            
             // Update user information if it changed
             const user: User = {
-              userId: response.data.userId,
+              userId: userIdString,
               email: response.data.email,
               name: response.data.name,
-              isActive: response.data.isActive,
-              isSuperAdmin: response.data.isSuperAdmin
+              isActive: response.data.isActive ?? true,
+              isSuperAdmin: response.data.isSuperAdmin ?? false,
+              avatarUrl: response.data.avatarUrl
             };
 
             // Store updated user details and tokens in session storage
@@ -190,8 +232,15 @@ export class AuthService {
               sessionStorage.setItem('currentUser', JSON.stringify(user));
               sessionStorage.setItem('accessToken', response.data.accessToken);
               sessionStorage.setItem('refreshToken', response.data.refreshToken);
-              sessionStorage.setItem('accessTokenExpires', response.data.accessTokenExpires);
-              sessionStorage.setItem('refreshTokenExpires', response.data.refreshTokenExpires);
+              sessionStorage.setItem('userId', userIdString);
+              
+              // Only store expiry dates if they exist
+              if (response.data.accessTokenExpires) {
+                sessionStorage.setItem('accessTokenExpires', response.data.accessTokenExpires);
+              }
+              if (response.data.refreshTokenExpires) {
+                sessionStorage.setItem('refreshTokenExpires', response.data.refreshTokenExpires);
+              }
             }
             
             // Update current user subject
