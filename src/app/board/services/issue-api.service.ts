@@ -126,12 +126,12 @@ export class IssueApiService {
     }
 
     return {
-      id: apiIssue.id,                    // ✅ Now using real ID from API
+      id: apiIssue.id,                    // Now using real ID from API
       title: apiIssue.title,
       description: apiIssue.description,
       type: this.mapIssueType(apiIssue.issueType),
       priority: this.mapPriority(apiIssue.priority),
-      status: this.mapStatusIdToStatus(apiIssue.statusId), // ✅ Now mapping from statusId
+      status: this.mapStatusIdToStatus(apiIssue.statusId), // Now mapping from statusId
       assignee: apiIssue.assigneeId?.toString(),
       labels: labels,
       sprintId: apiIssue.sprintId,

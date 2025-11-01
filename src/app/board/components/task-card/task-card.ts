@@ -339,7 +339,7 @@ export class TaskCard implements OnInit, AfterViewInit {
    */
   getProgressTooltip(): string {
     const percentage = this.getProgressValue();
-    const overdue = this.isOverdue() ? ' (⚠️ OVERDUE)' : '';
+    const overdue = this.isOverdue() ? ' (OVERDUE)' : '';
     
     // Add time remaining info if dueDate exists
     if (this.issue.dueDate && !this.isOverdue()) {

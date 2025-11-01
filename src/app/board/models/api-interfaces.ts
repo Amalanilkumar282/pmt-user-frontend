@@ -37,8 +37,8 @@ export interface BoardApi {
 
 // Issue API Interfaces
 export interface IssueApi {
-  id: string;                    // ✅ NOW PROVIDED
-  key: string;                   // ✅ NOW PROVIDED (user-friendly key)
+  id: string;                   
+  key: string;                   
   projectId: string;
   issueType: string;
   title: string;
@@ -47,7 +47,7 @@ export interface IssueApi {
   assigneeId: number;
   startDate: string;
   dueDate: string;
-  statusId: number;              // ✅ NOW PROVIDED
+  statusId: number;              // NOW PROVIDED
   sprintId: string;
   parentIssueId: string | null;
   storyPoints: number;

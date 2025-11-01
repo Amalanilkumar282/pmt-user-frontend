@@ -35,9 +35,9 @@ export class BoardService {
       this.loadingSignal.set(true);
       const boards = await firstValueFrom(this.boardApiService.getBoardsByProject(projectId));
       this.boardsSignal.set(boards);
-      console.log('✅ Loaded boards from API:', boards);
+      console.log('[BoardService] Loaded boards from API:', boards);
     } catch (error) {
-      console.error('❌ Error loading boards:', error);
+      console.error('[BoardService] Error loading boards:', error);
       // Fallback to empty boards on error
       this.boardsSignal.set([]);
     } finally {
@@ -63,10 +63,10 @@ export class BoardService {
         this.boardsSignal.set([...currentBoards, board]);
       }
       
-      console.log('✅ Loaded board from API:', board);
+      console.log('[BoardService] Loaded board from API:', board);
       return board;
     } catch (error) {
-      console.error('❌ Error loading board:', error);
+      console.error('[BoardService] Error loading board:', error);
       return null;
     } finally {
       this.loadingSignal.set(false);
@@ -120,7 +120,7 @@ export class BoardService {
   
   // Get default board for a user in a project
   getDefaultBoard(projectId: string, userId: string): Board | null {
-    console.log('🔍 getDefaultBoard - ProjectId:', projectId, 'UserId:', userId);
+    console.log('[BoardService] getDefaultBoard - ProjectId:', projectId, 'UserId:', userId);
     
     // ALWAYS return the PROJECT "All Issues" board when clicking on a project
     // This matches Jira's behavior where project navigation goes to "All Issues"
@@ -128,13 +128,13 @@ export class BoardService {
       b => b.projectId === projectId && b.type === 'PROJECT' && b.isDefault
     );
     
-    console.log('🔍 getDefaultBoard - Found project board:', projectBoard);
+    console.log('[BoardService] getDefaultBoard - Found project board:', projectBoard);
     
     if (projectBoard) return projectBoard;
     
     // Fallback: return first board for project
     const fallback = this.getBoardsByProject(projectId)[0] || null;
-    console.log('🔍 getDefaultBoard - Fallback board:', fallback);
+    console.log('[BoardService] getDefaultBoard - Fallback board:', fallback);
     return fallback;
   }
   

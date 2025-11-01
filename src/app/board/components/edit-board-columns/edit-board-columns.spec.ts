@@ -444,7 +444,7 @@ describe('EditBoardColumns', () => {
 
     it('should handle unicode characters in title', () => {
       component.open();
-      const unicodeTitle = '待办事项 🚀';
+      const unicodeTitle = '待办事项';
       
       component.updateTitle(component.editableColumns()[0], unicodeTitle);
       component.save();

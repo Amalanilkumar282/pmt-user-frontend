@@ -41,11 +41,11 @@ export class BoardStore {
    */
   async loadIssuesByProject(projectId: string): Promise<void> {
     try {
-      console.log('🔄 BoardStore - Loading issues for project:', projectId);
+      console.log('[BoardStore] Loading issues for project:', projectId);
       this._loadingIssues.set(true);
       const issues = await firstValueFrom(this.issueApiService.getIssuesByProject(projectId));
       this._issues.set(issues);
-      console.log('✅ BoardStore - Loaded issues from API:', issues.length, issues);
+      console.log('[BoardStore] Loaded issues from API:', issues.length, issues);
       
       // Log issue distribution by status
       if (issues.length > 0) {
@@ -53,12 +53,12 @@ export class BoardStore {
           acc[issue.status] = (acc[issue.status] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
-        console.log('📊 Issue distribution by status:', statusCounts);
+        console.log('[BoardStore] Issue distribution by status:', statusCounts);
       } else {
-        console.warn('⚠️ No issues returned from API');
+        console.warn('[BoardStore] No issues returned from API');
       }
     } catch (error) {
-      console.error('❌ BoardStore - Error loading issues:', error);
+      console.error('[BoardStore] Error loading issues:', error);
       this._issues.set([]);
     } finally {
       this._loadingIssues.set(false);
@@ -73,9 +73,9 @@ export class BoardStore {
       this._loadingSprints.set(true);
       const sprints = await firstValueFrom(this.sprintApiService.getSprintsByProject(projectId));
       this._sprints.set(sprints);
-      console.log('✅ Loaded sprints from API:', sprints.length);
+      console.log('[BoardStore] Loaded sprints from API:', sprints.length);
     } catch (error) {
-      console.error('❌ Error loading sprints:', error);
+      console.error('[BoardStore] Error loading sprints:', error);
       this._sprints.set([]);
     } finally {
       this._loadingSprints.set(false);
@@ -162,7 +162,7 @@ export class BoardStore {
     const issues = this.visibleIssues();
     const groupByType = this.groupBy();
     
-    console.log('🔧 Computing columnBuckets:', {
+    console.log('[BoardStore] Computing columnBuckets:', {
       columnsCount: cols.length,
       columns: cols.map(c => c.id),
       issuesCount: issues.length,
@@ -186,13 +186,13 @@ export class BoardStore {
     if (groupByType === 'NONE') {
       const buckets = cols.map(c => {
         const columnIssues = issues.filter(i => i.status === c.id);
-        console.log(`📦 Column ${c.id}: ${columnIssues.length} issues`, columnIssues);
+        console.log(`[BoardStore] Column ${c.id}: ${columnIssues.length} issues`, columnIssues);
         return {
           def: c,
           items: sortByPriority(columnIssues)
         };
       });
-      console.log('✅ Final buckets:', buckets.map(b => ({ column: b.def.id, count: b.items.length })));
+      console.log('[BoardStore] Final buckets:', buckets.map(b => ({ column: b.def.id, count: b.items.length })));
       return buckets;
     }
     
@@ -328,15 +328,15 @@ export class BoardStore {
       // Team boards: Show ACTIVE sprint issues by default
       const activeSprint = this._sprints().find(s => s.status === 'ACTIVE');
       if (activeSprint) {
-        console.log('📋 loadBoard - Team board, selecting active sprint:', activeSprint.id);
+        console.log('[BoardStore] loadBoard - Team board, selecting active sprint:', activeSprint.id);
         this.selectedSprintId.set(activeSprint.id);
       } else {
-        console.log('📋 loadBoard - Team board, no active sprint, selecting BACKLOG');
+        console.log('[BoardStore] loadBoard - Team board, no active sprint, selecting BACKLOG');
         this.selectedSprintId.set('BACKLOG');
       }
     } else if (board.type === 'PROJECT') {
       // Project boards: Show ALL issues (BACKLOG shows everything)
-      console.log('📋 loadBoard - Project board, selecting BACKLOG (all issues)');
+      console.log('[BoardStore] loadBoard - Project board, selecting BACKLOG (all issues)');
       this.selectedSprintId.set('BACKLOG');
     }
     
@@ -357,9 +357,9 @@ export class BoardStore {
       await firstValueFrom(this.issueApiService.updateIssueStatus(issueId, statusId, projectId));
       // Update local state after successful API call
       this.updateIssueStatus(issueId, 'TODO' as any); // TODO: Map statusId to IssueStatus
-      console.log('✅ Issue status updated');
+      console.log('[BoardStore] Issue status updated');
     } catch (error) {
-      console.error('❌ Error updating issue status:', error);
+      console.error('[BoardStore] Error updating issue status:', error);
       throw error;
     }
   }
@@ -373,9 +373,9 @@ export class BoardStore {
       await firstValueFrom(this.issueApiService.createIssue(dto));
       // Reload issues after creation
       await this.loadIssuesByProject(projectId);
-      console.log('✅ Issue created');
+      console.log('[BoardStore] Issue created');
     } catch (error) {
-      console.error('❌ Error creating issue:', error);
+      console.error('[BoardStore] Error creating issue:', error);
       throw error;
     }
   }

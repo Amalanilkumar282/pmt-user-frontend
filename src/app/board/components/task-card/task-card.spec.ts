@@ -289,7 +289,6 @@ describe('TaskCard', () => {
 
       const tooltip = component.getProgressTooltip();
       expect(tooltip).toContain('OVERDUE');
-      expect(tooltip).toContain('⚠️');
     });
   });
 
