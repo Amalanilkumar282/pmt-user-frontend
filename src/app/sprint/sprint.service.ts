@@ -5,10 +5,10 @@ import { Observable } from 'rxjs';
 export interface SprintRequest {
   projectId: string;
   sprintName: string;
-  sprintGoal: string;
+  sprintGoal: string | null;
   teamAssigned: number | null;
-  startDate: string;
-  dueDate: string;
+  startDate: string | undefined;
+  dueDate: string | undefined;
   status: string;
   storyPoint: number;
 }
