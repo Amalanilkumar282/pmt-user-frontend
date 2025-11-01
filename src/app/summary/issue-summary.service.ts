@@ -1,4 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { Issue } from '../shared/models/issue.model';
 import { Sprint } from '../sprint/sprint-container/sprint-container';
 import {
@@ -39,6 +42,11 @@ interface RecentIssue {
   providedIn: 'root',
 })
 export class IssueSummaryService {
+  private http = inject(HttpClient);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+  // Use direct API URL instead of proxy
+  private readonly API_BASE_URL = 'https://localhost:7117/api';
   private readonly CURRENT_DATE = new Date();
   private readonly MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -82,6 +90,53 @@ export class IssueSummaryService {
     ];
   }
 
+  /**
+   * Get authentication headers with access token
+   */
+  private getAuthHeaders(): HttpHeaders {
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    if (this.isBrowser) {
+      const token = sessionStorage.getItem('accessToken');
+      if (token) {
+        headers = headers.set('Authorization', `Bearer ${token}`);
+      }
+    }
+
+    return headers;
+  }
+
+  /**
+   * Fetch sprints from API for a given project
+   * Maps API response to Sprint interface
+   */
+  getSprintsByProjectId(projectId: string): Observable<Sprint[]> {
+    const headers = this.getAuthHeaders();
+    
+    return this.http.get<any>(`${this.API_BASE_URL}/sprints/project/${projectId}`, { headers }).pipe(
+      map((response) => {
+        if (response.status === 200 && response.data) {
+          return response.data.map((sprint: any) => ({
+            id: sprint.id,
+            name: sprint.name,
+            startDate: new Date(sprint.startDate),
+            endDate: new Date(sprint.dueDate), // Map dueDate to endDate
+            status: sprint.status as 'ACTIVE' | 'COMPLETED' | 'PLANNED',
+            issues: [],
+            teamAssigned: sprint.teamId ? `Team ${sprint.teamId}` : undefined,
+          }));
+        }
+        return [];
+      })
+    );
+  }
+
+  /**
+   * @deprecated Use getSprintsByProjectId instead
+   * Returns dummy sprint data for backward compatibility
+   */
   getAllSprints(): Sprint[] {
     return sprints;
   }

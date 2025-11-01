@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -16,7 +16,7 @@ export interface Sprint {
   templateUrl: './sprint-filter.html',
   styleUrls: ['./sprint-filter.css'],
 })
-export class SprintFilterComponent {
+export class SprintFilterComponent implements OnInit, OnChanges {
   /** ✅ List of sprints to display */
   @Input() sprints: Sprint[] = [];
 
@@ -26,8 +26,19 @@ export class SprintFilterComponent {
   /** ✅ Emits whenever sprint selection changes */
   @Output() sprintChange = new EventEmitter<string>();
 
+  ngOnInit(): void {
+    console.log('SprintFilterComponent initialized');
+    console.log('Sprints received:', this.sprints);
+    console.log('Selected sprint:', this.selectedSprint);
+  }
+
+  ngOnChanges(): void {
+    console.log('SprintFilterComponent - sprints changed:', this.sprints);
+  }
+
   /** Called whenever the dropdown value changes */
   onSprintChange(sprintId: string): void {
+    console.log('Sprint changed to:', sprintId);
     this.sprintChange.emit(sprintId);
   }
 }
