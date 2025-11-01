@@ -114,7 +114,7 @@ export class SummaryPage implements OnInit {
     // TODO: Remove this once real project IDs are properly passed from navigation
     if (projectId === '1') {
       console.warn('⚠️ Numeric project ID detected. Using test GUID for API call.');
-      projectId = '16b2a26d-a6b1-4c88-931a-38d1f52e7df7'; // Use your actual project GUID
+      projectId = '11111111-1111-1111-1111-111111111111'; // Use your actual project GUID
     }
     
     console.log('Summary page - Project ID:', projectId);
@@ -141,18 +141,20 @@ export class SummaryPage implements OnInit {
           console.log('✅ Change detection triggered');
         },
         error: (error) => {
-          console.error('❌ Error loading sprints:', error);
-          console.log('Using fallback dummy data');
-          // Fallback to dummy data if API fails
-          this.sprints = this.issueSummaryService.getAllSprints();
-          console.log('Fallback sprints loaded:', this.sprints);
+          console.error('❌ Error loading sprints from API:', error);
+          console.error('API Error Details:', {
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url
+          });
+          // No fallback - leave sprints empty
+          this.sprints = [];
           this.cdr.detectChanges();
         }
       });
     } else {
-      console.warn('No valid project ID found, using dummy data');
-      // Fallback to dummy data if no project ID
-      this.sprints = this.issueSummaryService.getAllSprints();
+      console.warn('⚠️ No project ID found - cannot load sprints');
+      this.sprints = [];
     }
 
     // Load initial data based on default filter ('all')
