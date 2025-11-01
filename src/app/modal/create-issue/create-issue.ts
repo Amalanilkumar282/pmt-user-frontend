@@ -238,30 +238,41 @@ showToast(message: string, duration: number = 3000) {
       const cfg = this.modalService.getConfig(id);
       this.show = !!cfg;
 
-      if (cfg) {
-        this.fields = cfg.fields ?? [];
-        this.formData = cfg.data ? { ...cfg.data } : { labels: [], attachments: [] };
-        // Ensure all file fields are initialized as arrays
-        for (const field of this.fields) {
-          if (field.type === 'file') {
-            if (!Array.isArray(this.formData[field.model])) {
-              this.formData[field.model] = [];
-            }
-          }
-          // Add showDropdown property for issueType field for custom dropdown
-          if (field.type === 'select' && field.model === 'issueType' && field.showDropdown === undefined) {
-            (field as any).showDropdown = false;
-          }
+    if (cfg) {
+      this.fields = cfg.fields ?? [];
+      
+      // Initialize formData with default values for all fields
+      const defaultFormData: any = { labels: [], attachments: [] };
+      
+      // Set default values for all fields to prevent them from being undefined
+      this.fields.forEach(field => {
+        if (field.model === 'labels') {
+          defaultFormData[field.model] = [];
+        } else if (field.model === 'attachments') {
+          defaultFormData[field.model] = [];
+        } else if (field.type === 'number') {
+          defaultFormData[field.model] = '';
+        } else if (field.type === 'date') {
+          defaultFormData[field.model] = '';
+        } else if (field.type === 'select') {
+          defaultFormData[field.model] = '';
+        } else {
+          defaultFormData[field.model] = '';
         }
-        this.modalTitle = cfg.title ?? 'Modal';
-        this.modalDesc = cfg.modalDesc ?? '';
-        this.showLabels = cfg.showLabels ?? false;
-        this.submitButtonText = cfg.submitText ?? 'Create Issue';
-        // Check initial issue type and update field visibility
-        if (this.formData.issueType) {
-          this.updateFieldVisibility(this.formData.issueType);
-        }
+      });
+      
+      // Merge with provided data (AI autofill data takes precedence)
+      this.formData = cfg.data ? { ...defaultFormData, ...cfg.data } : defaultFormData;
+      
+      this.modalTitle = cfg.title ?? 'Modal';
+      this.modalDesc = cfg.modalDesc ?? '';
+      this.showLabels = cfg.showLabels ?? false;
+      this.submitButtonText = cfg.submitText ?? 'Create Issue';
+      // Check initial issue type and update field visibility
+      if (this.formData.issueType) {
+        this.updateFieldVisibility(this.formData.issueType);
       }
+    }
 
       if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
     });

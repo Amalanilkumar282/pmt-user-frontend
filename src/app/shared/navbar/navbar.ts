@@ -92,6 +92,7 @@ export class Navbar implements OnInit {
   const title = fields.title || '';
   const description = fields.description || '';
   const priority = fields.priority || 'Medium';
+  const storyPoint = fields.storyPoint || '';
 
     const userOptions = users.map(u => u.name);
 
@@ -141,22 +142,43 @@ export class Navbar implements OnInit {
           colSpan: 1
         },
         {
-          label: 'Sprint',
-          type: 'select',
-          model: 'sprint',
-          options: ['Backlog', 'Sprint 1', 'Sprint 2', 'Sprint 3'],
-          colSpan: 1
-        },
-        {
-          label: 'Story Points',
-          type: 'number',
-          model: 'storyPoints',
+          label: 'Start Date',
+          type: 'date',
+          model: 'startDate',
           colSpan: 1
         },
         {
           label: 'Due Date',
           type: 'date',
           model: 'dueDate',
+          colSpan: 1
+        },
+        {
+          label: 'Sprint',
+          type: 'select',
+          model: 'sprint',
+          options: ['Sprint 1', 'Sprint 2', 'Sprint 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Story Point',
+          type: 'number',
+          model: 'storyPoint',
+          colSpan: 1
+        },
+        {
+          label: 'Parent Epic',
+          type: 'select',
+          model: 'parentEpic',
+          options: ['Epic 1', 'Epic 2', 'Epic 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Reporter',
+          type: 'select',
+          model: 'reporter',
+          options: userOptions,
+          required: true,
           colSpan: 1
         },
         {
@@ -172,9 +194,12 @@ export class Navbar implements OnInit {
         description: description,
         priority: priority,
         assignee: 'Unassigned',
-        sprint: 'Backlog',
-        storyPoints: '',
+        startDate: '',
         dueDate: '',
+        sprint: 'Sprint 1',
+        storyPoint: storyPoint,
+        parentEpic: '',
+        reporter: userOptions[0] || 'Unassigned',
         labels: [],
         attachments: []
       },
@@ -187,7 +212,7 @@ export class Navbar implements OnInit {
         };
 
         const issueReq: CreateIssueRequest = {
-          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
+          projectId: '44444444-4444-4444-4444-444444444444',
           issueType: formData.issueType?.toUpperCase() || 'TASK',
           title: formData.title,
           description: formData.description || '',
@@ -259,20 +284,20 @@ export class Navbar implements OnInit {
   onCreate() {
     const userOptions = users.map(u => u.name);
 
-    const fields: FormField[] = [
-      { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
-      { label: 'Title', type: 'text', model: 'title', colSpan: 2, required : true  },
-      { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
-      { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
-      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
-      { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-      { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-      { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
-      { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
-      { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },
-      { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
-    ];
+  const fields: FormField[] = [
+    { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
+    { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
+    { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
+    { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
+    { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
+    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+    { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
+    { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
+    { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
+    { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },
+    { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
+  ];
 
     this.modalService.open({
       id: 'createIssue',
@@ -292,7 +317,7 @@ export class Navbar implements OnInit {
         };
 
         const issueReq: CreateIssueRequest = {
-          projectId: '0aa4b61e-c0e4-40c9-81fa-35da8ad7b9d5',
+          projectId: '44444444-4444-4444-4444-444444444444',
           issueType: formData.issueType?.toUpperCase() || 'TASK',
           title: formData.title,
           description: formData.description || '',
