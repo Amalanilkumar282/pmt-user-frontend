@@ -8,7 +8,9 @@
             <i [class]="getTypeIcon(_issue()!.type)" class="text-3xl flex-shrink-0"></i>
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-sm font-semibold text-gray-500">{{ _issue()!.id }}</span>
+                <span class="text-sm font-semibold text-gray-500">
+                  {{ _issue()!.key || _issue()!.id }}
+                </span>
                 <span [class]="'px-2 py-1 rounded text-xs font-semibold border ' + getPriorityClass(_issue()!.priority)">
                   {{ _issue()!.priority }}
                 </span>
@@ -49,14 +51,29 @@
         <!-- Details Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Assignee -->
-          @if (_issue()!.assignee) {
-            <div class="detail-section">
-              <h3 class="detail-label">Assignee</h3>
+          <div class="detail-section">
+            <h3 class="detail-label">Assignee</h3>
+            @if (_issue()!.assignee || _issue()!.assigneeId) {
               <div class="flex items-center gap-2">
                 <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                  {{ _issue()!.assignee!.charAt(0).toUpperCase() }}
+                  {{ (_issue()!.assignee || 'U').charAt(0).toUpperCase() }}
                 </span>
-                <span class="text-gray-900 font-medium">{{ _issue()!.assignee }}</span>
+                <span class="text-gray-900 font-medium">{{ _issue()!.assignee || 'User ' + _issue()!.assigneeId }}</span>
+              </div>
+            } @else {
+              <span class="text-gray-400 italic">Unassigned</span>
+            }
+          </div>
+
+          <!-- Reporter -->
+          @if (_issue()!.reporterId) {
+            <div class="detail-section">
+              <h3 class="detail-label">Reporter</h3>
+              <div class="flex items-center gap-2">
+                <span class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                  R
+                </span>
+                <span class="text-gray-900 font-medium">User {{ _issue()!.reporterId }}</span>
               </div>
             </div>
           }
@@ -89,6 +106,61 @@
               {{ _issue()!.priority }}
             </span>
           </div>
+
+          <!-- Epic -->
+          @if (_issue()!.epicId) {
+            <div class="detail-section">
+              <h3 class="detail-label">Epic</h3>
+              <span class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 rounded-md text-sm font-medium border border-purple-200">
+                <i class="fa-solid fa-bolt mr-1"></i>
+                Epic #{{ _issue()!.epicId }}
+              </span>
+            </div>
+          }
+
+          <!-- Parent Issue -->
+          @if (_issue()!.parentIssueId) {
+            <div class="detail-section">
+              <h3 class="detail-label">Parent Issue</h3>
+              <span class="inline-flex items-center px-3 py-1.5 bg-gray-50 text-gray-700 rounded-md text-sm font-medium border border-gray-200">
+                <i class="fa-solid fa-link mr-1"></i>
+                {{ _issue()!.parentIssueId }}
+              </span>
+            </div>
+          }
+
+          <!-- Project ID -->
+          @if (_issue()!.projectId) {
+            <div class="detail-section">
+              <h3 class="detail-label">Project ID</h3>
+              <span class="text-gray-600 text-sm font-mono">{{ _issue()!.projectId }}</span>
+            </div>
+          }
+
+          <!-- Labels -->
+          @if (_issue()!.labels && _issue()!.labels!.length > 0) {
+            <div class="detail-section">
+              <h3 class="detail-label">Labels</h3>
+              <div class="flex flex-wrap gap-1">
+                @for (label of _issue()!.labels; track label) {
+                  <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium border border-gray-200">
+                    {{ label }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Attachment URL -->
+          @if (_issue()!.attachmentUrl) {
+            <div class="detail-section">
+              <h3 class="detail-label">Attachment</h3>
+              <a [href]="_issue()!.attachmentUrl" target="_blank" class="text-blue-600 hover:text-blue-800 underline text-sm">
+                <i class="fa-solid fa-paperclip mr-1"></i>
+                View Attachment
+              </a>
+            </div>
+          }
         </div>
 
         <!-- Timestamps -->
