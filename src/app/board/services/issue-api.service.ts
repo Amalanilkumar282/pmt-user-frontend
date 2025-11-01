@@ -54,17 +54,17 @@ export class IssueApiService {
     this.authTokenService.logAuthStatus(); // Debug auth status
     const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain' });
     
-    console.log('🌐 IssueApiService - Fetching issues for project:', projectId);
-    console.log('🌐 API URL:', `${this.baseUrl}/project/${projectId}/issues`);
-    console.log('🔑 Has Auth Token:', this.authTokenService.isAuthenticated());
+    console.log('[IssueApiService] Fetching issues for project:', projectId);
+    console.log('[IssueApiService] API URL:', `${this.baseUrl}/project/${projectId}/issues`);
+    console.log('[IssueApiService] Has Auth Token:', this.authTokenService.isAuthenticated());
     
     return this.http
       .get<ApiResponse<IssueApi[]>>(`${this.baseUrl}/project/${projectId}/issues`, { headers })
       .pipe(
         map(response => {
-          console.log('📥 IssueApiService - Raw API response:', response);
+          console.log('[IssueApiService] Raw API response:', response);
           const issues = response.data.map(issue => this.mapIssueApiToIssue(issue));
-          console.log('📥 IssueApiService - Mapped issues:', issues);
+          console.log('[IssueApiService] Mapped issues:', issues);
           return issues;
         })
       );
@@ -125,13 +125,24 @@ export class IssueApiService {
       labels = [];
     }
 
+    const mappedStatus = this.mapStatusIdToStatus(apiIssue.statusId);
+    console.log('[IssueApiService] Mapping issue:', {
+      issueId: apiIssue.id,
+      key: apiIssue.key,
+      title: apiIssue.title,
+      statusId: apiIssue.statusId,
+      mappedStatus: mappedStatus
+    });
+
     return {
       id: apiIssue.id,                    // Now using real ID from API
+      key: apiIssue.key,                  // Issue key (PROJ-123)
       title: apiIssue.title,
       description: apiIssue.description,
       type: this.mapIssueType(apiIssue.issueType),
       priority: this.mapPriority(apiIssue.priority),
-      status: this.mapStatusIdToStatus(apiIssue.statusId), // Now mapping from statusId
+      status: mappedStatus, // Now mapping from statusId
+      statusId: apiIssue.statusId, // CRITICAL: Preserve statusId for column matching
       assignee: apiIssue.assigneeId?.toString(),
       labels: labels,
       sprintId: apiIssue.sprintId,
@@ -148,18 +159,20 @@ export class IssueApiService {
 
   /**
    * Map statusId to IssueStatus
-   * This is a basic mapping - you may need to adjust based on your status configuration
+   * Map to column names that match the board columns
    */
   private mapStatusIdToStatus(statusId: number): 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' {
-    // Default mapping - adjust based on your actual status IDs
-    const statusMap: Record<number, 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED'> = {
-      1: 'TODO',
-      2: 'IN_PROGRESS',
-      3: 'IN_REVIEW',
-      4: 'DONE',
-      5: 'BLOCKED'
+    // Map statusId to the actual column names used by the board
+    // These should match the column names returned from the board API
+    const statusMap: Record<number, any> = {
+      1: 'To Do',        // Match board column name
+      2: 'In Progress',  // Match board column name
+      3: 'In Review',    // Match board column name
+      4: 'Done',         // Match board column name
+      5: 'On Hold',      // Match board column name
+      6: 'BLOCKED'       // Fallback
     };
-    return statusMap[statusId] || 'TODO';
+    return statusMap[statusId] || 'To Do';
   }
 
   /**

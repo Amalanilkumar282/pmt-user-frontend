@@ -53,14 +53,14 @@ export class AuthTokenService {
    */
   logAuthStatus(): void {
     if (!this.isBrowser) {
-      console.log('🔒 Auth: Running on server (SSR)');
+      console.log('[AuthTokenService] Running on server (SSR)');
       return;
     }
 
     const token = this.getAccessToken();
     const user = sessionStorage.getItem('currentUser');
     
-    console.log('🔒 Auth Status:', {
+    console.log('[AuthTokenService] Auth Status:', {
       hasToken: !!token,
       tokenPreview: token ? `${token.substring(0, 20)}...` : 'No token',
       user: user ? JSON.parse(user) : null

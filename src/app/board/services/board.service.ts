@@ -139,6 +139,225 @@ export class BoardService {
   }
   
   // Create board
+  async createBoardApi(dto: CreateBoardDto): Promise<Board | null> {
+    // Validation
+    if (!dto.name || dto.name.trim().length === 0) {
+      console.error('[BoardService] Board name is required');
+      return null;
+    }
+    
+    if (!dto.projectId) {
+      console.error('[BoardService] Project ID is required');
+      return null;
+    }
+    
+    try {
+      this.loadingSignal.set(true);
+      
+      // Get current user ID for createdBy
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      if (!userId) {
+        console.error('[BoardService] No user ID found for board creation');
+        return null;
+      }
+      
+      // Map CreateBoardDto to backend API DTO
+      const apiDto: any = {
+        projectId: dto.projectId,
+        name: dto.name.trim(),
+        description: '',
+        type: dto.type.toLowerCase(), // Backend expects lowercase
+        teamId: dto.teamId ? parseInt(dto.teamId, 10) : null,
+        createdBy: userId,
+        metadata: null
+      };
+      
+      const response = await firstValueFrom(this.boardApiService.createBoard(apiDto));
+      
+      if (response.status === 200 || response.status === 201) {
+        console.log('[BoardService] Board created successfully:', response);
+        // Reload boards from API
+        await this.loadBoardsByProject(dto.projectId);
+        // Find the newly created board
+        const newBoard = this.boardsSignal().find(b => b.name === dto.name);
+        return newBoard || null;
+      } else {
+        console.error('[BoardService] Failed to create board:', response);
+        return null;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error creating board:', error);
+      return null;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Update board
+  async updateBoardApi(boardId: string, dto: UpdateBoardDto): Promise<Board | null> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      const apiDto: any = {
+        boardId: numericBoardId,
+        name: dto.name,
+        updatedBy: userId,
+        removeTeamAssociation: false
+      };
+      
+      const response = await firstValueFrom(this.boardApiService.updateBoard(numericBoardId, apiDto));
+      
+      if (response.status === 200) {
+        console.log('[BoardService] Board updated successfully');
+        // Reload board from API
+        return await this.loadBoardById(numericBoardId);
+      } else {
+        console.error('[BoardService] Failed to update board:', response);
+        return null;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error updating board:', error);
+      return null;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Delete board
+  async deleteBoardApi(boardId: string): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      const response = await firstValueFrom(this.boardApiService.deleteBoard(numericBoardId, userId));
+      
+      if (response.status === 200 && response.data === true) {
+        console.log('[BoardService] Board deleted successfully');
+        // Remove from local cache
+        this.boardsSignal.update(boards => boards.filter(b => b.id !== boardId));
+        return true;
+      } else {
+        console.error('[BoardService] Failed to delete board:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error deleting board:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Column Management API Methods
+  
+  /**
+   * Create a new column for a board
+   */
+  async createColumnApi(boardId: string, columnName: string, color: string, statusName: string, position: number): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const numericBoardId = parseInt(boardId, 10);
+      const dto: any = {
+        boardId: numericBoardId,
+        boardColumnName: columnName,
+        boardColor: color,
+        statusName: statusName,
+        position: position
+      };
+      
+      const response = await firstValueFrom(this.boardApiService.createBoardColumn(dto));
+      
+      if (response.status === 200 || response.status === 201) {
+        console.log('[BoardService] Column created successfully');
+        // Reload board to get updated columns
+        await this.loadBoardById(numericBoardId);
+        return true;
+      } else {
+        console.error('[BoardService] Failed to create column:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error creating column:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  /**
+   * Update an existing column
+   */
+  async updateColumnApi(columnId: string, boardId: string, updates: { name?: string; color?: string; position?: number }): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      const dto: any = {
+        columnId: columnId,
+        boardId: numericBoardId,
+        boardColumnName: updates.name,
+        boardColor: updates.color,
+        position: updates.position,
+        updatedBy: userId
+      };
+      
+      const response = await firstValueFrom(this.boardApiService.updateBoardColumn(columnId, dto));
+      
+      if (response.status === 200) {
+        console.log('[BoardService] Column updated successfully');
+        // Reload board to get updated columns
+        await this.loadBoardById(numericBoardId);
+        return true;
+      } else {
+        console.error('[BoardService] Failed to update column:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error updating column:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  /**
+   * Delete a column from a board
+   */
+  async deleteColumnApi(columnId: string, boardId: string): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      const response = await firstValueFrom(this.boardApiService.deleteBoardColumn(columnId, numericBoardId, userId));
+      
+      if (response.status === 200) {
+        console.log('[BoardService] Column deleted successfully');
+        // Reload board to get updated columns
+        await this.loadBoardById(numericBoardId);
+        return true;
+      } else {
+        console.error('[BoardService] Failed to delete column:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error deleting column:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Create board (local - kept for backward compatibility)
   createBoard(dto: CreateBoardDto): Board | null {
     // Validation
     if (!dto.name || dto.name.trim().length === 0) {

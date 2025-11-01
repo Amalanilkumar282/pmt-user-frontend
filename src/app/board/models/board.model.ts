@@ -20,10 +20,15 @@ export interface Board {
   includeBacklog: boolean;
   includeDone: boolean;
   
+  // Additional fields from backend
+  description?: string;
+  isActive?: boolean;
+  metadata?: string | null;
+  
   // Metadata
   createdBy: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt: string | null;
   isDefault: boolean;
 }
 

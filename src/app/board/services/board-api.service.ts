@@ -165,6 +165,7 @@ export class BoardApiService {
     return {
       id: apiBoard.id.toString(),
       name: apiBoard.name,
+      description: apiBoard.description || undefined,
       projectId: apiBoard.projectId,
       projectName: apiBoard.projectName,
       teamId: apiBoard.teamId?.toString(),
@@ -174,6 +175,8 @@ export class BoardApiService {
       columns: apiBoard.columns.map(col => this.mapColumnApiToColumnDef(col)),
       includeBacklog: false,
       includeDone: true,
+      isActive: apiBoard.isActive,
+      metadata: apiBoard.metadata,
       createdBy: apiBoard.createdBy.toString(),
       createdAt: apiBoard.createdAt,
       updatedAt: apiBoard.updatedAt,
@@ -185,13 +188,26 @@ export class BoardApiService {
    * Map BoardColumnApi to frontend BoardColumnDef model
    */
   private mapColumnApiToColumnDef(apiColumn: BoardColumnApi): BoardColumnDef {
+    // CRITICAL FIX: Column matching should be by statusId, not by name
+    // - Column id can be anything (we use statusName for compatibility with existing code)
+    // - Column statusId is what matters for matching issues
+    // - Issues have statusId, columns have statusId, match by number not string
+    console.log('[BoardApiService] Mapping column:', {
+      columnId: apiColumn.id,
+      boardColumnName: apiColumn.boardColumnName,
+      statusName: apiColumn.statusName,
+      statusId: apiColumn.statusId,
+      color: apiColumn.boardColor,
+      position: apiColumn.position
+    });
+    
     return {
-      id: apiColumn.statusName as any, // Map to status enum
-      title: apiColumn.boardColumnName,
+      id: apiColumn.statusName as any,  // Keep as statusName for backward compatibility
+      title: apiColumn.boardColumnName,  // Display the custom column name
       color: apiColumn.boardColor,
       position: apiColumn.position,
       status: apiColumn.statusName,
-      statusId: apiColumn.statusId
+      statusId: apiColumn.statusId  // CRITICAL: This is used for issue matching
     };
   }
 }

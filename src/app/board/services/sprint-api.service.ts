@@ -27,12 +27,13 @@ export class SprintApiService {
 
   /**
    * Get all sprints by project ID
-   * GET /api/sprints/project/{projectId}
+   * GET /api/sprints/project/{projectId}  (lowercase 'sprints')
    */
   getSprintsByProject(projectId: string): Observable<Sprint[]> {
     const headers = this.getAuthHeaders();
+    // Use lowercase 'sprints' to match working backend endpoint
     return this.http
-      .get<ApiResponse<SprintApi[]>>(`${this.baseUrl}/project/${projectId}`, { headers })
+      .get<ApiResponse<SprintApi[]>>(`${environment.apiUrl}/api/sprints/project/${projectId}`, { headers })
       .pipe(map(response => response.data.map(sprint => this.mapSprintApiToSprint(sprint))));
   }
 

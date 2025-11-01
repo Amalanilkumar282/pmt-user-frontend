@@ -185,14 +185,31 @@ export class BoardStore {
     // If no grouping, return regular columns with priority-sorted issues
     if (groupByType === 'NONE') {
       const buckets = cols.map(c => {
-        const columnIssues = issues.filter(i => i.status === c.id);
-        console.log(`[BoardStore] Column ${c.id}: ${columnIssues.length} issues`, columnIssues);
+        // CRITICAL: Match by statusId, not status name
+        const columnIssues = issues.filter(i => i.statusId === c.statusId);
+        console.log(`[BoardStore] Column "${c.title}" (statusId=${c.statusId}): ${columnIssues.length} issues`);
+        if (columnIssues.length > 0) {
+          console.log(`[BoardStore] Column "${c.title}" matched issues:`, columnIssues.map(i => ({ 
+            key: i.key, 
+            title: i.title, 
+            statusId: i.statusId 
+          })));
+        }
         return {
           def: c,
           items: sortByPriority(columnIssues)
         };
       });
-      console.log('[BoardStore] Final buckets:', buckets.map(b => ({ column: b.def.id, count: b.items.length })));
+      console.log('[BoardStore] Final buckets:', buckets.map(b => ({ 
+        column: b.def.title, 
+        statusId: b.def.statusId,
+        count: b.items.length 
+      })));
+      console.log('[BoardStore] All issues with statusId:', issues.map(i => ({ 
+        key: i.key, 
+        statusId: i.statusId,
+        title: i.title 
+      })));
       return buckets;
     }
     

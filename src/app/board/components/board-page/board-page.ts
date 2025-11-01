@@ -5,6 +5,7 @@ import { Sidebar } from '../../../shared/sidebar/sidebar';
 import { Navbar } from '../../../shared/navbar/navbar';
 import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
+import { UserContextService } from '../../../shared/services/user-context.service';
 import { BoardColumn } from '../board-column/board-column';
 import { BoardStore } from '../../board-store';
 import { BoardToolbar } from '../board-toolbar/board-toolbar';
@@ -34,6 +35,7 @@ export class BoardPage implements OnInit {
   private router = inject(Router);
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  private userContextService = inject(UserContextService);
   private boardService = inject(BoardService);
   private store = inject(BoardStore);
 
@@ -184,8 +186,8 @@ export class BoardPage implements OnInit {
       console.log('[BoardPage] loadDefaultBoard - Loading team board for team:', teamId);
       defaultBoard = this.boardService.getDefaultTeamBoard(teamId);
     } else {
-      // Load project's default board
-      const userId = 'user-1'; // TODO: Get actual userId from auth service
+      // Load project's default board - get userId from UserContextService
+      const userId = this.userContextService.getCurrentUserIdString() || 'unknown';
       console.log('[BoardPage] loadDefaultBoard - Loading project board - ProjectId:', projectId, 'UserId:', userId);
       defaultBoard = this.boardService.getDefaultBoard(projectId, userId);
     }
