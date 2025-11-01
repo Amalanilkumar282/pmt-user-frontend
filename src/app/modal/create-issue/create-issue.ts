@@ -378,6 +378,8 @@ shakeFields: Set<string> = new Set();
           ...this.formData,
           uploadedFileUrl: this.uploadedFileUrl
         };
+        console.log('Submitting with uploadedFileUrl:', this.uploadedFileUrl);
+        console.log('Full submission data:', submissionData);
         cfg.onSubmit(submissionData);
         return;
       }
@@ -418,11 +420,14 @@ shakeFields: Set<string> = new Set();
     // Always convert FileList to array for display
     this.formData[field.model] = event.target.files ? Array.from(event.target.files) : [];
     
+    console.log('handleFileSelect called, files:', event.target.files);
+    
     // Upload file to Supabase if a file was selected
     if (event.target.files && event.target.files.length > 0) {
       const file: File = event.target.files[0]; // Get the first file
       
       console.log('Uploading file to Supabase:', file.name);
+      console.log('Current uploadedFileUrl before upload:', this.uploadedFileUrl);
       
       this.attachmentService.uploadFile(file, 'attachments').subscribe({
         next: (response) => {
@@ -437,6 +442,7 @@ shakeFields: Set<string> = new Set();
         }
       });
     } else {
+      console.log('No files selected');
       this.uploadedFileUrl = null;
     }
     

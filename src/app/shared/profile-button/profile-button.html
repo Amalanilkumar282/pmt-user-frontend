@@ -9,6 +9,7 @@
       <div class="flex-1">
         <div class="font-semibold text-gray-900 text-base">{{ userName }}</div>
         <div class="text-sm text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]">{{ userEmail }}</div>
+        <div class="text-xs text-gray-400 mt-1" *ngIf="userRole">Role: {{ userRole }}</div>
       </div>
     </div>
     <!-- Menu Options -->
