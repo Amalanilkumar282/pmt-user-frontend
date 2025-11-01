@@ -84,6 +84,9 @@ export class Sidebar {
   }
   
   navigateToProject(projectId: string): void {
+    // Set the current project ID in session storage
+    this.projectContextService.setCurrentProjectId(projectId);
+    
     // Update recent projects - move to top
     this.boardService.accessProject(projectId);
     
@@ -105,6 +108,9 @@ export class Sidebar {
   }
   
   navigateToBoard(projectId: string, boardId: string): void {
+    // Set the current project ID in session storage
+    this.projectContextService.setCurrentProjectId(projectId);
+    
     // Set current board and navigate with query param
     this.boardService.setCurrentBoard(boardId);
     this.router.navigate(['/projects', projectId, 'board'], {
@@ -123,6 +129,9 @@ export class Sidebar {
     // Navigate to the newly created board
     const board = this.boardService.getBoardById(boardId);
     if (board) {
+      // Set the current project ID in session storage
+      this.projectContextService.setCurrentProjectId(board.projectId);
+      
       this.router.navigate(['/projects', board.projectId, 'board'], {
         queryParams: { boardId }
       });

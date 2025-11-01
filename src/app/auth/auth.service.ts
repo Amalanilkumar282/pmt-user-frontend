@@ -160,6 +160,9 @@ export class AuthService {
       sessionStorage.removeItem('refreshToken');
       sessionStorage.removeItem('accessTokenExpires');
       sessionStorage.removeItem('refreshTokenExpires');
+      sessionStorage.removeItem('userId');
+      sessionStorage.removeItem('currentProjectId');
+      sessionStorage.removeItem('starredProjects');
     }
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);
