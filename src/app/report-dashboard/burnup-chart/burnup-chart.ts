@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Sidebar } from '../../shared/sidebar/sidebar';
@@ -26,6 +26,7 @@ export class BurnupChart implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private issueSummaryService = inject(IssueSummaryService);
+  private cdr = inject(ChangeDetectorRef);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
@@ -39,30 +40,73 @@ export class BurnupChart implements OnInit {
 
   ngOnInit(): void {
     // Set project context from route params
-    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
-    if (projectId) {
-      this.projectContextService.setCurrentProjectId(projectId);
+    let projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
+    console.log('BurnupChart - Project ID from route.parent.parent:', projectId);
+    
+    // Try alternative route paths if not found
+    if (!projectId) {
+      projectId = this.route.parent?.snapshot.paramMap.get('projectId');
+      console.log('BurnupChart - Project ID from route.parent:', projectId);
     }
     
-    // Load all sprints from the service
-    // this.sprints = this.issueSummaryService.getAllSprints();
-     // Load all sprints
-  const allSprints = this.issueSummaryService.getAllSprints();
+    // FOR TESTING: Use hardcoded GUID if projectId is '1'
+    if (projectId === '1') {
+      console.warn('BurnupChart - Numeric project ID detected. Using test GUID for API call.');
+      projectId = '16b2a26d-a6b1-4c88-931a-38d1f52e7df7';
+    }
+    
+    console.log('BurnupChart - Final Project ID:', projectId);
+    
+    if (projectId) {
+      this.projectContextService.setCurrentProjectId(projectId);
+      
+      // Load sprints from API
+      this.issueSummaryService.getSprintsByProjectId(projectId).subscribe({
+        next: (allSprints) => {
+          console.log('BurnupChart - Loaded sprints from API:', allSprints);
+          
+          // Find active sprint
+          const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
 
-  
+          // Reorder: active sprint first, exclude 'all' placeholder if any exists
+          this.sprints = [
+            ...(activeSprint ? [activeSprint] : []),
+            ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+          ];
 
-    // Find active sprint
-  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
-
-  // Reorder: active sprint first, exclude 'all' placeholder if any exists
-  this.sprints = [
-    ...(activeSprint ? [activeSprint] : []),
-    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
-  ];
-
-  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
-    // Load initial chart data
-    this.updatechartData();
+          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
+          
+          // Trigger change detection
+          this.cdr.detectChanges();
+          
+          // Load initial chart data
+          this.updatechartData();
+        },
+        error: (error) => {
+          console.error('BurnupChart - Error loading sprints:', error);
+          // Fallback to dummy data
+          const allSprints = this.issueSummaryService.getAllSprints();
+          const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+          this.sprints = [
+            ...(activeSprint ? [activeSprint] : []),
+            ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+          ];
+          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
+          this.cdr.detectChanges();
+          this.updatechartData();
+        }
+      });
+    } else {
+      // Fallback to dummy data if no project ID
+      const allSprints = this.issueSummaryService.getAllSprints();
+      const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+      this.sprints = [
+        ...(activeSprint ? [activeSprint] : []),
+        ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+      ];
+      this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
+      this.updatechartData();
+    }
   }
 
   onToggleSidebar(): void {
