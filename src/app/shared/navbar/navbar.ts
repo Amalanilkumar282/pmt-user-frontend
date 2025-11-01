@@ -211,6 +211,9 @@ export class Navbar implements OnInit {
           return date.toISOString();
         };
 
+        console.log('handleOpenCreateModal received formData:', formData);
+        console.log('uploadedFileUrl in formData:', formData.uploadedFileUrl);
+
         const issueReq: CreateIssueRequest = {
           projectId: '44444444-4444-4444-4444-444444444444',
           issueType: formData.issueType?.toUpperCase() || 'TASK',
@@ -315,6 +318,9 @@ export class Navbar implements OnInit {
           const date = new Date(dateStr);
           return date.toISOString();
         };
+
+        console.log('Navbar received formData:', formData);
+        console.log('uploadedFileUrl in formData:', formData.uploadedFileUrl);
 
         const issueReq: CreateIssueRequest = {
           projectId: '44444444-4444-4444-4444-444444444444',
