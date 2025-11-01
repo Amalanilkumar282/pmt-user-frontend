@@ -40,7 +40,7 @@
        }" class="mt-1 block w-full rounded-md shadow shadow-slate-100 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-3 px-3" />
 
             <!-- File Upload -->
-            <div *ngIf="field.type==='file'" class="mt-1 block w-full flex flex-col items-center justify-center border border-gray-300 rounded-md shadow shadow-slate-100 bg-white" style="width:100%;height:calc(33vw/2);max-height:120px;min-height:60px;">
+            <div *ngIf="field.type==='file'" class="mt-1 w-full flex flex-col items-center justify-center border border-gray-300 rounded-md shadow shadow-slate-100 bg-white" style="width:100%;height:calc(33vw/2);max-height:120px;min-height:60px;">
               <label for="file-upload-{{field.model}}" class="flex flex-col items-center justify-center w-full h-full cursor-pointer">
                 <span class="text-3xl text-[#3D62A8] mb-1 jump-clip">📎</span>
                 <ng-container *ngIf="!(isArray(formData[field.model]) && (formData[field.model] || []).length > 0)">

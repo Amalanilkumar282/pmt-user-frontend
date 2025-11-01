@@ -1,4 +1,4 @@
-import { Component, inject, HostListener, OnInit, ViewChild } from '@angular/core';
+import { Component, inject, HostListener, OnInit, ChangeDetectorRef, NgZone, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
@@ -24,11 +24,15 @@ import {
   epics as sharedEpics
 } from '../../shared/data/dummy-backlog-data';
 import { FormField, ModalService } from '../../modal/modal-service';
+import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
+import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/services/ai-sprint-planning.service';
+import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
+import { CreateSprintModal } from '../create-sprint-modal/create-sprint-modal';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView],
+  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal, CreateSprintModal],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -43,6 +47,14 @@ export class BacklogPage implements OnInit {
   
   // ViewChild to access the filters component
   @ViewChild(Filters) filtersComponent?: Filters;
+  
+  private aiSprintPlanningService = inject(AiSprintPlanningService);
+  private toastService = inject(ToastService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+  
+  // Create Sprint Modal state
+  isCreateSprintModalOpen = false;
   
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
@@ -63,6 +75,12 @@ export class BacklogPage implements OnInit {
   private isResizing = false;
   private startX = 0;
   private startWidth = 0;
+  
+  // AI Sprint Planning state
+  isAIModalOpen = false;
+  aiSuggestions: AISuggestionResponse | null = null;
+  isLoadingAISuggestions = false;
+  
   // Use shared dummy data from shared/data/dummy-backlog-data.ts
   private completedSprint1Issues: Issue[] = completedSprint1Issues;
   private completedSprint2Issues: Issue[] = completedSprint2Issues;
@@ -145,62 +163,33 @@ export class BacklogPage implements OnInit {
 
   
 
+  /**
+   * Open Create Sprint Modal
+   */
   handleCreateSprint() {
-      const sprintFields: FormField[] = [
-        { label: 'Sprint Name', type: 'text', model: 'sprintName', required: true, colSpan: 2 },
-        { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2, required: false },
-        { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
-        { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1, required: false },
-        { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1, required: false },
-        { label: 'Status', type: 'select', model: 'status', options: ['PLANNED','ACTIVE','COMPLETED'], colSpan: 1, required: false },
-        { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1, required: false },
-      ];
-      this.modalService.open({
-        id: 'sprintModal',
-        title: 'Create Sprint',
-        projectName: 'Project Alpha',
-        modalDesc : 'Create a new sprint in your project',
-        fields: sprintFields,
-        data: { status: 'PLANNED' }, // Default status value
-        submitText: 'Create Sprint',
-        // Add onSubmit handler for modal
-        // This will be called from the modal component when the form is submitted
-        onSubmit: (formData: any) => {
-        // Prepare request body for API
-        // Convert dates to ISO string format (UTC) for PostgreSQL
-        const formatDateToUTC = (dateStr: string) => {
-          if (!dateStr) return undefined;
-          const date = new Date(dateStr);
-          return date.toISOString();
-        };
+    this.isCreateSprintModalOpen = true;
+  }
 
-        const sprintReq: SprintRequest = {
-          projectId: '44444444-4444-4444-4444-444444444444',
-          sprintName: formData.sprintName,
-          sprintGoal: formData.sprintGoal || null,
-          teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
-          startDate: formatDateToUTC(formData.startDate),
-          dueDate: formatDateToUTC(formData.dueDate),
-          status: formData.status,
-          storyPoint: Number(formData.storyPoint) || 0
-        };
-        
-        // Close modal immediately for instant feedback
-        this.modalService.close();
-        
-        console.log('Sending sprint request:', sprintReq);
-        this.sprintService.createSprint(sprintReq).subscribe({
-          next: (res) => {
-            console.log('Sprint created successfully:', res);
-          },
-          error: (err) => {
-            console.error('Failed to create sprint:', err);
-            console.error('Validation errors:', err.error?.errors);
-          }
-        });
-      }
-    });
-    }
+  /**
+   * Handle Create Sprint Modal Close
+   */
+  onCloseCreateSprintModal() {
+    this.isCreateSprintModalOpen = false;
+  }
+
+  /**
+   * Handle Sprint Created Event
+   * Refresh the sprint list and show success message
+   */
+  onSprintCreated(event: any) {
+    console.log('Sprint created:', event);
+    // TODO: Refresh sprint list from backend
+    // For now, just close the modal and show success
+    this.isCreateSprintModalOpen = false;
+    
+    // Optionally reload sprints from backend
+    // this.loadSprints();
+  }
 
   handleStart(sprintId: string): void {
     console.log('Start sprint:', sprintId);
@@ -439,6 +428,37 @@ export class BacklogPage implements OnInit {
     if (this.isResizing) {
       this.isResizing = false;
     }
+  }
+
+  // AI Sprint Planning Methods
+  handleAISprintSuggestion(): void {
+    this.isAIModalOpen = true;
+    this.isLoadingAISuggestions = true;
+    this.aiSuggestions = null;
+
+    // Run async operation inside NgZone to ensure change detection
+    this.ngZone.run(async () => {
+      try {
+        this.aiSuggestions = await this.aiSprintPlanningService.generateSprintSuggestions();
+        this.toastService.success('AI suggestions generated successfully!');
+      } catch (error) {
+        console.error('Failed to generate AI suggestions:', error);
+        // Toast already shown by service
+      } finally {
+        this.isLoadingAISuggestions = false;
+      }
+    });
+  }
+
+  closeAIModal(): void {
+    this.isAIModalOpen = false;
+    this.aiSuggestions = null;
+  }
+
+  handleCommitAISuggestions(): void {
+    // Placeholder for future implementation
+    this.toastService.info('Commit functionality coming soon!');
+    console.log('Commit AI suggestions:', this.aiSuggestions);
   }
 
   ngOnInit(): void {
