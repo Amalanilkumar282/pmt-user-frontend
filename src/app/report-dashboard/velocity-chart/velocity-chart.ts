@@ -50,7 +50,7 @@ export class VelocityChart implements OnInit {
     // FOR TESTING: Use hardcoded GUID if projectId is '1'
     if (projectId === '1') {
       console.warn('VelocityChart - Numeric project ID detected. Using test GUID for API call.');
-      projectId = '16b2a26d-a6b1-4c88-931a-38d1f52e7df7';
+      projectId = '11111111-1111-1111-1111-111111111111';
     }
     
     console.log('VelocityChart - Final Project ID:', projectId);
@@ -80,27 +80,22 @@ export class VelocityChart implements OnInit {
           this.updatechartData();
         },
         error: (error) => {
-          console.error('VelocityChart - Error loading sprints:', error);
-          // Fallback to dummy data
-          const allSprints = this.issueSummaryService.getAllSprints() || [];
-          const completedSprints = allSprints
-            .filter(s => s.status === 'COMPLETED' && s.id !== 'all')
-            .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
-          this.sprints = completedSprints;
-          this.selectedSprintId = completedSprints[0]?.id ?? null;
+          console.error('VelocityChart - Error loading sprints from API:', error);
+          console.error('API Error Details:', {
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url
+          });
+          // No fallback - leave sprints empty
+          this.sprints = [];
+          this.selectedSprintId = null;
           this.cdr.detectChanges();
-          this.updatechartData();
         }
       });
     } else {
-      // Fallback to dummy data if no project ID
-      const allSprints = this.issueSummaryService.getAllSprints() || [];
-      const completedSprints = allSprints
-        .filter(s => s.status === 'COMPLETED' && s.id !== 'all')
-        .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
-      this.sprints = completedSprints;
-      this.selectedSprintId = completedSprints[0]?.id ?? null;
-      this.updatechartData();
+      console.warn('VelocityChart - No project ID found');
+      this.sprints = [];
+      this.selectedSprintId = null;
     }
   }
 

@@ -52,7 +52,7 @@ export class BurnupChart implements OnInit {
     // FOR TESTING: Use hardcoded GUID if projectId is '1'
     if (projectId === '1') {
       console.warn('BurnupChart - Numeric project ID detected. Using test GUID for API call.');
-      projectId = '16b2a26d-a6b1-4c88-931a-38d1f52e7df7';
+      projectId = '11111111-1111-1111-1111-111111111111';
     }
     
     console.log('BurnupChart - Final Project ID:', projectId);
@@ -83,29 +83,22 @@ export class BurnupChart implements OnInit {
           this.updatechartData();
         },
         error: (error) => {
-          console.error('BurnupChart - Error loading sprints:', error);
-          // Fallback to dummy data
-          const allSprints = this.issueSummaryService.getAllSprints();
-          const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
-          this.sprints = [
-            ...(activeSprint ? [activeSprint] : []),
-            ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
-          ];
-          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
+          console.error('BurnupChart - Error loading sprints from API:', error);
+          console.error('API Error Details:', {
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url
+          });
+          // No fallback - leave sprints empty
+          this.sprints = [];
+          this.selectedSprintId = null;
           this.cdr.detectChanges();
-          this.updatechartData();
         }
       });
     } else {
-      // Fallback to dummy data if no project ID
-      const allSprints = this.issueSummaryService.getAllSprints();
-      const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
-      this.sprints = [
-        ...(activeSprint ? [activeSprint] : []),
-        ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
-      ];
-      this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
-      this.updatechartData();
+      console.warn('BurnupChart - No project ID found');
+      this.sprints = [];
+      this.selectedSprintId = null;
     }
   }
 
