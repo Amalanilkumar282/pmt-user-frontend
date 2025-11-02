@@ -135,7 +135,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     // Get projectId from route parameters
     this.route.parent?.paramMap.subscribe(params => {
       this.projectId = params.get('projectId');
-      console.log('📍 [TimelineChart] Project ID from route:', this.projectId);
       
       if (this.projectId) {
         this.loadTimelineData(this.projectId);
@@ -153,24 +152,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     this.isLoading = true;
     this.errorMessage = null;
     
-    console.log('🔄 [TimelineChart] Loading timeline data for project:', projectId);
-    
     this.timelineService.getTimelineData(projectId).subscribe({
       next: (data) => {
-        console.log('✅ [TimelineChart] Timeline data loaded:', data);
-        console.log('📊 Sprints count:', data.sprints.length);
-        console.log('📊 Epics count:', data.epics.length);
-        console.log('📊 Issues count:', data.issues.length);
-        
-        // Log detailed epic info
-        console.log('📊 Epic details:', data.epics.map(e => ({
-          id: e.id,
-          title: e.title,
-          projectId: e.project_id || e.projectId,
-          startDate: e.start_date || e.startDate,
-          dueDate: e.due_date || e.dueDate
-        })));
-        
         // Transform sprints
         this.projectData = this.transformSprints(data.sprints, data.issues);
         
@@ -183,8 +166,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         // Initialize filters and prepare timeline
         this.initializeFilters();
         this.availableEpics = this.getUniqueEpics();
-        
-        console.log('📋 Available epics for filters:', this.availableEpics);
         
         this.prepareTimelineData();
         
@@ -221,8 +202,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
    * Transform Sprint DTOs to Sprint interface
    */
   private transformSprints(sprintDtos: SprintDto[], issueDtos: IssueDto[]): Sprint[] {
-    console.log('🔄 [TimelineChart] Transforming sprints:', sprintDtos);
-    
     return sprintDtos.map(dto => {
       // Find issues belonging to this sprint
       const sprintIssues = this.transformIssues(
@@ -235,15 +214,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       const name = dto.name || dto.sprintName || 'Unnamed Sprint';
       const startDate = dto.start_date || dto.startDate;
       const endDate = dto.due_date || dto.dueDate;
-      
-      console.log('📊 Sprint:', {
-        id: dto.id,
-        name: name,
-        startDate,
-        endDate,
-        status: dto.status,
-        issueCount: sprintIssues.length
-      });
       
       return {
         id: dto.id,
@@ -279,8 +249,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
    * Transform Epic DTOs to Epic interface
    */
   private transformEpics(epicDtos: EpicDto[]): Epic[] {
-    console.log('🔄 [TimelineChart] Transforming epics:', epicDtos);
-    
     return epicDtos.map(dto => {
       // Handle both snake_case and camelCase, and title vs name
       const name = dto.title || dto.name || 'Unnamed Epic';
@@ -290,16 +258,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       const createdAt = dto.created_at || dto.createdAt;
       const updatedAt = dto.updated_at || dto.updatedAt;
       const projectId = dto.project_id || dto.projectId;
-      
-      console.log('📊 Epic:', {
-        id: dto.id,
-        name: name,
-        projectId: projectId,
-        startDate,
-        dueDate,
-        startDateConverted: startDate ? new Date(startDate) : null,
-        dueDateConverted: dueDate ? new Date(dueDate) : null
-      });
       
       return {
         id: dto.id,
@@ -322,8 +280,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
    * Transform Issue DTOs to Issue interface
    */
   private transformIssues(issueDtos: IssueDto[]): Issue[] {
-    console.log('🔄 [TimelineChart] Transforming issues:', issueDtos.length, 'issues');
-    
     return issueDtos.map(dto => {
       // Handle both snake_case and camelCase
       const key = dto.key || dto.issue_key || dto.issueKey || 'N/A';
@@ -506,7 +462,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     if (epic) {
       // Note: Epic model might not have startDate/endDate properties
       // This is a placeholder for future database update
-      console.log(`Epic ${epic.name} dates updated:`, { startDate, endDate });
       // TODO: Call API service to update epic dates in database
       // this.epicService.updateEpicDates(epic.id, startDate, endDate).subscribe();
       return;
@@ -519,7 +474,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         if (issue) {
           issue.createdAt = startDate;
           issue.updatedAt = endDate;
-          console.log(`Issue ${issue.title} dates updated:`, { startDate, endDate });
           // TODO: Call API service to update issue dates in database
           // this.issueService.updateIssueDates(issue.id, startDate, endDate).subscribe();
           return;
@@ -532,7 +486,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     if (sprint) {
       sprint.startDate = startDate;
       sprint.endDate = endDate;
-      console.log(`Sprint ${sprint.name} dates updated:`, { startDate, endDate });
       // TODO: Call API service to update sprint dates in database
       // this.sprintService.updateSprintDates(sprint.id, startDate, endDate).subscribe();
       return;
@@ -581,50 +534,16 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     });
 
     // 2. Add all epics directly
-    console.log('📊 Processing epics. Total epics:', this.epicsData.length);
-    console.log('📊 All issues count:', this.allIssues.length);
-    console.log('📊 Available epic IDs:', this.epicsData.map(e => ({ name: e.name, id: e.id })));
-    
-    const uniqueEpicIds = [...new Set(this.allIssues.map(i => i.epicId).filter(Boolean))];
-    console.log('📊 Unique epicIds in issues:', uniqueEpicIds);
-    console.log('📊 Epic ID comparison:');
-    console.log('   Epic from DB:', this.epicsData[0]?.id, 'Type:', typeof this.epicsData[0]?.id);
-    console.log('   EpicId from issues:', uniqueEpicIds[0], 'Type:', typeof uniqueEpicIds[0]);
-    console.log('   Are they equal?', this.epicsData[0]?.id === uniqueEpicIds[0]);
-    
-    // If we have epics in the database, display them
     if (this.epicsData.length > 0) {
-      console.log('🔍 Epic filters active:', this.selectedFilters.epics);
-      
       this.epicsData.forEach(epic => {
-        console.log(`📊 Processing epic: "${epic.name}" (ID: ${epic.id})`);
-        
         // Apply epic filter if any
         if (this.selectedFilters.epics.length > 0 && 
             !this.selectedFilters.epics.includes(epic.name)) {
-          console.log(`  ⏭️ Epic "${epic.name}" filtered out by epic filter`);
           return;
         }
 
         // Find issues for this epic with exact ID match
         const epicIssues = this.allIssues.filter(issue => issue.epicId === epic.id);
-        
-        console.log(`📊 Epic "${epic.name}" has ${epicIssues.length} issues (epicId: ${epic.id})`);
-        
-        if (epicIssues.length > 0) {
-          console.log(`  ✅ First 3 matching issues:`, epicIssues.slice(0, 3).map(i => ({ 
-            title: i.title, 
-            epicId: i.epicId 
-          })));
-        } else {
-          console.log(`  ⚠️ No issues match this epic. All issues in project:`, 
-            this.allIssues.map(i => ({ 
-              title: i.title, 
-              key: i.key,
-              epicId: i.epicId,
-              projectId: i.projectId
-            })));
-        }
         
         // Determine epic dates - ONLY use explicit startDate/dueDate, never createdAt/updatedAt
         let epicStart: Date | undefined = undefined;
@@ -661,13 +580,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         
         // Only add epic to side panel if it has valid start and end dates
         if (!epicStart || !epicEnd) {
-          console.log(`⏭️ Skipping epic "${epic.name}" - no valid dates`, {
-            epicStartFromDB: epic.startDate,
-            epicDueFromDB: epic.dueDate,
-            calculatedStart: epicStart,
-            calculatedEnd: epicEnd,
-            issueCount: epicIssues.length
-          });
           return;
         }
         
@@ -684,24 +596,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           level: 0,
           visible: this.isItemInDateRange(epicStart, epicEnd)
         });
-        
-        console.log(`📊 Epic "${epic.name}" added to timeline:`, {
-          epicStart: epicStart,
-          epicEnd: epicEnd,
-          epicStartFromDB: epic.startDate,
-          epicEndFromDB: epic.dueDate,
-          issueCount: epicIssues.length
-        });
 
         // Add issue rows if epic is expanded
         if (this.isRowExpanded(epic.id)) {
-          console.log(`🔽 Epic "${epic.name}" is expanded. Adding ${epicIssues.length} issues...`);
-          
           epicIssues.forEach(issue => {
             const isTypeVisible = this.isIssueTypeVisible(issue.type);
             const isStatusVisible = this.isIssueStatusVisible(issue.status);
-            
-            console.log(`  Issue "${issue.title}": type=${issue.type}, typeVisible=${isTypeVisible}, status=${issue.status}, statusVisible=${isStatusVisible}`);
             
             if (isTypeVisible && isStatusVisible) {
               // ONLY use explicit startDate/dueDate - never use createdAt/updatedAt
@@ -710,16 +610,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
               
               // Skip issues without valid dates
               if (!issueStart || !issueEnd) {
-                console.log(`    ⏭️ Skipping issue "${issue.title}" (${issue.key}) - no valid dates (startDate: ${issue.startDate}, dueDate: ${issue.dueDate})`);
                 return;
               }
-              
-              console.log(`    📅 Issue "${issue.title}" (${issue.key}) dates:`, {
-                startDate: issue.startDate,
-                dueDate: issue.dueDate,
-                USING_START: issueStart,
-                USING_END: issueEnd
-              });
               
               this.timelineRows.push({
                 id: issue.id,
@@ -734,20 +626,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
                 level: 1,
                 visible: this.isItemInDateRange(issueStart, issueEnd)
               });
-              console.log(`    ✅ Issue added to timeline`);
-            } else {
-              console.log(`    ❌ Issue filtered out by type/status`);
             }
           });
-        } else {
-          console.log(`🔼 Epic "${epic.name}" is collapsed`);
         }
       });
-    } else {
-      console.log('ℹ️ No epics found in database for this project');
     }
 
-    console.log('📊 Timeline rows prepared:', this.timelineRows.length, 'rows');
     this.updateDateHeaders();
     this.cdr.detectChanges();
   }
@@ -1071,8 +955,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   onIssueClick(event: Event, issueId: string): void {
     event.stopPropagation(); // Prevent any parent clicks
     
-    console.log('🖱️ Issue clicked:', issueId);
-    
     // First try to find in allIssues (main source of truth)
     let foundIssue = this.allIssues.find(i => i.id === issueId);
     
@@ -1087,12 +969,9 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }
     
     if (foundIssue) {
-      console.log('✅ Found issue:', foundIssue.title);
       this.selectedIssueForModal = { ...foundIssue };
       this.isIssueModalOpen = true;
       this.cdr.detectChanges(); // Trigger change detection
-    } else {
-      console.log('❌ Issue not found:', issueId);
     }
   }
 
@@ -1448,7 +1327,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       .map(epic => epic.name)
       .filter(name => name && name.trim() !== '');
     
-    console.log('🔍 Available epics with valid dates:', epicNames);
     return epicNames;
   }
 
