@@ -67,7 +67,7 @@
                   </svg>
                 </div>
                 <div class="stat-info">
-                  <div class="stat-value">{{ teams().length }}</div>
+                  <div class="stat-value">{{ teamCount().totalTeams }}</div>
                   <div class="stat-label">Total Teams</div>
                 </div>
               </div>
@@ -80,7 +80,7 @@
                   </svg>
                 </div>
                 <div class="stat-info">
-                  <div class="stat-value">{{ activeTeamsCount() }}</div>
+                  <div class="stat-value">{{ teamCount().activeTeams }}</div>
                   <div class="stat-label">Active Teams</div>
                 </div>
               </div>
@@ -94,7 +94,7 @@
                   </svg>
                 </div>
                 <div class="stat-info">
-                  <div class="stat-value">{{ totalMembersCount() }}</div>
+                  <div class="stat-value">{{ teamCount().assignedMembersCount }}</div>
                   <div class="stat-label">Total Members</div>
                 </div>
               </div>
@@ -181,7 +181,7 @@
               <app-team-form
                 [mode]="viewMode() === 'create' ? 'create' : 'edit'"
                 [team]="selectedTeamForEdit()"
-                [availableMembers]="availableMembers"
+                [availableMembers]="availableMembers()"
                 [projectId]="currentProjectId() || '1'"
                 (submitForm)="viewMode() === 'create' ? handleCreateTeam($event) : handleUpdateTeam($event)"
                 (cancel)="showList()"

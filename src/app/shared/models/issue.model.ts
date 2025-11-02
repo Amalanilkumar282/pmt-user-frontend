@@ -25,6 +25,7 @@ export interface Issue {
   startDate?: Date;
   dueDate?: Date;
   endDate?: Date; // Estimated completion date
+  completedAt?: Date; // When the issue was marked as DONE
   parentId?: string;
   parentIssueId?: string | null; // Backend field name
   epicId?: string;

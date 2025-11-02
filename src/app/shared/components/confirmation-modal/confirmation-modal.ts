@@ -31,11 +31,11 @@ export class ConfirmationModal {
       case 'danger':
         return 'text-red-500';
       case 'warning':
-        return 'text-amber-500';
+        return 'text-blue-500';
       case 'info':
         return 'text-blue-500';
       default:
-        return 'text-amber-500';
+        return 'text-blue-500';
     }
   }
 
@@ -44,11 +44,11 @@ export class ConfirmationModal {
       case 'danger':
         return 'bg-red-50';
       case 'warning':
-        return 'bg-amber-50';
+        return 'bg-blue-50';
       case 'info':
         return 'bg-blue-50';
       default:
-        return 'bg-amber-50';
+        return 'bg-blue-50';
     }
   }
 
@@ -57,11 +57,11 @@ export class ConfirmationModal {
       case 'danger':
         return 'bg-red-600 hover:bg-red-700 focus:ring-red-500';
       case 'warning':
-        return 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500';
+        return 'bg-[#3D62A8] hover:bg-[#2F4D8C] focus:ring-[#3D62A8]';
       case 'info':
-        return 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500';
+        return 'bg-[#3D62A8] hover:bg-[#2F4D8C] focus:ring-[#3D62A8]';
       default:
-        return 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500';
+        return 'bg-[#3D62A8] hover:bg-[#2F4D8C] focus:ring-[#3D62A8]';
     }
   }
 }

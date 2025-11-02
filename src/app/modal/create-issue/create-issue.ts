@@ -378,9 +378,14 @@ shakeFields: Set<string> = new Set();
           ...this.formData,
           uploadedFileUrl: this.uploadedFileUrl
         };
-        console.log('Submitting with uploadedFileUrl:', this.uploadedFileUrl);
-        console.log('Full submission data:', submissionData);
+        console.log('[CreateIssueModal] Submitting with onSubmit callback');
+        console.log('[CreateIssueModal] Full submission data:', submissionData);
+        
+        // Call the onSubmit callback
         cfg.onSubmit(submissionData);
+        
+        // Close the modal after callback
+        this.close();
         return;
       }
     }

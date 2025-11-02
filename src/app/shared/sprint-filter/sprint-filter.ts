@@ -2,11 +2,14 @@ import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angu
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-// You can define this interface in a shared model file if used elsewhere
+// Import the Sprint interface from board models to ensure type consistency
 export interface Sprint {
   id: string;
   name: string;
   status: 'ACTIVE' | 'COMPLETED' | 'PLANNED';
+  teamId?: number;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 @Component({
@@ -20,25 +23,26 @@ export class SprintFilterComponent implements OnInit, OnChanges {
   /** ✅ List of sprints to display */
   @Input() sprints: Sprint[] = [];
 
-  /** ✅ Currently selected sprint ID */
-  @Input() selectedSprint: string = 'all';
+  /** ✅ Currently selected sprint ID (sprint id string or null when none selected) */
+  @Input() selectedSprint: string | null = null;
 
   /** ✅ Emits whenever sprint selection changes */
-  @Output() sprintChange = new EventEmitter<string>();
+  @Output() sprintChange = new EventEmitter<string | null>();
 
   ngOnInit(): void {
-    console.log('SprintFilterComponent initialized');
-    console.log('Sprints received:', this.sprints);
-    console.log('Selected sprint:', this.selectedSprint);
+    console.log('[SprintFilter] Component initialized');
+    console.log('[SprintFilter] Sprints received:', this.sprints);
+    console.log('[SprintFilter] Selected sprint:', this.selectedSprint);
   }
 
   ngOnChanges(): void {
-    console.log('SprintFilterComponent - sprints changed:', this.sprints);
+    console.log('[SprintFilter] Sprints changed:', this.sprints);
+    console.log('[SprintFilter] Selected sprint:', this.selectedSprint);
   }
 
   /** Called whenever the dropdown value changes */
-  onSprintChange(sprintId: string): void {
-    console.log('Sprint changed to:', sprintId);
+  onSprintChange(sprintId: string | null): void {
+    console.log('[SprintFilter] Sprint selection changed to:', sprintId);
     this.sprintChange.emit(sprintId);
   }
 }

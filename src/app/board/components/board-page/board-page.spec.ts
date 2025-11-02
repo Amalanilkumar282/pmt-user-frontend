@@ -1,10 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { of } from 'rxjs';
 import { BoardPage } from './board-page';
 import { BoardStore } from '../../board-store';
 import { sprints, backlogIssues } from '../../../shared/data/dummy-backlog-data';
 import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
+import { ProjectContextService } from '../../../shared/services/project-context.service';
+import { BoardService } from '../../services/board.service';
 
 class MockSidebarStateService {
   isCollapsed = signal(false);
@@ -14,10 +20,49 @@ class MockSidebarStateService {
 class MockBoardStore {
   sprints = signal([]);
   columnBuckets = signal([]);
+  columns = signal([]);
   loadData = jasmine.createSpy('loadData');
+  loadBoardData = jasmine.createSpy('loadBoardData').and.returnValue(Promise.resolve());
   addBacklog = jasmine.createSpy('addBacklog');
   selectSprint = jasmine.createSpy('selectSprint');
   updateIssueStatus = jasmine.createSpy('updateIssueStatus');
+}
+
+class MockProjectContextService {
+  currentProjectId = signal('test-project');
+  setCurrentProjectId = jasmine.createSpy('setCurrentProjectId');
+}
+
+class MockBoardService {
+  currentBoard = signal(null);
+  currentBoardId = jasmine.createSpy('currentBoardId').and.returnValue(null);
+  accessProject = jasmine.createSpy('accessProject');
+  loadBoardsByProject = jasmine.createSpy('loadBoardsByProject').and.returnValue(Promise.resolve());
+  loadBoardById = jasmine.createSpy('loadBoardById').and.returnValue(Promise.resolve(null));
+  setCurrentBoard = jasmine.createSpy('setCurrentBoard');
+  getDefaultBoard = jasmine.createSpy('getDefaultBoard').and.returnValue(null);
+  getDefaultTeamBoard = jasmine.createSpy('getDefaultTeamBoard').and.returnValue(null);
+}
+
+class MockActivatedRoute {
+  snapshot = {
+    paramMap: {
+      get: jasmine.createSpy('get').and.returnValue(null)
+    },
+    queryParamMap: {
+      get: jasmine.createSpy('get').and.returnValue(null)
+    }
+  };
+  parent = {
+    snapshot: {
+      paramMap: {
+        get: jasmine.createSpy('get').and.returnValue(null)
+      }
+    },
+    params: of({})
+  };
+  queryParams = of({});
+  params = of({});
 }
 
 describe('BoardPage', () => {
@@ -25,13 +70,23 @@ describe('BoardPage', () => {
   let fixture: ComponentFixture<BoardPage>;
   let mockSidebarService: MockSidebarStateService;
   let mockStore: MockBoardStore;
+  let mockProjectContextService: MockProjectContextService;
+  let mockBoardService: MockBoardService;
+  let mockActivatedRoute: MockActivatedRoute;
 
   beforeEach(async () => {
+    mockActivatedRoute = new MockActivatedRoute();
+    
     await TestBed.configureTestingModule({
       imports: [BoardPage, RouterTestingModule],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: SidebarStateService, useClass: MockSidebarStateService },
-        { provide: BoardStore, useClass: MockBoardStore }
+        { provide: BoardStore, useClass: MockBoardStore },
+        { provide: ProjectContextService, useClass: MockProjectContextService },
+        { provide: BoardService, useClass: MockBoardService },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
     })
     .compileComponents();
@@ -40,6 +95,8 @@ describe('BoardPage', () => {
     component = fixture.componentInstance;
     mockSidebarService = TestBed.inject(SidebarStateService) as any;
     mockStore = TestBed.inject(BoardStore) as any;
+    mockProjectContextService = TestBed.inject(ProjectContextService) as any;
+    mockBoardService = TestBed.inject(BoardService) as any;
   });
 
   it('should create', () => {
@@ -52,12 +109,22 @@ describe('BoardPage', () => {
     expect(component.columns).toBeDefined();
   });
 
-  it('ngOnInit should load data with correct parameters', () => {
-    component.ngOnInit();
+  it('ngOnInit should load data with correct parameters', async () => {
+    // Set up mock route params to return projectId
+    if (mockActivatedRoute.parent?.snapshot.paramMap) {
+      (mockActivatedRoute.parent.snapshot.paramMap.get as jasmine.Spy).and.returnValue('test-project');
+    }
 
-    expect(mockStore.loadData).toHaveBeenCalledWith(sprints);
-    expect(mockStore.addBacklog).toHaveBeenCalledWith(backlogIssues);
-    expect(mockStore.selectSprint).toHaveBeenCalledWith('active-1');
+    // ngOnInit is async, so we await it
+    await component.ngOnInit();
+
+    // Verify project context was set
+    expect(mockProjectContextService.setCurrentProjectId).toHaveBeenCalledWith('test-project');
+    expect(mockBoardService.accessProject).toHaveBeenCalledWith('test-project');
+    
+    // Verify data loading methods were called
+    expect(mockBoardService.loadBoardsByProject).toHaveBeenCalledWith('test-project');
+    expect(mockStore.loadBoardData).toHaveBeenCalledWith('test-project');
   });
 
   it('onToggleSidebar should call sidebar service toggle', () => {
@@ -129,6 +196,8 @@ describe('BoardPage', () => {
     // Verify that services are injected properly
     expect(component['sidebarStateService']).toBeDefined();
     expect(component['store']).toBeDefined();
+    expect(component['projectContextService']).toBeDefined();
+    expect(component['boardService']).toBeDefined();
   });
 
 

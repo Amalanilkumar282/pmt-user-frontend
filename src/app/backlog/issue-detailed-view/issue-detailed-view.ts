@@ -1,9 +1,11 @@
-import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Issue } from '../../shared/models/issue.model';
 import { FormField, ModalService } from '../../modal/modal-service';
 import { users } from '../../shared/data/dummy-backlog-data';
+import { UserApiService, User } from '../../shared/services/user-api.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
 
 export interface Comment {
   id: string;
@@ -22,7 +24,9 @@ export interface Comment {
   styleUrl: './issue-detailed-view.css'
 })
 export class IssueDetailedView {
-  constructor(private modalService: ModalService) {} 
+  private modalService = inject(ModalService);
+  private userApiService = inject(UserApiService);
+  private projectContextService = inject(ProjectContextService);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -42,9 +46,35 @@ export class IssueDetailedView {
   protected _issue = signal<Issue | null>(null);
   protected _isOpen = signal(false);
   protected showMoveDropdown = signal(false);
+  
+  // Project members for assignee dropdown
+  protected projectMembers = signal<User[]>([]);
 
   // Available sprints for moving (will be passed as input)
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
+
+  constructor() {
+    // Load project members when component initializes or project changes
+    effect(() => {
+      const projectId = this.projectContextService.currentProjectId();
+      if (projectId) {
+        this.loadProjectMembers(projectId);
+      }
+    });
+  }
+  
+  private loadProjectMembers(projectId: string): void {
+    this.userApiService.getUsersByProject(projectId).subscribe({
+      next: (members) => {
+        console.log('[IssueDetailedView] Loaded project members:', members);
+        this.projectMembers.set(members);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error loading project members:', error);
+        this.projectMembers.set([]);
+      }
+    });
+  }
 
   // Comment functionality
   protected comments = signal<Comment[]>([]);
@@ -68,13 +98,18 @@ export class IssueDetailedView {
     const issue = this._issue();
     if (!issue) return;
 
-    const userOptions = users.map(u => u.name);
+    // Use project members loaded from API
+    const members = this.projectMembers();
+    const userOptions = members.length > 0 
+      ? members.map(m => ({ id: m.id.toString(), name: m.name }))
+      : users.map(u => ({ id: u.id, name: u.name })); // Fallback to dummy data
+
     const fields: FormField[] = [
       { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required: true },
       { label: 'Title', type: 'text', model: 'title', colSpan: 2, required: true },
       { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
       { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
-      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
+      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions.map(u => u.name), colSpan: 1 },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
       { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
@@ -91,6 +126,13 @@ export class IssueDetailedView {
       case 'MEDIUM': priority = 'Medium'; break;
       case 'LOW': priority = 'Low'; break;
       default: priority = ''; break;
+    }
+
+    // Find assignee name from ID
+    let assigneeName = '';
+    if (issue.assignee) {
+      const assigneeUser = members.find(m => m.id.toString() === issue.assignee);
+      assigneeName = assigneeUser?.name || '';
     }
 
     // Helper function to convert Date to YYYY-MM-DD format for date inputs
@@ -115,7 +157,7 @@ export class IssueDetailedView {
         title: issue.title || '',
         description: issue.description || '',
         priority,
-        assignee: issue.assignee || '',
+        assignee: assigneeName,
         startDate: formatDateForInput(issue.startDate),
         dueDate: formatDateForInput(issue.dueDate),
         sprint: issue.sprintId || '',
@@ -125,9 +167,52 @@ export class IssueDetailedView {
         labels: issue.labels || []
       },
       showLabels: true,
-      submitText: 'Save Changes'
+      submitText: 'Save Changes',
+      onSubmit: (formData: any) => {
+        // Convert form data back to Issue partial updates
+        const updates: Partial<Issue> = {};
+        
+        if (formData.issueType) {
+          updates.type = formData.issueType.toUpperCase();
+        }
+        if (formData.title) {
+          updates.title = formData.title;
+        }
+        if (formData.description !== undefined) {
+          updates.description = formData.description;
+        }
+        if (formData.priority) {
+          updates.priority = formData.priority.toUpperCase();
+        }
+        if (formData.assignee) {
+          // Convert assignee name back to ID
+          const assigneeUser = members.find(m => m.name === formData.assignee);
+          updates.assignee = assigneeUser ? assigneeUser.id.toString() : undefined;
+        }
+        if (formData.startDate) {
+          updates.startDate = new Date(formData.startDate);
+        }
+        if (formData.dueDate) {
+          updates.dueDate = new Date(formData.dueDate);
+        }
+        if (formData.sprint) {
+          updates.sprintId = formData.sprint;
+        }
+        if (formData.storyPoint) {
+          updates.storyPoints = Number(formData.storyPoint);
+        }
+        if (formData.parentEpic) {
+          updates.epicId = formData.parentEpic;
+        }
+        if (formData.labels) {
+          updates.labels = formData.labels;
+        }
+        
+        console.log('[IssueDetailedView] Emitting issue updates:', updates);
+        this.updateIssue.emit(updates);
+      }
     });
-}
+  }
 
 
 
