@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IssueList } from '../issue-list/issue-list';
 import { IssueDetailedView } from '../issue-detailed-view/issue-detailed-view';
 import { Issue } from '../../shared/models/issue.model';
+import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
 
 @Component({
   selector: 'app-backlog-container',
@@ -13,6 +14,8 @@ import { Issue } from '../../shared/models/issue.model';
   styleUrl: './backlog-container.css'
 })
 export class BacklogContainer {
+  private issueService = inject(IssueService);
+  
   // Backlog issues: use a signal so derived/computed values react when
   // the Input is updated. This ensures `paginatedIssues` recomputes when
   // tests or parent components replace the array.
@@ -123,6 +126,58 @@ export class BacklogContainer {
 
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
+  }
+
+  onUpdateIssue(updates: Partial<Issue>): void {
+    const issue = this.selectedIssue();
+    if (!issue) return;
+
+    console.log('[BacklogContainer] Updating issue:', issue.id, updates);
+
+    // Helper to format dates to UTC ISO string
+    const formatDateToUTC = (date: Date | string | undefined): string | null => {
+      if (!date) return null;
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString();
+    };
+
+    // Build the update request matching the backend API format
+    const updateReq: UpdateIssueRequest = {
+      projectId: issue.projectId || '',
+      issueType: (updates.type || issue.type || 'TASK').toUpperCase(),
+      title: updates.title || issue.title,
+      description: updates.description !== undefined ? updates.description : (issue.description || ''),
+      priority: (updates.priority || issue.priority || 'MEDIUM').toUpperCase(),
+      assigneeId: updates.assignee ? parseInt(updates.assignee) : (issue.assigneeId || null),
+      startDate: formatDateToUTC(updates.startDate !== undefined ? updates.startDate : issue.startDate),
+      dueDate: formatDateToUTC(updates.dueDate !== undefined ? updates.dueDate : issue.dueDate),
+      sprintId: updates.sprintId !== undefined ? updates.sprintId : (issue.sprintId || null),
+      storyPoints: updates.storyPoints !== undefined ? updates.storyPoints : (issue.storyPoints || 0),
+      epicId: updates.epicId !== undefined ? updates.epicId : (issue.epicId || null),
+      reporterId: issue.reporterId || null,
+      attachmentUrl: updates.attachmentUrl !== undefined ? updates.attachmentUrl : (issue.attachmentUrl || null),
+      statusId: issue.statusId || 1,
+      labels: updates.labels ? JSON.stringify(updates.labels) : (issue.labels ? JSON.stringify(issue.labels) : null)
+    };
+
+    console.log('[BacklogContainer] Sending update request:', updateReq);
+
+    // Call the API
+    this.issueService.updateIssue(issue.id, updateReq).subscribe({
+      next: (response) => {
+        console.log('[BacklogContainer] Issue updated successfully:', response);
+        
+        // Update the local issue in the list
+        const updatedIssue: Issue = { ...issue, ...updates };
+        this.issues = this.issues.map(i => i.id === issue.id ? updatedIssue : i);
+        this.selectedIssue.set(updatedIssue);
+      },
+      error: (error) => {
+        console.error('[BacklogContainer] Failed to update issue:', error);
+        alert('Failed to update issue. Please try again.');
+      }
+    });
   }
 
   onDrop(event: CdkDragDrop<Issue[]>): void {
