@@ -89,8 +89,8 @@ export class BurnupChart implements OnInit {
             ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
           ];
 
-          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
-          
+          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || null;
+
           // Set initial sprint data
           const initialSprint = activeSprint || allSprints[0];
           if (initialSprint) {
@@ -101,11 +101,11 @@ export class BurnupChart implements OnInit {
             };
           }
           
-          // Trigger change detection
-          this.cdr.detectChanges();
-          
-          // Load initial chart data
-          this.updatechartData();
+          // Defer change detection to avoid ExpressionChangedAfterItHasBeenCheckedError
+          Promise.resolve().then(() => {
+            this.cdr.detectChanges();
+            this.updatechartData();
+          });
         },
         error: (error) => {
           console.error('BurnupChart - Error loading sprints from API:', error);
