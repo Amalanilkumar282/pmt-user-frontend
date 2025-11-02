@@ -94,11 +94,12 @@ export class BoardOptionsMenu {
       this.boardService.deleteBoard(board.id);
       this.closeDeleteConfirmation();
       
-      // Navigate to default board for this project
-      const defaultBoard = this.boardService.getDefaultBoard(board.projectId, 'user-1');
-      if (defaultBoard) {
-        this.store.loadBoard(defaultBoard.id);
-      }
+      // Navigate to default board for this project (async)
+      this.boardService.getDefaultBoard(board.projectId, 'user-1').then(defaultBoard => {
+        if (defaultBoard) {
+          this.store.loadBoard(defaultBoard.id);
+        }
+      });
     }
   }
 }

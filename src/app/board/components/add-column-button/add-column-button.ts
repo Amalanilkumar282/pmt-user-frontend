@@ -105,6 +105,10 @@ export class AddColumnButton {
     }, 200);
   }
 
+  closeStatusDropdown() {
+    this.showStatusDropdown = false;
+  }
+
   onStatusSearch(event: Event) {
     const input = event.target as HTMLInputElement;
     let value = input.value.trim();

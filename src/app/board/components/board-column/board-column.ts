@@ -7,6 +7,7 @@ import { BoardStore } from '../../board-store';
 import { TaskCard } from '../task-card/task-card';
 import { QuickCreateIssue, QuickCreateIssueData } from '../quick-create-issue/quick-create-issue';
 import { ConfirmationModal } from '../../../shared/components/confirmation-modal/confirmation-modal';
+import { ProjectContextService } from '../../../shared/services/project-context.service';
 
 interface GroupedIssues {
   groupName: string;
@@ -23,6 +24,7 @@ interface GroupedIssues {
 })
 export class BoardColumn {
   private store = inject(BoardStore);
+  private projectContextService = inject(ProjectContextService);
   
   @Output() openIssue = new EventEmitter<Issue>();
   @Output() openIssueComments = new EventEmitter<Issue>();
@@ -94,8 +96,8 @@ export class BoardColumn {
     this.openIssueComments.emit(issue);
   }
 
-  drop(event: CdkDragDrop<Issue[]>) {
-    // Same container - reorder within column
+  async drop(event: CdkDragDrop<Issue[]>) {
+    // Same container - reorder within column (no API call needed)
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       
@@ -107,10 +109,11 @@ export class BoardColumn {
       return;
     }
     
-    // Different container - move between columns  
+    // Different container - move between columns and update via API
     const item = event.previousContainer.data[event.previousIndex];
+    const projectId = this.projectContextService.currentProjectId();
     
-    // Transfer the item
+    // Optimistic update - transfer the item in UI
     transferArrayItem(
       event.previousContainer.data,
       event.container.data,
@@ -118,12 +121,43 @@ export class BoardColumn {
       event.currentIndex
     );
     
-    // Sync both source and destination items arrays if needed
-    const sourceColumn = (event.previousContainer as any)._element?.nativeElement?.closest?.('app-board-column');
-    const destColumn = (event.container as any)._element?.nativeElement?.closest?.('app-board-column');
-    
-    // Update status in store (this will trigger re-render with correct data)
-    this.store.updateIssueStatus(item.id, this.def.id as IssueStatus);
+    // Call backend API to persist the status change
+    if (this.def.statusId !== undefined && projectId && item) {
+      try {
+        console.log('[BoardColumn] Drag-drop: Updating issue status via API', {
+          issueId: item.id,
+          issueKey: item.key,
+          fromStatus: item.statusId,
+          toStatus: this.def.statusId,
+          columnName: this.def.title
+        });
+        
+        await this.store.updateIssueStatusApi(item.id, this.def.statusId, projectId);
+        
+        console.log('[BoardColumn] Issue status updated successfully');
+      } catch (error) {
+        console.error('[BoardColumn] Failed to update issue status:', error);
+        
+        // Rollback UI change on error
+        transferArrayItem(
+          event.container.data,
+          event.previousContainer.data,
+          event.currentIndex,
+          event.previousIndex
+        );
+        
+        alert('Failed to update issue status. Please try again.');
+      }
+    } else {
+      console.error('[BoardColumn] Missing data for status update:', {
+        statusId: this.def.statusId,
+        projectId,
+        issue: item?.id
+      });
+      
+      // Fallback to local update if API data is missing
+      this.store.updateIssueStatus(item.id, this.def.id as IssueStatus);
+    }
   }
 
   onDeleteColumn() {

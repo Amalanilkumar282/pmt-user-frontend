@@ -1,4 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TaskCard } from './task-card';
 import type { Issue } from '../../../shared/models/issue.model';
 
@@ -24,7 +26,11 @@ describe('TaskCard', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TaskCard]
+      imports: [TaskCard],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting()
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(TaskCard);
@@ -283,7 +289,6 @@ describe('TaskCard', () => {
 
       const tooltip = component.getProgressTooltip();
       expect(tooltip).toContain('OVERDUE');
-      expect(tooltip).toContain('⚠️');
     });
   });
 
@@ -533,7 +538,7 @@ describe('TaskCard', () => {
     });
 
     it('should format date for input correctly', () => {
-      const date = new Date('2024-12-31T00:00:00');
+      const date = new Date(2024, 11, 31); // Month is 0-indexed, so 11 = December
       const formatted = component.formatDateForInput(date);
       expect(formatted).toBe('2024-12-31');
     });

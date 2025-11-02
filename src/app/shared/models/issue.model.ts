@@ -4,11 +4,13 @@ export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCK
 
 export interface Issue {
   id: string;
+  key?: string; // Issue key like PROJ-123
   title: string;
   description: string;
   type: IssueType;
   priority: IssuePriority;
   status: IssueStatus;
+  statusId?: number;  // Backend status ID for column matching
   assignee?: string;
   storyPoints?: number;
   sprintId?: string;
