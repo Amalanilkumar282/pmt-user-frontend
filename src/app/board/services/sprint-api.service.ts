@@ -42,11 +42,12 @@ export class SprintApiService {
    */
   private mapSprintApiToSprint(apiSprint: SprintApi): Sprint {
     return {
-      id: apiSprint.id,
+      id: String(apiSprint.id), // Ensure ID is always a string
       name: apiSprint.name,
       startDate: new Date(apiSprint.startDate),
       endDate: new Date(apiSprint.dueDate),
       status: this.mapSprintStatus(apiSprint.status),
+      teamId: apiSprint.teamId,
       issues: [] // Issues will be loaded separately
     };
   }

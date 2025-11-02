@@ -9,7 +9,7 @@
       <!-- Sprint Filter - Only show for TEAM boards -->
       <div *ngIf="showSprintFilter()" class="flex items-center pt-6 gap-2 text-sm">
         <app-sprint-filter
-          [sprints]="sprints()"
+          [sprints]="availableSprints()"
           [selectedSprint]="selectedSprintId()"
           (sprintChange)="selectSprint($event)">
         </app-sprint-filter>
