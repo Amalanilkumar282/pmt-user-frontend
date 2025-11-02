@@ -21,6 +21,24 @@ export interface CreateIssueRequest {
 	labels: string | undefined;
 }
 
+export interface UpdateIssueRequest {
+	projectId: string;
+	issueType: string;
+	title: string;
+	description: string;
+	priority: string;
+	assigneeId: number | null;
+	startDate: string | null;
+	dueDate: string | null;
+	sprintId: string | null;
+	storyPoints: number;
+	epicId: string | null;
+	reporterId: number | null;
+	attachmentUrl: string | null;
+	statusId: number;
+	labels: string | null;
+}
+
 export interface CreateIssueResponse {
 	status: number;
 	data: {
@@ -39,6 +57,12 @@ export interface CreateIssueResponse {
 		attachmentUrl: string;
 		labels: string;
 	};
+	message: string;
+}
+
+export interface UpdateIssueResponse {
+	status: number;
+	data: any;
 	message: string;
 }
 
@@ -126,5 +150,14 @@ export class IssueService {
 		console.log('Auth token from sessionStorage:', token ? 'Token found' : 'No token found');
 		const headers = { 'Authorization': `Bearer ${token}` };
 		return this.http.post<CreateIssueResponse>(this.baseUrl, issue, { headers });
+	}
+
+	/**
+	 * Update an existing issue
+	 */
+	updateIssue(issueId: string, issue: UpdateIssueRequest): Observable<UpdateIssueResponse> {
+		const url = `${this.baseUrl}/${issueId}`;
+		console.log('Updating issue:', issueId, issue);
+		return this.http.put<UpdateIssueResponse>(url, issue, { headers: this.getAuthHeaders() });
 	}
 }
