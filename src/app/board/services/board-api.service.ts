@@ -208,6 +208,7 @@ export class BoardApiService {
     
     return {
       id: apiColumn.statusName as any,  // Keep as statusName for backward compatibility
+      columnId: apiColumn.id,  // Store the backend column database ID for API operations
       title: apiColumn.boardColumnName,  // Display the custom column name
       color: apiColumn.boardColor,
       position: apiColumn.position,

@@ -78,6 +78,41 @@ export class BoardStore {
       this.selectedSprintId.set(pick);
     }
   });
+
+  // Ensure that when the current board changes we immediately select that board's active sprint
+  // This handles the case where boards are switched after sprints have already been loaded
+  private _onBoardChange = effect(() => {
+    const board = this.currentBoard();
+    const allSprints = this._sprints();
+    console.log('[BoardStore._onBoardChange] Detected board change:', board?.id);
+
+    if (!board) {
+      // No board context -> clear selection
+      this.selectedSprintId.set(null);
+      return;
+    }
+
+    // Only apply sprint selection for team boards
+    if (!board.teamId) {
+      this.selectedSprintId.set(null);
+      return;
+    }
+
+    const boardTeamId = String(board.teamId);
+    const teamSprints = allSprints.filter(s => String(s.teamId) === boardTeamId);
+    const active = teamSprints.find(s => s.status === 'ACTIVE');
+
+    if (active) {
+      console.log('[BoardStore._onBoardChange] Selecting active sprint for board:', active.id);
+      this.selectedSprintId.set(active.id);
+    } else if (teamSprints.length > 0) {
+      console.log('[BoardStore._onBoardChange] No active sprint - defaulting to first team sprint:', teamSprints[0].id);
+      this.selectedSprintId.set(teamSprints[0].id);
+    } else {
+      console.log('[BoardStore._onBoardChange] No team sprints available for board - clearing selection');
+      this.selectedSprintId.set(null);
+    }
+  });
   issues = computed(() => this._issues());
   loadingIssues = this._loadingIssues.asReadonly();
   loadingSprints = this._loadingSprints.asReadonly();
