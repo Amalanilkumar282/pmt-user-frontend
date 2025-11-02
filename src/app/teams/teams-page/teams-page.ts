@@ -232,7 +232,21 @@ export class TeamsPage implements OnInit {
 
   handleDeleteTeam(teamId: string): void {
     if (confirm('Are you sure you want to delete this team? This action cannot be undone.')) {
-      this.teamsService.deleteTeam(teamId);
+      this.teamsService.deleteTeam(teamId).subscribe({
+        next: () => {
+          // Optionally refresh the teams list from server or rely on local update
+          const projectId = this.currentProjectId();
+          if (projectId) {
+            this.teamsService.getTeamsByProjectId(projectId).subscribe();
+          }
+          // Ensure view is updated
+          this.showList();
+        },
+        error: (error) => {
+          console.error('Error deleting team:', error);
+          alert('Failed to delete team. Please check the console for details.');
+        }
+      });
     }
   }
 

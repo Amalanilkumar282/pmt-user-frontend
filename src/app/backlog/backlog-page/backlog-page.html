@@ -157,11 +157,20 @@
   <!-- All Issues View -->
   @if (currentView === 'all-issues') {
     <section>
-      <app-all-issues-list 
-        [issues]="allIssues"
-        [availableSprints]="availableSprintsForMove"
-        (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
-      </app-all-issues-list>
+      @if (isLoadingIssues) {
+        <div class="flex items-center justify-center py-12">
+          <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600 mb-4"></div>
+            <p class="text-gray-600">Loading issues...</p>
+          </div>
+        </div>
+      } @else {
+        <app-all-issues-list 
+          [issues]="allIssues"
+          [availableSprints]="availableSprintsForMove"
+          (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+        </app-all-issues-list>
+      }
     </section>
   }
   </div>
