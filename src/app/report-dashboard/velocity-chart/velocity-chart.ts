@@ -141,11 +141,11 @@ export class VelocityChart implements OnInit {
       this.location.back();
 
   }
-  onSprintFilterChange(sprintId: string): void {
+  onSprintFilterChange(sprintId: string | null): void {
     this.selectedSprintId = sprintId;
     
     // Update sprint data for the chart
-    const selectedSprint = this.sprints.find(s => s.id === sprintId);
+    const selectedSprint = sprintId ? this.sprints.find(s => s.id === sprintId) : undefined;
     if (selectedSprint) {
       this.selectedSprintData = {
         name: selectedSprint.name,
