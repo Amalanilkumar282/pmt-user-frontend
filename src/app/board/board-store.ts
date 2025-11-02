@@ -4,14 +4,21 @@ import type { IssueStatus } from '../shared/models/issue.model';
 import type { FilterState, GroupBy, Sprint, BoardColumnDef } from './models';
 import { DEFAULT_COLUMNS, fuzzyIncludes, statusOrder, priorityOrder } from './utils';
 import { BoardService } from './services/board.service';
+import { IssueApiService } from './services/issue-api.service';
+import { SprintApiService } from './services/sprint-api.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class BoardStore {
   private boardService = inject(BoardService);
+  private issueApiService = inject(IssueApiService);
+  private sprintApiService = inject(SprintApiService);
   
-  // raw data (inject your dummy data at module bootstrap or here)
+  // raw data
   private _issues = signal<Issue[]>([]);
   private _sprints = signal<Sprint[]>([]);
+  private _loadingIssues = signal<boolean>(false);
+  private _loadingSprints = signal<boolean>(false);
 
   // UI state
   selectedSprintId = signal<string | 'BACKLOG'>('BACKLOG');
@@ -25,8 +32,65 @@ export class BoardStore {
 
   // derived
   sprints = computed(() => this._sprints());
-
   issues = computed(() => this._issues());
+  loadingIssues = this._loadingIssues.asReadonly();
+  loadingSprints = this._loadingSprints.asReadonly();
+  
+  /**
+   * Load issues from backend API
+   */
+  async loadIssuesByProject(projectId: string): Promise<void> {
+    try {
+      console.log('[BoardStore] Loading issues for project:', projectId);
+      this._loadingIssues.set(true);
+      const issues = await firstValueFrom(this.issueApiService.getIssuesByProject(projectId));
+      this._issues.set(issues);
+      console.log('[BoardStore] Loaded issues from API:', issues.length, issues);
+      
+      // Log issue distribution by status
+      if (issues.length > 0) {
+        const statusCounts = issues.reduce((acc, issue) => {
+          acc[issue.status] = (acc[issue.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        console.log('[BoardStore] Issue distribution by status:', statusCounts);
+      } else {
+        console.warn('[BoardStore] No issues returned from API');
+      }
+    } catch (error) {
+      console.error('[BoardStore] Error loading issues:', error);
+      this._issues.set([]);
+    } finally {
+      this._loadingIssues.set(false);
+    }
+  }
+  
+  /**
+   * Load sprints from backend API
+   */
+  async loadSprintsByProject(projectId: string): Promise<void> {
+    try {
+      this._loadingSprints.set(true);
+      const sprints = await firstValueFrom(this.sprintApiService.getSprintsByProject(projectId));
+      this._sprints.set(sprints);
+      console.log('[BoardStore] Loaded sprints from API:', sprints.length);
+    } catch (error) {
+      console.error('[BoardStore] Error loading sprints:', error);
+      this._sprints.set([]);
+    } finally {
+      this._loadingSprints.set(false);
+    }
+  }
+  
+  /**
+   * Load all board data (issues + sprints) for a project
+   */
+  async loadBoardData(projectId: string): Promise<void> {
+    await Promise.all([
+      this.loadIssuesByProject(projectId),
+      this.loadSprintsByProject(projectId)
+    ]);
+  }
 
   // visible issues after board context + sprint selection + filters + search
   visibleIssues = computed(() => {
@@ -40,26 +104,29 @@ export class BoardStore {
     // Board-based filtering with null safety
     if (board) {
       // If board is team-based, filter issues by team
-      if (board.type === 'TEAM' && board.teamId) {
+      if (board.teamId) {
+        // Team board - issues should be from this team only
         list = list.filter(i => i.teamId === board.teamId);
       }
-      // If board is project-based, show all issues from the project
+      // If board has no teamId (default/project board), show all issues from the project
       // (no additional filtering needed as issues are already project-scoped)
     }
 
-    // Sprint filter - only apply if board type is TEAM or if no board is loaded
-    if (!board || board.type === 'TEAM') {
-      // For team boards or no board, always apply sprint filtering
+    // Sprint filter - Only apply if board is present and is a team board (has teamId)
+    if (board && board.teamId) {
+      // For team boards, apply sprint filtering: BACKLOG = issues not assigned to a sprint
       list = sprintId === 'BACKLOG'
         ? list.filter(i => !i.sprintId)
         : list.filter(i => i.sprintId === sprintId);
-    } else if (board.type === 'PROJECT') {
-      // For project boards, show all sprints combined (no sprint filtering)
-      // Only filter backlog items if includeBacklog is false
-      if (!board.includeBacklog) {
-        list = list.filter(i => i.sprintId); // Exclude backlog items
+    } else {
+      // For default/project boards (no teamId) or when there's no board context,
+      // show ALL issues regardless of sprint. This matches the requirement that
+      // project/default boards display all project issues.
+      if (board) {
+        console.log('[BoardStore] Default/project board - showing all issues (no sprint filter)');
+      } else {
+        console.log('[BoardStore] No board context - showing all issues (no sprint filter)');
       }
-      // Otherwise show all issues regardless of sprint
     }
 
     // filters with null safety
@@ -78,8 +145,18 @@ export class BoardStore {
       );
     }
 
-    // stable ordering
-    return list.sort((a,b) => statusOrder[a.status]-statusOrder[b.status] || a.updatedAt.getTime()-b.updatedAt.getTime());
+    // stable ordering - sort by status first, then by createdAt, then by updatedAt as tiebreaker
+    // This prevents card jumping when titles are updated while maintaining predictable order
+    return list.sort((a,b) => {
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      
+      const createdDiff = a.createdAt.getTime() - b.createdAt.getTime();
+      if (createdDiff !== 0) return createdDiff;
+      
+      // Tiebreaker: use updatedAt for items created at the same time
+      return a.updatedAt.getTime() - b.updatedAt.getTime();
+    });
   });
 
   // columns with their issues
@@ -87,6 +164,13 @@ export class BoardStore {
     const cols = this.columns();
     const issues = this.visibleIssues();
     const groupByType = this.groupBy();
+    
+    console.log('[BoardStore] Computing columnBuckets:', {
+      columnsCount: cols.length,
+      columns: cols.map(c => c.id),
+      issuesCount: issues.length,
+      issues: issues.map(i => ({ id: i.id, title: i.title, status: i.status }))
+    });
     
     // Helper function to sort issues by priority
     const sortByPriority = (issueList: Issue[]): Issue[] => {
@@ -103,10 +187,33 @@ export class BoardStore {
     
     // If no grouping, return regular columns with priority-sorted issues
     if (groupByType === 'NONE') {
-      return cols.map(c => ({
-        def: c,
-        items: sortByPriority(issues.filter(i => i.status === c.id))
-      }));
+      const buckets = cols.map(c => {
+        // CRITICAL: Match by statusId, not status name
+        const columnIssues = issues.filter(i => i.statusId === c.statusId);
+        console.log(`[BoardStore] Column "${c.title}" (statusId=${c.statusId}): ${columnIssues.length} issues`);
+        if (columnIssues.length > 0) {
+          console.log(`[BoardStore] Column "${c.title}" matched issues:`, columnIssues.map(i => ({ 
+            key: i.key, 
+            title: i.title, 
+            statusId: i.statusId 
+          })));
+        }
+        return {
+          def: c,
+          items: sortByPriority(columnIssues)
+        };
+      });
+      console.log('[BoardStore] Final buckets:', buckets.map(b => ({ 
+        column: b.def.title, 
+        statusId: b.def.statusId,
+        count: b.items.length 
+      })));
+      console.log('[BoardStore] All issues with statusId:', issues.map(i => ({ 
+        key: i.key, 
+        statusId: i.statusId,
+        title: i.title 
+      })));
+      return buckets;
     }
     
     // Group by Assignee - within each column, group issues by assignee
@@ -241,15 +348,15 @@ export class BoardStore {
       // Team boards: Show ACTIVE sprint issues by default
       const activeSprint = this._sprints().find(s => s.status === 'ACTIVE');
       if (activeSprint) {
-        console.log('📋 loadBoard - Team board, selecting active sprint:', activeSprint.id);
+        console.log('[BoardStore] loadBoard - Team board, selecting active sprint:', activeSprint.id);
         this.selectedSprintId.set(activeSprint.id);
       } else {
-        console.log('📋 loadBoard - Team board, no active sprint, selecting BACKLOG');
+        console.log('[BoardStore] loadBoard - Team board, no active sprint, selecting BACKLOG');
         this.selectedSprintId.set('BACKLOG');
       }
     } else if (board.type === 'PROJECT') {
       // Project boards: Show ALL issues (BACKLOG shows everything)
-      console.log('📋 loadBoard - Project board, selecting BACKLOG (all issues)');
+      console.log('[BoardStore] loadBoard - Project board, selecting BACKLOG (all issues)');
       this.selectedSprintId.set('BACKLOG');
     }
     
@@ -262,12 +369,95 @@ export class BoardStore {
   clearFilters() { this.filters.set({ assignees: [], workTypes: [], labels: [], statuses: [], priorities: [] }); }
   setGroupBy(g: GroupBy) { this.groupBy.set(g); }
 
+  /**
+   * Update issue status (API-backed) - used for drag-and-drop
+   */
+  async updateIssueStatusApi(issueId: string, statusId: number, projectId: string): Promise<void> {
+    try {
+      console.log('[BoardStore] Updating issue status via API:', { issueId, statusId, projectId });
+      
+      // Find the full issue object
+      const issue = this._issues().find(i => i.id === issueId);
+      if (!issue) {
+        throw new Error(`Issue ${issueId} not found in store`);
+      }
+      
+      // Create full DTO with all required fields
+      const dto = this.issueApiService.mapIssueToUpdateDto(issue, projectId, { statusId });
+      await firstValueFrom(this.issueApiService.updateIssue(dto));
+      
+      // Update local state optimistically after successful API call
+      this._issues.update(list => list.map(i => 
+        i.id === issueId 
+          ? { ...i, statusId, updatedAt: new Date() }
+          : i
+      ));
+      
+      console.log('[BoardStore] Issue status updated successfully');
+    } catch (error) {
+      console.error('[BoardStore] Error updating issue status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update issue with partial fields (API-backed) - used for issue detail edits
+   */
+  async updateIssueApi(issueId: string, projectId: string, updates: Partial<Issue>): Promise<void> {
+    try {
+      console.log('[BoardStore] Updating issue via API:', { issueId, projectId, updates });
+      
+      // Find the full issue object
+      const issue = this._issues().find(i => i.id === issueId);
+      if (!issue) {
+        throw new Error(`Issue ${issueId} not found in store`);
+      }
+      
+      // Create full DTO with all required fields
+      const dto = this.issueApiService.mapIssueToUpdateDto(issue, projectId, updates);
+      await firstValueFrom(this.issueApiService.updateIssue(dto));
+      
+      // Update local state optimistically after successful API call
+      this._issues.update(list => list.map(i => 
+        i.id === issueId 
+          ? { ...i, ...updates, updatedAt: new Date() }
+          : i
+      ));
+      
+      console.log('[BoardStore] Issue updated successfully');
+    } catch (error) {
+      console.error('[BoardStore] Error updating issue:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create new issue (API-backed)
+   */
+  async createIssueApi(issueData: Partial<Issue>, projectId: string): Promise<void> {
+    try {
+      const dto = this.issueApiService.mapIssueToCreateDto(issueData, projectId);
+      await firstValueFrom(this.issueApiService.createIssue(dto));
+      // Reload issues after creation
+      await this.loadIssuesByProject(projectId);
+      console.log('[BoardStore] Issue created');
+    } catch (error) {
+      console.error('[BoardStore] Error creating issue:', error);
+      throw error;
+    }
+  }
+
+  // Legacy local-only methods (for offline mode or fallback)
   updateIssueStatus(issueId: string, status: IssueStatus) {
     this._issues.update(list => list.map(i => i.id === issueId ? ({...i, status, updatedAt: new Date()}) : i));
   }
 
   updateIssueTitle(issueId: string, newTitle: string) {
     this._issues.update(list => list.map(i => i.id === issueId ? ({...i, title: newTitle, updatedAt: new Date()}) : i));
+  }
+
+  updateIssueDescription(issueId: string, newDescription: string) {
+    this._issues.update(list => list.map(i => i.id === issueId ? ({...i, description: newDescription, updatedAt: new Date()}) : i));
   }
 
   updateIssueAssignee(issueId: string, assignee: string | undefined) {
@@ -280,12 +470,15 @@ export class BoardStore {
 
   createIssue(issueData: Partial<Issue>): Issue {
     const newIssue: Issue = {
-      id: `ISSUE-${Date.now()}`,
+      // Use timestamp plus a small random suffix to avoid collisions when
+      // createIssue is called multiple times rapidly in tests.
+      id: `ISSUE-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
       title: issueData.title || 'Untitled Issue',
       status: issueData.status || 'TODO',
       type: issueData.type || 'TASK',
       priority: issueData.priority || 'MEDIUM',
       assignee: issueData.assignee,
+      dueDate: issueData.dueDate,
       description: issueData.description || '',
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -132,4 +132,22 @@ export class QuickCreateIssue {
     this.showPriorityDropdown.set(false);
     this.showAssigneeDropdown.set(false);
   }
+
+  toggleTypeDropdown(): void {
+    const wasOpen = this.showTypeDropdown();
+    this.closeAllDropdowns();
+    this.showTypeDropdown.set(!wasOpen);
+  }
+
+  togglePriorityDropdown(): void {
+    const wasOpen = this.showPriorityDropdown();
+    this.closeAllDropdowns();
+    this.showPriorityDropdown.set(!wasOpen);
+  }
+
+  toggleAssigneeDropdown(): void {
+    const wasOpen = this.showAssigneeDropdown();
+    this.closeAllDropdowns();
+    this.showAssigneeDropdown.set(!wasOpen);
+  }
 }

@@ -281,19 +281,19 @@ describe('QuickCreateIssue', () => {
     });
 
     it('should return correct icon for BUG', () => {
-      expect(component.getTypeIcon('BUG')).toBe('🐛');
+      expect(component.getTypeIcon('BUG')).toBe('B');
     });
 
     it('should return correct icon for STORY', () => {
-      expect(component.getTypeIcon('STORY')).toBe('📖');
+      expect(component.getTypeIcon('STORY')).toBe('S');
     });
 
     it('should return correct icon for EPIC', () => {
-      expect(component.getTypeIcon('EPIC')).toBe('⚡');
+      expect(component.getTypeIcon('EPIC')).toBe('E');
     });
 
     it('should return correct icon for SUBTASK', () => {
-      expect(component.getTypeIcon('SUBTASK')).toBe('📋');
+      expect(component.getTypeIcon('SUBTASK')).toBe('ST');
     });
 
     it('should return default icon for unknown type', () => {
