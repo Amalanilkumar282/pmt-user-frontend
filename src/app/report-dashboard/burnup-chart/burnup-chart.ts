@@ -142,7 +142,7 @@ export class BurnupChart implements OnInit {
 
   }
 
-  onSprintFilterChange(sprintId: string): void {
+  onSprintFilterChange(sprintId: string | null): void {
     this.selectedSprintId = sprintId;
     
     // Update sprint data for the chart
