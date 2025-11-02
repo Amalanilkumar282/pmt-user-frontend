@@ -14,6 +14,7 @@ import { IssueDetailedView } from '../../../backlog/issue-detailed-view/issue-de
 import { BoardService } from '../../services/board.service';
 import { signal } from '@angular/core';
 import { DEFAULT_COLUMNS } from '../../utils';
+import { Issue } from '../../../shared/models/issue.model';
 
 @Component({
   selector: 'app-board-page',
@@ -241,5 +242,28 @@ export class BoardPage implements OnInit {
   // public handler for moveIssue emitted by issue-detailed-view
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }) {
     this.store.updateIssueStatus(event.issueId, 'TODO' as any);
+  }
+
+  // public handler for updateIssue emitted by issue-detailed-view
+  async onUpdateIssue(updates: Partial<Issue>): Promise<void> {
+    const issue = this.selectedIssue();
+    const projectId = this.projectContextService.currentProjectId();
+    
+    if (!issue || !projectId) {
+      console.error('[BoardPage] Cannot update issue: missing issue or project ID');
+      return;
+    }
+    
+    try {
+      console.log('[BoardPage] Updating issue:', issue.id, updates);
+      await this.store.updateIssueApi(issue.id, projectId, updates);
+      console.log('[BoardPage] Issue updated successfully');
+      
+      // Note: Edit modal closes itself after onSubmit callback
+      // The issue-detailed-view modal stays open to show the updated data
+    } catch (error) {
+      console.error('[BoardPage] Failed to update issue:', error);
+      alert('Failed to update issue. Please try again.');
+    }
   }
 }

@@ -91,14 +91,24 @@ export class UserApiService {
 
   /**
    * Get users by project ID
-   * GET /api/User/project/{projectId}
+   * GET /api/User/by-project/{projectId}
    */
   getUsersByProject(projectId: string): Observable<User[]> {
     const headers = this.getAuthHeaders();
     return this.http
-      .get<ApiResponse<User[]>>(`${this.baseUrl}/project/${projectId}`, { headers })
+      .get<ApiResponse<any[]>>(`${this.baseUrl}/by-project/${projectId}`, { headers })
       .pipe(
-        map(response => response.data),
+        map(response => {
+          // Backend returns extended user data with role, teams, etc.
+          // Map to our User interface
+          return response.data.map(user => ({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            createdAt: user.addedAt,
+            updatedAt: user.lastLogin
+          }));
+        }),
         catchError(error => {
           console.error(`[UserApiService] Error fetching users for project ${projectId}:`, error);
           return of([]);

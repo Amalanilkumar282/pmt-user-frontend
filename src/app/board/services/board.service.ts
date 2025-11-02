@@ -159,27 +159,37 @@ export class BoardService {
         console.warn('[BoardService] User has team but no board found for team:', userTeam.name);
       }
       
-      // Step 2: User has no team OR team has no board - return default project board
-      // Look for board with type='default' (case-insensitive)
-      const defaultBoard = this.boardsSignal().find(
-        b => b.projectId === projectId && 
-             (b.type === 'PROJECT' || b.type.toLowerCase() === 'default') &&
+      // Step 2: User has no team OR team has no board - prefer a project-level DEFAULT board
+      // First preference: a board explicitly marked as default and of type PROJECT
+      const defaultProjectBoard = this.boardsSignal().find(
+        b => b.projectId === projectId &&
+             (b.type === 'PROJECT' || b.type.toLowerCase() === 'project') &&
              b.isDefault === true
       );
-      
-      if (defaultBoard) {
-        console.log('[BoardService] Returning default project board:', defaultBoard.name);
-        return defaultBoard;
+
+      if (defaultProjectBoard) {
+        console.log('[BoardService] Returning default project board:', defaultProjectBoard.name);
+        return defaultProjectBoard;
       }
-      
-      // Fallback: return first project board (non-team board)
-      const projectBoard = this.boardsSignal().find(
+
+      // Second preference: any board explicitly of type PROJECT (regardless of isDefault)
+      const anyProjectBoard = this.boardsSignal().find(
+        b => b.projectId === projectId && (b.type === 'PROJECT' || b.type.toLowerCase() === 'project')
+      );
+
+      if (anyProjectBoard) {
+        console.log('[BoardService] Returning project board (non-team):', anyProjectBoard.name);
+        return anyProjectBoard;
+      }
+
+      // Third preference: any non-team board (could be CUSTOM but not tied to a team)
+      const nonTeamBoard = this.boardsSignal().find(
         b => b.projectId === projectId && !b.teamId
       );
-      
-      if (projectBoard) {
-        console.log('[BoardService] Returning first project board:', projectBoard.name);
-        return projectBoard;
+
+      if (nonTeamBoard) {
+        console.log('[BoardService] Returning first non-team project board:', nonTeamBoard.name);
+        return nonTeamBoard;
       }
       
       // Last resort: return any board for this project

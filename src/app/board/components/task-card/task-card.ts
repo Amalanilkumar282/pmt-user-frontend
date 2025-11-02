@@ -8,6 +8,7 @@ import { BoardStore } from '../../board-store';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 import { UserApiService } from '../../../shared/services/user-api.service';
 import { EpicApiService } from '../../services/epic-api.service';
+import { ProjectContextService } from '../../../shared/services/project-context.service';
 
 @Component({
   selector: 'app-task-card',
@@ -49,14 +50,14 @@ export class TaskCard implements OnInit, AfterViewInit {
   showDatePicker = signal(false);
   assigneeSearchQuery = signal('');
   
-  // Available assignees
-  readonly availableAssignees = ['Alice Johnson', 'Bob Smith', 'Carol White', 'David Brown', 'Eve Davis', 'Unassigned'];
-  
+  // Available assignees (populated from project members)
+  availableAssignees: { id: string | 'unassigned', name: string }[] = [];
+
   // Filtered assignees based on search
   readonly filteredAssignees = computed(() => {
     const query = this.assigneeSearchQuery().toLowerCase();
     if (!query) return this.availableAssignees;
-    return this.availableAssignees.filter(a => a.toLowerCase().includes(query));
+    return this.availableAssignees.filter(a => a.name.toLowerCase().includes(query));
   });
   
   // Basic metadata placeholders
@@ -69,6 +70,10 @@ export class TaskCard implements OnInit, AfterViewInit {
 
   private userApi = inject(UserApiService);
   private epicApi = inject(EpicApiService);
+  private projectContext = inject(ProjectContextService);
+
+  // Cached project members
+  private projectMembers: { id: number; name: string }[] = [];
 
   // Helper to provide a display string used by pipes in template
   displayAssignee(): string {
@@ -144,19 +149,48 @@ export class TaskCard implements OnInit, AfterViewInit {
     } else {
       const numericId = Number(assignee);
       if (!isNaN(numericId) && numericId > 0) {
-        this.userApi.getUserById(numericId).subscribe({
-          next: user => {
-            if (user) {
-              this.assigneeName.set(user.name || `User ${user.id}`);
-            } else {
-              this.assigneeName.set(`User ${numericId}`);
-            }
-          },
-          error: () => this.assigneeName.set(`User ${numericId}`)
-        });
+        // Try to resolve from cached project members first
+        const pm = this.projectMembers.find(m => m.id === numericId);
+        if (pm) {
+          this.assigneeName.set(pm.name);
+        } else {
+          this.userApi.getUserById(numericId).subscribe({
+            next: user => {
+              if (user) {
+                this.assigneeName.set(user.name || `User ${user.id}`);
+              } else {
+                this.assigneeName.set(`User ${numericId}`);
+              }
+            },
+            error: () => this.assigneeName.set(`User ${numericId}`)
+          });
+        }
       } else {
         this.assigneeName.set(assignee);
       }
+    }
+
+    // Load project members for assignee dropdown (non-blocking)
+    try {
+      const projectId = this.projectContext.currentProjectId();
+      if (projectId) {
+        this.userApi.getUsersByProject(projectId).subscribe({
+          next: members => {
+            this.projectMembers = members.map(m => ({ id: m.id, name: m.name }));
+            // Build available assignees list including Unassigned
+            this.availableAssignees = [
+              ...this.projectMembers.map(m => ({ id: m.id.toString(), name: m.name })),
+              { id: 'unassigned', name: 'Unassigned' }
+            ];
+          },
+          error: () => {
+            // fallback: keep Unassigned only
+            this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
+          }
+        });
+      }
+    } catch (e) {
+      // ignore in non-browser environments
     }
 
     // Resolve epic title if epicId present
@@ -413,8 +447,18 @@ export class TaskCard implements OnInit, AfterViewInit {
   saveTitle(): void {
     const newTitle = this.editedTitle().trim();
     if (newTitle && newTitle !== this.issue.title) {
-      // Update BoardStore directly
-      this.store.updateIssueTitle(this.issue.id, newTitle);
+      // Persist change via API-backed update
+      try {
+        const projectId = this.projectContext.currentProjectId();
+        if (projectId) {
+          void this.store.updateIssueApi(this.issue.id, projectId, { title: newTitle });
+        } else {
+          // fallback to local update
+          this.store.updateIssueTitle(this.issue.id, newTitle);
+        }
+      } catch (e) {
+        this.store.updateIssueTitle(this.issue.id, newTitle);
+      }
     }
     this.isEditingTitle.set(false);
   }
@@ -459,7 +503,16 @@ export class TaskCard implements OnInit, AfterViewInit {
   saveDescription(): void {
     const newDescription = this.editedDescription().trim();
     if (newDescription !== this.issue.description) {
-      this.store.updateIssueDescription(this.issue.id, newDescription);
+      try {
+        const projectId = this.projectContext.currentProjectId();
+        if (projectId) {
+          void this.store.updateIssueApi(this.issue.id, projectId, { description: newDescription });
+        } else {
+          this.store.updateIssueDescription(this.issue.id, newDescription);
+        }
+      } catch (e) {
+        this.store.updateIssueDescription(this.issue.id, newDescription);
+      }
     }
     this.isEditingDescription.set(false);
   }
@@ -476,9 +529,20 @@ export class TaskCard implements OnInit, AfterViewInit {
     this.showAssigneeDropdown.set(!this.showAssigneeDropdown());
   }
   
-  selectAssignee(assignee: string): void {
-    const newAssignee = assignee === 'Unassigned' ? undefined : assignee;
-    this.store.updateIssueAssignee(this.issue.id, newAssignee);
+  selectAssignee(assigneeEntry: { id: string | 'unassigned', name: string }): void {
+    const newAssignee = assigneeEntry.id === 'unassigned' ? undefined : assigneeEntry.id;
+    try {
+      const projectId = this.projectContext.currentProjectId();
+      if (projectId) {
+        void this.store.updateIssueApi(this.issue.id, projectId, { assignee: newAssignee });
+      } else {
+        this.store.updateIssueAssignee(this.issue.id, newAssignee);
+      }
+    } catch (e) {
+      this.store.updateIssueAssignee(this.issue.id, newAssignee);
+    }
+    // Optimistic UI update for assignee display
+    this.assigneeName.set(assigneeEntry.id === 'unassigned' ? null : assigneeEntry.name);
     this.showAssigneeDropdown.set(false);
     this.assigneeSearchQuery.set(''); // Reset search
   }
@@ -498,12 +562,30 @@ export class TaskCard implements OnInit, AfterViewInit {
   onDateChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const newDate = input.value ? new Date(input.value) : undefined;
-    this.store.updateIssueDueDate(this.issue.id, newDate);
+    try {
+      const projectId = this.projectContext.currentProjectId();
+      if (projectId) {
+        void this.store.updateIssueApi(this.issue.id, projectId, { dueDate: newDate });
+      } else {
+        this.store.updateIssueDueDate(this.issue.id, newDate);
+      }
+    } catch (e) {
+      this.store.updateIssueDueDate(this.issue.id, newDate);
+    }
     this.showDatePicker.set(false);
   }
   
   clearDueDate(): void {
-    this.store.updateIssueDueDate(this.issue.id, undefined);
+    try {
+      const projectId = this.projectContext.currentProjectId();
+      if (projectId) {
+        void this.store.updateIssueApi(this.issue.id, projectId, { dueDate: undefined });
+      } else {
+        this.store.updateIssueDueDate(this.issue.id, undefined);
+      }
+    } catch (e) {
+      this.store.updateIssueDueDate(this.issue.id, undefined);
+    }
     this.showDatePicker.set(false);
   }
   

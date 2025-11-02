@@ -25,19 +25,20 @@ export interface CreateIssueDto {
 export interface UpdateIssueDto {
   id: string;
   projectId: string;
-  issueType?: string;
-  title?: string;
-  description?: string;
-  priority?: string;
-  assigneeId?: number;
+  issueType: string;
+  title: string;
+  description: string;
+  priority: string;
+  assigneeId: number;
   startDate?: string;
   dueDate?: string;
-  sprintId?: string;
-  storyPoints?: number;
-  epicId?: string;
-  reporterId?: number;
-  attachmentUrl?: string;
-  statusId?: number;
+  sprintId?: string | null;
+  storyPoints: number;
+  epicId?: string | null;
+  reporterId: number;
+  attachmentUrl?: string | null;
+  statusId: number;
+  labels: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -95,21 +96,8 @@ export class IssueApiService {
    * PUT /api/Issue
    */
   updateIssue(dto: UpdateIssueDto): Observable<ApiResponse<string>> {
-    const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain' });
-    return this.http.put<ApiResponse<string>>(this.baseUrl, dto, { headers });
-  }
-
-  /**
-   * Update issue status only
-   * PUT /api/Issue (with only statusId changed)
-   */
-  updateIssueStatus(issueId: string, statusId: number, projectId: string): Observable<ApiResponse<string>> {
-    const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain' });
-    const dto: UpdateIssueDto = {
-      id: issueId,
-      projectId: projectId,
-      statusId: statusId
-    };
+    const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain', 'Content-Type': 'application/json' });
+    console.log('[IssueApiService] Sending update DTO:', dto);
     return this.http.put<ApiResponse<string>>(this.baseUrl, dto, { headers });
   }
 
@@ -220,5 +208,40 @@ export class IssueApiService {
       reporterId: 1, // TODO: Get from auth service
       attachmentUrl: undefined
     };
+  }
+
+  /**
+   * Map frontend Issue partial updates to UpdateIssueDto
+   * IMPORTANT: Backend requires ALL fields, so we need the full issue object
+   */
+  mapIssueToUpdateDto(issue: Issue, projectId: string, updates: Partial<Issue>): UpdateIssueDto {
+    // Merge updates with existing issue data
+    const merged = { ...issue, ...updates };
+    
+    const dto: UpdateIssueDto = {
+      id: merged.id,
+      projectId: projectId,
+      issueType: merged.type,
+      title: merged.title,
+      description: merged.description || '',
+      priority: merged.priority,
+      // If assignee is missing, send null to match backend expectations (backend treats null as unassigned)
+      assigneeId: merged.assignee ? parseInt(merged.assignee) : null as any,
+      // Send explicit null for dates when not present (backend example uses null)
+      startDate: merged.startDate ? merged.startDate.toISOString() : null as any,
+      dueDate: merged.dueDate ? merged.dueDate.toISOString() : null as any,
+      // Use null for missing optional GUIDs to avoid 'undefined' being sent
+      sprintId: merged.sprintId ?? null,
+      storyPoints: merged.storyPoints ?? 0,
+      epicId: merged.epicId ?? null,
+      reporterId: (merged as any).reporterId ?? 1, // fallback
+      // Backend examples use empty string for attachmentUrl when none exists
+      attachmentUrl: (merged as any).attachmentUrl ?? '',
+      statusId: merged.statusId ?? 1, // Default to "To Do" if not set
+      labels: JSON.stringify(merged.labels || [])
+    };
+
+    console.log('[IssueApiService] Mapped issue to DTO:', { original: issue, updates, merged, dto });
+    return dto;
   }
 }

@@ -112,17 +112,21 @@ export class BoardStore {
       // (no additional filtering needed as issues are already project-scoped)
     }
 
-    // Sprint filter - CRITICAL: Only apply if board has teamId (team board)
-    if (!board || board.teamId) {
-      // For team boards or no board, apply sprint filtering
+    // Sprint filter - Only apply if board is present and is a team board (has teamId)
+    if (board && board.teamId) {
+      // For team boards, apply sprint filtering: BACKLOG = issues not assigned to a sprint
       list = sprintId === 'BACKLOG'
         ? list.filter(i => !i.sprintId)
         : list.filter(i => i.sprintId === sprintId);
     } else {
-      // For default/project boards (no teamId), show ALL issues regardless of sprint
-      // This matches your requirement: "issues are from get all issues by project id"
-      // No sprint filtering at all - show everything
-      console.log('[BoardStore] Default board - showing all issues (no sprint filter)');
+      // For default/project boards (no teamId) or when there's no board context,
+      // show ALL issues regardless of sprint. This matches the requirement that
+      // project/default boards display all project issues.
+      if (board) {
+        console.log('[BoardStore] Default/project board - showing all issues (no sprint filter)');
+      } else {
+        console.log('[BoardStore] No board context - showing all issues (no sprint filter)');
+      }
     }
 
     // filters with null safety
@@ -366,16 +370,63 @@ export class BoardStore {
   setGroupBy(g: GroupBy) { this.groupBy.set(g); }
 
   /**
-   * Update issue status (API-backed)
+   * Update issue status (API-backed) - used for drag-and-drop
    */
   async updateIssueStatusApi(issueId: string, statusId: number, projectId: string): Promise<void> {
     try {
-      await firstValueFrom(this.issueApiService.updateIssueStatus(issueId, statusId, projectId));
-      // Update local state after successful API call
-      this.updateIssueStatus(issueId, 'TODO' as any); // TODO: Map statusId to IssueStatus
-      console.log('[BoardStore] Issue status updated');
+      console.log('[BoardStore] Updating issue status via API:', { issueId, statusId, projectId });
+      
+      // Find the full issue object
+      const issue = this._issues().find(i => i.id === issueId);
+      if (!issue) {
+        throw new Error(`Issue ${issueId} not found in store`);
+      }
+      
+      // Create full DTO with all required fields
+      const dto = this.issueApiService.mapIssueToUpdateDto(issue, projectId, { statusId });
+      await firstValueFrom(this.issueApiService.updateIssue(dto));
+      
+      // Update local state optimistically after successful API call
+      this._issues.update(list => list.map(i => 
+        i.id === issueId 
+          ? { ...i, statusId, updatedAt: new Date() }
+          : i
+      ));
+      
+      console.log('[BoardStore] Issue status updated successfully');
     } catch (error) {
       console.error('[BoardStore] Error updating issue status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update issue with partial fields (API-backed) - used for issue detail edits
+   */
+  async updateIssueApi(issueId: string, projectId: string, updates: Partial<Issue>): Promise<void> {
+    try {
+      console.log('[BoardStore] Updating issue via API:', { issueId, projectId, updates });
+      
+      // Find the full issue object
+      const issue = this._issues().find(i => i.id === issueId);
+      if (!issue) {
+        throw new Error(`Issue ${issueId} not found in store`);
+      }
+      
+      // Create full DTO with all required fields
+      const dto = this.issueApiService.mapIssueToUpdateDto(issue, projectId, updates);
+      await firstValueFrom(this.issueApiService.updateIssue(dto));
+      
+      // Update local state optimistically after successful API call
+      this._issues.update(list => list.map(i => 
+        i.id === issueId 
+          ? { ...i, ...updates, updatedAt: new Date() }
+          : i
+      ));
+      
+      console.log('[BoardStore] Issue updated successfully');
+    } catch (error) {
+      console.error('[BoardStore] Error updating issue:', error);
       throw error;
     }
   }
