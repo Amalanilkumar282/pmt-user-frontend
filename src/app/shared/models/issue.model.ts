@@ -4,6 +4,7 @@ export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCK
 
 export interface Issue {
   id: string;
+  issueKey?: string; // Issue key like "PMT-101"
   title: string;
   description: string;
   type: IssueType;
@@ -22,4 +23,9 @@ export interface Issue {
   parentId?: string;
   epicId?: string;
   attachments?: File[];
+  // Additional fields for extended issue information
+  assigneeId?: number;
+  reporterId?: number;
+  reporterName?: string;
+  projectId?: string;
 }
