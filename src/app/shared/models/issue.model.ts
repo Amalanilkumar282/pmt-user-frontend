@@ -12,6 +12,7 @@ export interface Issue {
   status: IssueStatus;
   statusId?: number;  // Backend status ID for column matching
   assignee?: string;
+  assignedTo?: string;
   storyPoints?: number;
   sprintId?: string;
   teamId?: string; // Team that owns this issue
@@ -21,6 +22,7 @@ export interface Issue {
   startDate?: Date;
   dueDate?: Date;
   endDate?: Date; // Estimated completion date
+  completedAt?: Date; // When the issue was marked as DONE
   parentId?: string;
   epicId?: string;
   attachments?: File[];

@@ -43,21 +43,20 @@ export class LabelService {
   private baseUrl = '/api/Label';
   private http = inject(HttpClient);
   private authTokenService = inject(AuthTokenService);
-
   getAllLabels(): Observable<LabelResponse> {
-    return this.http.get<LabelResponse>(this.baseUrl, { 
+    return this.http.get<LabelResponse>(this.baseUrl, {
       headers: this.authTokenService.getAuthHeaders()
     });
   }
 
   createLabel(request: CreateLabelRequest): Observable<CreateLabelResponse> {
-    return this.http.post<CreateLabelResponse>(this.baseUrl, request, { 
+    return this.http.post<CreateLabelResponse>(this.baseUrl, request, {
       headers: this.authTokenService.getAuthHeaders()
     });
   }
 
   updateLabel(request: UpdateLabelRequest): Observable<UpdateLabelResponse> {
-    return this.http.put<UpdateLabelResponse>(this.baseUrl, request, { 
+    return this.http.put<UpdateLabelResponse>(this.baseUrl, request, {
       headers: this.authTokenService.getAuthHeaders()
     });
   }
