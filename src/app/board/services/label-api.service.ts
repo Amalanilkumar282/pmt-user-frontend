@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, LabelApi } from '../models/api-interfaces';
 
@@ -38,7 +38,15 @@ export class LabelApiService {
     const headers = this.getAuthHeaders();
     return this.http
       .get<ApiResponse<LabelApi[]>>(`${this.baseUrl}`, { headers })
-      .pipe(map(response => response.data.map(label => this.mapLabelApiToLabel(label))));
+      .pipe(
+        map(response => response.data.map(label => this.mapLabelApiToLabel(label))),
+        // If labels endpoint is missing or returns 404, fall back to empty list
+        // This prevents create-issue modal from breaking when backend doesn't expose labels
+        catchError(err => {
+          console.warn('[LabelApiService] Failed to fetch labels, returning empty list', err?.status || err);
+          return of([] as Label[]);
+        })
+      );
   }
 
   /**

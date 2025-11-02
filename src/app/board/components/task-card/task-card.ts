@@ -6,6 +6,8 @@ import type { Issue } from '../../../shared/models/issue.model';
 import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe';
 import { BoardStore } from '../../board-store';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
+import { UserApiService } from '../../../shared/services/user-api.service';
+import { EpicApiService } from '../../services/epic-api.service';
 
 @Component({
   selector: 'app-task-card',
@@ -23,6 +25,7 @@ export class TaskCard implements OnInit, AfterViewInit {
   // allow tests to create the component without providing an issue
   @Input() issue: Issue = {
     id: '',
+    key: '',
     title: '',
     description: '',
     type: 'TASK',
@@ -60,6 +63,18 @@ export class TaskCard implements OnInit, AfterViewInit {
   commentsCount = 0;
   attachmentsCount = 0;
 
+  // Resolved display values
+  assigneeName = signal<string | null>(null);
+  epicTitle = signal<string | null>(null);
+
+  private userApi = inject(UserApiService);
+  private epicApi = inject(EpicApiService);
+
+  // Helper to provide a display string used by pipes in template
+  displayAssignee(): string {
+    return this.assigneeName() ?? (this.issue.assignee ?? 'Unassigned');
+  }
+
   // Label color palette - vibrant and varied
   private labelColors = [
     { bg: '#E0E7FF', text: '#4338CA' }, 
@@ -83,8 +98,9 @@ export class TaskCard implements OnInit, AfterViewInit {
   }
 
   getEpicName(epicId: string): string {
-    // In real app, this would fetch from a service
-    // For now, return a simple formatted version
+    const title = this.epicTitle();
+    if (title) return title;
+    if (!epicId) return 'No Epic';
     return `Epic: ${epicId.replace('epic-', '').toUpperCase()}`;
   }
 
@@ -120,6 +136,36 @@ export class TaskCard implements OnInit, AfterViewInit {
     const num = this.issue.id.split('').reduce((a,c)=>a + c.charCodeAt(0), 0);
     this.commentsCount = num % 10;          // 0..9
     this.attachmentsCount = num % 7;        // 0..6
+
+    // Resolve assignee name if assignee is an id
+    const assignee = this.issue.assignee;
+    if (!assignee) {
+      this.assigneeName.set(null);
+    } else {
+      const numericId = Number(assignee);
+      if (!isNaN(numericId) && numericId > 0) {
+        this.userApi.getUserById(numericId).subscribe({
+          next: user => {
+            if (user) {
+              this.assigneeName.set(user.name || `User ${user.id}`);
+            } else {
+              this.assigneeName.set(`User ${numericId}`);
+            }
+          },
+          error: () => this.assigneeName.set(`User ${numericId}`)
+        });
+      } else {
+        this.assigneeName.set(assignee);
+      }
+    }
+
+    // Resolve epic title if epicId present
+    if (this.issue.epicId) {
+      this.epicApi.getEpicById(this.issue.epicId).subscribe({
+        next: e => this.epicTitle.set(e.title),
+        error: () => {}
+      });
+    }
   }
 
   /**

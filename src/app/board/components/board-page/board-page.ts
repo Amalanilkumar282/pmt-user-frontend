@@ -103,17 +103,21 @@ export class BoardPage implements OnInit {
     // Initial load - Set project context from route params
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     
+    // Avoid referencing `window` during server-side rendering
+    const isBrowser = typeof window !== 'undefined';
     console.log('[BoardPage] ngOnInit - Route params:', {
       projectId: projectId,
-      fullUrl: window.location.href,
+      fullUrl: isBrowser ? window.location.href : 'server',
       routeSnapshot: this.route.snapshot,
       parentRoute: this.route.parent?.snapshot
     });
     
     if (!projectId) {
       console.error('[BoardPage] No project ID found in route');
-      console.log('[BoardPage] Current URL:', window.location.href);
-      console.log('[BoardPage] Expected URL format: /projects/{projectId}/board');
+      if (isBrowser) {
+        console.log('[BoardPage] Current URL:', window.location.href);
+        console.log('[BoardPage] Expected URL format: /projects/{projectId}/board');
+      }
       return;
     }
     

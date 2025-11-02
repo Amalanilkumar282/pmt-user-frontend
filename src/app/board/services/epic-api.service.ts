@@ -65,4 +65,15 @@ export class EpicApiService {
       updatedAt: new Date(apiEpic.updatedAt)
     };
   }
+
+  /**
+   * Get single epic by ID
+   * GET /api/Epic/{id}
+   */
+  getEpicById(epicId: string) {
+    const headers = this.getAuthHeaders();
+    return this.http
+      .get<{ status: number; data: EpicApi }>(`${this.baseUrl}/${epicId}`, { headers })
+      .pipe(map(response => this.mapEpicApiToEpic(response.data)));
+  }
 }
