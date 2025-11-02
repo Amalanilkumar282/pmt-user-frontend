@@ -131,7 +131,8 @@ export class IssueApiService {
       priority: this.mapPriority(apiIssue.priority),
       status: mappedStatus, // Now mapping from statusId
       statusId: apiIssue.statusId, // CRITICAL: Preserve statusId for column matching
-      assignee: apiIssue.assigneeId?.toString(),
+      // Prefer assignee name from API when available; fall back to id string
+      assignee: (apiIssue as any).assigneeName ?? apiIssue.assigneeId?.toString(),
       labels: labels,
       sprintId: apiIssue.sprintId,
       epicId: apiIssue.epicId,
