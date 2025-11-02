@@ -44,19 +44,28 @@ export class LabelService {
   constructor(private http: HttpClient) {}
 
   getAllLabels(): Observable<LabelResponse> {
-    const token = sessionStorage.getItem('accessToken') || '';
+    let token = '';
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      token = sessionStorage.getItem('accessToken') || '';
+    }
     const headers = { 'Authorization': `Bearer ${token}` };
     return this.http.get<LabelResponse>(this.baseUrl, { headers });
   }
 
   createLabel(request: CreateLabelRequest): Observable<CreateLabelResponse> {
-    const token = sessionStorage.getItem('accessToken') || '';
+    let token = '';
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      token = sessionStorage.getItem('accessToken') || '';
+    }
     const headers = { 'Authorization': `Bearer ${token}` };
     return this.http.post<CreateLabelResponse>(this.baseUrl, request, { headers });
   }
 
   updateLabel(request: UpdateLabelRequest): Observable<UpdateLabelResponse> {
-    const token = sessionStorage.getItem('accessToken') || '';
+    let token = '';
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      token = sessionStorage.getItem('accessToken') || '';
+    }
     const headers = { 'Authorization': `Bearer ${token}` };
     return this.http.put<UpdateLabelResponse>(this.baseUrl, request, { headers });
   }
