@@ -14,7 +14,8 @@
       <div class="ml-10">
       <app-sprint-filter
         [sprints]="sprints"
-        [selectedSprint]="selectedSprintId || 'all'"
+        [selectedSprint]="selectedSprintId"
+        [allowBacklog]="false"
         (sprintChange)="onSprintFilterChange($event)"
       ></app-sprint-filter>
         

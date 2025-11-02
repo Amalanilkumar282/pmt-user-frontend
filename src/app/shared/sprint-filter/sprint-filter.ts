@@ -26,6 +26,9 @@ export class SprintFilterComponent implements OnInit, OnChanges {
   /** ✅ Currently selected sprint ID (sprint id string or null when none selected) */
   @Input() selectedSprint: string | null = null;
 
+  /** Whether to show the BACKLOG option in the dropdown (default: true) */
+  @Input() allowBacklog = true;
+
   /** ✅ Emits whenever sprint selection changes */
   @Output() sprintChange = new EventEmitter<string | null>();
 
