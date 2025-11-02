@@ -53,14 +53,15 @@
       }
     </div>
 
-    <!-- Team Lead -->
-    <div class="form-group">
+  <!-- Team Lead -->
+  <div class="form-group">
       <label class="form-label">Team Lead *</label>
       <div class="members-grid">
         @for (member of availableMembers; track member.id) {
           <div
             class="member-item"
             [class.selected]="isLeadSelected(member.id)"
+            [class.current-lead]="isCurrentLead(member.id)"
             (click)="teamForm.patchValue({ leadId: member.id })"
           >
             <div class="member-avatar">{{ getInitials(member.name) }}</div>
@@ -73,6 +74,9 @@
                 <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             }
+            @if (isCurrentLead(member.id)) {
+              <span class="current-label">Current Lead</span>
+            }
           </div>
         }
       </div>
@@ -81,8 +85,8 @@
       }
     </div>
 
-    <!-- Team Members -->
-    <div class="form-group">
+  <!-- Team Members -->
+  <div class="form-group">
       <label class="form-label">Team Members</label>
       <p class="form-hint">Select additional team members (Team lead is automatically included)</p>
       <div class="members-grid">
@@ -91,6 +95,7 @@
             <div
               class="member-item"
               [class.selected]="isMemberSelected(member.id)"
+              [class.current-member]="isCurrentMember(member.id)"
               (click)="toggleMember(member.id)"
             >
               <div class="member-avatar">{{ getInitials(member.name) }}</div>
@@ -102,6 +107,9 @@
                 <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
+              }
+              @if (isCurrentMember(member.id)) {
+                <span class="current-label">Current Member</span>
               }
             </div>
           }

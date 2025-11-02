@@ -45,6 +45,30 @@ export class LabelService {
   private authTokenService = inject(AuthTokenService);
 
   getAllLabels(): Observable<LabelResponse> {
+    let token = '';
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      token = sessionStorage.getItem('accessToken') || '';
+    }
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.get<LabelResponse>(this.baseUrl, { headers });
+  }
+
+  createLabel(request: CreateLabelRequest): Observable<CreateLabelResponse> {
+    let token = '';
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      token = sessionStorage.getItem('accessToken') || '';
+    }
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.post<CreateLabelResponse>(this.baseUrl, request, { headers });
+  }
+
+  updateLabel(request: UpdateLabelRequest): Observable<UpdateLabelResponse> {
+    let token = '';
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      token = sessionStorage.getItem('accessToken') || '';
+    }
+    const headers = { 'Authorization': `Bearer ${token}` };
+    return this.http.put<UpdateLabelResponse>(this.baseUrl, request, { headers });
     return this.http.get<LabelResponse>(this.baseUrl, { 
       headers: this.authTokenService.getAuthHeaders()
     });

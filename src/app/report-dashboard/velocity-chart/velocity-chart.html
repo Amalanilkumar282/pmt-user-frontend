@@ -19,10 +19,14 @@
       ></app-sprint-filter>
       </div>
 
-      <app-metrics-chart [chartType]="'velocity'" [sprintId]="selectedSprintId"></app-metrics-chart>
+      <app-metrics-chart 
+        [chartType]="'velocity'" 
+        [sprintId]="selectedSprintId"
+        [issues]="issues"
+        [sprintData]="selectedSprintData"></app-metrics-chart>
       
       <div class="table-wrapper">
-        <app-chart-table type="velocity"   [sprintId]="selectedSprintId"></app-chart-table>
+        <app-chart-table type="velocity" [sprintId]="selectedSprintId" [issues]="issues" [sprintData]="selectedSprintData"></app-chart-table>
       </div>
     </div>
   </div>
