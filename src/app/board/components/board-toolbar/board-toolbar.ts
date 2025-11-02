@@ -48,10 +48,12 @@ export class BoardToolbar {
   readonly filters = this.store.filters;
   readonly showAllAssignees = signal(false);
   
-  // Hide sprint filter for PROJECT type boards
+  // Show sprint filter only for team boards (boards with teamId)
   readonly showSprintFilter = computed(() => {
     const board = this.currentBoard();
-    return !board || board.type === 'TEAM';
+    // Show sprint selector if board has a teamId (team board)
+    // Hide for default/project boards (no teamId)
+    return board && !!board.teamId;
   });
   
   readonly assignees = computed(() => {

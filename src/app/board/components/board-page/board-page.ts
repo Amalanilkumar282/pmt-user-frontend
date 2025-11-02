@@ -189,7 +189,7 @@ export class BoardPage implements OnInit {
       // Load project's default board - get userId from UserContextService
       const userId = this.userContextService.getCurrentUserIdString() || 'unknown';
       console.log('[BoardPage] loadDefaultBoard - Loading project board - ProjectId:', projectId, 'UserId:', userId);
-      defaultBoard = this.boardService.getDefaultBoard(projectId, userId);
+      defaultBoard = await this.boardService.getDefaultBoard(projectId, userId);
     }
     
     console.log('[BoardPage] loadDefaultBoard - Default board returned:', defaultBoard);

@@ -104,26 +104,25 @@ export class BoardStore {
     // Board-based filtering with null safety
     if (board) {
       // If board is team-based, filter issues by team
-      if (board.type === 'TEAM' && board.teamId) {
+      if (board.teamId) {
+        // Team board - issues should be from this team only
         list = list.filter(i => i.teamId === board.teamId);
       }
-      // If board is project-based, show all issues from the project
+      // If board has no teamId (default/project board), show all issues from the project
       // (no additional filtering needed as issues are already project-scoped)
     }
 
-    // Sprint filter - only apply if board type is TEAM or if no board is loaded
-    if (!board || board.type === 'TEAM') {
-      // For team boards or no board, always apply sprint filtering
+    // Sprint filter - CRITICAL: Only apply if board has teamId (team board)
+    if (!board || board.teamId) {
+      // For team boards or no board, apply sprint filtering
       list = sprintId === 'BACKLOG'
         ? list.filter(i => !i.sprintId)
         : list.filter(i => i.sprintId === sprintId);
-    } else if (board.type === 'PROJECT') {
-      // For project boards, show all sprints combined (no sprint filtering)
-      // Only filter backlog items if includeBacklog is false
-      if (!board.includeBacklog) {
-        list = list.filter(i => i.sprintId); // Exclude backlog items
-      }
-      // Otherwise show all issues regardless of sprint
+    } else {
+      // For default/project boards (no teamId), show ALL issues regardless of sprint
+      // This matches your requirement: "issues are from get all issues by project id"
+      // No sprint filtering at all - show everything
+      console.log('[BoardStore] Default board - showing all issues (no sprint filter)');
     }
 
     // filters with null safety

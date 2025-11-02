@@ -162,6 +162,11 @@ export class BoardApiService {
    * Map BoardApi to frontend Board model
    */
   private mapBoardApiToBoard(apiBoard: BoardApi): Board {
+    // Map columns and sort by position
+    const sortedColumns = apiBoard.columns
+      .map(col => this.mapColumnApiToColumnDef(col))
+      .sort((a, b) => a.position - b.position);
+      
     return {
       id: apiBoard.id.toString(),
       name: apiBoard.name,
@@ -172,7 +177,7 @@ export class BoardApiService {
       teamName: apiBoard.teamName || undefined,
       type: apiBoard.teamId ? 'TEAM' : 'PROJECT',
       source: 'CUSTOM',
-      columns: apiBoard.columns.map(col => this.mapColumnApiToColumnDef(col)),
+      columns: sortedColumns,  // Use sorted columns
       includeBacklog: false,
       includeDone: true,
       isActive: apiBoard.isActive,

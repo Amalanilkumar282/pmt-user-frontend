@@ -3,6 +3,7 @@ import { Board, CreateBoardDto, UpdateBoardDto, RecentProject, BoardType } from 
 import { DEFAULT_COLUMNS } from '../utils';
 import { TeamsService } from '../../teams/services/teams.service';
 import { BoardApiService } from './board-api.service';
+import { TeamApiService } from './team-api.service';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
@@ -11,6 +12,7 @@ import { firstValueFrom } from 'rxjs';
 export class BoardService {
   private teamsService = inject(TeamsService);
   private boardApiService = inject(BoardApiService);
+  private teamApiService = inject(TeamApiService);
   
   // Signal-based state
   private boardsSignal = signal<Board[]>([]);
@@ -118,24 +120,94 @@ export class BoardService {
     return this.getBoardsByTeam(teamId)[0] || null;
   }
   
-  // Get default board for a user in a project
-  getDefaultBoard(projectId: string, userId: string): Board | null {
+  /**
+   * Get default board for a user in a project
+   * LOGIC:
+   * 1. Check if user has teamId in current project
+   * 2. If YES → return team's board (board with that teamId)
+   * 3. If NO → return default board (type='default' or first project board)
+   */
+  async getDefaultBoard(projectId: string, userId: string): Promise<Board | null> {
     console.log('[BoardService] getDefaultBoard - ProjectId:', projectId, 'UserId:', userId);
     
-    // ALWAYS return the PROJECT "All Issues" board when clicking on a project
-    // This matches Jira's behavior where project navigation goes to "All Issues"
-    const projectBoard = this.boardsSignal().find(
-      b => b.projectId === projectId && b.type === 'PROJECT' && b.isDefault
-    );
-    
-    console.log('[BoardService] getDefaultBoard - Found project board:', projectBoard);
-    
-    if (projectBoard) return projectBoard;
-    
-    // Fallback: return first board for project
-    const fallback = this.getBoardsByProject(projectId)[0] || null;
-    console.log('[BoardService] getDefaultBoard - Fallback board:', fallback);
-    return fallback;
+    try {
+      // Step 1: Check if user belongs to any team in this project
+      const teams = await firstValueFrom(this.teamApiService.getTeamsByProject(projectId));
+      console.log('[BoardService] Teams in project:', teams);
+      
+      // Find team where current user is a member or lead
+      const userEmail = this.getUserEmail();
+      const userTeam = teams.find(team => 
+        team.members.some(member => member.email === userEmail) ||
+        team.lead.email === userEmail
+      );
+      
+      console.log('[BoardService] User team found:', userTeam);
+      
+      if (userTeam) {
+        // User has a team - find board with this team's ID
+        // Note: TeamApi doesn't have ID, need to match by team name
+        const teamBoard = this.boardsSignal().find(
+          b => b.teamName === userTeam.name && b.projectId === projectId
+        );
+        
+        if (teamBoard) {
+          console.log('[BoardService] Returning team board:', teamBoard.name);
+          return teamBoard;
+        }
+        
+        console.warn('[BoardService] User has team but no board found for team:', userTeam.name);
+      }
+      
+      // Step 2: User has no team OR team has no board - return default project board
+      // Look for board with type='default' (case-insensitive)
+      const defaultBoard = this.boardsSignal().find(
+        b => b.projectId === projectId && 
+             (b.type === 'PROJECT' || b.type.toLowerCase() === 'default') &&
+             b.isDefault === true
+      );
+      
+      if (defaultBoard) {
+        console.log('[BoardService] Returning default project board:', defaultBoard.name);
+        return defaultBoard;
+      }
+      
+      // Fallback: return first project board (non-team board)
+      const projectBoard = this.boardsSignal().find(
+        b => b.projectId === projectId && !b.teamId
+      );
+      
+      if (projectBoard) {
+        console.log('[BoardService] Returning first project board:', projectBoard.name);
+        return projectBoard;
+      }
+      
+      // Last resort: return any board for this project
+      const anyBoard = this.getBoardsByProject(projectId)[0] || null;
+      console.log('[BoardService] Returning any available board:', anyBoard?.name || 'null');
+      return anyBoard;
+      
+    } catch (error) {
+      console.error('[BoardService] Error getting user team:', error);
+      
+      // Fallback to project board on error
+      const fallback = this.boardsSignal().find(
+        b => b.projectId === projectId && b.type === 'PROJECT'
+      ) || this.getBoardsByProject(projectId)[0] || null;
+      
+      console.log('[BoardService] Error fallback board:', fallback?.name || 'null');
+      return fallback;
+    }
+  }
+  
+  /**
+   * Helper: Get current user's email from session
+   */
+  private getUserEmail(): string {
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('userEmail') || '';
+    }
+    return '';
   }
   
   // Create board
