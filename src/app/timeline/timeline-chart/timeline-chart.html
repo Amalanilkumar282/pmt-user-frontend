@@ -181,7 +181,9 @@
         </div>
 
         <!-- Chart Content Area (Scrollable) -->
-        <div class="chart-content" #chartContent (scroll)="onChartScroll($event)">
+        <div class="chart-content" 
+             #chartContent 
+             (scroll)="onChartScroll($event)">
           <!-- Chart Canvas -->
           <div class="chart-canvas" [style.min-width.px]="chartWidth" [style.width.px]="chartWidth">
             <!-- Grid Lines (Behind content) -->
@@ -202,13 +204,14 @@
                      [class.epic-row]="row.type === 'epic'"
                      [class.issue-row]="row.type === 'issue'">
                   
-                  <!-- Sprints Overview Row - Multiple Sprint Bars -->
+                  <!-- Sprints Overview Row - Multiple Sprint Bars (only show sprints with valid dates) -->
                   <ng-container *ngIf="row.type === 'sprints-overview' && row.sprints">
                     <div *ngFor="let sprint of row.sprints" 
                          class="timeline-bar sprint-bar"
-                         [style.left.px]="getBarPosition(sprint.startDate)"
-                         [style.width.px]="getBarWidth(sprint.startDate, sprint.endDate)"
-                         [title]="getTooltipText(sprint.name, sprint.startDate, sprint.endDate)">
+                         [style.left.px]="sprint.startDate && sprint.endDate ? getBarPosition(sprint.startDate) : 0"
+                         [style.width.px]="sprint.startDate && sprint.endDate ? getBarWidth(sprint.startDate, sprint.endDate) : 0"
+                         [style.display]="sprint.startDate && sprint.endDate ? 'block' : 'none'"
+                         [title]="sprint.startDate && sprint.endDate ? getTooltipText(sprint.name, sprint.startDate, sprint.endDate) : ''">
                       <div class="bar-label">
                         {{ sprint.name }}
                       </div>

@@ -62,7 +62,7 @@
         <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
         <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <span>{{ team.activeSprints.length }} active sprints</span>
+  <span>{{ team.activeSprintsCount ?? 0 }} active sprints</span>
     </div>
     <button class="view-details-btn" (click)="onViewDetails()">
       View Details

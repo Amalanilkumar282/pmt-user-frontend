@@ -1,3 +1,30 @@
+/* Distinguish current lead and current members visually */
+/* Highlight selected lead and members dynamically */
+.member-item.selected {
+  border-color: #667eea;
+  background: #f5f7ff;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.10);
+}
+.member-item.selected.current-lead {
+  border-color: #9333ea;
+  background: #f3e8ff;
+  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.12);
+}
+.member-item.selected.current-member {
+  border-color: #667eea;
+  background: #e0e7ff;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.14);
+}
+.current-label {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: #e0e7ff;
+  color: #667eea;
+}
 .team-form-container {
   background: white;
   border-radius: 12px;
@@ -104,6 +131,7 @@
 }
 
 /* Members Grid */
+
 .members-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -113,6 +141,16 @@
   padding: 8px;
   background: #f8fafc;
   border-radius: 8px;
+}
+
+/* Distinct outlines for lead and members box */
+.form-group.lead-group .members-grid {
+  border: 2px solid #9333ea;
+  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.08);
+}
+.form-group.members-group .members-grid {
+  border: 2px solid #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.08);
 }
 
 .member-item {

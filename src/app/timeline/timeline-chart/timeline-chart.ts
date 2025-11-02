@@ -11,8 +11,8 @@ import { TimelineService, SprintDto, EpicDto, IssueDto } from '../services/timel
 interface Sprint {
   id: string;
   name: string;
-  startDate: Date;
-  endDate: Date;
+  startDate?: Date;
+  endDate?: Date;
   status: 'COMPLETED' | 'ACTIVE' | 'PLANNED';
   issues?: Issue[];
 }
@@ -118,15 +118,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   private isScrollingHeader = false;
   private isScrollingFixedBar = false;
 
-  // Mouse drag scrolling properties
-  private isDraggingScroll = false;
-  private dragStartX = 0;
-  private dragStartY = 0;
-  private scrollStartX = 0;
-  private scrollStartY = 0;
-
   // Bar resize properties
   resizingBar: { id: string; side: 'left' | 'right'; startX: number; originalStart: Date; originalEnd: Date } | null = null;
+
+  // Bound function references for proper event listener cleanup
+  private boundBarResizeMove = this.onBarResizeMove.bind(this);
+  private boundBarResizeEnd = this.onBarResizeEnd.bind(this);
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -165,6 +162,15 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         console.log('📊 Epics count:', data.epics.length);
         console.log('📊 Issues count:', data.issues.length);
         
+        // Log detailed epic info
+        console.log('📊 Epic details:', data.epics.map(e => ({
+          id: e.id,
+          title: e.title,
+          projectId: e.project_id || e.projectId,
+          startDate: e.start_date || e.startDate,
+          dueDate: e.due_date || e.dueDate
+        })));
+        
         // Transform sprints
         this.projectData = this.transformSprints(data.sprints, data.issues);
         
@@ -195,7 +201,16 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (error) => {
         console.error('❌ [TimelineChart] Error loading timeline data:', error);
-        this.errorMessage = 'Failed to load timeline data. Please try again.';
+        
+        // Don't show error message - just initialize with empty data
+        this.projectData = [];
+        this.epicsData = [];
+        this.allIssues = [];
+        
+        this.initializeFilters();
+        this.availableEpics = [];
+        this.prepareTimelineData();
+        
         this.isLoading = false;
         this.cdr.detectChanges();
       }
@@ -233,8 +248,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       return {
         id: dto.id,
         name: name,
-        startDate: startDate ? new Date(startDate) : new Date(),
-        endDate: endDate ? new Date(endDate) : new Date(),
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
         status: this.mapSprintStatus(dto.status),
         issues: sprintIssues
       };
@@ -281,7 +296,9 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         name: name,
         projectId: projectId,
         startDate,
-        dueDate
+        dueDate,
+        startDateConverted: startDate ? new Date(startDate) : null,
+        dueDateConverted: dueDate ? new Date(dueDate) : null
       });
       
       return {
@@ -408,26 +425,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }, 100);
 
     // Add mouse move and up listeners for bar resize
-    document.addEventListener('mousemove', this.onBarResizeMove.bind(this));
-    document.addEventListener('mouseup', this.onBarResizeEnd.bind(this));
-    
-    // Add drag scrolling listeners
-    if (this.chartContent && this.chartContent.nativeElement) {
-      const chartEl = this.chartContent.nativeElement;
-      chartEl.addEventListener('mousedown', this.onDragScrollStart.bind(this));
-      document.addEventListener('mousemove', this.onDragScrollMove.bind(this));
-      document.addEventListener('mouseup', this.onDragScrollEnd.bind(this));
-    }
+    document.addEventListener('mousemove', this.boundBarResizeMove);
+    document.addEventListener('mouseup', this.boundBarResizeEnd);
   }
 
   ngOnDestroy() {
     // Cleanup bar resize listeners
-    document.removeEventListener('mousemove', this.onBarResizeMove.bind(this));
-    document.removeEventListener('mouseup', this.onBarResizeEnd.bind(this));
-    
-    // Cleanup drag scroll listeners
-    document.removeEventListener('mousemove', this.onDragScrollMove.bind(this));
-    document.removeEventListener('mouseup', this.onDragScrollEnd.bind(this));
+    document.removeEventListener('mousemove', this.boundBarResizeMove);
+    document.removeEventListener('mouseup', this.boundBarResizeEnd);
   }
 
   // Bar resize functionality
@@ -447,45 +452,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // Drag scrolling functionality
-  private onDragScrollStart(event: MouseEvent): void {
-    // Don't start drag scroll if clicking on a bar or resize handle
-    const target = event.target as HTMLElement;
-    if (target.classList.contains('timeline-bar') || 
-        target.classList.contains('bar-resize-handle') ||
-        target.closest('.timeline-bar')) {
-      return;
-    }
-    
-    this.isDraggingScroll = true;
-    this.dragStartX = event.clientX;
-    this.dragStartY = event.clientY;
-    
-    if (this.chartContent && this.chartContent.nativeElement) {
-      this.scrollStartX = this.chartContent.nativeElement.scrollLeft;
-      this.scrollStartY = this.chartContent.nativeElement.scrollTop;
-      this.chartContent.nativeElement.style.cursor = 'grabbing';
-    }
-  }
-
-  private onDragScrollMove(event: MouseEvent): void {
-    if (!this.isDraggingScroll || !this.chartContent || !this.chartContent.nativeElement) return;
-    
-    event.preventDefault();
-    
-    const deltaX = this.dragStartX - event.clientX;
-    const deltaY = this.dragStartY - event.clientY;
-    
-    this.chartContent.nativeElement.scrollLeft = this.scrollStartX + deltaX;
-    this.chartContent.nativeElement.scrollTop = this.scrollStartY + deltaY;
-  }
-
-  private onDragScrollEnd(event: MouseEvent): void {
-    if (this.isDraggingScroll && this.chartContent && this.chartContent.nativeElement) {
-      this.chartContent.nativeElement.style.cursor = 'grab';
-    }
-    this.isDraggingScroll = false;
-  }
-
   private onBarResizeMove(event: MouseEvent): void {
     if (!this.resizingBar) return;
     
@@ -502,8 +468,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       // Ensure start doesn't go beyond end
       if (newStart < row.endDate) {
         row.startDate = newStart;
-        // Update the underlying data
-        this.updateUnderlyingData(row.id, newStart, row.endDate);
+        // Don't update underlying data during move, only on resize end
       }
     } else {
       const newEnd = new Date(this.resizingBar.originalEnd);
@@ -512,16 +477,23 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       // Ensure end doesn't go before start
       if (newEnd > row.startDate) {
         row.endDate = newEnd;
-        // Update the underlying data
-        this.updateUnderlyingData(row.id, row.startDate, newEnd);
+        // Don't update underlying data during move, only on resize end
       }
     }
     
-    this.cdr.detectChanges();
+    // Remove detectChanges to prevent NG0100 errors
+    // this.cdr.detectChanges();
   }
 
   private onBarResizeEnd(event: MouseEvent): void {
     if (!this.resizingBar) return;
+    
+    // Find the row and update the underlying data now that resize is complete
+    const row = this.timelineRows.find(r => r.id === this.resizingBar!.id);
+    if (row && row.startDate && row.endDate) {
+      this.updateUnderlyingData(row.id, row.startDate, row.endDate);
+    }
+    
     this.resizingBar = null;
     this.cdr.detectChanges();
   }
@@ -576,21 +548,34 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   private prepareTimelineData(): void {
     this.timelineRows = [];
     
-    if (this.projectData.length === 0) {
-      console.warn('⚠️ [TimelineChart] No sprint data available');
+    // Check if we have any data at all
+    const hasData = this.projectData.length > 0 || this.epicsData.length > 0 || this.allIssues.length > 0;
+    
+    if (!hasData) {
+      console.warn('⚠️ [TimelineChart] No data available for this project (no sprints, epics, or issues)');
+      // Still calculate date range and show empty timeline with today line
+      this.calculateDynamicDateRange([]);
       return;
     }
     
-    // Calculate date range based on all data
-    this.calculateDynamicDateRange(this.projectData);
+    // If we have no sprints but have epics/issues, continue anyway
+    if (this.projectData.length === 0) {
+      console.warn('⚠️ [TimelineChart] No sprints found, but continuing with epics/issues');
+    }
 
-    // 1. Add single "Sprints" overview row showing all sprints
+    // 1. Add single "Sprints" overview row showing all sprints (HTML will filter out those without dates)
+    // No filtering - show ALL sprints regardless of age or completion status
+    const allSprints = this.projectData;
+    
+    // Calculate date range based on ALL sprints and epics
+    this.calculateDynamicDateRange(allSprints);
+    
     this.timelineRows.push({
       id: 'sprints-overview',
       type: 'sprints-overview',
       name: 'Sprints',
       status: '',
-      sprints: this.projectData, // Pass all sprints to display multiple bars
+      sprints: allSprints, // Show all sprints
       level: 0,
       visible: true
     });
@@ -609,13 +594,15 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     // If we have epics in the database, display them
     if (this.epicsData.length > 0) {
+      console.log('🔍 Epic filters active:', this.selectedFilters.epics);
+      
       this.epicsData.forEach(epic => {
         console.log(`📊 Processing epic: "${epic.name}" (ID: ${epic.id})`);
         
         // Apply epic filter if any
         if (this.selectedFilters.epics.length > 0 && 
             !this.selectedFilters.epics.includes(epic.name)) {
-          console.log(`  ⏭️ Epic filtered out by epic filter`);
+          console.log(`  ⏭️ Epic "${epic.name}" filtered out by epic filter`);
           return;
         }
 
@@ -630,22 +617,33 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
             epicId: i.epicId 
           })));
         } else {
-          console.log(`  ⚠️ No issues match this epic. All issue epicIds:`, 
-            this.allIssues.map(i => i.epicId).filter(Boolean));
+          console.log(`  ⚠️ No issues match this epic. All issues in project:`, 
+            this.allIssues.map(i => ({ 
+              title: i.title, 
+              issueKey: i.issueKey,
+              epicId: i.epicId,
+              projectId: i.projectId
+            })));
         }
         
-        // Determine epic dates
-        let epicStart: Date;
-        let epicEnd: Date;
+        // Determine epic dates - ONLY use explicit startDate/dueDate, never createdAt/updatedAt
+        let epicStart: Date | undefined = undefined;
+        let epicEnd: Date | undefined = undefined;
         
-        if (epicIssues.length > 0) {
-          epicStart = this.getEarliestDate(epicIssues.map(i => i.createdAt));
-          epicEnd = this.getLatestDate(epicIssues.map(i => i.updatedAt));
-        } else {
-          // Use epic's own dates if no issues, or default to current date
-          epicStart = epic.startDate || new Date();
-          epicEnd = epic.dueDate || new Date();
+        // Priority 1: Use epic's own dates if available
+        if (epic.startDate && epic.dueDate) {
+          epicStart = epic.startDate;
+          epicEnd = epic.dueDate;
+        } 
+        // Priority 2: Calculate from issues ONLY if they have explicit startDate/dueDate
+        else if (epicIssues.length > 0) {
+          const issueStarts = epicIssues.map(i => i.startDate).filter((d): d is Date => d !== undefined);
+          const issueEnds = epicIssues.map(i => i.dueDate).filter((d): d is Date => d !== undefined);
+          
+          if (issueStarts.length > 0) epicStart = this.getEarliestDate(issueStarts);
+          if (issueEnds.length > 0) epicEnd = this.getLatestDate(issueEnds);
         }
+        // If no valid dates exist, leave as undefined (epic won't be shown in side panel)
         
         // Calculate epic progress
         const epicProgress = epicIssues.length > 0 ? this.calculateEpicProgress(epicIssues) : 0;
@@ -657,7 +655,19 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         }
         
         // Filter epics by display range (only for completed epics)
-        if (isEpicCompleted && !this.isEpicInDisplayRange(epic, epicEnd)) {
+        if (isEpicCompleted && epicEnd && !this.isEpicInDisplayRange(epic, epicEnd)) {
+          return;
+        }
+        
+        // Only add epic to side panel if it has valid start and end dates
+        if (!epicStart || !epicEnd) {
+          console.log(`⏭️ Skipping epic "${epic.name}" - no valid dates`, {
+            epicStartFromDB: epic.startDate,
+            epicDueFromDB: epic.dueDate,
+            calculatedStart: epicStart,
+            calculatedEnd: epicEnd,
+            issueCount: epicIssues.length
+          });
           return;
         }
         
@@ -674,6 +684,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           level: 0,
           visible: this.isItemInDateRange(epicStart, epicEnd)
         });
+        
+        console.log(`📊 Epic "${epic.name}" added to timeline:`, {
+          epicStart: epicStart,
+          epicEnd: epicEnd,
+          epicStartFromDB: epic.startDate,
+          epicEndFromDB: epic.dueDate,
+          issueCount: epicIssues.length
+        });
 
         // Add issue rows if epic is expanded
         if (this.isRowExpanded(epic.id)) {
@@ -686,22 +704,39 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
             console.log(`  Issue "${issue.title}": type=${issue.type}, typeVisible=${isTypeVisible}, status=${issue.status}, statusVisible=${isStatusVisible}`);
             
             if (isTypeVisible && isStatusVisible) {
+              // ONLY use explicit startDate/dueDate - never use createdAt/updatedAt
+              const issueStart = issue.startDate;
+              const issueEnd = issue.dueDate;
+              
+              // Skip issues without valid dates
+              if (!issueStart || !issueEnd) {
+                console.log(`    ⏭️ Skipping issue "${issue.title}" (${issue.issueKey}) - no valid dates (startDate: ${issue.startDate}, dueDate: ${issue.dueDate})`);
+                return;
+              }
+              
+              console.log(`    📅 Issue "${issue.title}" (${issue.issueKey}) dates:`, {
+                startDate: issue.startDate,
+                dueDate: issue.dueDate,
+                USING_START: issueStart,
+                USING_END: issueEnd
+              });
+              
               this.timelineRows.push({
                 id: issue.id,
                 type: 'issue',
                 name: issue.title,
                 status: issue.status,
-                startDate: issue.createdAt,
-                endDate: issue.updatedAt,
+                startDate: issueStart,
+                endDate: issueEnd,
                 progress: this.getIssueProgress(issue),
                 issueType: issue.type,
                 issueKey: issue.issueKey, // Add issue key for display
                 level: 1,
-                visible: this.isItemInDateRange(issue.createdAt, issue.updatedAt)
+                visible: this.isItemInDateRange(issueStart, issueEnd)
               });
               console.log(`    ✅ Issue added to timeline`);
             } else {
-              console.log(`    ❌ Issue filtered out`);
+              console.log(`    ❌ Issue filtered out by type/status`);
             }
           });
         } else {
@@ -718,7 +753,34 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private calculateDynamicDateRange(sprints: Sprint[]): void {
-    if (sprints.length === 0) {
+    const allDates: Date[] = [];
+    
+    // Include sprint dates
+    sprints.forEach(sprint => {
+      if (sprint.startDate) allDates.push(sprint.startDate);
+      if (sprint.endDate) allDates.push(sprint.endDate);
+    });
+    
+    // Include epic dates (epics with valid dates that will be shown)
+    this.epicsData.forEach(epic => {
+      if (epic.startDate) allDates.push(epic.startDate);
+      if (epic.dueDate) allDates.push(epic.dueDate);
+    });
+
+    // Only include issues with valid dates (no longer using createdAt/updatedAt)
+    sprints.forEach(sprint => {
+      if (sprint.issues && this.isRowExpanded(`sprint-${sprint.id}`)) {
+        sprint.issues.forEach(issue => {
+          if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
+            if (issue.startDate) allDates.push(issue.startDate);
+            if (issue.dueDate) allDates.push(issue.dueDate);
+          }
+        });
+      }
+    });
+    
+    // If no dates found, use default range around today
+    if (allDates.length === 0) {
       const now = new Date();
       switch (this.currentView) {
         case 'day':
@@ -736,24 +798,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       }
       return;
     }
-
-    const allDates: Date[] = [];
-    
-    sprints.forEach(sprint => {
-      allDates.push(sprint.startDate);
-      allDates.push(sprint.endDate);
-    });
-
-    sprints.forEach(sprint => {
-      if (sprint.issues && this.isRowExpanded(`sprint-${sprint.id}`)) {
-        sprint.issues.forEach(issue => {
-          if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
-            allDates.push(issue.createdAt);
-            allDates.push(issue.updatedAt);
-          }
-        });
-      }
-    });
 
     const earliestDate = this.getEarliestDate(allDates);
     const latestDate = this.getLatestDate(allDates);
@@ -897,6 +941,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     let current = new Date(start.getFullYear(), start.getMonth(), 1);
     
+    // Show ALL months consecutively without gaps
     while (current <= end) {
       const monthName = this.currentView === 'year' 
         ? current.toLocaleDateString('en-US', { month: 'short' })
@@ -911,13 +956,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       const left = this.getDatePositionInPixels(monthStart);
       const width = this.getDatePositionInPixels(monthEnd) - left;
       
-      if (width > 30) {
-        this.monthHeaders.push({
-          name: monthName,
-          left: left,
-          width: width
-        });
-      }
+      // Always show month header, no minimum width check
+      this.monthHeaders.push({
+        name: monthName,
+        left: left,
+        width: width
+      });
       
       current.setMonth(current.getMonth() + 1);
     }
@@ -1397,22 +1441,15 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private getUniqueEpics(): string[] {
-    const epicSet = new Set<string>();
+    // Only show epics that have valid dates (startDate AND dueDate)
+    // This matches what's displayed on the timeline
+    const epicNames = this.epicsData
+      .filter(epic => epic.startDate && epic.dueDate)
+      .map(epic => epic.name)
+      .filter(name => name && name.trim() !== '');
     
-    // Get epics from all sprints (no filtering)
-    this.projectData.forEach(sprint => {
-      if (sprint.issues && sprint.issues.length > 0) {
-        sprint.issues.forEach((issue: Issue) => {
-          if (issue.epicId) {
-            const epic = this.epicsData.find(e => e.id === issue.epicId);
-            if (epic) {
-              epicSet.add(epic.name);
-            }
-          }
-        });
-      }
-    });
-    return Array.from(epicSet);
+    console.log('🔍 Available epics with valid dates:', epicNames);
+    return epicNames;
   }
 
   private groupIssuesByEpicId(issues: Issue[]): Record<string, Issue[]> {

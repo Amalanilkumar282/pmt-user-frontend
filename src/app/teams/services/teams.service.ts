@@ -1,21 +1,37 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { Team, TeamMember, CreateTeamDto, UpdateTeamDto, TeamStats } from '../models/team.model';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { ProjectMembersService } from './project-members.service';
+
+export interface TeamCountResponse {
+  totalTeams: number;
+  activeTeams: number;
+  assignedMembersCount: number;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class TeamsService {
+  private http = inject(HttpClient);
   private projectMembersService = inject(ProjectMembersService);
+  private readonly API_BASE_URL = 'https://localhost:7117/api';
 
   // Signal-based state management
   private teamsSignal = signal<Team[]>(this.getInitialTeams());
   private selectedTeamIdSignal = signal<string | null>(null);
+  private teamCountSignal = signal<TeamCountResponse>({
+    totalTeams: 0,
+    activeTeams: 0,
+    assignedMembersCount: 0
+  });
 
   // Public computed signals
   teams = this.teamsSignal.asReadonly();
   selectedTeamId = this.selectedTeamIdSignal.asReadonly();
+  teamCount = this.teamCountSignal.asReadonly();
   
   selectedTeam = computed(() => {
     const id = this.selectedTeamIdSignal();
@@ -26,17 +42,126 @@ export class TeamsService {
     this.teamsSignal().filter(t => t.status === 'Active')
   );
 
-  // Get all available members from users data (for backward compatibility)
-  getAvailableMembers(): TeamMember[] {
-    return users
-      .filter(user => user.id !== 'user-8') // Exclude 'Unassigned'
-      .map(user => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: 'Developer' as const,
-        joinedDate: new Date().toISOString(),
-      }));
+  /**
+   * Get authentication headers with access token
+   */
+  private getAuthHeaders(): HttpHeaders {
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      const token = sessionStorage.getItem('accessToken');
+      if (token) {
+        headers = headers.set('Authorization', `Bearer ${token}`);
+      }
+    }
+
+    return headers;
+  }
+
+  /**
+   * Fetch team count from API for a given project
+   */
+  getTeamCount(projectId: string): Observable<TeamCountResponse> {
+    const headers = this.getAuthHeaders();
+    
+    return this.http.get<any>(`${this.API_BASE_URL}/Team/count/${projectId}`, { headers }).pipe(
+      map((response) => {
+        const teamCountData: TeamCountResponse = {
+          totalTeams: response.totalTeams || 0,
+          activeTeams: response.activeTeams || 0,
+          assignedMembersCount: response.assignedMembersCount || 0
+        };
+        
+        // Update the signal with the fetched data
+        this.teamCountSignal.set(teamCountData);
+        
+        return teamCountData;
+      })
+    );
+  }
+
+  /**
+   * Fetch all teams from API for a given project
+   */
+  getTeamsByProjectId(projectId: string): Observable<Team[]> {
+    const headers = this.getAuthHeaders();
+    
+    return this.http.get<any>(`${this.API_BASE_URL}/Team/project/${projectId}`, { headers }).pipe(
+      map((response) => {
+        console.log('TeamsService - Raw API response:', response);
+        
+        // Check if response is an array directly or has data property
+        const teamsData = Array.isArray(response) ? response : (response.data || []);
+        
+        if (teamsData && teamsData.length > 0) {
+          const teams: Team[] = teamsData.map((team: any, index: number) => ({
+            // Use teamId from API
+            id: team.teamId || team.id || `team-${index}-${Date.now()}`,
+            name: team.teamName || team.name || 'Unnamed Team',
+            description: team.description || '',
+            projectId: projectId,
+            projectName: team.projectName || '',
+            lead: {
+              // Use email as ID for lead
+              id: team.lead?.id || team.lead?.email || '',
+              name: team.lead?.name || 'Unknown',
+              email: team.lead?.email || '',
+              role: 'Team Lead' as const,
+              joinedDate: team.createdAt || new Date().toISOString(),
+            },
+            // Map members array from API
+            members: team.members?.map((member: any) => ({
+              id: member.id || member.email || '',
+              name: member.name || 'Unknown',
+              email: member.email || '',
+              role: member.role as any || 'Developer',
+              joinedDate: member.joinedDate || team.createdAt || new Date().toISOString(),
+            })) || [],
+            // Keep activeSprints as empty array (for sprint IDs if needed later)
+            activeSprints: [],
+            // Store the counts from API
+            activeSprintsCount: team.activeSprints || 0,
+            completedSprintsCount: team.completedSprints || 0,
+            createdAt: team.createdAt || new Date().toISOString(),
+            updatedAt: team.updatedAt || new Date().toISOString(),
+            // Map isActive boolean to status string
+            status: team.isActive !== false ? 'Active' : 'Inactive',
+            tags: team.tags || [],
+          }));
+          
+          console.log('TeamsService - Mapped teams:', teams);
+          
+          // Update the signal with the fetched data
+          this.teamsSignal.set(teams);
+          
+          return teams;
+        }
+        return [];
+      })
+    );
+  }
+
+  /**
+   * Fetch project members from API for team lead/member selection
+   */
+  getProjectMembersFromApi(projectId: string): Observable<TeamMember[]> {
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.API_BASE_URL}/Project/${projectId}/users`, { headers }).pipe(
+      map((response) => {
+        const membersData = Array.isArray(response.data) ? response.data : response.data || [];
+        return membersData.map((member: any) => ({
+          id: member.projectMemberId?.toString() || member.id?.toString(),
+          name: member.name,
+          email: member.email,
+          role: member.roleName || 'Developer',
+          avatar: member.avatarUrl || undefined,
+          joinedDate: member.addedAt || new Date().toISOString(),
+          projectMemberId: member.projectMemberId,
+        }));
+      })
+    );
   }
 
   // Get available members for a specific project (from ProjectMembersService)
@@ -64,69 +189,30 @@ export class TeamsService {
   }
 
   // CRUD Operations
-  createTeam(dto: CreateTeamDto): Team {
-    const availableMembers = this.getAvailableMembers();
-    const lead = availableMembers.find(m => m.id === dto.leadId);
-    const members = availableMembers.filter(m => dto.memberIds.includes(m.id));
-
-    if (!lead) {
-      throw new Error('Team lead not found');
-    }
-
-    const newTeam: Team = {
-      id: `team-${Date.now()}`,
-      name: dto.name,
-      description: dto.description,
-      projectId: dto.projectId,
-      projectName: this.getProjectName(dto.projectId),
-      lead,
-      members: [lead, ...members.filter(m => m.id !== lead.id)],
-      activeSprints: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'Active',
-      tags: dto.tags || [],
-    };
-
-    this.teamsSignal.update(teams => [...teams, newTeam]);
-    return newTeam;
+  /**
+   * Create team via API
+   */
+  createTeamApi(dto: CreateTeamDto): Observable<any> {
+    const headers = this.getAuthHeaders();
+    console.log('TeamsService - Creating team with DTO:', dto);
+    console.log('TeamsService - Request headers:', headers);
+    return this.http.post<any>(`${this.API_BASE_URL}/Team/create`, dto, { headers });
   }
 
-  updateTeam(id: string, dto: UpdateTeamDto): Team | null {
-    const teamIndex = this.teamsSignal().findIndex(t => t.id === id);
-    if (teamIndex === -1) return null;
+  createTeam(dto: CreateTeamDto, availableMembers: TeamMember[]): Observable<any> {
+    // Call the API to create team
+    return this.createTeamApi(dto).pipe(
+      map((response) => {
+        console.log('Team created successfully:', response);
+        // Optionally refresh teams list after creation
+        return response;
+      })
+    );
+  }
 
-    this.teamsSignal.update(teams => {
-      const updated = [...teams];
-      const team = { ...updated[teamIndex] };
-
-      if (dto.name) team.name = dto.name;
-      if (dto.description) team.description = dto.description;
-      if (dto.status) team.status = dto.status;
-      if (dto.tags) team.tags = dto.tags;
-
-      if (dto.leadId) {
-        const availableMembers = this.getAvailableMembers();
-        const newLead = availableMembers.find(m => m.id === dto.leadId);
-        if (newLead) team.lead = newLead;
-      }
-
-      if (dto.memberIds) {
-        const availableMembers = this.getAvailableMembers();
-        team.members = [
-          team.lead,
-          ...availableMembers.filter(m => 
-            dto.memberIds!.includes(m.id) && m.id !== team.lead.id
-          )
-        ];
-      }
-
-      team.updatedAt = new Date().toISOString();
-      updated[teamIndex] = team;
-      return updated;
-    });
-
-    return this.teamsSignal()[teamIndex];
+  updateTeam(id: string, dto: UpdateTeamDto): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.put<any>(`${this.API_BASE_URL}/Team/${id}`, dto, { headers });
   }
 
   deleteTeam(id: string): boolean {
@@ -190,65 +276,7 @@ export class TeamsService {
   }
 
   private getInitialTeams(): Team[] {
-    const availableMembers = this.getAvailableMembers();
     
-    return [
-      {
-        id: 'team-1',
-        name: 'Frontend Development Team',
-        description: 'Responsible for all frontend development tasks including UI/UX implementation',
-        projectId: '1',
-        projectName: 'Website Redesign',
-        lead: availableMembers[0], // Amal A
-        members: [availableMembers[0], availableMembers[1], availableMembers[2]],
-        activeSprints: ['sprint-1', 'sprint-2'],
-        createdAt: '2024-10-01T10:00:00Z',
-        updatedAt: '2024-10-14T10:00:00Z',
-        status: 'Active',
-        tags: ['Frontend', 'UI/UX'],
-      },
-      {
-        id: 'team-2',
-        name: 'Backend API Team',
-        description: 'Handles backend services, APIs, and database management',
-        projectId: '4',
-        projectName: 'Backend Infrastructure',
-        lead: availableMembers[3], // Harrel Alex
-        members: [availableMembers[3], availableMembers[4], availableMembers[5]],
-        activeSprints: ['sprint-3'],
-        createdAt: '2024-09-15T10:00:00Z',
-        updatedAt: '2024-10-12T10:00:00Z',
-        status: 'Active',
-        tags: ['Backend', 'API', 'Database'],
-      },
-      {
-        id: 'team-3',
-        name: 'Mobile Development Team',
-        description: 'Cross-platform mobile application development',
-        projectId: '2',
-        projectName: 'Mobile App Development',
-        lead: availableMembers[1], // Kiran Paulson
-        members: [availableMembers[1], availableMembers[6]],
-        activeSprints: [],
-        createdAt: '2024-08-20T10:00:00Z',
-        updatedAt: '2024-10-10T10:00:00Z',
-        status: 'Active',
-        tags: ['Mobile', 'Cross-platform'],
-      },
-      {
-        id: 'team-4',
-        name: 'QA & Testing Team',
-        description: 'Quality assurance and automated testing',
-        projectId: '1',
-        projectName: 'Website Redesign',
-        lead: availableMembers[2], // Kavya S
-        members: [availableMembers[2], availableMembers[5]],
-        activeSprints: ['sprint-1'],
-        createdAt: '2024-07-10T10:00:00Z',
-        updatedAt: '2024-10-05T10:00:00Z',
-        status: 'Inactive',
-        tags: ['QA', 'Testing', 'Automation'],
-      },
-    ];
+    return [];
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, forkJoin } from 'rxjs';
+import { Observable, forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
@@ -147,8 +147,17 @@ export class TimelineService {
         return [];
       }),
       catchError(error => {
+        // If 404 (no sprints found) or 401 (unauthorized), return empty array instead of throwing error
+        if (error.status === 404) {
+          console.warn('⚠️ [TimelineService] No sprints found for project, returning empty array');
+          return of([]);
+        }
+        if (error.status === 401) {
+          console.error('❌ [TimelineService] Unauthorized - token may be expired');
+          return of([]);
+        }
         console.error('❌ [TimelineService] Error fetching sprints:', error);
-        throw error;
+        return of([]);
       })
     );
   }
@@ -177,8 +186,17 @@ export class TimelineService {
         return [];
       }),
       catchError(error => {
+        // If 404 (no epics found) or 401 (unauthorized), return empty array instead of throwing error
+        if (error.status === 404) {
+          console.warn('⚠️ [TimelineService] No epics found for project, returning empty array');
+          return of([]);
+        }
+        if (error.status === 401) {
+          console.error('❌ [TimelineService] Unauthorized - token may be expired');
+          return of([]);
+        }
         console.error('❌ [TimelineService] Error fetching epics:', error);
-        throw error;
+        return of([]);
       })
     );
   }
@@ -207,8 +225,17 @@ export class TimelineService {
         return [];
       }),
       catchError(error => {
+        // If 404 (no issues found) or 401 (unauthorized), return empty array instead of throwing error
+        if (error.status === 404) {
+          console.warn('⚠️ [TimelineService] No issues found for project, returning empty array');
+          return of([]);
+        }
+        if (error.status === 401) {
+          console.error('❌ [TimelineService] Unauthorized - token may be expired');
+          return of([]);
+        }
         console.error('❌ [TimelineService] Error fetching issues:', error);
-        throw error;
+        return of([]);
       })
     );
   }

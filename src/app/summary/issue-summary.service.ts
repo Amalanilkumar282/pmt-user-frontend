@@ -134,6 +134,65 @@ export class IssueSummaryService {
   }
 
   /**
+   * Fetch issues from API for a specific project and sprint
+   * API format: /api/Issue/project/{projectId}/sprint/{sprintId}/issues
+   */
+  getIssuesByProjectAndSprint(projectId: string, sprintId: string): Observable<Issue[]> {
+    const headers = this.getAuthHeaders();
+    
+    return this.http.get<any>(`${this.API_BASE_URL}/Issue/project/${projectId}/sprint/${sprintId}/issues`, { headers }).pipe(
+      map((response) => {
+        if (response.status === 200 && response.data) {
+          console.log('🔍 Raw API response - Total issues:', response.data.length);
+          return response.data.map((issue: any) => {
+            // Map statusName to our IssueStatus type
+            let status: string = 'TODO';
+            if (issue.statusName) {
+              const statusMap: { [key: string]: string } = {
+                'To Do': 'TODO',
+                'TODO': 'TODO',
+                'In Progress': 'IN_PROGRESS',
+                'IN_PROGRESS': 'IN_PROGRESS',
+                'In Review': 'IN_REVIEW',
+                'IN_REVIEW': 'IN_REVIEW',
+                'Done': 'DONE',
+                'DONE': 'DONE',
+                'Blocked': 'BLOCKED',
+                'BLOCKED': 'BLOCKED'
+              };
+              status = statusMap[issue.statusName] || issue.statusName.toUpperCase().replace(/\s+/g, '_');
+            }
+            
+            console.log('📦 Issue:', issue.title, '| Key:', issue.key, '| Status:', issue.statusName, '→', status, '| Updated:', issue.updatedAt);
+            
+            return {
+              id: issue.id || issue.issueId,
+              key: issue.key, // Map the key field (e.g., PMT-011)
+              title: issue.title || issue.name,
+              description: issue.description,
+              type: (issue.issueType || issue.type || 'TASK').toUpperCase(),
+              priority: (issue.priority || 'MEDIUM').toUpperCase(),
+              status: status,
+              assignee: issue.assigneeName || issue.assignee || issue.assignedTo,
+              storyPoints: issue.storyPoints || 0,
+              sprintId: issue.sprintId,
+              teamId: issue.teamId,
+              epicId: issue.epicId,
+              startDate: issue.startDate ? new Date(issue.startDate) : undefined,
+              dueDate: issue.dueDate ? new Date(issue.dueDate) : undefined,
+              endDate: issue.endDate ? new Date(issue.endDate) : undefined,
+              createdAt: issue.createdAt ? new Date(issue.createdAt) : new Date(),
+              updatedAt: issue.updatedAt ? new Date(issue.updatedAt) : new Date(),
+              completedAt: issue.completedAt ? new Date(issue.completedAt) : (status === 'DONE' && issue.updatedAt ? new Date(issue.updatedAt) : undefined),
+            } as Issue;
+          });
+        }
+        return [];
+      })
+    );
+  }
+
+  /**
    * @deprecated Use getSprintsByProjectId instead
    * Returns dummy sprint data for backward compatibility
    */

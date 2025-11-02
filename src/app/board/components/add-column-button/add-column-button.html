@@ -80,7 +80,10 @@
 							placeholder="Search or create status" />
 						
 						<!-- Dropdown List -->
-						<div *ngIf="showStatusDropdown" class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+						<div *ngIf="showStatusDropdown" 
+						     class="absolute z-10 w-full mt-1 bg-white border-2 border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+						     appClickOutside
+						     (outsideClick)="closeStatusDropdown()">
 							<!-- Existing statuses -->
 							<div 
 								*ngFor="let status of filteredStatuses"
