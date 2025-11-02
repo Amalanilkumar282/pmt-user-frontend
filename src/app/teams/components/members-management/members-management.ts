@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProjectMembersService } from '../../services/project-members.service';
@@ -84,10 +84,32 @@ export class MembersManagement {
     return members;
   });
 
-  // Statistics
-  totalMembers = computed(() => this.projectMembers().length);
-  activeMembers = computed(() => this.projectMembers().filter(m => m.status === 'Active').length);
-  unassignedMembers = computed(() => this.projectMembers().filter(m => !m.teamId).length);
+  // Statistics (sourced from backend API)
+  totalMembers = signal<number>(0);
+  activeMembers = signal<number>(0);
+  unassignedMembers = signal<number>(0);
+
+  // Refresh counts when project changes
+  private refreshCountsEffect = effect(() => {
+    const projectId = this.currentProjectId();
+    if (projectId) {
+      // Fetch members and counts from API when project changes
+      this.membersService.fetchMembersFromApi(projectId).subscribe({
+        next: () => {
+          // After members are updated, fetch counts as well
+          this.fetchCounts(projectId);
+        },
+        error: (err) => {
+          console.error('Error fetching members for project:', err);
+        }
+      });
+    } else {
+      // Clear counts when no project selected
+      this.totalMembers.set(0);
+      this.activeMembers.set(0);
+      this.unassignedMembers.set(0);
+    }
+  });
 
   showAddForm(): void {
     this.viewMode.set('add');
@@ -99,6 +121,11 @@ export class MembersManagement {
 
   handleMemberAdded(): void {
     this.showList();
+    // Refresh counts after adding a member
+    const projectId = this.currentProjectId();
+    if (projectId) {
+      this.fetchCounts(projectId);
+    }
   }
 
   handleChangeRole(memberId: string): void {
@@ -136,7 +163,25 @@ export class MembersManagement {
 
     if (confirm(confirmMessage)) {
       this.membersService.removeMember(memberId);
+      // Refresh counts after removal
+      const projectId = this.currentProjectId();
+      if (projectId) {
+        this.fetchCounts(projectId);
+      }
     }
+  }
+
+  private fetchCounts(projectId: string): void {
+    this.membersService.getMemberCountsFromApi(projectId).subscribe({
+      next: (counts) => {
+        this.totalMembers.set(counts.totalMembers);
+        this.activeMembers.set(counts.activeMembers);
+        this.unassignedMembers.set(counts.unassignedMembers);
+      },
+      error: (err) => {
+        console.error('Error fetching member counts:', err);
+      }
+    });
   }
 
   setFilterStatus(status: 'all' | 'Active' | 'Inactive'): void {
