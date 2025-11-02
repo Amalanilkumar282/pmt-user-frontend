@@ -1,4 +1,4 @@
-import { Injectable, computed, signal, inject } from '@angular/core';
+import { Injectable, computed, signal, inject, effect } from '@angular/core';
 import type { Issue } from '../shared/models/issue.model';
 import type { IssueStatus } from '../shared/models/issue.model';
 import type { FilterState, GroupBy, Sprint, BoardColumnDef } from './models';
@@ -21,7 +21,8 @@ export class BoardStore {
   private _loadingSprints = signal<boolean>(false);
 
   // UI state
-  selectedSprintId = signal<string | 'BACKLOG'>('BACKLOG');
+  // selectedSprintId is either a sprint id string or null (no selection)
+  selectedSprintId = signal<string | null>(null);
   search = signal<string>('');
   filters = signal<FilterState>({ assignees: [], workTypes: [], labels: [], statuses: [], priorities: [] });
   groupBy = signal<GroupBy>('NONE');
@@ -32,6 +33,51 @@ export class BoardStore {
 
   // derived
   sprints = computed(() => this._sprints());
+  // Sprints available for the current board (team-specific). Empty for project/default boards.
+  availableSprints = computed(() => {
+    const board = this.currentBoard();
+    const allSprints = this._sprints();
+    console.log('[BoardStore.availableSprints] Computing available sprints');
+    console.log('[BoardStore.availableSprints] Current board:', board);
+    console.log('[BoardStore.availableSprints] All sprints:', allSprints.length, allSprints);
+    
+    if (!board || !board.teamId) {
+      console.log('[BoardStore.availableSprints] No team board, returning empty array');
+      return [] as Sprint[];
+    }
+    
+    // Check if any sprints have teamId set
+    const sprintsWithTeamId = allSprints.filter(s => s.teamId !== undefined && s.teamId !== null);
+    console.log('[BoardStore.availableSprints] Sprints with teamId:', sprintsWithTeamId.length, sprintsWithTeamId);
+    
+    // Convert both to strings for comparison (handle type mismatch: board.teamId is string, sprint.teamId is number)
+    const boardTeamId = String(board.teamId);
+    console.log('[BoardStore.availableSprints] Board teamId (as string):', boardTeamId);
+    
+    const filtered = allSprints.filter(s => String(s.teamId) === boardTeamId);
+    console.log('[BoardStore.availableSprints] Filtered team sprints (teamId=' + boardTeamId + '):', filtered.length, filtered);
+    
+    // If no sprints match the team, log warning
+    if (filtered.length === 0 && allSprints.length > 0) {
+      console.warn('[BoardStore.availableSprints] No sprints found for teamId:', boardTeamId);
+      console.warn('[BoardStore.availableSprints] Available sprint teamIds:', allSprints.map(s => ({ id: s.id, name: s.name, teamId: s.teamId })));
+    }
+    
+    return filtered;
+  });
+  
+  // Auto-select the active sprint (or first) when availableSprints populate and no selection exists
+  private _autoSelectSprint = effect(() => {
+    const available = this.availableSprints();
+    const currentSelection = this.selectedSprintId();
+    // Only auto-select for team boards when there is no selection yet
+    if (available.length > 0 && !currentSelection) {
+      const active = available.find(s => s.status === 'ACTIVE');
+      const pick = active ? active.id : available[0].id;
+      console.log('[BoardStore._autoSelectSprint] Auto-selecting sprint:', pick);
+      this.selectedSprintId.set(pick);
+    }
+  });
   issues = computed(() => this._issues());
   loadingIssues = this._loadingIssues.asReadonly();
   loadingSprints = this._loadingSprints.asReadonly();
@@ -70,10 +116,38 @@ export class BoardStore {
    */
   async loadSprintsByProject(projectId: string): Promise<void> {
     try {
+      console.log('[BoardStore] Loading sprints for project:', projectId);
       this._loadingSprints.set(true);
       const sprints = await firstValueFrom(this.sprintApiService.getSprintsByProject(projectId));
       this._sprints.set(sprints);
-      console.log('[BoardStore] Loaded sprints from API:', sprints.length);
+      console.log('[BoardStore] Loaded sprints from API:', sprints.length, sprints);
+      
+      // If current board is a team board, default selected sprint to that team's active sprint
+      const board = this.currentBoard();
+      console.log('[BoardStore] Current board:', board);
+      
+      if (board && board.teamId) {
+        console.log('[BoardStore] Team board detected, teamId:', board.teamId);
+        // Convert both to strings for comparison (handle type mismatch)
+        const boardTeamId = String(board.teamId);
+        const teamSprints = sprints.filter(s => String(s.teamId) === boardTeamId);
+        console.log('[BoardStore] Team sprints filtered:', teamSprints.length, teamSprints);
+        
+        const active = teamSprints.find(s => s.status === 'ACTIVE');
+        if (active) {
+          console.log('[BoardStore] Setting selectedSprintId to active team sprint:', active.id, active.name);
+          this.selectedSprintId.set(active.id);
+        } else if (teamSprints.length > 0) {
+          // No active sprint, default to first available team sprint
+          console.log('[BoardStore] No active sprint for team, defaulting to first team sprint:', teamSprints[0].id);
+          this.selectedSprintId.set(teamSprints[0].id);
+        } else {
+          console.log('[BoardStore] No team sprints available, leaving sprint selection empty');
+          this.selectedSprintId.set(null);
+        }
+      } else {
+        console.log('[BoardStore] Not a team board or no board set, keeping current selection');
+      }
     } catch (error) {
       console.error('[BoardStore] Error loading sprints:', error);
       this._sprints.set([]);
@@ -103,10 +177,29 @@ export class BoardStore {
 
     // Board-based filtering with null safety
     if (board) {
-      // If board is team-based, filter issues by team
+      // If board is team-based, filter issues by team.
+      // Note: the Issue API does not always include a teamId on the issue object,
+      // so we consider an issue to belong to the team when either:
+      //  - issue.teamId matches the board teamId, or
+      //  - issue.sprintId references a sprint that belongs to the board's team.
       if (board.teamId) {
-        // Team board - issues should be from this team only
-        list = list.filter(i => i.teamId === board.teamId);
+        const boardTeamId = String(board.teamId);
+
+        // Build set of sprint ids that belong to this team (handle type mismatch on sprint.teamId)
+        const teamSprintIds = this._sprints()
+          .filter(s => String(s.teamId) === boardTeamId)
+          .map(s => s.id);
+
+        console.log('[BoardStore.visibleIssues] Board is team board, teamSprintIds:', teamSprintIds);
+
+        list = list.filter(i => {
+          // If issue explicitly has teamId, use it
+          if (i.teamId) return String(i.teamId) === boardTeamId;
+          // Otherwise, if it belongs to a sprint that is owned by the team, include it
+          if (i.sprintId) return teamSprintIds.includes(i.sprintId);
+          // No team info - don't include in a team board view
+          return false;
+        });
       }
       // If board has no teamId (default/project board), show all issues from the project
       // (no additional filtering needed as issues are already project-scoped)
@@ -114,10 +207,12 @@ export class BoardStore {
 
     // Sprint filter - Only apply if board is present and is a team board (has teamId)
     if (board && board.teamId) {
-      // For team boards, apply sprint filtering: BACKLOG = issues not assigned to a sprint
-      list = sprintId === 'BACKLOG'
-        ? list.filter(i => !i.sprintId)
-        : list.filter(i => i.sprintId === sprintId);
+      // For team boards, apply sprint filtering: if selectedSprintId is null -> show all team issues
+      if (!sprintId) {
+        // no sprint selected -> keep all team issues
+      } else {
+        list = list.filter(i => i.sprintId === sprintId);
+      }
     } else {
       // For default/project boards (no teamId) or when there's no board context,
       // show ALL issues regardless of sprint. This matches the requirement that
@@ -219,8 +314,9 @@ export class BoardStore {
     // Group by Assignee - within each column, group issues by assignee
     if (groupByType === 'ASSIGNEE') {
       return cols.map(c => {
-        const columnIssues = issues.filter(i => i.status === c.id);
-        
+        // Match by statusId on the issue to the column's statusId
+        const columnIssues = issues.filter(i => i.statusId === c.statusId);
+
         // Group issues by assignee
         const grouped = new Map<string, Issue[]>();
         columnIssues.forEach(issue => {
@@ -230,7 +326,7 @@ export class BoardStore {
           }
           grouped.get(assignee)!.push(issue);
         });
-        
+
         // Sort each group by priority and flatten
         const sortedIssues: Issue[] = [];
         Array.from(grouped.entries())
@@ -238,7 +334,7 @@ export class BoardStore {
           .forEach(([_, groupIssues]) => {
             sortedIssues.push(...sortByPriority(groupIssues));
           });
-        
+
         return {
           def: c,
           items: sortedIssues,
@@ -250,8 +346,8 @@ export class BoardStore {
     // Group by Epic - within each column, group issues by epic
     if (groupByType === 'EPIC') {
       return cols.map(c => {
-        const columnIssues = issues.filter(i => i.status === c.id);
-        
+        const columnIssues = issues.filter(i => i.statusId === c.statusId);
+
         // Group issues by epic
         const grouped = new Map<string, Issue[]>();
         columnIssues.forEach(issue => {
@@ -261,7 +357,7 @@ export class BoardStore {
           }
           grouped.get(epic)!.push(issue);
         });
-        
+
         // Sort each group by priority and flatten
         const sortedIssues: Issue[] = [];
         Array.from(grouped.entries())
@@ -269,7 +365,7 @@ export class BoardStore {
           .forEach(([_, groupIssues]) => {
             sortedIssues.push(...sortByPriority(groupIssues));
           });
-        
+
         return {
           def: c,
           items: sortedIssues,
@@ -281,8 +377,8 @@ export class BoardStore {
     // Group by Subtask - within each column, group issues by parent
     if (groupByType === 'SUBTASK') {
       return cols.map(c => {
-        const columnIssues = issues.filter(i => i.status === c.id);
-        
+        const columnIssues = issues.filter(i => i.statusId === c.statusId);
+
         // Group issues by parent
         const grouped = new Map<string, Issue[]>();
         columnIssues.forEach(issue => {
@@ -292,7 +388,7 @@ export class BoardStore {
           }
           grouped.get(parent)!.push(issue);
         });
-        
+
         // Sort each group by priority and flatten
         const sortedIssues: Issue[] = [];
         Array.from(grouped.entries())
@@ -300,7 +396,7 @@ export class BoardStore {
           .forEach(([_, groupIssues]) => {
             sortedIssues.push(...sortByPriority(groupIssues));
           });
-        
+
         return {
           def: c,
           items: sortedIssues,
@@ -311,7 +407,7 @@ export class BoardStore {
     
     return cols.map(c => ({
       def: c,
-      items: sortByPriority(issues.filter(i => i.status === c.id))
+      items: sortByPriority(issues.filter(i => i.statusId === c.statusId))
     }));
   });
 
@@ -346,24 +442,29 @@ export class BoardStore {
     // Set sprint selection based on board type
     if (board.type === 'TEAM') {
       // Team boards: Show ACTIVE sprint issues by default
-      const activeSprint = this._sprints().find(s => s.status === 'ACTIVE');
+      const boardTeamId = String(board.teamId);
+      const teamSprints = this._sprints().filter(s => String(s.teamId) === boardTeamId);
+      const activeSprint = teamSprints.find(s => s.status === 'ACTIVE');
       if (activeSprint) {
         console.log('[BoardStore] loadBoard - Team board, selecting active sprint:', activeSprint.id);
         this.selectedSprintId.set(activeSprint.id);
+      } else if (teamSprints.length > 0) {
+        console.log('[BoardStore] loadBoard - Team board, no active sprint, selecting first team sprint:', teamSprints[0].id);
+        this.selectedSprintId.set(teamSprints[0].id);
       } else {
-        console.log('[BoardStore] loadBoard - Team board, no active sprint, selecting BACKLOG');
-        this.selectedSprintId.set('BACKLOG');
+        console.log('[BoardStore] loadBoard - Team board, no sprints available, leaving selection empty');
+        this.selectedSprintId.set(null);
       }
     } else if (board.type === 'PROJECT') {
-      // Project boards: Show ALL issues (BACKLOG shows everything)
-      console.log('[BoardStore] loadBoard - Project board, selecting BACKLOG (all issues)');
-      this.selectedSprintId.set('BACKLOG');
+      // Project boards: Show ALL issues (no sprint filter)
+      console.log('[BoardStore] loadBoard - Project board, clearing sprint selection (show all issues)');
+      this.selectedSprintId.set(null);
     }
     
     return true;
   }
 
-  selectSprint(id: string | 'BACKLOG') { this.selectedSprintId.set(id); }
+  selectSprint(id: string | null) { this.selectedSprintId.set(id); }
   setSearch(q: string) { this.search.set(q); }
   applyFilters(f: Partial<FilterState>) { this.filters.update(curr => ({...curr, ...f})); }
   clearFilters() { this.filters.set({ assignees: [], workTypes: [], labels: [], statuses: [], priorities: [] }); }
@@ -483,7 +584,8 @@ export class BoardStore {
       createdAt: new Date(),
       updatedAt: new Date(),
       labels: issueData.labels || [],
-      sprintId: issueData.sprintId || this.selectedSprintId(),
+  // Normalize sprintId to string | undefined. selectedSprintId can be null.
+  sprintId: issueData.sprintId ?? (this.selectedSprintId() ?? undefined),
       teamId: issueData.teamId,
       storyPoints: issueData.storyPoints,
       parentId: issueData.parentId,

@@ -2,41 +2,42 @@
   <label for="sprint-select" class="text-sm font-semibold text-gray-700"> Select Sprint: </label>
 
   <div class="relative">
+    <!-- Show message if no sprints available -->
+    <div *ngIf="sprints.length === 0" class="px-4 py-2 text-sm text-gray-500 bg-gray-50 rounded-lg border border-gray-300">
+      No sprints available for this team
+    </div>
+    
+    <!-- Show dropdown if sprints are available -->
     <select
+      *ngIf="sprints.length > 0"
       id="sprint-select"
       [(ngModel)]="selectedSprint"
       (ngModelChange)="onSprintChange($event)"
       class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm text-gray-700 font-medium cursor-pointer transition-all duration-200 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[220px] shadow-sm"
     >
-      <option value="all" class="py-2">All Sprints</option>
+      <!-- Backlog option for team boards -->
+      <option value="BACKLOG" class="py-2">Backlog</option>
 
-      <!-- ✅ Classic *ngFor -->
+      <!-- Team-specific sprints from database -->
       <option *ngFor="let sprint of sprints" [value]="sprint.id" class="py-2">
         {{ sprint.name }}
-        <span *ngIf="sprint.status === 'ACTIVE'">(Active)</span>
-        <span *ngIf="sprint.status === 'COMPLETED'">(Completed)</span>
-        <span *ngIf="sprint.status === 'PLANNED'">(Planned)</span>
+        <span *ngIf="sprint.status === 'ACTIVE'"> (Active)</span>
+        <span *ngIf="sprint.status === 'COMPLETED'"> (Completed)</span>
+        <span *ngIf="sprint.status === 'PLANNED'"> (Planned)</span>
       </option>
     </select>
 
     <!-- Custom dropdown arrow -->
-    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+    <div *ngIf="sprints.length > 0" class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
       <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
     </div>
   </div>
 
-  <!-- ✅ Classic *ngIf for sprint status display -->
-  <div *ngIf="selectedSprint && selectedSprint !== 'all'" class="flex items-center gap-2 ml-2">
-    <span
-      *ngIf="selectedSprint === 'backlog'"
-      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-    >
-      Backlog Items
-    </span>
-
-    <!-- ✅ Loop through sprints to show current selection status -->
+  <!-- Sprint status badge display -->
+  <div *ngIf="sprints.length > 0 && selectedSprint && selectedSprint !== 'BACKLOG'" class="flex items-center gap-2 ml-2">
+    <!-- Loop through sprints to show current selection status -->
     <ng-container *ngFor="let sprint of sprints">
       <ng-container *ngIf="sprint.id === selectedSprint">
         <span
@@ -62,5 +63,12 @@
         </span>
       </ng-container>
     </ng-container>
+  </div>
+
+  <!-- Backlog badge -->
+  <div *ngIf="sprints.length > 0 && selectedSprint === 'BACKLOG'" class="flex items-center gap-2 ml-2">
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+      Backlog Items
+    </span>
   </div>
 </div>

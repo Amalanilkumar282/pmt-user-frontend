@@ -172,6 +172,13 @@ export class BoardPage implements OnInit {
       if (board) {
         this.boardService.setCurrentBoard(board.id);
         console.log('[BoardPage] Board loaded:', board.name);
+        
+        // Reload sprints after board is set so initial sprint selection can be applied
+        const projectId = this.projectContextService.currentProjectId();
+        if (projectId) {
+          console.log('[BoardPage] Reloading sprints after board change');
+          await this.store.loadSprintsByProject(projectId);
+        }
       } else {
         console.warn(`Board ${boardId} not found`);
       }
@@ -209,13 +216,17 @@ export class BoardPage implements OnInit {
         queryParams: { boardId: defaultBoard.id },
         queryParamsHandling: 'merge'
       });
+      
+      // Reload sprints after board is set so initial sprint selection can be applied
+      console.log('[BoardPage] Reloading sprints after board change');
+      await this.store.loadSprintsByProject(projectId);
     } else {
       console.warn(`[BoardPage] No boards found for project ${projectId}`);
       console.log('[BoardPage] TIP: Create a board in the backend first, or check if the project ID is correct');
       
       // Don't create fallback board - let the user know they need to create one
-      // Set a safe default state
-      this.store.selectSprint('BACKLOG');
+      // Clear sprint selection (show all issues)
+      this.store.selectSprint(null);
     }
   }
 

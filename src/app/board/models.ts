@@ -10,6 +10,7 @@ export interface Sprint {
   startDate: Date;
   endDate: Date;
   status: 'PLANNED' | 'ACTIVE' | 'COMPLETED';
+  teamId?: number; // optional team association (from API)
   issues?: Issue[];
 }
 
