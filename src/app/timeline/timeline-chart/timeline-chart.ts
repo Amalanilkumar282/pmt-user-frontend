@@ -26,7 +26,7 @@ interface TimelineRow {
   endDate?: Date;
   progress?: number;
   issueType?: string;
-  issueKey?: string; // For displaying issue key like "PMT-101"
+  key?: string; // For displaying issue key like "PMT-101"
   expanded?: boolean;
   level?: number;
   visible?: boolean;
@@ -326,7 +326,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     return issueDtos.map(dto => {
       // Handle both snake_case and camelCase
-      const issueKey = dto.key || dto.issue_key || dto.issueKey || 'N/A';
+      const key = dto.key || dto.issue_key || dto.issueKey || 'N/A';
       const issueType = dto.type || dto.issue_type || dto.issueType || 'TASK';
       const assigneeName = dto.assignee_name || dto.assigneeName || 'Unassigned';
       const assigneeId = dto.assignee_id || dto.assigneeId || 0;
@@ -346,7 +346,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       
       return {
         id: dto.id,
-        issueKey: issueKey,
+        key: key,
         title: dto.title,
         description: dto.description || '',
         type: this.mapIssueType(issueType),
@@ -620,7 +620,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
           console.log(`  ⚠️ No issues match this epic. All issues in project:`, 
             this.allIssues.map(i => ({ 
               title: i.title, 
-              issueKey: i.issueKey,
+              key: i.key,
               epicId: i.epicId,
               projectId: i.projectId
             })));
@@ -710,11 +710,11 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
               
               // Skip issues without valid dates
               if (!issueStart || !issueEnd) {
-                console.log(`    ⏭️ Skipping issue "${issue.title}" (${issue.issueKey}) - no valid dates (startDate: ${issue.startDate}, dueDate: ${issue.dueDate})`);
+                console.log(`    ⏭️ Skipping issue "${issue.title}" (${issue.key}) - no valid dates (startDate: ${issue.startDate}, dueDate: ${issue.dueDate})`);
                 return;
               }
               
-              console.log(`    📅 Issue "${issue.title}" (${issue.issueKey}) dates:`, {
+              console.log(`    📅 Issue "${issue.title}" (${issue.key}) dates:`, {
                 startDate: issue.startDate,
                 dueDate: issue.dueDate,
                 USING_START: issueStart,
@@ -730,7 +730,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
                 endDate: issueEnd,
                 progress: this.getIssueProgress(issue),
                 issueType: issue.type,
-                issueKey: issue.issueKey, // Add issue key for display
+                key: issue.key, // Add issue key for display
                 level: 1,
                 visible: this.isItemInDateRange(issueStart, issueEnd)
               });
