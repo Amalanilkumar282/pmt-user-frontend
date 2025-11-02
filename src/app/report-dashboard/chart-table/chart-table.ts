@@ -196,7 +196,7 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       workType: i.type,
       epic:  i.epicId || '',
       status: i.status,
-  assignee: i.assignee ? i.assignee : (i['assignedTo'] ? i['assignedTo'] : 'Undefined'),
+      assignee: i.assignee || 'Undefined',
       storyPoints: i.storyPoints ?? 0
     }));
 
