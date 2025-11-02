@@ -3,19 +3,28 @@
   <canvas #burnupCanvas></canvas>
 </div> -->
 
-<div class="chart-container">
-   <apx-chart
-  [series]="chartOptions.series"
-  [chart]="chartOptions.chart"
-  [xaxis]="chartOptions.xaxis"
-  [yaxis]="chartOptions.yaxis"
-  [plotOptions]="chartOptions.plotOptions"
-  [dataLabels]="chartOptions.dataLabels"
-  [fill]="chartOptions.fill"
-  [stroke]="chartOptions.stroke"
-  [legend]="chartOptions.legend"
-  [title]="chartOptions.title">
-</apx-chart>
-
+<div class="chart-container" #chartContainer>
+  @if (!showChart || !chartOptions) {
+    <div style="padding: 40px; text-align: center; color: #666;">
+      <p>Loading chart data...</p>
+    </div>
+  } @else {
+    <div class="chart-wrapper">
+      <apx-chart
+        [series]="chartOptions.series!"
+        [chart]="chartOptions.chart!"
+        [xaxis]="chartOptions.xaxis!"
+        [yaxis]="chartOptions.yaxis!"
+        [plotOptions]="chartOptions.plotOptions!"
+        [dataLabels]="chartOptions.dataLabels!"
+        [fill]="chartOptions.fill!"
+        [stroke]="chartOptions.stroke!"
+        [legend]="chartOptions.legend!"
+        [title]="chartOptions.title!"
+        [colors]="chartOptions.colors || []"
+        [autoUpdateSeries]="false">
+      </apx-chart>
+    </div>
+  }
 </div>
 

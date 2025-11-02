@@ -56,7 +56,7 @@
                 <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
             </div>
-            <div class="stat-value">{{ stats.activeSprints }}</div>
+              <div class="stat-value">{{ team.activeSprintsCount ?? 0 }}</div>
             <div class="stat-label">Active Sprints</div>
           </div>
 
@@ -67,7 +67,7 @@
                 <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-            <div class="stat-value">{{ stats.completedSprints }}</div>
+              <div class="stat-value">{{ team.completedSprintsCount ?? 0 }}</div>
             <div class="stat-label">Completed Sprints</div>
           </div>
         </div>
@@ -81,9 +81,9 @@
             <span class="progress-label">{{ stats.completedIssues }} of {{ stats.totalIssues }} issues completed</span>
             <span class="progress-percentage">{{ getCompletionPercentage() }}%</span>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" [style.width.%]="getCompletionPercentage()"></div>
-          </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 50%"></div>
+            </div>
         </div>
       </div>
 
