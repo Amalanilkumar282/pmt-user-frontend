@@ -161,7 +161,7 @@ export class SummaryPage implements OnInit {
     this.updateDashboardData();
   }
 
-  onSprintFilterChange(sprintId: string): void {
+  onSprintFilterChange(sprintId: string | null): void {
     this.selectedSprintId = sprintId;
     this.updateDashboardData();
   }
