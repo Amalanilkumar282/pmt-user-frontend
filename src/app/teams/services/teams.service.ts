@@ -1,6 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { Team, TeamMember, CreateTeamDto, UpdateTeamDto, TeamStats } from '../models/team.model';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { ProjectMembersService } from './project-members.service';
@@ -215,15 +215,21 @@ export class TeamsService {
     return this.http.put<any>(`${this.API_BASE_URL}/Team/${id}`, dto, { headers });
   }
 
-  deleteTeam(id: string): boolean {
-    const initialLength = this.teamsSignal().length;
-    this.teamsSignal.update(teams => teams.filter(t => t.id !== id));
-    
-    if (this.selectedTeamIdSignal() === id) {
-      this.selectedTeamIdSignal.set(null);
-    }
-    
-    return this.teamsSignal().length < initialLength;
+  /**
+   * Delete a team via API and update local state on success.
+   * Returns an observable of the HTTP delete response.
+   */
+  deleteTeam(id: string): Observable<any> {
+    const headers = this.getAuthHeaders();
+    return this.http.delete<any>(`${this.API_BASE_URL}/Team/${id}`, { headers }).pipe(
+      tap(() => {
+        // Update local state after successful deletion
+        this.teamsSignal.update(teams => teams.filter(t => t.id !== id));
+        if (this.selectedTeamIdSignal() === id) {
+          this.selectedTeamIdSignal.set(null);
+        }
+      })
+    );
   }
 
   getTeamById(id: string): Team | undefined {

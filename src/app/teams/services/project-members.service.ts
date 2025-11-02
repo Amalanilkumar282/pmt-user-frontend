@@ -1,4 +1,7 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { map, tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { ProjectMember, AddMemberDto, UpdateMemberDto, MemberSearchResult } from '../models/project-member.model';
 import { users } from '../../shared/data/dummy-backlog-data';
 
@@ -8,6 +11,8 @@ import { users } from '../../shared/data/dummy-backlog-data';
 export class ProjectMembersService {
   // Signal-based state
   private membersSignal = signal<ProjectMember[]>(this.getInitialMembers());
+  private http = inject(HttpClient);
+  private readonly API_BASE_URL = 'https://localhost:7117/api';
   
   // Public computed signals
   members = this.membersSignal.asReadonly();
@@ -224,5 +229,80 @@ export class ProjectMembersService {
         // Not assigned to any team yet
       },
     ];
+  }
+
+  /**
+   * Fetch member counts for a project from backend API
+   * Expected response shape: { totalMembers: number, activeMembers: number, unassignedMembers: number }
+   */
+  getMemberCountsFromApi(projectId: string): Observable<{ totalMembers: number; activeMembers: number; unassignedMembers: number }> {
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.API_BASE_URL}/Team/projects/${projectId}/member-count`, { headers }).pipe(
+      map(resp => ({
+        totalMembers: resp?.totalMembers ?? resp?.total ?? 0,
+        activeMembers: resp?.activeMembers ?? resp?.active ?? 0,
+        unassignedMembers: resp?.unassignedMembers ?? resp?.unassigned ?? resp?.unassignedCount ?? 0,
+      }))
+    );
+  }
+
+  /**
+   * Fetch project members from backend and update local members signal.
+   * Maps API response to ProjectMember[] shape used by the UI.
+   */
+  fetchMembersFromApi(projectId: string): Observable<ProjectMember[]> {
+    const headers = this.getAuthHeaders();
+    return this.http.get<any>(`${this.API_BASE_URL}/User/by-project/${projectId}`, { headers }).pipe(
+      map(resp => resp?.data || []),
+      map((arr: any[]) => arr.map(item => {
+        const teams = Array.isArray(item.teams) ? item.teams : [];
+        const teamNames = teams.map((t: any) => t.teamName).filter(Boolean).join(', ');
+
+        // Map roleName to local MemberRole union with safe fallbacks
+        const roleName: string = item.roleName || '';
+        let mappedRole: any = 'Developer';
+        if (/project manager/i.test(roleName)) mappedRole = 'Project Manager';
+        else if (/qa/i.test(roleName)) mappedRole = 'QA Tester';
+        else if (/designer/i.test(roleName)) mappedRole = 'Designer';
+        else if (/devops/i.test(roleName)) mappedRole = 'DevOps';
+        else if (/business analyst/i.test(roleName)) mappedRole = 'Business Analyst';
+        else if (/developer/i.test(roleName)) mappedRole = 'Developer';
+
+        const pm: ProjectMember = {
+          id: item.projectMemberId !== undefined ? String(item.projectMemberId) : `pm-${item.id}`,
+          userId: item.id !== undefined ? String(item.id) : String(item.projectMemberId || ''),
+          userName: item.name || item.userName || '',
+          userEmail: item.email || item.userEmail || '',
+          projectId: String(projectId),
+          projectName: this.getProjectName(String(projectId)),
+          role: mappedRole,
+          status: item.isActive ? 'Active' : 'Inactive',
+          joinedDate: item.addedAt || new Date().toISOString(),
+          teamId: teams.length > 0 ? String(teams[0].teamId) : undefined,
+          teamName: teamNames || undefined,
+          avatar: item.avatarUrl || undefined,
+        };
+
+        return pm;
+      })),
+      tap((members: ProjectMember[]) => {
+        // Update local state so other components/readers can use getMembersByProject
+        this.membersSignal.set(members);
+      })
+    );
+  }
+
+  /**
+   * Build auth headers for API calls (SSR-safe)
+   */
+  private getAuthHeaders(): HttpHeaders {
+    let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      const token = sessionStorage.getItem('accessToken');
+      if (token) {
+        headers = headers.set('Authorization', `Bearer ${token}`);
+      }
+    }
+    return headers;
   }
 }
