@@ -15,6 +15,9 @@ import { BoardService } from '../../services/board.service';
 import { signal } from '@angular/core';
 import { DEFAULT_COLUMNS } from '../../utils';
 import { Issue } from '../../../shared/models/issue.model';
+import { EpicApiService } from '../../services/epic-api.service';
+import { UserApiService } from '../../../shared/services/user-api.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-board-page',
@@ -39,6 +42,8 @@ export class BoardPage implements OnInit {
   private userContextService = inject(UserContextService);
   private boardService = inject(BoardService);
   private store = inject(BoardStore);
+  private epicApi = inject(EpicApiService);
+  private userApi = inject(UserApiService);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
@@ -48,6 +53,11 @@ export class BoardPage implements OnInit {
   protected selectedIssue = signal(null as any);
   protected isModalOpen = signal(false);
   
+  // Guards to prevent duplicate loading
+  private _lastLoadedProjectId: string | null = null;
+  private _lastLoadedBoardId: string | null = null;
+  private _isInitializing = false;
+  
   constructor() {
     // React to board changes
     effect(() => {
@@ -55,18 +65,21 @@ export class BoardPage implements OnInit {
       if (board) {
         // Update store columns based on board configuration
         this.store.columns.set([...board.columns]);
-        console.log('[BoardPage] Board changed, updated columns:', board.columns.length);
       }
     });
     
-    // Subscribe to route param changes (project changes)
+    // Subscribe to route param changes (project changes) - SKIP initial load
     this.route.parent?.params.subscribe(async params => {
       const projectId = params['projectId'];
-      console.log('[BoardPage] Project changed to:', projectId);
+      
+      // Skip if we're initializing, already loaded this project, or this is the initial load
+      if (this._isInitializing || projectId === this._lastLoadedProjectId || this._lastLoadedProjectId === null) {
+        return;
+      }
+      
       if (projectId) {
         this.projectContextService.setCurrentProjectId(projectId);
         this.boardService.accessProject(projectId);
-        console.log('[BoardPage] Set project context and accessed project');
         
         // Load boards and data from backend
         await this.loadProjectData(projectId);
@@ -74,11 +87,9 @@ export class BoardPage implements OnInit {
         // Check if we have a boardId in query params
         const currentBoardId = this.route.snapshot.queryParamMap.get('boardId');
         if (currentBoardId) {
-          console.log('[BoardPage] Loading board from query param:', currentBoardId);
           await this.loadBoardById(Number(currentBoardId));
         } else {
           // Load default board for this project
-          console.log('[BoardPage] No boardId, loading default board');
           await this.loadDefaultBoard(projectId);
         }
       }
@@ -89,8 +100,13 @@ export class BoardPage implements OnInit {
       const boardId = params['boardId'];
       const currentProjectId = this.projectContextService.currentProjectId();
       
+      // Skip if we're initializing, no boardId, or already loaded this board
+      if (this._isInitializing || !boardId || boardId === this._lastLoadedBoardId) {
+        return;
+      }
+      
       // Only reload if boardId changed and we're in the same project
-      if (boardId && boardId !== this.boardService.currentBoardId() && currentProjectId) {
+      if (boardId !== this.boardService.currentBoardId() && currentProjectId) {
         await this.loadBoardById(Number(boardId));
       }
     });
@@ -101,28 +117,15 @@ export class BoardPage implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    this._isInitializing = true;
+    
     // Initial load - Set project context from route params
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     
-    // Avoid referencing `window` during server-side rendering
-    const isBrowser = typeof window !== 'undefined';
-    console.log('[BoardPage] ngOnInit - Route params:', {
-      projectId: projectId,
-      fullUrl: isBrowser ? window.location.href : 'server',
-      routeSnapshot: this.route.snapshot,
-      parentRoute: this.route.parent?.snapshot
-    });
-    
     if (!projectId) {
-      console.error('[BoardPage] No project ID found in route');
-      if (isBrowser) {
-        console.log('[BoardPage] Current URL:', window.location.href);
-        console.log('[BoardPage] Expected URL format: /projects/{projectId}/board');
-      }
+      this._isInitializing = false;
       return;
     }
-    
-    console.log(`[BoardPage] Project ID extracted: ${projectId}`);
     
     this.projectContextService.setCurrentProjectId(projectId);
     this.boardService.accessProject(projectId);
@@ -140,22 +143,27 @@ export class BoardPage implements OnInit {
       // No boardId specified, load default board
       await this.loadDefaultBoard(projectId);
     }
+    
+    this._isInitializing = false;
   }
   
   /**
    * Load all project data: boards, issues, sprints
    */
   private async loadProjectData(projectId: string): Promise<void> {
+    // Skip if already loaded this project
+    if (projectId === this._lastLoadedProjectId) {
+      return;
+    }
+    
     try {
-      console.log('[BoardPage] Loading project data for:', projectId);
-      
       // Load boards and board data in parallel
       await Promise.all([
         this.boardService.loadBoardsByProject(projectId),
         this.store.loadBoardData(projectId)
       ]);
       
-      console.log('[BoardPage] Project data loaded successfully');
+      this._lastLoadedProjectId = projectId;
     } catch (error) {
       console.error('[BoardPage] Error loading project data:', error);
     }
@@ -165,17 +173,26 @@ export class BoardPage implements OnInit {
    * Load specific board by ID
    */
   private async loadBoardById(boardId: number): Promise<void> {
+    const boardIdStr = String(boardId);
+    
+    // Skip if already loaded this board
+    if (boardIdStr === this._lastLoadedBoardId) {
+      console.log('[BoardPage] Board already loaded:', boardId);
+      return;
+    }
+    
     try {
       console.log('[BoardPage] Loading board:', boardId);
       const board = await this.boardService.loadBoardById(boardId);
       
       if (board) {
         this.boardService.setCurrentBoard(board.id);
+        this._lastLoadedBoardId = board.id;
         console.log('[BoardPage] Board loaded:', board.name);
         
-        // Reload sprints after board is set so initial sprint selection can be applied
+        // Only reload sprints if we haven't loaded them yet for this project
         const projectId = this.projectContextService.currentProjectId();
-        if (projectId) {
+        if (projectId && this.store.sprints().length === 0) {
           console.log('[BoardPage] Reloading sprints after board change');
           await this.store.loadSprintsByProject(projectId);
         }
@@ -209,6 +226,7 @@ export class BoardPage implements OnInit {
     if (defaultBoard) {
       console.log('[BoardPage] loadDefaultBoard - Loading board:', defaultBoard.id, defaultBoard.name);
       this.boardService.setCurrentBoard(defaultBoard.id);
+      this._lastLoadedBoardId = defaultBoard.id;
       
       // Update URL with boardId query param
       this.router.navigate([], {
@@ -217,9 +235,11 @@ export class BoardPage implements OnInit {
         queryParamsHandling: 'merge'
       });
       
-      // Reload sprints after board is set so initial sprint selection can be applied
-      console.log('[BoardPage] Reloading sprints after board change');
-      await this.store.loadSprintsByProject(projectId);
+      // Only reload sprints if we haven't loaded them yet for this project
+      if (this.store.sprints().length === 0) {
+        console.log('[BoardPage] Reloading sprints after board change');
+        await this.store.loadSprintsByProject(projectId);
+      }
     } else {
       console.warn(`[BoardPage] No boards found for project ${projectId}`);
       console.log('[BoardPage] TIP: Create a board in the backend first, or check if the project ID is correct');
@@ -231,16 +251,48 @@ export class BoardPage implements OnInit {
   }
 
   // open issue detailed view from task card
-  onOpenIssue(issue: any) {
-    this.selectedIssue.set(issue);
+  async onOpenIssue(issue: any) {
+    const enriched = { ...issue } as any;
+
+    // Resolve epic name if missing
+    try {
+      if (enriched.epicId && !enriched.epicName) {
+        const epic = await firstValueFrom(this.epicApi.getEpicById(enriched.epicId));
+        if (epic && epic.title) enriched.epicName = epic.title;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Resolve sprint name from store if available
+    try {
+      if (enriched.sprintId && !enriched.sprintName) {
+        const sprint = this.store.sprints().find(s => s.id === enriched.sprintId);
+        if (sprint) enriched.sprintName = sprint.name;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Resolve assignee name if it's a numeric id
+    try {
+      const a = enriched.assignee;
+      if (a && /^\d+$/.test(String(a)) && !enriched.assigneeName) {
+        const user = await firstValueFrom(this.userApi.getUserById(Number(a)));
+        if (user && user.name) enriched.assigneeName = user.name;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    this.selectedIssue.set(enriched);
     this.isModalOpen.set(true);
   }
   
   // open issue detailed view and scroll to comments
-  onOpenIssueComments(issue: any) {
-    this.selectedIssue.set(issue);
-    this.isModalOpen.set(true);
-    
+  async onOpenIssueComments(issue: any) {
+    await this.onOpenIssue(issue);
+
     // Use setTimeout to ensure modal is rendered before scrolling
     setTimeout(() => {
       const commentsSection = document.getElementById('issue-comments-section');

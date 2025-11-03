@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface ActivityLogDto {
   id: string;
@@ -23,6 +24,8 @@ export interface ActivityResponse {
   providedIn: 'root'
 })
 export class ActivityService {
+  private baseUrl = `${environment.apiUrl}/api/User`;
+  
   constructor(private http: HttpClient) {}
 
   /**
@@ -37,7 +40,7 @@ export class ActivityService {
     });
 
     return this.http.get<ActivityResponse>(
-      `/api/User/${userId}/activities?take=${take}`,
+      `${this.baseUrl}/${userId}/activities?take=${take}`,
       { headers }
     );
   }

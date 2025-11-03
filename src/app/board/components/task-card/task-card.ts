@@ -7,6 +7,7 @@ import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe
 import { BoardStore } from '../../board-store';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 import { UserApiService } from '../../../shared/services/user-api.service';
+import { shareReplay } from 'rxjs/operators';
 import { EpicApiService } from '../../services/epic-api.service';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
 
@@ -19,6 +20,14 @@ import { ProjectContextService } from '../../../shared/services/project-context.
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskCard implements OnInit, AfterViewInit {
+  // Static caches shared across all card instances
+  private static projectMembersCache: Map<string, { id: number; name: string }[]> = new Map();
+  private static epicsCache: Map<string, string> = new Map();
+  // When loadingProjectMembers stores an observable it represents an in-flight request
+  private static loadingProjectMembers: Map<string, any> = new Map();
+  // When loadingEpics stores an observable it represents an in-flight request
+  private static loadingEpics: Map<string, any> = new Map();
+  
   private store = inject(BoardStore);
   
   @ViewChild('titleTextarea') titleTextarea?: ElementRef<HTMLTextAreaElement>;
@@ -170,35 +179,106 @@ export class TaskCard implements OnInit, AfterViewInit {
       }
     }
 
-    // Load project members for assignee dropdown (non-blocking)
+    // Load project members for assignee dropdown (non-blocking, with caching)
     try {
       const projectId = this.projectContext.currentProjectId();
       if (projectId) {
-        this.userApi.getUsersByProject(projectId).subscribe({
-          next: members => {
-            this.projectMembers = members.map(m => ({ id: m.id, name: m.name }));
-            // Build available assignees list including Unassigned
-            this.availableAssignees = [
-              ...this.projectMembers.map(m => ({ id: m.id.toString(), name: m.name })),
-              { id: 'unassigned', name: 'Unassigned' }
-            ];
-          },
-          error: () => {
-            // fallback: keep Unassigned only
+        // Check cache first
+        const cached = TaskCard.projectMembersCache.get(projectId);
+        if (cached) {
+          this.projectMembers = cached;
+          this.availableAssignees = [
+            ...cached.map(m => ({ id: m.id.toString(), name: m.name })),
+            { id: 'unassigned', name: 'Unassigned' }
+          ];
+        } else if (!TaskCard.loadingProjectMembers.get(projectId)) {
+          // Start a single in-flight request and store the observable so other
+          // TaskCard instances can subscribe to the same stream and populate
+          // their own availableAssignees when it resolves.
+          const req$ = this.userApi.getUsersByProject(projectId).pipe(shareReplay(1));
+          TaskCard.loadingProjectMembers.set(projectId, req$);
+
+          req$.subscribe({
+            next: members => {
+              const memberList = members.map(m => ({ id: m.id, name: m.name }));
+              TaskCard.projectMembersCache.set(projectId, memberList);
+              TaskCard.loadingProjectMembers.delete(projectId);
+
+              this.projectMembers = memberList;
+              this.availableAssignees = [
+                ...memberList.map(m => ({ id: m.id.toString(), name: m.name })),
+                { id: 'unassigned', name: 'Unassigned' }
+              ];
+            },
+            error: () => {
+              TaskCard.loadingProjectMembers.delete(projectId);
+              this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
+            }
+          });
+        } else {
+          // Another instance has started loading members for this project.
+          // Subscribe to the in-flight observable so this card is updated
+          // when the request completes.
+          const inFlight$ = TaskCard.loadingProjectMembers.get(projectId);
+          if (inFlight$ && inFlight$.subscribe) {
+            inFlight$.subscribe({
+              next: (members: any[]) => {
+                const memberList = members.map(m => ({ id: m.id, name: m.name }));
+                this.projectMembers = memberList;
+                this.availableAssignees = [
+                  ...memberList.map(m => ({ id: m.id.toString(), name: m.name })),
+                  { id: 'unassigned', name: 'Unassigned' }
+                ];
+              },
+              error: () => {
+                this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
+              }
+            });
+          } else {
+            // Fallback: ensure at least 'Unassigned' is available
             this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
           }
-        });
+        }
       }
     } catch (e) {
       // ignore in non-browser environments
     }
 
-    // Resolve epic title if epicId present
+    // Resolve epic title if epicId present (with caching)
     if (this.issue.epicId) {
-      this.epicApi.getEpicById(this.issue.epicId).subscribe({
-        next: e => this.epicTitle.set(e.title),
-        error: () => {}
-      });
+      const epicId = this.issue.epicId;
+      const cachedTitle = TaskCard.epicsCache.get(epicId);
+      if (cachedTitle) {
+        this.epicTitle.set(cachedTitle);
+      } else if (!TaskCard.loadingEpics.get(epicId)) {
+        // start a single in-flight request and share it
+        const req$ = this.epicApi.getEpicById(epicId).pipe(shareReplay(1));
+        TaskCard.loadingEpics.set(epicId, req$);
+
+        req$.subscribe({
+          next: e => {
+            TaskCard.epicsCache.set(epicId, e.title);
+            TaskCard.loadingEpics.delete(epicId);
+            this.epicTitle.set(e.title);
+          },
+          error: () => {
+            TaskCard.loadingEpics.delete(epicId);
+          }
+        });
+      } else {
+        const inFlight$ = TaskCard.loadingEpics.get(epicId);
+        if (inFlight$ && inFlight$.subscribe) {
+          inFlight$.subscribe({
+            next: (e: any) => {
+              TaskCard.epicsCache.set(epicId, e.title);
+              this.epicTitle.set(e.title);
+            },
+            error: () => {
+              // keep epicTitle as null
+            }
+          });
+        }
+      }
     }
   }
 

@@ -19,6 +19,9 @@ export class BoardStore {
   private _sprints = signal<Sprint[]>([]);
   private _loadingIssues = signal<boolean>(false);
   private _loadingSprints = signal<boolean>(false);
+  
+  // Cache tracking
+  private _loadedProjectId: string | null = null;
 
   // UI state
   // selectedSprintId is either a sprint id string or null (no selection)
@@ -78,6 +81,41 @@ export class BoardStore {
       this.selectedSprintId.set(pick);
     }
   });
+
+  // Ensure that when the current board changes we immediately select that board's active sprint
+  // This handles the case where boards are switched after sprints have already been loaded
+  private _onBoardChange = effect(() => {
+    const board = this.currentBoard();
+    const allSprints = this._sprints();
+    console.log('[BoardStore._onBoardChange] Detected board change:', board?.id);
+
+    if (!board) {
+      // No board context -> clear selection
+      this.selectedSprintId.set(null);
+      return;
+    }
+
+    // Only apply sprint selection for team boards
+    if (!board.teamId) {
+      this.selectedSprintId.set(null);
+      return;
+    }
+
+    const boardTeamId = String(board.teamId);
+    const teamSprints = allSprints.filter(s => String(s.teamId) === boardTeamId);
+    const active = teamSprints.find(s => s.status === 'ACTIVE');
+
+    if (active) {
+      console.log('[BoardStore._onBoardChange] Selecting active sprint for board:', active.id);
+      this.selectedSprintId.set(active.id);
+    } else if (teamSprints.length > 0) {
+      console.log('[BoardStore._onBoardChange] No active sprint - defaulting to first team sprint:', teamSprints[0].id);
+      this.selectedSprintId.set(teamSprints[0].id);
+    } else {
+      console.log('[BoardStore._onBoardChange] No team sprints available for board - clearing selection');
+      this.selectedSprintId.set(null);
+    }
+  });
   issues = computed(() => this._issues());
   loadingIssues = this._loadingIssues.asReadonly();
   loadingSprints = this._loadingSprints.asReadonly();
@@ -86,6 +124,12 @@ export class BoardStore {
    * Load issues from backend API
    */
   async loadIssuesByProject(projectId: string): Promise<void> {
+    // Skip if already loaded for this project and not loading
+    if (projectId === this._loadedProjectId && this._issues().length > 0) {
+      console.log('[BoardStore] Issues already cached for project:', projectId);
+      return;
+    }
+    
     try {
       console.log('[BoardStore] Loading issues for project:', projectId);
       this._loadingIssues.set(true);
@@ -115,6 +159,12 @@ export class BoardStore {
    * Load sprints from backend API
    */
   async loadSprintsByProject(projectId: string): Promise<void> {
+    // Skip if already loaded for this project and not loading
+    if (projectId === this._loadedProjectId && this._sprints().length > 0) {
+      console.log('[BoardStore] Sprints already cached for project:', projectId);
+      return;
+    }
+    
     try {
       console.log('[BoardStore] Loading sprints for project:', projectId);
       this._loadingSprints.set(true);
@@ -160,6 +210,9 @@ export class BoardStore {
    * Load all board data (issues + sprints) for a project
    */
   async loadBoardData(projectId: string): Promise<void> {
+    // Mark this project as loaded
+    this._loadedProjectId = projectId;
+    
     await Promise.all([
       this.loadIssuesByProject(projectId),
       this.loadSprintsByProject(projectId)

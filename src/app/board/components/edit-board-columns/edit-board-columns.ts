@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { BoardStore } from '../../board-store';
 import { BoardColumnDef } from '../../models';
+import { BoardService } from '../../services/board.service';
 
 @Component({
   selector: 'app-edit-board-columns',
@@ -14,18 +15,24 @@ import { BoardColumnDef } from '../../models';
 })
 export class EditBoardColumns {
   private store = inject(BoardStore);
+  private boardService = inject(BoardService);
   
   isOpen = signal(false);
   editableColumns = signal<BoardColumnDef[]>([]);
+  isSaving = signal(false);
+  errorMessage = signal<string | null>(null);
 
   open() {
     // Clone current columns for editing
     this.editableColumns.set([...this.store.columns()]);
+    this.errorMessage.set(null);
     this.isOpen.set(true);
   }
   
   close() {
     this.isOpen.set(false);
+    this.isSaving.set(false);
+    this.errorMessage.set(null);
   }
 
   drop(event: CdkDragDrop<BoardColumnDef[]>) {
@@ -38,10 +45,105 @@ export class EditBoardColumns {
     col.title = newTitle;
     this.editableColumns.set([...this.editableColumns()]);
   }
+  
+  updateColor(col: BoardColumnDef, newColor: string) {
+    col.color = newColor;
+    this.editableColumns.set([...this.editableColumns()]);
+  }
 
-  save() {
-    // Save to store
-    this.store.columns.set([...this.editableColumns()]);
-    this.close();
+  async save() {
+    this.isSaving.set(true);
+    this.errorMessage.set(null);
+    
+    // Persist changes to backend where necessary, then refresh store
+    const originalCols = this.store.columns();
+    const editedCols = [...this.editableColumns()];
+
+    const board = this.store.currentBoard();
+    const boardId = board?.id;
+
+    if (!boardId) {
+      console.warn('[EditBoardColumns] No current board selected - applying locally');
+      this.store.columns.set(editedCols);
+      this.isSaving.set(false);
+      this.close();
+      return;
+    }
+
+    // Ensure positions are sequential (1-based)
+    for (let i = 0; i < editedCols.length; i++) {
+      editedCols[i].position = i + 1;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Iterate and update only changed columns
+    for (const col of editedCols) {
+      try {
+        // Find original column by stable id (id field) if present
+        const orig = originalCols.find(c => c.id === col.id) || originalCols.find(c => c.columnId === col.columnId);
+
+        // Build updates object only with changed values
+        const updates: { name?: string; color?: string; position?: number } = {};
+        if (!orig || col.title !== orig.title) updates.name = col.title;
+        if (!orig || col.color !== orig.color) updates.color = col.color;
+        if (!orig || col.position !== orig.position) updates.position = col.position;
+
+        if (Object.keys(updates).length === 0) {
+          console.log('[EditBoardColumns] No changes for column:', col.title);
+          continue; // nothing to update
+        }
+
+        if (!col.columnId) {
+          // If there's no backend column id, we cannot update — log and skip
+          console.warn('[EditBoardColumns] Column has no backend id, skipping update:', col);
+          failCount++;
+          continue;
+        }
+
+        console.log('[EditBoardColumns] Updating column:', {
+          columnId: col.columnId,
+          title: col.title,
+          updates
+        });
+
+        // Await each update to keep ordering predictable (positions)
+        const ok = await this.boardService.updateColumnApi(col.columnId, boardId, updates);
+        if (ok) {
+          successCount++;
+          console.log('[EditBoardColumns] Successfully updated column:', col.title);
+        } else {
+          failCount++;
+          console.error('[EditBoardColumns] Failed to update column:', col.title);
+        }
+      } catch (err) {
+        failCount++;
+        console.error('[EditBoardColumns] Error updating column:', col.title, err);
+      }
+    }
+
+    console.log('[EditBoardColumns] Update summary:', { successCount, failCount });
+
+    // Refresh store's board/columns from the board service
+    try {
+      const success = this.store.loadBoard(boardId);
+      if (!success) {
+        this.errorMessage.set('Failed to reload board after updates');
+      }
+    } catch (err) {
+      console.warn('[EditBoardColumns] Error refreshing board after column updates:', err);
+      this.errorMessage.set('Failed to reload board after updates');
+    }
+
+    this.isSaving.set(false);
+
+    // Show error if any updates failed
+    if (failCount > 0) {
+      this.errorMessage.set(`${failCount} column(s) failed to update. Check console for details.`);
+      // Don't close the modal so user can see the error
+    } else {
+      this.close();
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -14,6 +14,9 @@ export interface ProjectResponse {
   customerDescription: string | null;
   pocEmail: string | null;
   pocPhone: string | null;
+  projectManagerName: string | null;
+  deliveryUnitName: string | null;
+  statusName: string | null;
 }
 
 export interface ApiResponse {
@@ -36,10 +39,12 @@ export interface Project {
   customerDescription?: string | null;
   pocEmail?: string | null;
   pocPhone?: string | null;
+  projectManagerName?: string | null;
+  deliveryUnitName?: string | null;
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProjectService {
   private http = inject(HttpClient);
@@ -52,51 +57,47 @@ export class ProjectService {
   }
 
   /**
-   * Get access token from session storage
-   * @returns Access token or null if not found
-   */
-  private getAccessToken(): string | null {
-    if (!this.isBrowser) return null;
-    return sessionStorage.getItem('accessToken');
-  }
-
-  /**
-   * Get HTTP headers with Authorization token
-   * @returns HttpHeaders with Authorization Bearer token
-   */
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.getAccessToken();
-    if (token) {
-      return new HttpHeaders({
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-    }
-    return new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-  }
-
-  /**
    * Get all projects for a specific user
    * @param userId - The ID of the user
    * @returns Observable of projects array
    */
   getProjectsByUserId(userId: string): Observable<Project[]> {
-    const headers = this.getAuthHeaders();
-    
-    console.log('🔐 Fetching projects with Authorization header for user:', userId);
-    
-    return this.http.get<ApiResponse>(`${this.apiUrl}/api/Project/user/${userId}`, { headers })
+    console.log('🔐 Fetching projects for user:', userId);
+
+    return this.http.get<ApiResponse>(`${this.apiUrl}/api/Project/user/${userId}`).pipe(
+      map((response) => {
+        console.log('✅ Projects API response:', response);
+
+        if (response.status === 200 && response.data) {
+          return response.data.map((project) => this.transformToProject(project));
+        } else {
+          console.error('❌ Failed to fetch projects:', response.message);
+          return [];
+        }
+      }),
+      catchError(this.handleError.bind(this))
+    );
+  }
+
+  /**
+   * Get recent projects for a specific user
+   * @param userId - The ID of the user
+   * @param take - Number of recent projects to fetch (default: 2)
+   * @returns Observable of recent projects array
+   */
+  getRecentProjects(userId: string, take: number = 2): Observable<Project[]> {
+    console.log('🔐 Fetching recent projects for user:', userId, 'take:', take);
+
+    return this.http
+      .get<ApiResponse>(`${this.apiUrl}/api/Project/recent/${userId}?take=${take}`)
       .pipe(
-        map(response => {
-          console.log('✅ Projects API response:', response);
-          
+        map((response) => {
+          console.log('✅ Recent Projects API response:', response);
+
           if (response.status === 200 && response.data) {
-            // Transform API response to Project interface
-            return response.data.map(project => this.transformToProject(project));
+            return response.data.map((project) => this.transformToProject(project));
           } else {
-            console.error('❌ Failed to fetch projects:', response.message);
+            console.error('❌ Failed to fetch recent projects:', response.message);
             return [];
           }
         }),
@@ -113,18 +114,30 @@ export class ProjectService {
     return {
       id: apiProject.id,
       name: apiProject.name,
-      status: 'active', // Default status, can be updated based on API response if available
-      du: this.extractDU(apiProject.customerOrgName), // Extract DU from customer org name or default
-      lastUpdated: new Date().toISOString(), // Default to current time, can be updated if API provides this
-      teamMembers: [], // Can be populated from a separate API call if needed
-      starred: this.getStarredStatus(apiProject.id), // Get from local storage
+      status: this.mapStatus(apiProject.statusName),
+      du: apiProject.deliveryUnitName || 'Unknown',
+      lastUpdated: new Date().toISOString(),
+      teamMembers: [],
+      starred: this.getStarredStatus(apiProject.id),
       description: apiProject.description,
       customerOrgName: apiProject.customerOrgName,
       customerDomainUrl: apiProject.customerDomainUrl,
       customerDescription: apiProject.customerDescription,
       pocEmail: apiProject.pocEmail,
-      pocPhone: apiProject.pocPhone
+      pocPhone: apiProject.pocPhone,
+      projectManagerName: apiProject.projectManagerName,
+      deliveryUnitName: apiProject.deliveryUnitName,
     };
+  }
+
+  /**
+   * Map status name to status type
+   * @param statusName - Status name from API
+   * @returns 'active' or 'inactive'
+   */
+  private mapStatus(statusName: string | null): 'active' | 'inactive' {
+    if (!statusName) return 'active';
+    return statusName.toLowerCase() === 'active' ? 'active' : 'inactive';
   }
 
   /**
@@ -134,7 +147,7 @@ export class ProjectService {
    */
   private extractDU(customerOrgName: string | null): string {
     if (!customerOrgName) return 'UNK';
-    
+
     // Extract first 3 letters as DU code
     const du = customerOrgName.substring(0, 3).toUpperCase();
     return du || 'UNK';
@@ -147,7 +160,7 @@ export class ProjectService {
    */
   private getStarredStatus(projectId: string): boolean {
     if (!this.isBrowser) return false;
-    
+
     const starredProjects = sessionStorage.getItem('starredProjects');
     if (starredProjects) {
       const starred: string[] = JSON.parse(starredProjects);
@@ -163,10 +176,10 @@ export class ProjectService {
    */
   toggleStarredStatus(projectId: string): boolean {
     if (!this.isBrowser) return false;
-    
+
     const starredProjects = sessionStorage.getItem('starredProjects');
     let starred: string[] = starredProjects ? JSON.parse(starredProjects) : [];
-    
+
     const index = starred.indexOf(projectId);
     if (index > -1) {
       // Remove from starred
@@ -227,7 +240,7 @@ export class ProjectService {
    */
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An error occurred while fetching projects';
-    
+
     if (error.error instanceof ErrorEvent) {
       // Client-side error
       errorMessage = error.error.message;
@@ -243,7 +256,7 @@ export class ProjectService {
         errorMessage = error.error?.message || `Server error: ${error.status}`;
       }
     }
-    
+
     console.error('ProjectService Error:', errorMessage, error);
     return throwError(() => ({ message: errorMessage }));
   }
