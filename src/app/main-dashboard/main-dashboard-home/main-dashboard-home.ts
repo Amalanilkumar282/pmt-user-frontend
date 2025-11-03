@@ -10,6 +10,8 @@ import { TabbedIssues } from '../tabbed-issues/tabbed-issues';
 import { Header } from '../../shared/header/header';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectService, Project } from '../../projects/services/project.service';
+import { IssueService } from '../../shared/services/issue.service';
+import { Issue } from '../../shared/models/issue.model';
 import {
   DashboardProject,
   DashboardActivity,
@@ -41,10 +43,14 @@ export class MainDashboardHome implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private projectService = inject(ProjectService);
+  private issueService = inject(IssueService);
 
   userName = 'User';
   isLoadingProjects = signal<boolean>(false);
   projectsError = signal<string | null>(null);
+  isLoadingIssues = signal<boolean>(false);
+  issuesError = signal<string | null>(null);
+  userIssues: Issue[] = [];
 
   navigateToProject() {
     this.router.navigate(['/projects', 1, 'board']);
@@ -68,7 +74,12 @@ export class MainDashboardHome implements OnInit {
     };
   }
 
-  taskStatus: TaskStatus = dashboardTaskStatus;
+  taskStatus: TaskStatus = {
+    toDo: 0,
+    inProgress: 0,
+    completed: 0,
+    onHold: 0,
+  };
 
   get sprintStatuses(): { label: string; count: number; colorClass: string }[] {
     return [
@@ -82,6 +93,73 @@ export class MainDashboardHome implements OnInit {
   projects: DashboardProject[] = [];
 
   recentActivities: DashboardActivity[] = dashboardActivities;
+
+  /**
+   * Load user issues and calculate task status counts
+   */
+  private loadUserIssues(): void {
+    const userId = this.projectService.getUserId();
+
+    if (!userId) {
+      console.warn('⚠️ No user ID found, skipping issues load');
+      return;
+    }
+
+    this.isLoadingIssues.set(true);
+    this.issuesError.set(null);
+
+    this.issueService.getIssuesByUser(userId).subscribe({
+      next: (issues: Issue[]) => {
+        console.log('✅ User issues loaded:', issues);
+        this.userIssues = issues;
+        this.calculateTaskStatus(issues);
+        this.isLoadingIssues.set(false);
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading user issues:', error);
+        this.issuesError.set(error.message || 'Failed to load issues');
+        this.isLoadingIssues.set(false);
+        this.userIssues = [];
+      },
+    });
+  }
+
+  /**
+   * Calculate task status counts from issues
+   */
+  private calculateTaskStatus(issues: Issue[]): void {
+    const statusCounts = {
+      toDo: 0,
+      inProgress: 0,
+      completed: 0,
+      onHold: 0,
+    };
+
+    issues.forEach((issue) => {
+      switch (issue.statusName) {
+        case 'TO_DO':
+          statusCounts.toDo++;
+          break;
+        case 'IN_PROGRESS':
+          statusCounts.inProgress++;
+          break;
+        case 'IN_REVIEW':
+          statusCounts.inProgress++; // Count review as in progress
+          break;
+        case 'DONE':
+          statusCounts.completed++;
+          break;
+        case 'BLOCKED':
+          statusCounts.onHold++;
+          break;
+        default:
+          statusCounts.toDo++;
+      }
+    });
+
+    this.taskStatus = statusCounts;
+    console.log('✅ Task status calculated:', this.taskStatus);
+  }
 
   // called with payload { id, starred } from the ProjectCard child
   toggleStar(payload: { id: string; starred: boolean }): void {
@@ -98,6 +176,12 @@ export class MainDashboardHome implements OnInit {
    * Transform API Project to DashboardProject
    */
   private transformToDashboardProject(project: Project): DashboardProject {
+    // Format date to show only the date portion (YYYY-MM-DD)
+    const formatDate = (isoString: string): string => {
+      const date = new Date(isoString);
+      return date.toISOString().split('T')[0];
+    };
+
     return {
       id: project.id,
       name: project.name,
@@ -105,8 +189,8 @@ export class MainDashboardHome implements OnInit {
       status: project.status === 'active' ? 'Active' : 'Completed',
       du: project.deliveryUnitName || project.du || 'Unknown',
       lead: project.projectManagerName || 'Not Assigned',
-      created: project.lastUpdated,
-      updated: project.lastUpdated,
+      created: formatDate(project.lastUpdated),
+      updated: formatDate(project.lastUpdated),
       starred: project.starred,
     };
   }
@@ -147,5 +231,8 @@ export class MainDashboardHome implements OnInit {
 
     // Load recent projects from API
     this.loadRecentProjects();
+
+    // Load user issues for task status
+    this.loadUserIssues();
   }
 }
