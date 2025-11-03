@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, forkJoin, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, catchError, concatMap, delay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface ApiResponse<T> {
@@ -108,13 +108,6 @@ export class TimelineService {
   private getAuthHeaders(): HttpHeaders {
     const token = sessionStorage.getItem('accessToken');
     
-    if (!token) {
-      console.error('❌ [TimelineService] No access token found in sessionStorage');
-      console.error('❌ [TimelineService] Please log in again to get a valid token');
-    } else {
-      console.log('🔑 [TimelineService] Using token:', token.substring(0, 20) + '...');
-    }
-    
     return new HttpHeaders({
       'Authorization': `Bearer ${token || ''}`,
       'Content-Type': 'application/json'
@@ -129,12 +122,8 @@ export class TimelineService {
     const headers = this.getAuthHeaders();
     const url = `${this.apiUrl}/api/sprints/project/${projectId}`;
     
-    console.log('🔍 [TimelineService] Fetching sprints:', { projectId, url });
-    
     return this.http.get<SprintDto[] | ApiResponse<SprintDto[]>>(url, { headers }).pipe(
       map(response => {
-        console.log('✅ [TimelineService] Sprints response:', response);
-        
         // Handle both response formats
         if (Array.isArray(response)) {
           // Direct array response
@@ -148,15 +137,9 @@ export class TimelineService {
       }),
       catchError(error => {
         // If 404 (no sprints found) or 401 (unauthorized), return empty array instead of throwing error
-        if (error.status === 404) {
-          console.warn('⚠️ [TimelineService] No sprints found for project, returning empty array');
+        if (error.status === 404 || error.status === 401) {
           return of([]);
         }
-        if (error.status === 401) {
-          console.error('❌ [TimelineService] Unauthorized - token may be expired');
-          return of([]);
-        }
-        console.error('❌ [TimelineService] Error fetching sprints:', error);
         return of([]);
       })
     );
@@ -170,12 +153,8 @@ export class TimelineService {
     const headers = this.getAuthHeaders();
     const url = `${this.apiUrl}/api/epic/project/${projectId}`;
     
-    console.log('🔍 [TimelineService] Fetching epics:', { projectId, url });
-    
     return this.http.get<EpicDto[] | ApiResponse<EpicDto[]>>(url, { headers }).pipe(
       map(response => {
-        console.log('✅ [TimelineService] Epics response:', response);
-        
         // Handle both response formats
         if (Array.isArray(response)) {
           return response;
@@ -187,15 +166,9 @@ export class TimelineService {
       }),
       catchError(error => {
         // If 404 (no epics found) or 401 (unauthorized), return empty array instead of throwing error
-        if (error.status === 404) {
-          console.warn('⚠️ [TimelineService] No epics found for project, returning empty array');
+        if (error.status === 404 || error.status === 401) {
           return of([]);
         }
-        if (error.status === 401) {
-          console.error('❌ [TimelineService] Unauthorized - token may be expired');
-          return of([]);
-        }
-        console.error('❌ [TimelineService] Error fetching epics:', error);
         return of([]);
       })
     );
@@ -209,12 +182,8 @@ export class TimelineService {
     const headers = this.getAuthHeaders();
     const url = `${this.apiUrl}/api/issue/project/${projectId}/issues`;
     
-    console.log('🔍 [TimelineService] Fetching issues:', { projectId, url });
-    
     return this.http.get<IssueDto[] | ApiResponse<IssueDto[]>>(url, { headers }).pipe(
       map(response => {
-        console.log('✅ [TimelineService] Issues response:', response);
-        
         // Handle both response formats
         if (Array.isArray(response)) {
           return response;
@@ -226,15 +195,9 @@ export class TimelineService {
       }),
       catchError(error => {
         // If 404 (no issues found) or 401 (unauthorized), return empty array instead of throwing error
-        if (error.status === 404) {
-          console.warn('⚠️ [TimelineService] No issues found for project, returning empty array');
+        if (error.status === 404 || error.status === 401) {
           return of([]);
         }
-        if (error.status === 401) {
-          console.error('❌ [TimelineService] Unauthorized - token may be expired');
-          return of([]);
-        }
-        console.error('❌ [TimelineService] Error fetching issues:', error);
         return of([]);
       })
     );
@@ -242,16 +205,103 @@ export class TimelineService {
 
   /**
    * Fetch all timeline data for a project (sprints, epics, issues)
+   * Calls APIs sequentially to avoid overwhelming the server
+   * Priority: Sprints -> Epics -> Issues
    */
   getTimelineData(projectId: string): Observable<{
     sprints: SprintDto[];
     epics: EpicDto[];
     issues: IssueDto[];
   }> {
-    return forkJoin({
-      sprints: this.getSprintsByProject(projectId),
-      epics: this.getEpicsByProject(projectId),
-      issues: this.getIssuesByProject(projectId)
-    });
+    // Sequential API calls with small delays to prevent overwhelming the server
+    return this.getSprintsByProject(projectId).pipe(
+      delay(50), // Small delay after sprints
+      concatMap(sprints => 
+        this.getEpicsByProject(projectId).pipe(
+          delay(50), // Small delay after epics
+          concatMap(epics =>
+            this.getIssuesByProject(projectId).pipe(
+              map(issues => ({
+                sprints,
+                epics,
+                issues
+              }))
+            )
+          )
+        )
+      )
+    );
+  }
+
+  /**
+   * Fetch timeline data progressively for better UX
+   * Returns partial data as each API call completes
+   * Useful for showing loading states per section
+   */
+  getTimelineDataProgressive(
+    projectId: string,
+    onSprintsLoaded?: (sprints: SprintDto[]) => void,
+    onEpicsLoaded?: (epics: EpicDto[]) => void,
+    onIssuesLoaded?: (issues: IssueDto[]) => void
+  ): Observable<{
+    sprints: SprintDto[];
+    epics: EpicDto[];
+    issues: IssueDto[];
+  }> {
+    let sprints: SprintDto[] = [];
+    let epics: EpicDto[] = [];
+    
+    return this.getSprintsByProject(projectId).pipe(
+      delay(50),
+      concatMap(sprintData => {
+        sprints = sprintData;
+        if (onSprintsLoaded) onSprintsLoaded(sprints);
+        return this.getEpicsByProject(projectId);
+      }),
+      delay(50),
+      concatMap(epicData => {
+        epics = epicData;
+        if (onEpicsLoaded) onEpicsLoaded(epics);
+        return this.getIssuesByProject(projectId);
+      }),
+      map(issues => {
+        if (onIssuesLoaded) onIssuesLoaded(issues);
+        return {
+          sprints,
+          epics,
+          issues
+        };
+      })
+    );
+  }
+
+  /**
+   * Fetch all timeline data for a project in parallel (legacy method)
+   * Use getTimelineData() instead for better performance
+   */
+  getTimelineDataParallel(projectId: string): Observable<{
+    sprints: SprintDto[];
+    epics: EpicDto[];
+    issues: IssueDto[];
+  }> {
+    // Parallel calls - kept for backward compatibility if needed
+    let sprints: SprintDto[] = [];
+    let epics: EpicDto[] = [];
+    
+    return this.getSprintsByProject(projectId).pipe(
+      concatMap(sprintData => {
+        sprints = sprintData;
+        return this.getEpicsByProject(projectId);
+      }),
+      concatMap(epicData => {
+        epics = epicData;
+        return this.getIssuesByProject(projectId);
+      }),
+      map(issues => ({
+        sprints,
+        epics,
+        issues
+      }))
+    );
   }
 }
