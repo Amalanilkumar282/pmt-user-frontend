@@ -1,11 +1,13 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProjectMembersService } from '../../services/project-members.service';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
 import { MemberCard } from '../member-card/member-card';
 import { AddMemberForm } from '../add-member-form/add-member-form';
-import { ProjectMember, MemberRole } from '../../models/project-member.model';
+import { ProjectMember } from '../../models/project-member.model';
+import { RoleService, Role } from '../../../shared/services/role.service';
+import { UserService } from '../../../shared/services/user.service';
 
 type ViewMode = 'list' | 'add';
 
@@ -16,9 +18,11 @@ type ViewMode = 'list' | 'add';
   templateUrl: './members-management.html',
   styleUrls: ['./members-management.css'],
 })
-export class MembersManagement {
+export class MembersManagement implements OnInit {
   private membersService = inject(ProjectMembersService);
   private projectContextService = inject(ProjectContextService);
+  private roleService = inject(RoleService);
+  private userService = inject(UserService);
   private fb = inject(FormBuilder);
 
   currentProjectId = this.projectContextService.currentProjectId;
@@ -31,18 +35,50 @@ export class MembersManagement {
   showRoleModal = signal(false);
   selectedMemberForRoleChange = signal<ProjectMember | null>(null);
   
-  availableRoles: MemberRole[] = [
-    'Project Manager',
-    'Developer',
-    'Designer',
-    'QA Tester',
-    'DevOps',
-    'Business Analyst',
-  ];
+  // Dynamic roles from backend
+  availableRoles = signal<Role[]>([]);
+  rolesLoading = signal(false);
 
   roleChangeForm = this.fb.group({
-    role: ['Developer' as MemberRole, Validators.required],
+    roleId: [0, [Validators.required, Validators.min(1)]],
   });
+  
+  ngOnInit(): void {
+    this.loadRoles();
+    this.loadUsers();
+  }
+  
+  /**
+   * Load roles from backend API
+   */
+  loadRoles(): void {
+    this.rolesLoading.set(true);
+    
+    this.roleService.getAllRoles().subscribe({
+      next: (roles) => {
+        this.availableRoles.set(roles);
+        this.rolesLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Failed to load roles:', error);
+        this.rolesLoading.set(false);
+      }
+    });
+  }
+  
+  /**
+   * Load users from backend API
+   */
+  loadUsers(): void {
+    this.userService.getAllUsers().subscribe({
+      next: (users) => {
+        console.log('✅ Users loaded successfully in members management:', users.length, 'users');
+      },
+      error: (error) => {
+        console.error('Failed to load users in members management:', error);
+      }
+    });
+  }
 
   // Get all project members
   projectMembers = computed(() => {
@@ -132,17 +168,17 @@ export class MembersManagement {
     const member = this.membersService.getMemberById(memberId);
     if (member) {
       this.selectedMemberForRoleChange.set(member);
-      this.roleChangeForm.patchValue({ role: member.role });
+      this.roleChangeForm.patchValue({ roleId: member.roleId });
       this.showRoleModal.set(true);
     }
   }
 
   submitRoleChange(): void {
     if (this.roleChangeForm.valid && this.selectedMemberForRoleChange()) {
-      const newRole = this.roleChangeForm.value.role!;
+      const newRoleId = this.roleChangeForm.value.roleId!;
       const member = this.selectedMemberForRoleChange()!;
       
-      this.membersService.updateMember(member.id, { role: newRole });
+      this.membersService.updateMember(member.id, { roleId: newRoleId });
       this.closeRoleModal();
     }
   }
@@ -150,7 +186,8 @@ export class MembersManagement {
   closeRoleModal(): void {
     this.showRoleModal.set(false);
     this.selectedMemberForRoleChange.set(null);
-    this.roleChangeForm.reset({ role: 'Developer' });
+    const defaultRoleId = this.availableRoles().length > 0 ? this.availableRoles()[0].id : 0;
+    this.roleChangeForm.reset({ roleId: defaultRoleId });
   }
 
   handleRemoveMember(memberId: string): void {

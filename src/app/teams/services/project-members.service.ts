@@ -1,9 +1,11 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { map, tap } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { map, tap, catchError } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
 import { ProjectMember, AddMemberDto, UpdateMemberDto, MemberSearchResult } from '../models/project-member.model';
 import { users } from '../../shared/data/dummy-backlog-data';
+import { RoleService } from '../../shared/services/role.service';
+import { UserService } from '../../shared/services/user.service';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +14,8 @@ export class ProjectMembersService {
   // Signal-based state
   private membersSignal = signal<ProjectMember[]>(this.getInitialMembers());
   private http = inject(HttpClient);
+  private roleService = inject(RoleService);
+  private userService = inject(UserService);
   private readonly API_BASE_URL = 'https://localhost:7117/api';
   
   // Public computed signals
@@ -33,42 +37,112 @@ export class ProjectMembersService {
     );
   }
 
-  // Search all available users (mock - will be replaced with backend API)
+  /**
+   * Search all available users from backend API
+   * @param query - Search query string
+   * @param currentProjectId - Current project ID to check if user is already a member
+   * @returns Array of user search results
+   */
   searchUsers(query: string, currentProjectId: string): MemberSearchResult[] {
     const projectMembers = this.getMembersByProject(currentProjectId);
     const memberUserIds = new Set(projectMembers.map(m => m.userId));
     
-    return users
-      .filter(u => u.id !== 'user-8') // Exclude 'Unassigned'
-      .filter(u => 
-        u.name.toLowerCase().includes(query.toLowerCase()) ||
-        u.email.toLowerCase().includes(query.toLowerCase())
-      )
-      .map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        avatar: u.avatar,
-        alreadyInProject: memberUserIds.has(u.id),
-      }));
+    // Search from cached users in UserService
+    const searchResults = this.userService.searchUsers(query);
+    
+    return searchResults.map(u => ({
+      id: String(u.id),
+      name: u.name,
+      email: u.email,
+      avatar: u.avatarUrl,
+      alreadyInProject: memberUserIds.has(String(u.id)),
+    }));
   }
 
-  // Get all available users (mock - for dropdown)
+  /**
+   * Get all available users from backend API
+   * @returns Array of all user search results
+   */
   getAllAvailableUsers(): MemberSearchResult[] {
-    return users
-      .filter(u => u.id !== 'user-8')
-      .map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        avatar: u.avatar,
-      }));
+    const allUsers = this.userService.users();
+    
+    return allUsers.map(u => ({
+      id: String(u.id),
+      name: u.name,
+      email: u.email,
+      avatar: u.avatarUrl,
+    }));
   }
 
-  // Add member to project
+  /**
+   * Add member to project via backend API
+   * @param dto - Add member data transfer object
+   * @returns Observable of the added project member
+   */
+  addMemberToProject(dto: AddMemberDto): Observable<ProjectMember> {
+    // Get current user ID from session storage (addedBy)
+    const addedBy = parseInt(sessionStorage.getItem('userId') || '0', 10);
+    
+    if (addedBy === 0) {
+      return throwError(() => new Error('User not logged in'));
+    }
+
+    // Prepare the request body for the API
+    const requestBody = {
+      projectId: dto.projectId,
+      userId: Number(dto.userId),
+      roleId: dto.roleId,
+      addedBy: addedBy
+    };
+
+    console.log('📤 Adding member to project:', requestBody);
+
+    const headers = this.getAuthHeaders();
+    
+    return this.http.post<any>(`${this.API_BASE_URL}/Project/member`, requestBody, { headers }).pipe(
+      map((response) => {
+        console.log('✅ Add member API response:', response);
+        
+        // Get user data from cached users
+        const apiUser = this.userService.getUserById(Number(dto.userId));
+        const roleName = this.roleService.getRoleName(dto.roleId);
+
+        // Create the ProjectMember object
+        const newMember: ProjectMember = {
+          id: response.data?.id || `member-${Date.now()}`,
+          userId: String(dto.userId),
+          userName: apiUser?.name || 'Unknown User',
+          userEmail: apiUser?.email || '',
+          projectId: dto.projectId,
+          projectName: this.getProjectName(dto.projectId),
+          role: roleName as any,
+          roleId: dto.roleId,
+          status: 'Active',
+          joinedDate: new Date().toISOString(),
+          avatar: apiUser?.avatarUrl,
+        };
+
+        // Update local state
+        this.membersSignal.update(members => [...members, newMember]);
+        
+        return newMember;
+      }),
+      catchError((error) => {
+        console.error('❌ Failed to add member:', error);
+        return throwError(() => new Error(error.error?.message || 'Failed to add member to project'));
+      })
+    );
+  }
+
+  // Legacy synchronous method (kept for backward compatibility)
   addMember(dto: AddMemberDto): ProjectMember {
-    const user = users.find(u => u.id === dto.userId);
-    if (!user) {
+    // Try to find user from backend API first
+    const apiUser = this.userService.getUserById(Number(dto.userId));
+    
+    // Fallback to dummy data if API user not found
+    const dummyUser = users.find(u => u.id === dto.userId);
+    
+    if (!apiUser && !dummyUser) {
       throw new Error('User not found');
     }
 
@@ -81,17 +155,34 @@ export class ProjectMembersService {
       throw new Error('User is already a member of this project');
     }
 
+    // Get role name from roleId
+    const roleName = this.roleService.getRoleName(dto.roleId);
+
+    // Use API user data if available, otherwise use dummy data
+    const userData = apiUser ? {
+      id: String(apiUser.id),
+      name: apiUser.name,
+      email: apiUser.email,
+      avatar: apiUser.avatarUrl,
+    } : {
+      id: dummyUser!.id,
+      name: dummyUser!.name,
+      email: dummyUser!.email,
+      avatar: dummyUser!.avatar,
+    };
+
     const newMember: ProjectMember = {
       id: `member-${Date.now()}`,
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
+      userId: userData.id,
+      userName: userData.name,
+      userEmail: userData.email,
       projectId: dto.projectId,
       projectName: this.getProjectName(dto.projectId),
-      role: dto.role,
+      role: roleName as any, // Role name for display
+      roleId: dto.roleId, // Role ID from backend
       status: 'Active',
       joinedDate: new Date().toISOString(),
-      avatar: user.avatar,
+      avatar: userData.avatar,
     };
 
     this.membersSignal.update(members => [...members, newMember]);
@@ -107,7 +198,10 @@ export class ProjectMembersService {
       const updated = [...members];
       const member = { ...updated[memberIndex] };
 
-      if (dto.role) member.role = dto.role;
+      if (dto.roleId) {
+        member.roleId = dto.roleId;
+        member.role = this.roleService.getRoleName(dto.roleId) as any;
+      }
       if (dto.status) member.status = dto.status;
       if (dto.teamId !== undefined) {
         member.teamId = dto.teamId;
@@ -172,6 +266,7 @@ export class ProjectMembersService {
         projectId: '1',
         projectName: 'Website Redesign',
         role: 'Project Manager',
+        roleId: 1, // Default roleId for mock data
         status: 'Active',
         joinedDate: '2024-09-01T10:00:00Z',
         teamId: 'team-1',
@@ -185,6 +280,7 @@ export class ProjectMembersService {
         projectId: '1',
         projectName: 'Website Redesign',
         role: 'Developer',
+        roleId: 2, // Default roleId for mock data
         status: 'Active',
         joinedDate: '2024-09-01T10:00:00Z',
         teamId: 'team-1',
@@ -198,6 +294,7 @@ export class ProjectMembersService {
         projectId: '1',
         projectName: 'Website Redesign',
         role: 'QA Tester',
+        roleId: 4, // Default roleId for mock data
         status: 'Active',
         joinedDate: '2024-09-05T10:00:00Z',
         teamId: 'team-4',
@@ -211,6 +308,7 @@ export class ProjectMembersService {
         projectId: '4',
         projectName: 'Backend Infrastructure',
         role: 'Developer',
+        roleId: 2, // Default roleId for mock data
         status: 'Active',
         joinedDate: '2024-08-20T10:00:00Z',
         teamId: 'team-2',
@@ -224,6 +322,7 @@ export class ProjectMembersService {
         projectId: '1',
         projectName: 'Website Redesign',
         role: 'Developer',
+        roleId: 2, // Default roleId for mock data
         status: 'Active',
         joinedDate: '2024-09-10T10:00:00Z',
         // Not assigned to any team yet
@@ -258,8 +357,11 @@ export class ProjectMembersService {
         const teams = Array.isArray(item.teams) ? item.teams : [];
         const teamNames = teams.map((t: any) => t.teamName).filter(Boolean).join(', ');
 
+        // Get roleId from API response, default to 0 if not present
+        const roleId = item.roleId !== undefined ? Number(item.roleId) : 0;
+        
         // Map roleName to local MemberRole union with safe fallbacks
-        const roleName: string = item.roleName || '';
+        const roleName: string = item.roleName || this.roleService.getRoleName(roleId) || '';
         let mappedRole: any = 'Developer';
         if (/project manager/i.test(roleName)) mappedRole = 'Project Manager';
         else if (/qa/i.test(roleName)) mappedRole = 'QA Tester';
@@ -276,6 +378,7 @@ export class ProjectMembersService {
           projectId: String(projectId),
           projectName: this.getProjectName(String(projectId)),
           role: mappedRole,
+          roleId: roleId, // Include roleId from API
           status: item.isActive ? 'Active' : 'Inactive',
           joinedDate: item.addedAt || new Date().toISOString(),
           teamId: teams.length > 0 ? String(teams[0].teamId) : undefined,

@@ -8,7 +8,8 @@ export interface ProjectMember {
   userEmail: string;
   projectId: string;
   projectName?: string;
-  role: MemberRole;
+  role: MemberRole; // Role name for display
+  roleId: number; // Role ID from backend
   status: MemberStatus;
   joinedDate: string;
   teamId?: string; // If assigned to a team
@@ -19,11 +20,11 @@ export interface ProjectMember {
 export interface AddMemberDto {
   userId: string;
   projectId: string;
-  role: MemberRole;
+  roleId: number; // Changed from role to roleId
 }
 
 export interface UpdateMemberDto {
-  role?: MemberRole;
+  roleId?: number; // Changed from role to roleId
   status?: MemberStatus;
   teamId?: string;
 }
