@@ -521,6 +521,32 @@ shakeFields: Set<string> = new Set();
     this.formData.labels = this.formData.labels.filter((l: string) => l !== label);
   }
 
+  /**
+   * Extract filename from attachment URL
+   */
+  getFileNameFromUrl(url: string): string {
+    if (!url) return 'Attachment';
+    try {
+      const parts = url.split('/');
+      const fileNameWithId = parts[parts.length - 1];
+      // Remove the UUID prefix if present (format: uuid_uuid_filename.ext)
+      const withoutUuid = fileNameWithId.split('_').slice(2).join('_');
+      return decodeURIComponent(withoutUuid || fileNameWithId);
+    } catch (e) {
+      return 'Attachment';
+    }
+  }
+
+  /**
+   * Remove existing attachment URL
+   */
+  removeExistingAttachment(fieldModel: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.formData[fieldModel] = '';
+    this.uploadedFileUrl = null;
+  }
+
   updateFieldVisibility(issueType: string) {
     // Hide Story Point and Parent Epic when Issue Type is Epic
     const hideFields = issueType === 'Epic';

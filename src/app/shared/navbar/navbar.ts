@@ -14,6 +14,7 @@ import { Notification } from '../notification/notification';
 import { SummaryModal } from '../summary-modal/summary-modal';
 import { IssueService, CreateIssueRequest } from '../services/issue.service';
 import { ActivityService, ActivityLogDto } from '../services/activity.service';
+import { SprintService } from '../../sprint/sprint.service';
 import { filter } from 'rxjs';
 
 @Component({
@@ -41,6 +42,7 @@ export class Navbar implements OnInit {
   private modalService = inject(ModalService);
   private issueService = inject(IssueService);
   private activityService = inject(ActivityService);
+  private sprintService = inject(SprintService);
   private sidebarState = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private router = inject(Router);
@@ -116,24 +118,44 @@ export class Navbar implements OnInit {
     if (cachedMembers && cachedMembers.length > 0) {
       // Use cached data immediately for fast modal opening
       const userOptions = cachedMembers.map((u: ProjectMember) => u.userName);
-      this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions);
+      // Fetch sprints and open modal
+      this.fetchSprintsAndOpenModal(issueType, title, description, priority, storyPoint, projectId, userOptions);
     } else {
       // Fetch from API if cache is empty
       this.projectMembersService.fetchMembersFromApi(projectId).subscribe({
         next: (members: ProjectMember[]) => {
           const userOptions = members.map((u: ProjectMember) => u.userName);
-          this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions);
+          // Fetch sprints and open modal
+          this.fetchSprintsAndOpenModal(issueType, title, description, priority, storyPoint, projectId, userOptions);
         },
         error: (err) => {
           console.error('Failed to fetch project members:', err);
-          // Open with empty user options
-          this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, []);
+          // Open with empty user options but still try to fetch sprints
+          this.fetchSprintsAndOpenModal(issueType, title, description, priority, storyPoint, projectId, []);
         }
       });
     }
   }
 
-  private openCreateIssueModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[]): void {
+  private fetchSprintsAndOpenModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[]): void {
+    // Fetch sprints for the project
+    this.sprintService.getSprintsByProject(projectId).subscribe({
+      next: (response) => {
+        const sprintOptions = response.data && response.data.length > 0
+          ? response.data.map(sprint => sprint.name)
+          : ['No sprints available'];
+        console.log('Fetched sprint options:', sprintOptions);
+        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, sprintOptions);
+      },
+      error: (err) => {
+        console.error('Failed to fetch sprints:', err);
+        // Open with default sprint options
+        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3']);
+      }
+    });
+  }
+
+  private openCreateIssueModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[], sprintOptions: string[]): void {
         // Open the create issue modal with pre-filled data
         this.modalService.open({
           id: 'create-issue',
@@ -195,7 +217,7 @@ export class Navbar implements OnInit {
               label: 'Sprint',
               type: 'select',
               model: 'sprint',
-              options: ['Sprint 1', 'Sprint 2', 'Sprint 3'],
+              options: sprintOptions,
               colSpan: 1
             },
             {
@@ -342,7 +364,7 @@ export class Navbar implements OnInit {
       // Use cached data immediately
       const userOptions = cachedMembers.map((u: ProjectMember) => u.userName);
       console.log('onCreate - Using cached userOptions:', userOptions);
-      this.openCreateModal(projectId, userOptions);
+      this.fetchSprintsAndOpenCreateModal(projectId, userOptions);
     } else {
       // Fetch from API if cache is empty
       console.log('onCreate - Fetching from API...');
@@ -350,18 +372,36 @@ export class Navbar implements OnInit {
         next: (members: ProjectMember[]) => {
           const userOptions = members.map((u: ProjectMember) => u.userName);
           console.log('onCreate - Fetched userOptions:', userOptions);
-          this.openCreateModal(projectId, userOptions);
+          this.fetchSprintsAndOpenCreateModal(projectId, userOptions);
         },
         error: (err) => {
           console.error('onCreate - Failed to fetch project members:', err);
           // Open with empty user options
-          this.openCreateModal(projectId, []);
+          this.fetchSprintsAndOpenCreateModal(projectId, []);
         }
       });
     }
   }
 
-  private openCreateModal(projectId: string, userOptions: string[]): void {
+  private fetchSprintsAndOpenCreateModal(projectId: string, userOptions: string[]): void {
+    // Fetch sprints for the project
+    this.sprintService.getSprintsByProject(projectId).subscribe({
+      next: (response) => {
+        const sprintOptions = response.data && response.data.length > 0
+          ? response.data.map(sprint => sprint.name)
+          : ['No sprints available'];
+        console.log('onCreate - Fetched sprint options:', sprintOptions);
+        this.openCreateModal(projectId, userOptions, sprintOptions);
+      },
+      error: (err) => {
+        console.error('onCreate - Failed to fetch sprints:', err);
+        // Open with default sprint options
+        this.openCreateModal(projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3']);
+      }
+    });
+  }
+
+  private openCreateModal(projectId: string, userOptions: string[], sprintOptions: string[]): void {
     const fields: FormField[] = [
       { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
       { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
@@ -370,7 +410,7 @@ export class Navbar implements OnInit {
       { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-      { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
+      { label: 'Sprint', type: 'select', model: 'sprint', options: sprintOptions, colSpan: 1 },
       { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
       { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
       { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },

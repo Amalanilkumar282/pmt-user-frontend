@@ -979,5 +979,7 @@ export class BacklogPage implements OnInit {
       console.log(`  - ${sprint.name} (${sprint.status}): ${sprint.issues?.length || 0} issues`);
     });
     console.log(`✅ Backlog issues: ${this.backlogIssues.length}`);
+      // Fix ExpressionChangedAfterItHasBeenCheckedError
+      this.cdr.detectChanges();
   }
 }
