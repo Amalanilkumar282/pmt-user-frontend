@@ -19,7 +19,7 @@
           <!-- Left side: Icon, ID, Title -->
           <div class="flex items-center gap-2 flex-1 min-w-0">
             <i [class]="getTypeIcon(issue.type)" class="flex-shrink-0"></i>
-            <span [class]="'text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'text-green-600' : 'text-gray-500')">{{ issue.id }}</span>
+            <span [class]="'text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'text-green-600' : 'text-gray-500')">{{ issue.key || issue.id }}</span>
             <h4 [class]="'font-medium text-sm truncate ' + (issue.status === 'DONE' ? 'text-green-700 line-through' : 'text-gray-900')">
               {{ issue.title }}
             </h4>

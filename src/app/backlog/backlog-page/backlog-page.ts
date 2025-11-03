@@ -29,6 +29,7 @@ import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/serv
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
 import { CreateSprintModal } from '../create-sprint-modal/create-sprint-modal';
+import { IssueService } from '../../shared/services/issue.service';
 
 @Component({
   selector: 'app-backlog-page',
@@ -39,7 +40,11 @@ import { CreateSprintModal } from '../create-sprint-modal/create-sprint-modal';
 export class BacklogPage implements OnInit {
   // Dummy team names for dropdown
   teamOptions: string[] = ['Frontend Team', 'Backend Team', 'QA Team', 'DevOps Team', 'Design Team'];
-  constructor(private modalService: ModalService, private sprintService: SprintService) {}
+  constructor(
+    private modalService: ModalService, 
+    private sprintService: SprintService,
+    private issueService: IssueService
+  ) {}
   
   private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
@@ -93,6 +98,12 @@ export class BacklogPage implements OnInit {
   // All sprints
   sprints: Sprint[] = sharedSprints;
 
+  // All issues from backend
+  private allIssuesFromBackend: Issue[] = [];
+  
+  // Loading state
+  isLoadingIssues = false;
+
   // View state managed by filters component
   currentView: 'sprints' | 'all-issues' = 'sprints';
   showCompletedSprints = false;
@@ -116,8 +127,12 @@ export class BacklogPage implements OnInit {
     return this.backlogIssues.filter(issue => issue.status !== 'DONE');
   }
 
-  // Get all issues from all sprints and backlog
+  // Get all issues from backend (replaces dummy data when loaded)
   get allIssues(): Issue[] {
+    if (this.allIssuesFromBackend.length > 0) {
+      return this.allIssuesFromBackend;
+    }
+    // Fallback to dummy data if backend data not loaded
     const sprintIssues = this.sprints.flatMap(sprint => sprint.issues || []);
     return [...sprintIssues, ...this.backlogIssues];
   }
@@ -183,12 +198,19 @@ export class BacklogPage implements OnInit {
    */
   onSprintCreated(event: any) {
     console.log('Sprint created:', event);
-    // TODO: Refresh sprint list from backend
-    // For now, just close the modal and show success
     this.isCreateSprintModalOpen = false;
     
-    // Optionally reload sprints from backend
-    // this.loadSprints();
+    // Reload sprints from backend to get the newly created sprint
+    const projectId = this.projectContextService.getCurrentProjectId();
+    if (projectId) {
+      this.loadSprints(projectId);
+    } else {
+      // Fallback to session storage
+      const storedProjectId = sessionStorage.getItem('projectId');
+      if (storedProjectId) {
+        this.loadSprints(storedProjectId);
+      }
+    }
   }
 
   handleStart(sprintId: string): void {
@@ -466,6 +488,120 @@ export class BacklogPage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
+      // Load sprints and issues from backend
+      this.loadSprints(projectId);
+      this.loadProjectIssues(projectId);
+    } else {
+      // Try to get projectId from session storage as fallback
+      const storedProjectId = sessionStorage.getItem('projectId');
+      if (storedProjectId) {
+        this.projectContextService.setCurrentProjectId(storedProjectId);
+        this.loadSprints(storedProjectId);
+        this.loadProjectIssues(storedProjectId);
+      } else {
+        console.warn('No project ID found in route or session storage');
+        this.toastService.warning('No project selected');
+      }
     }
+  }
+
+  /**
+   * Load all sprints for the current project from backend
+   */
+  private loadSprints(projectId: string): void {
+    this.sprintService.getSprintsByProject(projectId).subscribe({
+      next: (response) => {
+        console.log('Loaded sprints from backend:', response);
+        if (response.status === 200 && response.data) {
+          // Transform API response to Sprint interface
+          this.sprints = response.data.map(sprintData => ({
+            id: sprintData.id,
+            projectId: sprintData.projectId,
+            name: sprintData.name,
+            sprintGoal: sprintData.sprintGoal,
+            startDate: new Date(sprintData.startDate),
+            endDate: new Date(sprintData.dueDate),
+            status: sprintData.status,
+            storyPoint: sprintData.storyPoint,
+            teamId: sprintData.teamId,
+            issues: [], // Will be populated by organizeSprints
+            createdAt: new Date(sprintData.createdAt),
+            updatedAt: sprintData.updatedAt ? new Date(sprintData.updatedAt) : null
+          }));
+          
+          this.toastService.success(`Loaded ${this.sprints.length} sprints successfully`);
+          console.log('Transformed sprints:', this.sprints);
+        } else {
+          console.warn('Unexpected response format:', response);
+          this.toastService.warning('Received unexpected sprint data format');
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load sprints:', error);
+        this.toastService.error('Failed to load sprints from backend');
+        // Keep using dummy data on error (sprints already initialized with dummy data)
+      }
+    });
+  }
+
+  /**
+   * Load all issues for the current project from backend
+   */
+  private loadProjectIssues(projectId: string): void {
+    this.isLoadingIssues = true;
+    this.issueService.getProjectIssues(projectId).subscribe({
+      next: (issues) => {
+        console.log('Loaded issues from backend:', issues);
+        this.allIssuesFromBackend = issues;
+        this.organizeSprints(issues);
+        this.toastService.success(`Loaded ${issues.length} issues successfully`);
+        this.isLoadingIssues = false;
+      },
+      error: (error) => {
+        console.error('Failed to load issues:', error);
+        this.toastService.error('Failed to load issues from backend');
+        this.isLoadingIssues = false;
+        // Keep using dummy data on error
+      }
+    });
+  }
+
+  /**
+   * Organize issues into sprints based on sprintId
+   * This method updates the sprints with their respective issues
+   * Issues without sprintId are added to backlog
+   */
+  private organizeSprints(issues: Issue[]): void {
+    // Group issues by sprintId
+    const issuesBySprintId = new Map<string, Issue[]>();
+    const backlogIssues: Issue[] = [];
+
+    issues.forEach(issue => {
+      if (issue.sprintId) {
+        // Issue belongs to a sprint
+        if (!issuesBySprintId.has(issue.sprintId)) {
+          issuesBySprintId.set(issue.sprintId, []);
+        }
+        issuesBySprintId.get(issue.sprintId)!.push(issue);
+      } else {
+        // Issue has no sprintId, add to backlog
+        backlogIssues.push(issue);
+      }
+    });
+
+    // Update sprints with their respective issues
+    this.sprints.forEach(sprint => {
+      const sprintIssues = issuesBySprintId.get(sprint.id) || [];
+      sprint.issues = sprintIssues;
+    });
+
+    // Update backlog issues (issues without sprintId)
+    this.backlogIssues = backlogIssues;
+
+    console.log('✅ Organized sprints with issues:');
+    this.sprints.forEach(sprint => {
+      console.log(`  - ${sprint.name} (${sprint.status}): ${sprint.issues?.length || 0} issues`);
+    });
+    console.log(`✅ Backlog issues: ${this.backlogIssues.length}`);
   }
 }

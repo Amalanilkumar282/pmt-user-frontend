@@ -1,5 +1,5 @@
-import { Component, Output, EventEmitter, inject, computed, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Output, EventEmitter, inject, computed, OnInit, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { ModalService, FormField } from '../../modal/modal-service';
@@ -43,6 +43,8 @@ export class Navbar implements OnInit {
   private projectContextService = inject(ProjectContextService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
  
   isSidebarCollapsed = this.sidebarState.isCollapsed;
   currentProjectId = this.projectContextService.currentProjectId;
@@ -504,6 +506,11 @@ export class Navbar implements OnInit {
    * Get user ID from session storage
    */
   private getUserIdFromSession(): number | null {
+    if (!this.isBrowser) {
+      console.log('getUserIdFromSession: Not in browser, skipping sessionStorage access');
+      return null;
+    }
+
     // Try to get from sessionStorage - adjust key name based on your auth implementation
     const userIdStr = sessionStorage.getItem('userId');
     console.log('Checking userId from sessionStorage:', userIdStr);

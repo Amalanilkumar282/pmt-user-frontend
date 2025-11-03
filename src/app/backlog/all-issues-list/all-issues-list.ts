@@ -72,11 +72,17 @@ export class AllIssuesList {
 
   // Separate completed and active issues
   protected completedIssues = computed(() => {
-    return this.paginatedIssues().filter(issue => issue.status === 'DONE');
+    return this.paginatedIssues().filter(issue => {
+      // Check both status and statusId for DONE/completed state
+      return issue.status === 'DONE' || issue.statusId === 4;
+    });
   });
 
   protected activeIssues = computed(() => {
-    return this.paginatedIssues().filter(issue => issue.status !== 'DONE');
+    return this.paginatedIssues().filter(issue => {
+      // Check both status and statusId for active state
+      return issue.status !== 'DONE' && issue.statusId !== 4;
+    });
   });
 
   toggleCollapse(): void {

@@ -26,13 +26,13 @@ export class BoardSelector {
   projectBoards = computed(() => {
     const projectId = this.projectContextService.currentProjectId();
     const boards = projectId ? this.boardService.getBoardsByProject(projectId) : [];
-    console.log('🎯 BoardSelector - Project ID:', projectId, 'Boards:', boards.map(b => ({ id: b.id, name: b.name, projectId: b.projectId })));
+    console.log('[BoardSelector] Project ID:', projectId, 'Boards:', boards.map(b => ({ id: b.id, name: b.name, projectId: b.projectId })));
     return boards;
   });
   
   get currentBoardName(): string {
     const board = this.currentBoard();
-    console.log('🎯 BoardSelector - Current Board:', board);
+    console.log('[BoardSelector] Current Board:', board);
     return board ? board.name : 'Select Board';
   }
   
