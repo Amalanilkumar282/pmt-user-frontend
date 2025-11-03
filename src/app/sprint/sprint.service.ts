@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 // Request/Response interfaces for Sprint Creation
 export interface SprintRequest {
+  id?: string; // Optional - required for updates
   projectId: string;
   sprintName: string;
   sprintGoal: string | null;
@@ -181,6 +182,17 @@ export class SprintService {
     console.log('Creating sprint:', sprint);
     return this.http.post<SprintResponse>(`${this.baseUrl}`, sprint, { 
       headers: this.getAuthHeaders() 
+    });
+  }
+
+  /**
+   * Update an existing sprint
+   * PUT /api/sprints/{sprintId}
+   */
+  updateSprint(sprintId: string, sprint: SprintRequest): Observable<SprintResponse> {
+    console.log('Updating sprint:', sprintId, sprint);
+    return this.http.put<SprintResponse>(`${this.baseUrl}/${sprintId}`, sprint, {
+      headers: this.getAuthHeaders()
     });
   }
 

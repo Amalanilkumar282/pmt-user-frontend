@@ -434,46 +434,120 @@ export class BacklogPage implements OnInit {
   }
 
   handleEdit(sprintId: string): void {
-  const sprint = this.sprints.find(s => s.id === sprintId);
-  if (!sprint) {
-    console.error(`Sprint not found: ${sprintId}`);
-    return;
+    const sprint = this.sprints.find(s => s.id === sprintId);
+    if (!sprint) {
+      console.error(`Sprint not found: ${sprintId}`);
+      return;
+    }
+
+    // Derive extra info dynamically (goal, story points, etc.)
+    const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
+    const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+
+    const sprintFields: FormField[] = [
+      { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required: true },
+      { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+      { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
+      { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+      { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+      { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
+      { label: 'Story Point (Total)', type: 'number', model: 'storyPoint', colSpan: 1 },
+    ];
+
+    this.modalService.open({
+      id: 'editSprintModal',
+      title: 'Edit Sprint',
+      projectName: 'Project Alpha',
+      modalDesc: 'Edit an existing sprint in your project',
+      fields: sprintFields,
+      data: {
+        sprintName: sprint.name || '',
+        sprintGoal,
+        startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
+        dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
+        status: sprint.status || 'Planned',
+        storyPoint: totalStoryPoints,
+        teamAssigned: sprint.teamAssigned || '',
+      },
+      showLabels: false,
+      submitText: 'Save Changes',
+      onSubmit: (formData: any) => {
+        this.updateSprintApi(sprintId, formData);
+      }
+    });
   }
-  
 
-  // Derive extra info dynamically (goal, story points, etc.)
-  const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
-  const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+  /**
+   * Update sprint via API
+   */
+  private updateSprintApi(sprintId: string, formData: any): void {
+    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
+    
+    if (!projectId) {
+      this.toastService.error('Project ID not found');
+      return;
+    }
 
-  const sprintFields: FormField[] = [
-    { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required:true },
-    { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
-    { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
-    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-    { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
-    { label: 'Story Point (Total)', type: 'number', model: 'storyPoint', colSpan: 1 },
-  ];
+    // Convert date strings to ISO 8601 UTC format for PostgreSQL
+    const formatDateToUTC = (dateString: string): string => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString(); // Returns format: "2024-11-03T00:00:00.000Z"
+    };
 
-  this.modalService.open({
-    id: 'shareModal',
-    title: 'Edit Sprint',
-    projectName: 'Project Alpha',
-    modalDesc : 'Edit an existing sprint in your project',
-    fields: sprintFields,
-    data: {
-      sprintName: sprint.name || '',
-      sprintGoal,
-      startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
-      dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
-      status: sprint.status || 'Planned',
-      storyPoint: totalStoryPoints,
-      teamAssigned: sprint.teamAssigned || '',
-    },
-    showLabels: false,
-    submitText: 'Save Changes'
-  });
-}
+    const sprintRequest: SprintRequest = {
+      id: sprintId, // Include sprint ID in the request body
+      projectId: projectId,
+      sprintName: formData.sprintName,
+      sprintGoal: formData.sprintGoal || null,
+      teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
+      startDate: formData.startDate ? formatDateToUTC(formData.startDate) : undefined,
+      dueDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
+      status: formData.status || 'PLANNED',
+      storyPoint: formData.storyPoint || 0
+    };
+
+    console.log('🔧 Update Sprint Request Details:', {
+      sprintId,
+      projectId,
+      formData,
+      sprintRequest,
+      rawFormData: JSON.stringify(formData, null, 2),
+      requestPayload: JSON.stringify(sprintRequest, null, 2)
+    });
+    this.toastService.info('Updating sprint...');
+
+    this.sprintService.updateSprint(sprintId, sprintRequest).subscribe({
+      next: (response) => {
+        console.log('Sprint updated successfully:', response);
+        this.toastService.success('Sprint updated successfully!');
+        
+        // Close the modal first
+        this.modalService.close();
+        
+        // Reload sprints to get updated data from backend
+        this.ngZone.run(() => {
+          if (projectId) {
+            this.loadSprints(projectId);
+          }
+          // Trigger change detection
+          this.cdr.detectChanges();
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error updating sprint:', {
+          error,
+          status: error.status,
+          statusText: error.statusText,
+          message: error.error?.message || error.message,
+          fullError: error.error,
+          sprintId,
+          sentRequest: sprintRequest
+        });
+        this.toastService.error(error.error?.message || 'Failed to update sprint. Please try again.');
+      }
+    });
+  }
 
 
 
@@ -777,6 +851,14 @@ export class BacklogPage implements OnInit {
           
           this.toastService.success(`Loaded ${this.sprints.length} sprints successfully`);
           console.log('Transformed sprints:', this.sprints);
+          
+          // Reorganize issues into sprints after loading
+          if (this.allIssuesFromBackend.length > 0) {
+            this.organizeSprints(this.allIssuesFromBackend);
+          }
+          
+          // Trigger change detection
+          this.cdr.detectChanges();
         } else {
           console.warn('Unexpected response format:', response);
           this.toastService.warning('Received unexpected sprint data format');
