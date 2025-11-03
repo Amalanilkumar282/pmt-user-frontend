@@ -34,6 +34,9 @@ export class Sidebar {
       this.sidebarStateService.isCollapsed();
       this.isStateReady.set(true);
     });
+    
+    // Load recent projects from backend
+    this.boardService.loadRecentProjects();
   }
 
   // Use shared state from service
@@ -87,7 +90,7 @@ export class Sidebar {
     // Set the current project ID in session storage
     this.projectContextService.setCurrentProjectId(projectId);
 
-    // Update recent projects - move to top
+    // Update recent projects - move to top (async but don't await)
     this.boardService.accessProject(projectId);
 
     // Get the default "All Issues" board for this project (async)

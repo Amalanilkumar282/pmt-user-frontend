@@ -11,6 +11,7 @@ import { BoardStore } from '../../board-store';
 import { BoardToolbar } from '../board-toolbar/board-toolbar';
 import { BoardColumnsContainer } from '../board-columns-container/board-columns-container';
 import { IssueDetailedView } from '../../../backlog/issue-detailed-view/issue-detailed-view';
+import { ActivityPanel } from '../../../shared/activity-panel/activity-panel';
 import { BoardService } from '../../services/board.service';
 import { signal } from '@angular/core';
 import { DEFAULT_COLUMNS } from '../../utils';
@@ -28,7 +29,8 @@ import { firstValueFrom } from 'rxjs';
     Navbar, 
     BoardToolbar,
     BoardColumnsContainer,
-    IssueDetailedView
+  IssueDetailedView,
+  ActivityPanel,
   ],
   templateUrl: './board-page.html',
   styleUrls: ['./board-page.css'],
@@ -52,6 +54,8 @@ export class BoardPage implements OnInit {
   // modal state for issue detailed view
   protected selectedIssue = signal(null as any);
   protected isModalOpen = signal(false);
+  // activity panel state
+  protected isActivityPanelOpen = signal(false);
   
   // Guards to prevent duplicate loading
   private _lastLoadedProjectId: string | null = null;
@@ -79,7 +83,7 @@ export class BoardPage implements OnInit {
       
       if (projectId) {
         this.projectContextService.setCurrentProjectId(projectId);
-        this.boardService.accessProject(projectId);
+        await this.boardService.accessProject(projectId);
         
         // Load boards and data from backend
         await this.loadProjectData(projectId);
@@ -115,6 +119,14 @@ export class BoardPage implements OnInit {
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
+  
+  onOpenActivityPanel(): void {
+    this.isActivityPanelOpen.set(true);
+  }
+  
+  onCloseActivityPanel(): void {
+    this.isActivityPanelOpen.set(false);
+  }
 
   async ngOnInit(): Promise<void> {
     this._isInitializing = true;
@@ -128,7 +140,7 @@ export class BoardPage implements OnInit {
     }
     
     this.projectContextService.setCurrentProjectId(projectId);
-    this.boardService.accessProject(projectId);
+    await this.boardService.accessProject(projectId);
     
     // Load all project data from backend
     await this.loadProjectData(projectId);
