@@ -7,12 +7,18 @@ import { Issue } from '../../shared/models/issue.model';
 
 export interface Sprint {
   id: string;
+  projectId?: string;
   name: string;
+  sprintGoal?: string;
   startDate: Date;
   endDate: Date;
   status: 'ACTIVE' | 'COMPLETED' | 'PLANNED';
+  storyPoint?: number;
+  teamId?: number;
+  teamAssigned?: string; // Keep for backward compatibility
   issues?: Issue[];
-  teamAssigned?: string;
+  createdAt?: Date;
+  updatedAt?: Date | null;
 }
 
 @Component({

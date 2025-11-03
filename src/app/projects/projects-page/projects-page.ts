@@ -22,7 +22,7 @@ export class ProjectsPage implements OnInit {
   private projectContextService = inject(ProjectContextService);
   private projectService = inject(ProjectService);
   private router = inject(Router);
-  
+
   isCollapsed = this.sidebarStateService.isCollapsed;
 
   searchQuery = '';
@@ -44,7 +44,7 @@ export class ProjectsPage implements OnInit {
   ngOnInit(): void {
     // Clear project context when viewing all projects
     this.projectContextService.clearCurrentProjectId();
-    
+
     // Load projects from backend
     this.loadProjects();
   }
@@ -58,7 +58,7 @@ export class ProjectsPage implements OnInit {
 
     // Get user ID from session storage
     const userId = this.projectService.getUserId();
-    
+
     if (!userId) {
       console.error('No user ID found in session storage');
       this.errorMessage.set('User not logged in. Please login again.');
@@ -81,19 +81,15 @@ export class ProjectsPage implements OnInit {
         console.error('❌ Error loading projects:', error);
         this.errorMessage.set(error.message || 'Failed to load projects. Please try again.');
         this.isLoading.set(false);
-        
-        // If unauthorized, redirect to login
-        if (error.message?.includes('Unauthorized')) {
-          this.router.navigate(['/login']);
-        }
-      }
+        // Auth interceptor will handle 401 errors and redirect to login
+      },
     });
   }
 
   toggleProjectStar(projectId: string) {
     // Toggle starred status in service (which updates session storage)
     const newStarredStatus = this.projectService.toggleStarredStatus(projectId);
-    
+
     // Update local state
     const projects = this._projects();
     this._projects.set(

@@ -11,6 +11,7 @@ export interface Project {
   lastUpdated: string;
   teamMembers: string[];
   starred: boolean;
+  projectManagerName?: string | null;
 }
 
 interface ProjectAction {
@@ -63,14 +64,13 @@ export class ProjectList {
       .slice(0, 2);
   }
 
-  getLeadName(initials: string): string {
-    const names: Record<string, string> = {
-      JD: 'John Doe',
-      SM: 'Sarah Mitchell',
-      AK: 'Alex Kumar',
-      RK: 'Rachel Kim',
-      LM: 'Lisa Martinez',
-    };
-    return names[initials] || initials;
+  getManagerInitials(name: string | null | undefined): string {
+    if (!name) return 'N/A';
+    return name
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   }
 }

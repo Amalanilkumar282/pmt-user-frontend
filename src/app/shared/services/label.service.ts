@@ -42,22 +42,19 @@ export interface UpdateLabelResponse {
 export class LabelService {
   private baseUrl = '/api/Label';
   private http = inject(HttpClient);
-  private authTokenService = inject(AuthTokenService);
+
   getAllLabels(): Observable<LabelResponse> {
-    return this.http.get<LabelResponse>(this.baseUrl, {
-      headers: this.authTokenService.getAuthHeaders()
-    });
+    // Interceptor automatically adds Authorization header
+    return this.http.get<LabelResponse>(this.baseUrl);
   }
 
   createLabel(request: CreateLabelRequest): Observable<CreateLabelResponse> {
-    return this.http.post<CreateLabelResponse>(this.baseUrl, request, {
-      headers: this.authTokenService.getAuthHeaders()
-    });
+    // Interceptor automatically adds Authorization header
+    return this.http.post<CreateLabelResponse>(this.baseUrl, request);
   }
 
   updateLabel(request: UpdateLabelRequest): Observable<UpdateLabelResponse> {
-    return this.http.put<UpdateLabelResponse>(this.baseUrl, request, {
-      headers: this.authTokenService.getAuthHeaders()
-    });
+    // Interceptor automatically adds Authorization header
+    return this.http.put<UpdateLabelResponse>(this.baseUrl, request);
   }
 }
