@@ -194,7 +194,7 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       key: i.key || i.id, // Use key field if available, fallback to id
       summary: i.title,
       workType: i.type,
-      epic:  i.epicId || '',
+      epic:  i.epicName || i.epicId || '',
       status: i.status,
       assignee: i.assignee || 'Undefined',
       storyPoints: i.storyPoints ?? 0

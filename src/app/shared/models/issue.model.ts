@@ -29,6 +29,7 @@ export interface Issue {
   parentId?: string;
   parentIssueId?: string | null; // Backend field name
   epicId?: string;
+  epicName?: string;
   attachments?: File[];
   attachmentUrl?: string | null; // Backend attachment URL
 }
@@ -50,6 +51,7 @@ export interface IssueApiResponse {
   parentIssueId: string | null;
   storyPoints: number;
   epicId: string | null;
+  epicName?: string | null;
   reporterId: number | null;
   labels: string;
   attachmentUrl: string | null;
