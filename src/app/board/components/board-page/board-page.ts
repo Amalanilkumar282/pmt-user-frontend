@@ -15,6 +15,9 @@ import { BoardService } from '../../services/board.service';
 import { signal } from '@angular/core';
 import { DEFAULT_COLUMNS } from '../../utils';
 import { Issue } from '../../../shared/models/issue.model';
+import { EpicApiService } from '../../services/epic-api.service';
+import { UserApiService } from '../../../shared/services/user-api.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-board-page',
@@ -39,6 +42,8 @@ export class BoardPage implements OnInit {
   private userContextService = inject(UserContextService);
   private boardService = inject(BoardService);
   private store = inject(BoardStore);
+  private epicApi = inject(EpicApiService);
+  private userApi = inject(UserApiService);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
@@ -246,16 +251,48 @@ export class BoardPage implements OnInit {
   }
 
   // open issue detailed view from task card
-  onOpenIssue(issue: any) {
-    this.selectedIssue.set(issue);
+  async onOpenIssue(issue: any) {
+    const enriched = { ...issue } as any;
+
+    // Resolve epic name if missing
+    try {
+      if (enriched.epicId && !enriched.epicName) {
+        const epic = await firstValueFrom(this.epicApi.getEpicById(enriched.epicId));
+        if (epic && epic.title) enriched.epicName = epic.title;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Resolve sprint name from store if available
+    try {
+      if (enriched.sprintId && !enriched.sprintName) {
+        const sprint = this.store.sprints().find(s => s.id === enriched.sprintId);
+        if (sprint) enriched.sprintName = sprint.name;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Resolve assignee name if it's a numeric id
+    try {
+      const a = enriched.assignee;
+      if (a && /^\d+$/.test(String(a)) && !enriched.assigneeName) {
+        const user = await firstValueFrom(this.userApi.getUserById(Number(a)));
+        if (user && user.name) enriched.assigneeName = user.name;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    this.selectedIssue.set(enriched);
     this.isModalOpen.set(true);
   }
   
   // open issue detailed view and scroll to comments
-  onOpenIssueComments(issue: any) {
-    this.selectedIssue.set(issue);
-    this.isModalOpen.set(true);
-    
+  async onOpenIssueComments(issue: any) {
+    await this.onOpenIssue(issue);
+
     // Use setTimeout to ensure modal is rendered before scrolling
     setTimeout(() => {
       const commentsSection = document.getElementById('issue-comments-section');

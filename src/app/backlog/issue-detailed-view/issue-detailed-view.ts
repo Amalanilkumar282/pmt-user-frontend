@@ -37,6 +37,7 @@ export class IssueDetailedView {
   }
   
   @Input() isReadOnly: boolean = false;
+  @Input() showMove: boolean = true; // allow parent to hide move controls (e.g., board view)
   
   @Output() close = new EventEmitter<void>();
   @Output() updateIssue = new EventEmitter<Partial<Issue>>();
@@ -284,12 +285,12 @@ export class IssueDetailedView {
   }
 
   protected toggleMoveDropdown(): void {
-    if (this.isReadOnly) return;
+    if (this.isReadOnly || !this.showMove) return;
     this.showMoveDropdown.set(!this.showMoveDropdown());
   }
 
   protected onMove(destinationSprintId: string | null, destinationName: string): void {
-    if (this.isReadOnly) return;
+    if (this.isReadOnly || !this.showMove) return;
     const issue = this._issue();
     if (issue) {
       if (confirm(`Move issue ${issue.id} to ${destinationName}?`)) {
