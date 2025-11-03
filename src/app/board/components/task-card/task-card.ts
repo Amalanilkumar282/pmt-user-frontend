@@ -25,7 +25,8 @@ export class TaskCard implements OnInit, AfterViewInit {
   private static epicsCache: Map<string, string> = new Map();
   // When loadingProjectMembers stores an observable it represents an in-flight request
   private static loadingProjectMembers: Map<string, any> = new Map();
-  private static loadingEpics: Map<string, boolean> = new Map();
+  // When loadingEpics stores an observable it represents an in-flight request
+  private static loadingEpics: Map<string, any> = new Map();
   
   private store = inject(BoardStore);
   
@@ -245,21 +246,38 @@ export class TaskCard implements OnInit, AfterViewInit {
 
     // Resolve epic title if epicId present (with caching)
     if (this.issue.epicId) {
-      const cachedTitle = TaskCard.epicsCache.get(this.issue.epicId);
+      const epicId = this.issue.epicId;
+      const cachedTitle = TaskCard.epicsCache.get(epicId);
       if (cachedTitle) {
         this.epicTitle.set(cachedTitle);
-      } else if (!TaskCard.loadingEpics.get(this.issue.epicId)) {
-        TaskCard.loadingEpics.set(this.issue.epicId, true);
-        this.epicApi.getEpicById(this.issue.epicId).subscribe({
+      } else if (!TaskCard.loadingEpics.get(epicId)) {
+        // start a single in-flight request and share it
+        const req$ = this.epicApi.getEpicById(epicId).pipe(shareReplay(1));
+        TaskCard.loadingEpics.set(epicId, req$);
+
+        req$.subscribe({
           next: e => {
-            TaskCard.epicsCache.set(this.issue.epicId!, e.title);
-            TaskCard.loadingEpics.delete(this.issue.epicId!);
+            TaskCard.epicsCache.set(epicId, e.title);
+            TaskCard.loadingEpics.delete(epicId);
             this.epicTitle.set(e.title);
           },
           error: () => {
-            TaskCard.loadingEpics.delete(this.issue.epicId!);
+            TaskCard.loadingEpics.delete(epicId);
           }
         });
+      } else {
+        const inFlight$ = TaskCard.loadingEpics.get(epicId);
+        if (inFlight$ && inFlight$.subscribe) {
+          inFlight$.subscribe({
+            next: (e: any) => {
+              TaskCard.epicsCache.set(epicId, e.title);
+              this.epicTitle.set(e.title);
+            },
+            error: () => {
+              // keep epicTitle as null
+            }
+          });
+        }
       }
     }
   }
