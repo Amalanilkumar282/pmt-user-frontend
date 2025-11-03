@@ -71,23 +71,12 @@ export class BoardService {
     // Collect all unique columns by statusId from all boards in the project
     const columnsByStatusId = new Map<number, BoardColumnDef>();
     
-    console.log('[BoardService.enrichDefaultBoardColumns] Processing default board:', defaultBoard.name);
-    console.log('[BoardService.enrichDefaultBoardColumns] Project boards count:', allBoards.length);
-    
     // First, iterate through all boards to find unique statusIds
     for (const board of allBoards) {
       if (board.projectId === defaultBoard.projectId) {
-        console.log(`[BoardService.enrichDefaultBoardColumns] Board "${board.name}" has ${board.columns.length} columns:`, 
-          board.columns.map(c => ({ title: c.title, statusId: c.statusId })));
-        
         for (const column of board.columns) {
-          if (column.statusId !== undefined) {
-            if (!columnsByStatusId.has(column.statusId)) {
-              columnsByStatusId.set(column.statusId, column);
-              console.log(`[BoardService.enrichDefaultBoardColumns] Added unique column: ${column.title} (statusId: ${column.statusId})`);
-            } else {
-              console.log(`[BoardService.enrichDefaultBoardColumns] Skipped duplicate statusId ${column.statusId}: ${column.title} (already have ${columnsByStatusId.get(column.statusId)?.title})`);
-            }
+          if (column.statusId !== undefined && !columnsByStatusId.has(column.statusId)) {
+            columnsByStatusId.set(column.statusId, column);
           }
         }
       }
@@ -104,13 +93,6 @@ export class BoardService {
       })
       // Reassign positions sequentially
       .map((col, index) => ({ ...col, position: index }));
-    
-    console.log('[BoardService.enrichDefaultBoardColumns] Final unique columns:', {
-      boardName: defaultBoard.name,
-      originalColumns: defaultBoard.columns.length,
-      enrichedColumns: uniqueColumns.length,
-      columns: uniqueColumns.map(c => ({ title: c.title, statusId: c.statusId, position: c.position }))
-    });
     
     return {
       ...defaultBoard,
@@ -453,19 +435,30 @@ export class BoardService {
       const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
       const numericBoardId = parseInt(boardId, 10);
       
+      // Build the DTO according to the API spec - all fields are optional except columnId, boardId, updatedBy
       const dto: any = {
         columnId: columnId,
         boardId: numericBoardId,
-        boardColumnName: updates.name,
-        boardColor: updates.color,
-        position: updates.position,
         updatedBy: userId
       };
+      
+      // Only include fields that are being updated
+      if (updates.name !== undefined) {
+        dto.boardColumnName = updates.name;
+      }
+      if (updates.color !== undefined) {
+        dto.boardColor = updates.color;
+      }
+      if (updates.position !== undefined) {
+        dto.position = updates.position;
+      }
+      
+      console.log('[BoardService] Updating column with DTO:', dto);
       
       const response = await firstValueFrom(this.boardApiService.updateBoardColumn(columnId, dto));
       
       if (response.status === 200) {
-        console.log('[BoardService] Column updated successfully');
+        console.log('[BoardService] Column updated successfully:', response.data);
         // Reload board to get updated columns
         await this.loadBoardById(numericBoardId);
         return true;

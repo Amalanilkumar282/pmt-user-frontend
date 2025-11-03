@@ -19,6 +19,9 @@ export class BoardStore {
   private _sprints = signal<Sprint[]>([]);
   private _loadingIssues = signal<boolean>(false);
   private _loadingSprints = signal<boolean>(false);
+  
+  // Cache tracking
+  private _loadedProjectId: string | null = null;
 
   // UI state
   // selectedSprintId is either a sprint id string or null (no selection)
@@ -121,6 +124,12 @@ export class BoardStore {
    * Load issues from backend API
    */
   async loadIssuesByProject(projectId: string): Promise<void> {
+    // Skip if already loaded for this project and not loading
+    if (projectId === this._loadedProjectId && this._issues().length > 0) {
+      console.log('[BoardStore] Issues already cached for project:', projectId);
+      return;
+    }
+    
     try {
       console.log('[BoardStore] Loading issues for project:', projectId);
       this._loadingIssues.set(true);
@@ -150,6 +159,12 @@ export class BoardStore {
    * Load sprints from backend API
    */
   async loadSprintsByProject(projectId: string): Promise<void> {
+    // Skip if already loaded for this project and not loading
+    if (projectId === this._loadedProjectId && this._sprints().length > 0) {
+      console.log('[BoardStore] Sprints already cached for project:', projectId);
+      return;
+    }
+    
     try {
       console.log('[BoardStore] Loading sprints for project:', projectId);
       this._loadingSprints.set(true);
@@ -195,6 +210,9 @@ export class BoardStore {
    * Load all board data (issues + sprints) for a project
    */
   async loadBoardData(projectId: string): Promise<void> {
+    // Mark this project as loaded
+    this._loadedProjectId = projectId;
+    
     await Promise.all([
       this.loadIssuesByProject(projectId),
       this.loadSprintsByProject(projectId)

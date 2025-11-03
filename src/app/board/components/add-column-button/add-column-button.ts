@@ -22,7 +22,9 @@ export class AddColumnButton {
   name = '';
   color = '#3D62A8'; // Default to primary color
   position = 1; // Default position
-  selectedStatus: string = ''; // Selected or new status
+  // Selected existing status id (if any) and canonical status name for existing or new statuses
+  selectedStatusId?: number | null = null;
+  selectedStatusName: string = '';
   statusSearchQuery = ''; // Search query for status
   showStatusDropdown = false; // Show/hide status dropdown
   isLoading = false;
@@ -31,14 +33,7 @@ export class AddColumnButton {
   // Existing statuses from backend (loaded when modal opens)
   private existingStatuses = signal<Status[]>([]);
 
-  // Available statuses for dropdown (canonical code + human label)
-  private STATUS_PRESETS: { code: IssueStatus; label: string }[] = [
-    { code: 'TODO', label: 'To Do' },
-    { code: 'IN_PROGRESS', label: 'In Progress' },
-    { code: 'BLOCKED', label: 'Blocked' },
-    { code: 'IN_REVIEW', label: 'In Review' },
-    { code: 'DONE', label: 'Done' }
-  ];
+  // No hardcoded presets: statuses are provided by the backend per-project
 
   // Get current columns to determine max position
   currentColumns = computed(() => this.store.columns());
@@ -49,33 +44,28 @@ export class AddColumnButton {
     return columns.length > 0 ? Math.max(...columns.map(c => c.position)) + 1 : 1;
   });
 
-  // Merge presets with loaded statuses for dropdown
+  // Available statuses are the ones returned by the backend for the project
+  // Each item: { id, statusName, label, isExisting }
   availableStatuses = computed(() => {
-    const loaded = this.existingStatuses();
-    const presetCodes = new Set(this.STATUS_PRESETS.map(p => p.code));
-    
-    // Convert loaded statuses to dropdown format
-    const loadedOptions = loaded
-      .filter(status => !presetCodes.has(status.statusName as IssueStatus))
-      .map(status => ({
-        code: status.statusName as IssueStatus,
-        label: this.humanizeLabel(status.statusName),
-        isExisting: true
-      }));
-
-    // Add presets with isExisting flag
-    const presetOptions = this.STATUS_PRESETS.map(p => ({
-      code: p.code,
-      label: p.label,
-      isExisting: false
+    return this.existingStatuses().map(s => ({
+      id: s.id,
+      statusName: s.statusName,
+      label: this.humanizeLabel(s.statusName),
+      isExisting: true
     }));
-
-    return [...presetOptions, ...loadedOptions];
   });
 
   // Normalize status name for case/space insensitive comparison
   private getNormalizedKey(input: string): string {
     return input.trim().toLowerCase().replace(/[\s_]+/g, '');
+  }
+
+  // If input matches one of the preset labels or codes, return the preset canonical code
+  private getPresetCodeFromInput(input: string): string | null {
+    const normalized = this.getNormalizedKey(input);
+    // No presets: defer matching to loaded statuses only
+    const found = this.existingStatuses().find(s => this.getNormalizedKey(s.statusName) === normalized);
+    return found ? String(found.statusName) : null;
   }
 
   // Find matching existing status by normalized comparison
@@ -86,30 +76,22 @@ export class AddColumnButton {
     ) || null;
   }
 
-  // Filtered statuses (returns preset + loaded objects) based on case-insensitive search
-  get filteredStatuses(): { code: IssueStatus; label: string; isExisting?: boolean }[] {
+  // Filtered statuses (based on loaded backend statuses) using label or statusName
+  get filteredStatuses(): { id: number; statusName: string; label: string; isExisting: boolean }[] {
     const q = this.statusSearchQuery.trim().toLowerCase();
     const available = this.availableStatuses();
     if (!q) return available;
     return available.filter(s => {
-      return s.label.toLowerCase().includes(q) || s.code.toLowerCase().includes(q);
+      return s.label.toLowerCase().includes(q) || s.statusName.toLowerCase().includes(q);
     });
   }
 
-  // Check if the entered status is new (not in existing statuses OR presets)
+  // Check if the entered status is new (not in existing statuses)
   get isNewStatus(): boolean {
     const q = this.statusSearchQuery.trim();
     if (!q) return false;
-    
-    // Check against both presets and loaded statuses
-    const matchesPreset = this.STATUS_PRESETS.some(s => 
-      this.getNormalizedKey(s.label) === this.getNormalizedKey(q) ||
-      this.getNormalizedKey(s.code) === this.getNormalizedKey(q)
-    );
-    
     const matchesExisting = this.findMatchingStatus(q) !== null;
-    
-    return !matchesPreset && !matchesExisting;
+    return !matchesExisting;
   }
 
   // Jira-like: Only 6 essential preset colors for quick access
@@ -141,7 +123,8 @@ export class AddColumnButton {
     this.name = '';
     this.color = '#3D62A8';
     this.position = this.maxPosition();
-    this.selectedStatus = '';
+    this.selectedStatusId = null;
+    this.selectedStatusName = '';
     this.statusSearchQuery = '';
     this.showStatusDropdown = false;
 
@@ -168,7 +151,8 @@ export class AddColumnButton {
     this.name = ''; 
     this.color = '#3D62A8';
     this.position = 1;
-    this.selectedStatus = '';
+    this.selectedStatusId = null;
+    this.selectedStatusName = '';
     this.statusSearchQuery = '';
     this.showStatusDropdown = false;
   }
@@ -196,20 +180,17 @@ export class AddColumnButton {
     this.showStatusDropdown = true;
   }
 
-  selectStatus(status: { code: IssueStatus; label: string; isExisting?: boolean } | string) {
+  selectStatus(status: { id: number; statusName: string; label: string; isExisting: boolean } | string) {
     if (typeof status === 'string') {
-      const found = this.STATUS_PRESETS.find(s => s.label === status || s.code === status);
-      if (found) {
-        this.selectedStatus = found.code;
-        this.statusSearchQuery = found.label;
-      } else {
-        // Fallback to raw
-        this.selectedStatus = status as any;
-        this.statusSearchQuery = status;
-      }
+      // free-text fallback
+      this.selectedStatusId = null;
+      this.selectedStatusName = this.codeFromInput(status);
+      this.statusSearchQuery = status;
     } else {
-      this.selectedStatus = status.code;
-      this.statusSearchQuery = status.label;
+      // selected from backend list
+      this.selectedStatusId = (status as any).id;
+      this.selectedStatusName = (status as any).statusName;
+      this.statusSearchQuery = (status as any).label;
     }
     this.showStatusDropdown = false;
   }
@@ -219,13 +200,18 @@ export class AddColumnButton {
     if (!raw) return;
     const code = this.codeFromInput(raw);
     const label = this.humanizeLabel(code);
-    this.selectedStatus = code;
+    this.selectedStatusId = null;
+    this.selectedStatusName = code;
     this.statusSearchQuery = label;
     this.showStatusDropdown = false;
   }
 
   // Convert free input into canonical code (UPPERCASE_WITH_UNDERSCORES)
   private codeFromInput(input: string): string {
+    // Prefer preset canonical code when input matches a preset (e.g., "todo" -> "TO_DO")
+    const preset = this.getPresetCodeFromInput(input);
+    if (preset) return preset;
+
     return input
       .trim()
       .replace(/[^a-zA-Z0-9\s]/g, '')
@@ -278,13 +264,16 @@ export class AddColumnButton {
     if (!this.isValid()) return;
     this.error = null;
     
-    // Smart status matching: check if user input matches existing status
+    // Determine final statusName to send to backend
     let finalStatusCode = '';
-    if (this.selectedStatus) {
-      // selectedStatus already contains the canonical code from selectStatus or useNewStatus
-      finalStatusCode = this.selectedStatus;
+    if (this.selectedStatusId) {
+      // User selected an existing status; use its canonical name
+      finalStatusCode = this.selectedStatusName;
+    } else if (this.selectedStatusName) {
+      // User selected/entered a status name (new or normalized)
+      finalStatusCode = this.selectedStatusName;
     } else if (this.statusSearchQuery.trim()) {
-      // User typed something but didn't select - try to match existing status first
+      // User typed something but didn't explicitly pick - try to match existing status first
       const matchedStatus = this.findMatchingStatus(this.statusSearchQuery.trim());
       if (matchedStatus) {
         console.log('[AddColumnButton] Matched existing status:', matchedStatus.statusName);

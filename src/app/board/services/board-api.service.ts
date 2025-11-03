@@ -197,14 +197,6 @@ export class BoardApiService {
     // - Column id can be anything (we use statusName for compatibility with existing code)
     // - Column statusId is what matters for matching issues
     // - Issues have statusId, columns have statusId, match by number not string
-    console.log('[BoardApiService] Mapping column:', {
-      columnId: apiColumn.id,
-      boardColumnName: apiColumn.boardColumnName,
-      statusName: apiColumn.statusName,
-      statusId: apiColumn.statusId,
-      color: apiColumn.boardColor,
-      position: apiColumn.position
-    });
     
     return {
       id: apiColumn.statusName as any,  // Keep as statusName for backward compatibility
