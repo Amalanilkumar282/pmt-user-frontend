@@ -4,30 +4,30 @@ import { Observable } from 'rxjs';
 
 // Request/Response interfaces for Sprint Creation
 export interface SprintRequest {
-  projectId: string;
-  sprintName: string;
-  sprintGoal: string | null;
-  teamAssigned: number | null;
-  startDate: string | undefined;
-  dueDate: string | undefined;
-  status: string;
-  storyPoint: number;
+  projectId: string; // Required
+  sprintName?: string | null; // Optional - auto-generated if null
+  sprintGoal?: string | null; // Optional
+  teamId?: string | null; // Optional - changed to string (GUID)
+  startDate?: string | null; // Optional - ISO 8601 format
+  endDate?: string | null; // Optional - ISO 8601 format
+  targetStoryPoints?: number | null; // Optional
+  status?: string | null; // Optional
 }
 
 export interface SprintResponse {
-  status: number;
+  succeeded: boolean;
+  statusCode: number;
   data: {
     id: string;
-    projectId: string;
     sprintName: string;
-    sprintGoal: string;
-    teamAssigned: number;
-    startDate: string;
-    dueDate: string;
     status: string;
-    storyPoint: number;
+    startDate: string;
+    endDate: string;
+    targetStoryPoints: number;
+    teamId: string;
+    projectId: string;
   };
-  message: string;
+  message?: string;
 }
 
 // Team interfaces
@@ -64,25 +64,25 @@ export interface TeamsApiResponse {
 
 // AI Sprint Plan Request/Response
 export interface AISprintPlanRequest {
-  sprintName: string;
-  sprintGoal: string;
-  startDate: string;
-  endDate: string;
-  targetStoryPoints: number;
-  teamId: string;
+  sprintGoal?: string | null; // Optional
+  startDate?: string | null; // Optional - ISO 8601 format
+  endDate?: string | null; // Optional - ISO 8601 format
+  status?: string | null; // Optional
+  targetStoryPoints?: number | null; // Optional
+  teamId?: number | null; // Optional - backend uses integer
 }
 
 export interface AISprintPlanIssue {
   issueId: string;
   issueKey: string;
+  title: string; // Issue title from response
   storyPoints: number;
   suggestedAssigneeId: number;
   rationale: string;
 }
 
 export interface AISprintPlanResponse {
-  succeeded: boolean;
-  statusCode: number;
+  status: number;
   data: {
     sprintPlan: {
       selectedIssues: AISprintPlanIssue[];
@@ -100,6 +100,7 @@ export interface AISprintPlanResponse {
       };
     };
   };
+  message: string;
 }
 
 // Issue Creation interfaces
