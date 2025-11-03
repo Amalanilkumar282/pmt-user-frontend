@@ -83,12 +83,12 @@ export class IssueApiService {
 
   /**
    * Update existing issue (including status)
-   * PUT /api/Issue
+   * PUT /api/Issue/{id}
    */
   updateIssue(dto: UpdateIssueDto): Observable<ApiResponse<string>> {
     const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain', 'Content-Type': 'application/json' });
     console.log('[IssueApiService] Sending update DTO:', dto);
-    return this.http.put<ApiResponse<string>>(this.baseUrl, dto, { headers });
+    return this.http.put<ApiResponse<string>>(`${this.baseUrl}/${dto.id}`, dto, { headers });
   }
 
   /**

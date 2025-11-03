@@ -7,6 +7,7 @@ import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe
 import { BoardStore } from '../../board-store';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 import { UserApiService } from '../../../shared/services/user-api.service';
+import { shareReplay } from 'rxjs/operators';
 import { EpicApiService } from '../../services/epic-api.service';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
 
@@ -22,7 +23,8 @@ export class TaskCard implements OnInit, AfterViewInit {
   // Static caches shared across all card instances
   private static projectMembersCache: Map<string, { id: number; name: string }[]> = new Map();
   private static epicsCache: Map<string, string> = new Map();
-  private static loadingProjectMembers: Map<string, boolean> = new Map();
+  // When loadingProjectMembers stores an observable it represents an in-flight request
+  private static loadingProjectMembers: Map<string, any> = new Map();
   private static loadingEpics: Map<string, boolean> = new Map();
   
   private store = inject(BoardStore);
@@ -189,14 +191,18 @@ export class TaskCard implements OnInit, AfterViewInit {
             { id: 'unassigned', name: 'Unassigned' }
           ];
         } else if (!TaskCard.loadingProjectMembers.get(projectId)) {
-          // Load once per project
-          TaskCard.loadingProjectMembers.set(projectId, true);
-          this.userApi.getUsersByProject(projectId).subscribe({
+          // Start a single in-flight request and store the observable so other
+          // TaskCard instances can subscribe to the same stream and populate
+          // their own availableAssignees when it resolves.
+          const req$ = this.userApi.getUsersByProject(projectId).pipe(shareReplay(1));
+          TaskCard.loadingProjectMembers.set(projectId, req$);
+
+          req$.subscribe({
             next: members => {
               const memberList = members.map(m => ({ id: m.id, name: m.name }));
               TaskCard.projectMembersCache.set(projectId, memberList);
               TaskCard.loadingProjectMembers.delete(projectId);
-              
+
               this.projectMembers = memberList;
               this.availableAssignees = [
                 ...memberList.map(m => ({ id: m.id.toString(), name: m.name })),
@@ -208,6 +214,29 @@ export class TaskCard implements OnInit, AfterViewInit {
               this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
             }
           });
+        } else {
+          // Another instance has started loading members for this project.
+          // Subscribe to the in-flight observable so this card is updated
+          // when the request completes.
+          const inFlight$ = TaskCard.loadingProjectMembers.get(projectId);
+          if (inFlight$ && inFlight$.subscribe) {
+            inFlight$.subscribe({
+              next: (members: any[]) => {
+                const memberList = members.map(m => ({ id: m.id, name: m.name }));
+                this.projectMembers = memberList;
+                this.availableAssignees = [
+                  ...memberList.map(m => ({ id: m.id.toString(), name: m.name })),
+                  { id: 'unassigned', name: 'Unassigned' }
+                ];
+              },
+              error: () => {
+                this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
+              }
+            });
+          } else {
+            // Fallback: ensure at least 'Unassigned' is available
+            this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
+          }
         }
       }
     } catch (e) {
