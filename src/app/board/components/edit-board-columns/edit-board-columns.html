@@ -27,7 +27,7 @@
         <div *ngFor="let col of editableColumns(); let i = index" cdkDrag 
              class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all group">
           <!-- Drag Handle -->
-          <div cdkDragHandle class="cursor-move text-slate-300 group-hover:text-slate-500 transition-colors">
+          <div cdkDragHandle class="cursor-move text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
               <circle cx="3" cy="4" r="1.5"/>
               <circle cx="3" cy="8" r="1.5"/>
@@ -38,8 +38,16 @@
             </svg>
           </div>
           
-          <!-- Color Indicator -->
-          <div class="w-1 h-10 rounded-full flex-shrink-0" [style.background-color]="col.color"></div>
+          <!-- Color Picker -->
+          <div class="relative flex-shrink-0">
+            <input 
+              type="color" 
+              [(ngModel)]="col.color"
+              (change)="updateColor(col, col.color)"
+              class="w-10 h-10 rounded-lg border-2 border-slate-200 cursor-pointer hover:border-slate-300 transition-colors"
+              [style.background-color]="col.color"
+              title="Change column color" />
+          </div>
           
           <!-- Column Name Input -->
           <input 
@@ -50,7 +58,7 @@
             placeholder="Column name" />
           
           <!-- Column ID Badge -->
-          <span class="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
+          <span class="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded flex-shrink-0">
             {{ col.id }}
           </span>
         </div>
@@ -58,20 +66,53 @@
     </div>
     
     <!-- Footer Actions -->
-    <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between">
-      <p class="text-xs text-slate-500 flex items-center gap-1">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span class="whitespace-nowrap pr-2">Changes affect all board views</span>
-      </p>
-      <div class="flex gap-2 flex-shrink-0">
-        <button (click)="close()" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors whitespace-nowrap cursor-pointer">
-          Cancel
-        </button>
-        <button (click)="save()" class="px-4 py-2 rounded-lg bg-[#3D62A8] text-white text-sm font-semibold hover:bg-[#2F4D8C] transition-colors shadow-sm whitespace-nowrap cursor-pointer">
-          Save Changes
-        </button>
+    <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4">
+      <!-- Error Message -->
+      @if (errorMessage()) {
+        <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+          <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm text-red-800 font-medium">{{ errorMessage() }}</p>
+          </div>
+          <button (click)="errorMessage.set(null)" class="text-red-400 hover:text-red-600">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      }
+      
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-slate-500 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="whitespace-nowrap pr-2">Changes affect all board views</span>
+        </p>
+        <div class="flex gap-2 flex-shrink-0">
+          <button 
+            (click)="close()" 
+            [disabled]="isSaving()"
+            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+            Cancel
+          </button>
+          <button 
+            (click)="save()" 
+            [disabled]="isSaving()"
+            class="px-4 py-2 rounded-lg bg-[#3D62A8] text-white text-sm font-semibold hover:bg-[#2F4D8C] transition-colors shadow-sm whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            @if (isSaving()) {
+              <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Saving...</span>
+            } @else {
+              <span>Save Changes</span>
+            }
+          </button>
+        </div>
       </div>
     </div>
   </div>

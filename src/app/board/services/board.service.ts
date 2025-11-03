@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Board, CreateBoardDto, UpdateBoardDto, RecentProject, BoardType } from '../models/board.model';
 import { DEFAULT_COLUMNS } from '../utils';
+import { BoardColumnDef } from '../models';
 import { TeamsService } from '../../teams/services/teams.service';
 import { BoardApiService } from './board-api.service';
 import { TeamApiService } from './team-api.service';
@@ -36,8 +37,18 @@ export class BoardService {
     try {
       this.loadingSignal.set(true);
       const boards = await firstValueFrom(this.boardApiService.getBoardsByProject(projectId));
-      this.boardsSignal.set(boards);
-      console.log('[BoardService] Loaded boards from API:', boards);
+      
+      // Enrich default/project boards with aggregated columns from all project boards
+      const enrichedBoards = boards.map(board => {
+        if (board.type === 'PROJECT' || (!board.teamId && board.type !== 'TEAM')) {
+          // This is a default/project board - aggregate unique columns from all boards
+          return this.enrichDefaultBoardColumns(board, boards);
+        }
+        return board;
+      });
+      
+      this.boardsSignal.set(enrichedBoards);
+      console.log('[BoardService] Loaded boards from API:', enrichedBoards);
     } catch (error) {
       console.error('[BoardService] Error loading boards:', error);
       // Fallback to empty boards on error
@@ -45,6 +56,48 @@ export class BoardService {
     } finally {
       this.loadingSignal.set(false);
     }
+  }
+  
+  /**
+   * Enrich default board with unique columns from all project boards
+   * This ensures the default board shows all possible statuses from the entire project
+   * 
+   * IMPORTANT: Uniqueness is determined by statusId (numeric), NOT by status name.
+   * Multiple boards can have columns with the same status (e.g., "To Do", "TODO", "to do")
+   * but as long as they map to the same statusId in the backend, they count as ONE column
+   * in the default board. This prevents duplicate columns for the same status.
+   */
+  private enrichDefaultBoardColumns(defaultBoard: Board, allBoards: Board[]): Board {
+    // Collect all unique columns by statusId from all boards in the project
+    const columnsByStatusId = new Map<number, BoardColumnDef>();
+    
+    // First, iterate through all boards to find unique statusIds
+    for (const board of allBoards) {
+      if (board.projectId === defaultBoard.projectId) {
+        for (const column of board.columns) {
+          if (column.statusId !== undefined && !columnsByStatusId.has(column.statusId)) {
+            columnsByStatusId.set(column.statusId, column);
+          }
+        }
+      }
+    }
+    
+    // Convert to array and sort by position (or statusId as fallback)
+    const uniqueColumns = Array.from(columnsByStatusId.values())
+      .sort((a, b) => {
+        // Sort by position if available, otherwise by statusId
+        if (a.position !== undefined && b.position !== undefined) {
+          return a.position - b.position;
+        }
+        return (a.statusId || 0) - (b.statusId || 0);
+      })
+      // Reassign positions sequentially
+      .map((col, index) => ({ ...col, position: index }));
+    
+    return {
+      ...defaultBoard,
+      columns: uniqueColumns.length > 0 ? uniqueColumns : defaultBoard.columns
+    };
   }
   
   // Load single board from backend
@@ -382,19 +435,30 @@ export class BoardService {
       const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
       const numericBoardId = parseInt(boardId, 10);
       
+      // Build the DTO according to the API spec - all fields are optional except columnId, boardId, updatedBy
       const dto: any = {
         columnId: columnId,
         boardId: numericBoardId,
-        boardColumnName: updates.name,
-        boardColor: updates.color,
-        position: updates.position,
         updatedBy: userId
       };
+      
+      // Only include fields that are being updated
+      if (updates.name !== undefined) {
+        dto.boardColumnName = updates.name;
+      }
+      if (updates.color !== undefined) {
+        dto.boardColor = updates.color;
+      }
+      if (updates.position !== undefined) {
+        dto.position = updates.position;
+      }
+      
+      console.log('[BoardService] Updating column with DTO:', dto);
       
       const response = await firstValueFrom(this.boardApiService.updateBoardColumn(columnId, dto));
       
       if (response.status === 200) {
-        console.log('[BoardService] Column updated successfully');
+        console.log('[BoardService] Column updated successfully:', response.data);
         // Reload board to get updated columns
         await this.loadBoardById(numericBoardId);
         return true;

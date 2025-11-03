@@ -11,6 +11,7 @@
   <!-- Epic Panel -->
   @if (isEpicPanelOpen) {
     <app-epic-container 
+      [projectId]="currentProjectId"
       [class.sidebar-collapsed]="isSidebarCollapsed()"
       (closeEpicPanel)="closeEpicPanel()"
       (viewDetails)="openEpicDetailView($event)"
@@ -26,7 +27,8 @@
       <app-epic-detailed-view 
         [epic]="selectedEpic"
         (close)="closeEpicDetailView()"
-        (epicUpdated)="onEpicUpdated($event)">
+        (epicUpdated)="onEpicUpdated($event)"
+        (epicDeleted)="onEpicDeleted($event)">
       </app-epic-detailed-view>
     </div>
   }
@@ -176,9 +178,6 @@
   </div>
 </div>
 
-<!-- Create Sprint Modal -->
-<app-create-sprint-modal
-  [isOpen]="isCreateSprintModalOpen"
-  (close)="onCloseCreateSprintModal()"
-  (sprintCreated)="onSprintCreated($event)">
-</app-create-sprint-modal>
+
+<!-- Create Sprint Modal - Now using ModalService, no separate component needed -->
+

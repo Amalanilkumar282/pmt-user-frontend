@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
@@ -9,10 +9,12 @@ import { ActivityItem } from '../activity-item/activity-item';
 import { TabbedIssues } from '../tabbed-issues/tabbed-issues';
 import { Header } from '../../shared/header/header';
 import { Router, RouterModule } from '@angular/router';
+import { ProjectService, Project } from '../../projects/services/project.service';
+import { IssueService } from '../../shared/services/issue.service';
+import { Issue } from '../../shared/models/issue.model';
 import {
   DashboardProject,
   DashboardActivity,
-  dashboardProjects,
   dashboardStats,
   dashboardActivities,
   DashboardStats,
@@ -38,9 +40,18 @@ import {
 })
 export class MainDashboardHome implements OnInit {
   private router = inject(Router);
-  userName = 'User';
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  private projectService = inject(ProjectService);
+  private issueService = inject(IssueService);
+
+  userName = 'User';
+  isLoadingProjects = signal<boolean>(false);
+  projectsError = signal<string | null>(null);
+  isLoadingIssues = signal<boolean>(false);
+  issuesError = signal<string | null>(null);
+  userIssues: Issue[] = [];
+
   navigateToProject() {
     this.router.navigate(['/projects', 1, 'board']);
   }
@@ -63,7 +74,12 @@ export class MainDashboardHome implements OnInit {
     };
   }
 
-  taskStatus: TaskStatus = dashboardTaskStatus;
+  taskStatus: TaskStatus = {
+    toDo: 0,
+    inProgress: 0,
+    completed: 0,
+    onHold: 0,
+  };
 
   get sprintStatuses(): { label: string; count: number; colorClass: string }[] {
     return [
@@ -74,19 +90,149 @@ export class MainDashboardHome implements OnInit {
     ];
   }
 
-  projects: DashboardProject[] = dashboardProjects;
+  projects: DashboardProject[] = [];
 
   recentActivities: DashboardActivity[] = dashboardActivities;
 
+  /**
+   * Load user issues and calculate task status counts
+   */
+  private loadUserIssues(): void {
+    const userId = this.projectService.getUserId();
+
+    if (!userId) {
+      console.warn('⚠️ No user ID found, skipping issues load');
+      return;
+    }
+
+    this.isLoadingIssues.set(true);
+    this.issuesError.set(null);
+
+    this.issueService.getIssuesByUser(userId).subscribe({
+      next: (issues: Issue[]) => {
+        console.log('✅ User issues loaded:', issues);
+        this.userIssues = issues;
+        this.calculateTaskStatus(issues);
+        this.isLoadingIssues.set(false);
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading user issues:', error);
+        this.issuesError.set(error.message || 'Failed to load issues');
+        this.isLoadingIssues.set(false);
+        this.userIssues = [];
+      },
+    });
+  }
+
+  /**
+   * Calculate task status counts from issues
+   */
+  private calculateTaskStatus(issues: Issue[]): void {
+    const statusCounts = {
+      toDo: 0,
+      inProgress: 0,
+      completed: 0,
+      onHold: 0,
+    };
+
+    issues.forEach((issue) => {
+      switch (issue.statusName) {
+        case 'TO_DO':
+          statusCounts.toDo++;
+          break;
+        case 'IN_PROGRESS':
+          statusCounts.inProgress++;
+          break;
+        case 'IN_REVIEW':
+          statusCounts.inProgress++; // Count review as in progress
+          break;
+        case 'DONE':
+          statusCounts.completed++;
+          break;
+        case 'BLOCKED':
+          statusCounts.onHold++;
+          break;
+        default:
+          statusCounts.toDo++;
+      }
+    });
+
+    this.taskStatus = statusCounts;
+    console.log('✅ Task status calculated:', this.taskStatus);
+  }
+
   // called with payload { id, starred } from the ProjectCard child
   toggleStar(payload: { id: string; starred: boolean }): void {
+    // Update local state
     this.projects = this.projects.map((p) =>
       p.id === payload.id ? { ...p, starred: payload.starred } : p
     );
+
+    // Update in service (session storage)
+    this.projectService.toggleStarredStatus(payload.id);
+  }
+
+  /**
+   * Transform API Project to DashboardProject
+   */
+  private transformToDashboardProject(project: Project): DashboardProject {
+    // Format date to show only the date portion (YYYY-MM-DD)
+    const formatDate = (isoString: string): string => {
+      const date = new Date(isoString);
+      return date.toISOString().split('T')[0];
+    };
+
+    return {
+      id: project.id,
+      name: project.name,
+      type: 'Software', // Default type
+      status: project.status === 'active' ? 'Active' : 'Completed',
+      du: project.deliveryUnitName || project.du || 'Unknown',
+      lead: project.projectManagerName || 'Not Assigned',
+      created: formatDate(project.lastUpdated),
+      updated: formatDate(project.lastUpdated),
+      starred: project.starred,
+    };
+  }
+
+  /**
+   * Load recent projects from API
+   */
+  private loadRecentProjects(): void {
+    const userId = this.projectService.getUserId();
+
+    if (!userId) {
+      console.warn('⚠️ No user ID found, skipping recent projects load');
+      this.projectsError.set('Please log in to view recent projects');
+      return;
+    }
+
+    this.isLoadingProjects.set(true);
+    this.projectsError.set(null);
+
+    this.projectService.getRecentProjects(userId, 6).subscribe({
+      next: (projects: Project[]) => {
+        console.log('✅ Recent projects loaded:', projects);
+        this.projects = projects.map((p: Project) => this.transformToDashboardProject(p));
+        this.isLoadingProjects.set(false);
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading recent projects:', error);
+        this.projectsError.set(error.message || 'Failed to load recent projects');
+        this.isLoadingProjects.set(false);
+        this.projects = [];
+      },
+    });
   }
 
   ngOnInit(): void {
     // Clear project context when viewing main dashboard
     this.projectContextService.clearCurrentProjectId();
+
+    // Load recent projects from API
+    this.loadRecentProjects();
+
+    // Load user issues for task status
+    this.loadUserIssues();
   }
 }

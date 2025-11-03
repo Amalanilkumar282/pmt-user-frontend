@@ -178,6 +178,7 @@ export class IssueSummaryService {
               sprintId: issue.sprintId,
               teamId: issue.teamId,
               epicId: issue.epicId,
+              epicName: issue.epicName || null,
               startDate: issue.startDate ? new Date(issue.startDate) : undefined,
               dueDate: issue.dueDate ? new Date(issue.dueDate) : undefined,
               endDate: issue.endDate ? new Date(issue.endDate) : undefined,

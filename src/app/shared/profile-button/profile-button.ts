@@ -1,5 +1,5 @@
-import { Component, Input, Output, EventEmitter, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../auth/auth.service';
 
 @Component({
@@ -7,7 +7,7 @@ import { AuthService } from '../../auth/auth.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './profile-button.html',
-  styleUrls: ['./profile-button.css']
+  styleUrls: ['./profile-button.css'],
 })
 export class ProfileButton implements OnInit {
   @Input() showProfileModal: boolean = false;
@@ -17,16 +17,31 @@ export class ProfileButton implements OnInit {
   @Output() closeProfileModal = new EventEmitter<void>();
 
   private authService = inject(AuthService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser: boolean;
+
   userRole: string = '';
 
+  constructor() {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
+
   ngOnInit() {
+    // Only access sessionStorage in browser
+    if (!this.isBrowser) {
+      return;
+    }
+
     const token = sessionStorage.getItem('accessToken');
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        this.userName = payload.name || '';
-        this.userEmail = payload.email || '';
-        this.userRole = payload.role || payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || '';
+        this.userName = payload.name || this.userName;
+        this.userEmail = payload.email || this.userEmail;
+        this.userRole =
+          payload.role ||
+          payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+          '';
       } catch (e) {
         console.error('Failed to parse JWT for profile info:', e);
       }
@@ -37,7 +52,7 @@ export class ProfileButton implements OnInit {
     if (!this.userName) return '';
     return this.userName
       .split(' ')
-      .map(part => part[0])
+      .map((part) => part[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
