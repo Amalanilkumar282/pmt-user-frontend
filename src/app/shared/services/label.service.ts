@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { AuthTokenService } from '../../board/services/auth-token.service';
 
 export interface Label {
@@ -40,7 +41,7 @@ export interface UpdateLabelResponse {
 
 @Injectable({ providedIn: 'root' })
 export class LabelService {
-  private baseUrl = '/api/Label';
+  private baseUrl = `${environment.apiUrl}/api/Label`;
   private http = inject(HttpClient);
 
   getAllLabels(): Observable<LabelResponse> {
