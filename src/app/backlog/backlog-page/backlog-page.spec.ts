@@ -6,6 +6,7 @@ import { ModalService } from '../../modal/modal-service';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
+import { FilterCriteria } from '../../shared/filters/filters';
 
 describe('BacklogPage', () => {
 	let fixture: ComponentFixture<BacklogPage>;
@@ -134,21 +135,29 @@ describe('BacklogPage', () => {
 			expect(sidebarStateServiceMock.toggleCollapse).toHaveBeenCalled();
 		});
 
-		it('toggleEpicPanel and closeEpicPanel should toggle state', () => {
-			component.isEpicPanelOpen = false;
-			component.toggleEpicPanel();
-			expect(component.isEpicPanelOpen).toBeTrue();
-			component.closeEpicPanel();
-			expect(component.isEpicPanelOpen).toBeFalse();
-		});
+	it('closeEpicPanel should close epic panel', () => {
+		component.isEpicPanelOpen = true;
+		component.closeEpicPanel();
+		expect(component.isEpicPanelOpen).toBeFalse();
+	});
 
-		it('onEpicFilterChange should set selectedEpicFilter', () => {
-			const fakeEvent: any = { target: { value: 'epic-1' } };
-			component.onEpicFilterChange(fakeEvent);
-			expect(component.selectedEpicFilter).toBe('epic-1');
-		});
-
-		it('epicFilterOptions should include All epics option and epics list', () => {
+	it('onFiltersChanged should set selectedEpicFilter', () => {
+		const filterCriteria: FilterCriteria = {
+			searchText: '',
+			quickFilter: null,
+			type: null,
+			priority: null,
+			status: null,
+			assignee: null,
+			sort: 'recent',
+			view: 'sprints',
+			epicId: 'epic-1',
+			showCompletedSprints: false,
+			showEpicPanel: false
+		};
+		component.onFiltersChanged(filterCriteria);
+		expect(component.selectedEpicFilter).toBe('epic-1');
+	});		it('epicFilterOptions should include All epics option and epics list', () => {
 			const opts = component.epicFilterOptions;
 			expect(opts.length).toBeGreaterThanOrEqual(component.epics.length + 1);
 			expect(opts[0].id).toBeNull();

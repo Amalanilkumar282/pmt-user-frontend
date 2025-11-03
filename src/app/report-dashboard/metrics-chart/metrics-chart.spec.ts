@@ -31,25 +31,28 @@ describe('MetricsChart', () => {
     component.chartType = 'burnup';
     component.issues = sprints[0].issues || [];
     component.ngOnInit();
-    expect(component.chartOptions.series.length).toBeGreaterThan(0);
-    expect(component.chartOptions.chart.type).toBe('area');
+    expect(component.chartOptions).not.toBeNull();
+    expect(component.chartOptions!.series.length).toBeGreaterThan(0);
+    expect(component.chartOptions!.chart.type).toBe('area');
   });
 
   it('should initialize chartOptions in ngOnInit for burndown', () => {
     component.chartType = 'burndown';
     component.issues = sprints[0].issues || [];
     component.ngOnInit();
-    expect(component.chartOptions.series.length).toBe(1); // remaining work
-    expect(component.chartOptions.chart.type).toBe('area');
+    expect(component.chartOptions).not.toBeNull();
+    expect(component.chartOptions!.series.length).toBe(1); // remaining work
+    expect(component.chartOptions!.chart.type).toBe('area');
   });
 
   it('should initialize chartOptions in ngOnInit for velocity', () => {
     component.chartType = 'velocity';
     component.issues = sprints[0].issues || [];
     component.ngOnInit();
-    expect(component.chartOptions.series.length).toBe(1);
-    expect(component.chartOptions.chart.type).toBe('bar');
-    expect(component.chartOptions.colors?.length).toBe(2);
+    expect(component.chartOptions).not.toBeNull();
+    expect(component.chartOptions!.series.length).toBe(1);
+    expect(component.chartOptions!.chart.type).toBe('bar');
+    expect(component.chartOptions!.colors?.length).toBe(2);
   });
 
   it('should clean up chart in ngOnDestroy', () => {
@@ -62,7 +65,8 @@ describe('MetricsChart', () => {
     component.chartType = 'burnup';
     component.issues = [];
     component.ngOnInit();
-    expect(component.chartOptions.series.length).toBeGreaterThan(0);
+    expect(component.chartOptions).not.toBeNull();
+    expect(component.chartOptions!.series.length).toBeGreaterThan(0);
   });
 });
  

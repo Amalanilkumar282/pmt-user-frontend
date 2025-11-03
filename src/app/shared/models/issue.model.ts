@@ -28,8 +28,8 @@ export interface Issue {
   completedAt?: Date; // When the issue was marked as DONE
   parentId?: string;
   parentIssueId?: string | null; // Backend field name
-  epicId?: string;
-  epicName?: string;
+  epicId?: string | null;
+  epicName?: string | null; // Epic name from backend
   attachments?: File[];
   attachmentUrl?: string | null; // Backend attachment URL
 }
@@ -51,7 +51,7 @@ export interface IssueApiResponse {
   parentIssueId: string | null;
   storyPoints: number;
   epicId: string | null;
-  epicName?: string | null;
+  epicName: string | null; // Epic name from backend
   reporterId: number | null;
   labels: string;
   attachmentUrl: string | null;

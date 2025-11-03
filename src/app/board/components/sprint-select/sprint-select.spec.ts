@@ -263,7 +263,7 @@ describe('SprintSelect', () => {
     });
 
     it('should emit proper event types', () => {
-      let emittedValue: string | 'BACKLOG' | undefined;
+      let emittedValue: string | null | undefined;
       
       component.select.subscribe(value => {
         emittedValue = value;

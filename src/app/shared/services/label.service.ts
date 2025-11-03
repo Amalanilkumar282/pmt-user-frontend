@@ -50,17 +50,12 @@ export class LabelService {
   }
 
   createLabel(request: CreateLabelRequest): Observable<CreateLabelResponse> {
-    let token = '';
-    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      token = sessionStorage.getItem('accessToken') || '';
-    }
-    const headers = { 'Authorization': `Bearer ${token}` };
-    return this.http.post<CreateLabelResponse>(this.baseUrl, request, { headers });
+    // Interceptor automatically adds Authorization header
+    return this.http.post<CreateLabelResponse>(this.baseUrl, request);
   }
 
   updateLabel(request: UpdateLabelRequest): Observable<UpdateLabelResponse> {
-    const token = sessionStorage.getItem('accessToken') || '';
-    const headers = { 'Authorization': `Bearer ${token}` };
-    return this.http.put<UpdateLabelResponse>(this.baseUrl, request, { headers });
+    // Interceptor automatically adds Authorization header
+    return this.http.put<UpdateLabelResponse>(this.baseUrl, request);
   }
 }
