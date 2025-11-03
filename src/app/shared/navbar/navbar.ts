@@ -320,7 +320,8 @@ export class Navbar implements OnInit {
               epicId: null, // TODO: Map epic to actual ID
               reporterId: reporterId,
               attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
-              labels: JSON.stringify(formData.labels || [])
+              labels: JSON.stringify(formData.labels || []),
+              statusId: 1 // Set status to TODO (1) by default for new issues
             };
 
             // Close modal immediately for instant feedback
