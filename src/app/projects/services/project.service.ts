@@ -80,6 +80,32 @@ export class ProjectService {
   }
 
   /**
+   * Get recent projects for a specific user
+   * @param userId - The ID of the user
+   * @param take - Number of recent projects to fetch (default: 2)
+   * @returns Observable of recent projects array
+   */
+  getRecentProjects(userId: string, take: number = 2): Observable<Project[]> {
+    console.log('🔐 Fetching recent projects for user:', userId, 'take:', take);
+
+    return this.http
+      .get<ApiResponse>(`${this.apiUrl}/api/Project/recent/${userId}?take=${take}`)
+      .pipe(
+        map((response) => {
+          console.log('✅ Recent Projects API response:', response);
+
+          if (response.status === 200 && response.data) {
+            return response.data.map((project) => this.transformToProject(project));
+          } else {
+            console.error('❌ Failed to fetch recent projects:', response.message);
+            return [];
+          }
+        }),
+        catchError(this.handleError.bind(this))
+      );
+  }
+
+  /**
    * Transform API project response to Project interface
    * @param apiProject - Project data from API
    * @returns Transformed Project object
@@ -112,6 +138,19 @@ export class ProjectService {
   private mapStatus(statusName: string | null): 'active' | 'inactive' {
     if (!statusName) return 'active';
     return statusName.toLowerCase() === 'active' ? 'active' : 'inactive';
+  }
+
+  /**
+   * Extract DU (Delivery Unit) from customer org name or return default
+   * @param customerOrgName - Customer organization name
+   * @returns DU code
+   */
+  private extractDU(customerOrgName: string | null): string {
+    if (!customerOrgName) return 'UNK';
+
+    // Extract first 3 letters as DU code
+    const du = customerOrgName.substring(0, 3).toUpperCase();
+    return du || 'UNK';
   }
 
   /**
