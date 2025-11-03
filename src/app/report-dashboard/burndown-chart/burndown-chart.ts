@@ -90,8 +90,8 @@ export class BurndownChart implements OnInit {
             ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
           ];
 
-          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
-          
+          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || null;
+
           // Set initial sprint data
           const initialSprint = activeSprint || allSprints[0];
           if (initialSprint) {
@@ -102,11 +102,14 @@ export class BurndownChart implements OnInit {
             };
           }
           
-          // Trigger change detection
-          this.cdr.detectChanges();
-          
-          // Load initial chart data
-          this.updatechartData();
+          // Defer change detection to the next microtask to avoid
+          // ExpressionChangedAfterItHasBeenCheckedError when the template
+          // was already checked with an empty sprints array.
+          Promise.resolve().then(() => {
+            this.cdr.detectChanges();
+            // Load initial chart data after change detection
+            this.updatechartData();
+          });
         },
         error: (error) => {
           console.error('BurndownChart - Error loading sprints from API:', error);
@@ -145,11 +148,11 @@ export class BurndownChart implements OnInit {
       this.location.back();
 
   }
-  onSprintFilterChange(sprintId: string): void {
+  onSprintFilterChange(sprintId: string | null): void {
     this.selectedSprintId = sprintId;
     
     // Update sprint data for the chart
-    const selectedSprint = this.sprints.find(s => s.id === sprintId);
+    const selectedSprint = sprintId ? this.sprints.find(s => s.id === sprintId) : undefined;
     if (selectedSprint) {
       this.selectedSprintData = {
         name: selectedSprint.name,

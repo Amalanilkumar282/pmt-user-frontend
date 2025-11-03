@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { AuthTokenService } from '../../board/services/auth-token.service';
 
 export interface Label {
   id: number;
@@ -40,16 +41,12 @@ export interface UpdateLabelResponse {
 @Injectable({ providedIn: 'root' })
 export class LabelService {
   private baseUrl = '/api/Label';
-
-  constructor(private http: HttpClient) {}
-
+  private http = inject(HttpClient);
+  private authTokenService = inject(AuthTokenService);
   getAllLabels(): Observable<LabelResponse> {
-    let token = '';
-    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      token = sessionStorage.getItem('accessToken') || '';
-    }
-    const headers = { 'Authorization': `Bearer ${token}` };
-    return this.http.get<LabelResponse>(this.baseUrl, { headers });
+    return this.http.get<LabelResponse>(this.baseUrl, {
+      headers: this.authTokenService.getAuthHeaders()
+    });
   }
 
   createLabel(request: CreateLabelRequest): Observable<CreateLabelResponse> {
@@ -62,10 +59,7 @@ export class LabelService {
   }
 
   updateLabel(request: UpdateLabelRequest): Observable<UpdateLabelResponse> {
-    let token = '';
-    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      token = sessionStorage.getItem('accessToken') || '';
-    }
+    const token = sessionStorage.getItem('accessToken') || '';
     const headers = { 'Authorization': `Bearer ${token}` };
     return this.http.put<UpdateLabelResponse>(this.baseUrl, request, { headers });
   }

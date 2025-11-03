@@ -44,18 +44,25 @@ export class BoardToolbar {
   readonly search = this.store.search;
   readonly selectedSprintId = this.store.selectedSprintId;
   readonly sprints = this.store.sprints;
+  readonly availableSprints = this.store.availableSprints;
   readonly currentBoard = this.boardService.currentBoard;
   readonly filters = this.store.filters;
   readonly showAllAssignees = signal(false);
   
-  // Hide sprint filter for PROJECT type boards
+  // Show sprint filter only for team boards (boards with teamId)
   readonly showSprintFilter = computed(() => {
     const board = this.currentBoard();
-    return !board || board.type === 'TEAM';
+    const shouldShow = board && !!board.teamId;
+    console.log('[BoardToolbar.showSprintFilter] Board:', board, 'Show:', shouldShow);
+    // Show sprint selector if board has a teamId (team board)
+    // Hide for default/project boards (no teamId)
+    return shouldShow;
   });
   
   readonly assignees = computed(() => {
     const set = new Set<string>();
+    // Use visibleIssues (respecting current board, sprint selection and filters)
+    // so avatars represent only assignees who are assigned to issues currently shown on the board
     for (const i of this.store.visibleIssues()) {
       if (i.assignee) set.add(i.assignee);
     }
@@ -99,13 +106,13 @@ export class BoardToolbar {
     this.store.search.set(target.value);
   }
 
-  selectSprint(id: string): void {
-    this.store.selectedSprintId.set(id);
+  selectSprint(id: string | null): void {
+    this.store.selectSprint(id);
   }
 
-  getSprintLabel(id: string): string {
-    if (id === 'BACKLOG') return 'Backlog';
-    const sprint = this.sprints().find(s => s.id === id);
+  getSprintLabel(id: string | null): string {
+    if (!id) return 'All Sprints';
+    const sprint = this.availableSprints().find(s => s.id === id) || this.sprints().find(s => s.id === id);
     return sprint ? sprint.name : 'Select Sprint';
   }
 

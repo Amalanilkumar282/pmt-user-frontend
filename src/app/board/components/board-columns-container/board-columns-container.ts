@@ -5,6 +5,7 @@ import { BoardStore } from '../../board-store';
 import { BoardColumn } from '../board-column/board-column';
 import { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardColumnDef } from '../../models';
+import { ProjectContextService } from '../../../shared/services/project-context.service';
 
 @Component({
   selector: 'app-board-columns-container',
@@ -16,6 +17,8 @@ import { BoardColumnDef } from '../../models';
 })
 export class BoardColumnsContainer {
   private store = inject(BoardStore);
+  private projectContextService = inject(ProjectContextService);
+  
   readonly buckets = this.store.columnBuckets;
   readonly groupBy = this.store.groupBy;
   @Output() openIssue = new EventEmitter<any>();
@@ -42,24 +45,64 @@ export class BoardColumnsContainer {
     this.openIssueComments.emit(issue);
   }
 
-  onDrop(event: CdkDragDrop<Issue[]>) {
+  async onDrop(event: CdkDragDrop<Issue[]>) {
+    const issue = event.previousContainer.data[event.previousIndex];
+    const projectId = this.projectContextService.currentProjectId();
+
     if (event.previousContainer === event.container || event.previousContainer.data === event.container.data) {
+      // Same column - just reorder
       moveItemInArray(
         event.container.data,
         event.previousIndex,
         event.currentIndex
       );
     } else {
+      // Different column - transfer and update status via API
       transferArrayItem(
         event.previousContainer.data,
         event.container.data,
         event.previousIndex,
         event.currentIndex
       );
-      // Update issue status
-      const issue = event.container.data[event.currentIndex];
-      const newStatus = event.container.id as IssueStatus;
-      this.store.updateIssueStatus(issue.id, newStatus);
+      
+      // Find the target column definition to get its statusId
+      const targetColumnDef = this.buckets().find(b => b.def.id === event.container.id)?.def;
+      
+      if (targetColumnDef?.statusId !== undefined && projectId && issue) {
+        try {
+          console.log('[BoardColumnsContainer] Drag-drop: Updating issue status', {
+            issueId: issue.id,
+            issueKey: issue.key,
+            fromStatus: issue.statusId,
+            toStatus: targetColumnDef.statusId,
+            columnName: targetColumnDef.title
+          });
+          
+          // Update via backend API
+          await this.store.updateIssueStatusApi(issue.id, targetColumnDef.statusId, projectId);
+          
+          console.log('[BoardColumnsContainer] Issue status updated successfully via API');
+        } catch (error) {
+          console.error('[BoardColumnsContainer] Failed to update issue status:', error);
+          
+          // Rollback UI change on error
+          transferArrayItem(
+            event.container.data,
+            event.previousContainer.data,
+            event.currentIndex,
+            event.previousIndex
+          );
+          
+          alert('Failed to update issue status. Please try again.');
+        }
+      } else {
+        console.error('[BoardColumnsContainer] Missing data for status update:', {
+          targetColumnDef,
+          statusId: targetColumnDef?.statusId,
+          projectId,
+          issue: issue?.id
+        });
+      }
     }
   }
 }

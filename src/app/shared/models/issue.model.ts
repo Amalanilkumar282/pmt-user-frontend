@@ -4,14 +4,18 @@ export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCK
 
 export interface Issue {
   id: string;
-  key?: string; // Issue key like PMT-011, PMT-012
+  key?: string; // Issue key from backend (e.g., "PROJ001-1")
+  projectId?: string; // Project ID
   title: string;
   description: string;
   type: IssueType;
+  issueType?: string; // Backend field name
   priority: IssuePriority;
   status: IssueStatus;
+  statusId?: number; // Backend status ID
   assignee?: string;
-  assignedTo?: string;
+  assigneeId?: number | null; // Backend assignee ID
+  reporterId?: number | null; // Reporter ID
   storyPoints?: number;
   sprintId?: string;
   teamId?: string; // Team that owns this issue
@@ -23,6 +27,36 @@ export interface Issue {
   endDate?: Date; // Estimated completion date
   completedAt?: Date; // When the issue was marked as DONE
   parentId?: string;
+  parentIssueId?: string | null; // Backend field name
   epicId?: string;
   attachments?: File[];
+  attachmentUrl?: string | null; // Backend attachment URL
+}
+
+// Backend API response interface
+export interface IssueApiResponse {
+  id: string;
+  key: string;
+  projectId: string;
+  issueType: string;
+  title: string;
+  description: string;
+  priority: string;
+  assigneeId: number | null;
+  startDate: string | null;
+  dueDate: string | null;
+  statusId: number;
+  sprintId: string | null;
+  parentIssueId: string | null;
+  storyPoints: number;
+  epicId: string | null;
+  reporterId: number | null;
+  labels: string;
+  attachmentUrl: string | null;
+}
+
+export interface GetIssuesResponse {
+  status: number;
+  data: IssueApiResponse[];
+  message: string;
 }

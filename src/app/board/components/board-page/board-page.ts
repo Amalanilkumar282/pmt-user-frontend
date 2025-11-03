@@ -5,6 +5,7 @@ import { Sidebar } from '../../../shared/sidebar/sidebar';
 import { Navbar } from '../../../shared/navbar/navbar';
 import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
+import { UserContextService } from '../../../shared/services/user-context.service';
 import { BoardColumn } from '../board-column/board-column';
 import { BoardStore } from '../../board-store';
 import { BoardToolbar } from '../board-toolbar/board-toolbar';
@@ -12,8 +13,8 @@ import { BoardColumnsContainer } from '../board-columns-container/board-columns-
 import { IssueDetailedView } from '../../../backlog/issue-detailed-view/issue-detailed-view';
 import { BoardService } from '../../services/board.service';
 import { signal } from '@angular/core';
-// import { DUMMY_SPRINTS, BACKLOG } from './seed.full';
-import { sprints, completedSprint1Issues, completedSprint2Issues, activeSprintIssues, backlogIssues } from '../../../shared/data/dummy-backlog-data';
+import { DEFAULT_COLUMNS } from '../../utils';
+import { Issue } from '../../../shared/models/issue.model';
 
 @Component({
   selector: 'app-board-page',
@@ -35,6 +36,7 @@ export class BoardPage implements OnInit {
   private router = inject(Router);
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  private userContextService = inject(UserContextService);
   private boardService = inject(BoardService);
   private store = inject(BoardStore);
 
@@ -53,43 +55,43 @@ export class BoardPage implements OnInit {
       if (board) {
         // Update store columns based on board configuration
         this.store.columns.set([...board.columns]);
+        console.log('[BoardPage] Board changed, updated columns:', board.columns.length);
       }
     });
     
     // Subscribe to route param changes (project changes)
-    this.route.parent?.params.subscribe(params => {
+    this.route.parent?.params.subscribe(async params => {
       const projectId = params['projectId'];
-      console.log('🚀 BoardPage - Project changed to:', projectId);
+      console.log('[BoardPage] Project changed to:', projectId);
       if (projectId) {
         this.projectContextService.setCurrentProjectId(projectId);
         this.boardService.accessProject(projectId);
-        console.log('🚀 BoardPage - Set project context and accessed project');
+        console.log('[BoardPage] Set project context and accessed project');
         
-        // Load sprint data
-        this.store.loadData(sprints);
-        this.store.addBacklog(backlogIssues);
+        // Load boards and data from backend
+        await this.loadProjectData(projectId);
         
         // Check if we have a boardId in query params
         const currentBoardId = this.route.snapshot.queryParamMap.get('boardId');
         if (currentBoardId) {
-          console.log('🚀 BoardPage - Loading board from query param:', currentBoardId);
-          this.store.loadBoard(currentBoardId);
+          console.log('[BoardPage] Loading board from query param:', currentBoardId);
+          await this.loadBoardById(Number(currentBoardId));
         } else {
           // Load default board for this project
-          console.log('🚀 BoardPage - No boardId, loading default board');
-          this.loadDefaultBoard(projectId);
+          console.log('[BoardPage] No boardId, loading default board');
+          await this.loadDefaultBoard(projectId);
         }
       }
     });
     
     // Subscribe to query param changes (board selection within same project)
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe(async params => {
       const boardId = params['boardId'];
       const currentProjectId = this.projectContextService.currentProjectId();
       
       // Only reload if boardId changed and we're in the same project
       if (boardId && boardId !== this.boardService.currentBoardId() && currentProjectId) {
-        this.store.loadBoard(boardId);
+        await this.loadBoardById(Number(boardId));
       }
     });
   }
@@ -98,40 +100,94 @@ export class BoardPage implements OnInit {
     this.sidebarStateService.toggleCollapse();
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     // Initial load - Set project context from route params
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
+    
+    // Avoid referencing `window` during server-side rendering
+    const isBrowser = typeof window !== 'undefined';
+    console.log('[BoardPage] ngOnInit - Route params:', {
+      projectId: projectId,
+      fullUrl: isBrowser ? window.location.href : 'server',
+      routeSnapshot: this.route.snapshot,
+      parentRoute: this.route.parent?.snapshot
+    });
+    
     if (!projectId) {
-      console.error('No project ID found in route');
+      console.error('[BoardPage] No project ID found in route');
+      if (isBrowser) {
+        console.log('[BoardPage] Current URL:', window.location.href);
+        console.log('[BoardPage] Expected URL format: /projects/{projectId}/board');
+      }
       return;
     }
+    
+    console.log(`[BoardPage] Project ID extracted: ${projectId}`);
     
     this.projectContextService.setCurrentProjectId(projectId);
     this.boardService.accessProject(projectId);
     
-    // Load sprint data
-    this.store.loadData(sprints);
-    this.store.addBacklog(backlogIssues);
+    // Load all project data from backend
+    await this.loadProjectData(projectId);
     
     // Check for boardId in query params
     const boardId = this.route.snapshot.queryParamMap.get('boardId');
     
     if (boardId) {
       // Load specific board from URL
-      const success = this.store.loadBoard(boardId);
-      
-      if (!success) {
-        // Board not found, fall back to default
-        console.warn(`Board ${boardId} not found, loading default board`);
-        this.loadDefaultBoard(projectId);
-      }
+      await this.loadBoardById(Number(boardId));
     } else {
       // No boardId specified, load default board
-      this.loadDefaultBoard(projectId);
+      await this.loadDefaultBoard(projectId);
     }
   }
   
-  private loadDefaultBoard(projectId: string): void {
+  /**
+   * Load all project data: boards, issues, sprints
+   */
+  private async loadProjectData(projectId: string): Promise<void> {
+    try {
+      console.log('[BoardPage] Loading project data for:', projectId);
+      
+      // Load boards and board data in parallel
+      await Promise.all([
+        this.boardService.loadBoardsByProject(projectId),
+        this.store.loadBoardData(projectId)
+      ]);
+      
+      console.log('[BoardPage] Project data loaded successfully');
+    } catch (error) {
+      console.error('[BoardPage] Error loading project data:', error);
+    }
+  }
+  
+  /**
+   * Load specific board by ID
+   */
+  private async loadBoardById(boardId: number): Promise<void> {
+    try {
+      console.log('[BoardPage] Loading board:', boardId);
+      const board = await this.boardService.loadBoardById(boardId);
+      
+      if (board) {
+        this.boardService.setCurrentBoard(board.id);
+        console.log('[BoardPage] Board loaded:', board.name);
+        
+        // Reload sprints after board is set so initial sprint selection can be applied
+        const projectId = this.projectContextService.currentProjectId();
+        if (projectId) {
+          console.log('[BoardPage] Reloading sprints after board change');
+          await this.store.loadSprintsByProject(projectId);
+        }
+      } else {
+        console.warn(`Board ${boardId} not found`);
+      }
+    } catch (error) {
+      console.error('[BoardPage] Error loading board:', error);
+    }
+  }
+  
+  private async loadDefaultBoard(projectId: string): Promise<void> {
     // Check if we have a teamId in query params
     const teamId = this.route.snapshot.queryParamMap.get('teamId');
     
@@ -139,20 +195,20 @@ export class BoardPage implements OnInit {
     
     if (teamId) {
       // Load team's current sprint board
-      console.log('🎲 loadDefaultBoard - Loading team board for team:', teamId);
+      console.log('[BoardPage] loadDefaultBoard - Loading team board for team:', teamId);
       defaultBoard = this.boardService.getDefaultTeamBoard(teamId);
     } else {
-      // Load project's default board
-      const userId = 'user-1'; // TODO: Get actual userId from auth service
-      console.log('🎲 loadDefaultBoard - Loading project board - ProjectId:', projectId, 'UserId:', userId);
-      defaultBoard = this.boardService.getDefaultBoard(projectId, userId);
+      // Load project's default board - get userId from UserContextService
+      const userId = this.userContextService.getCurrentUserIdString() || 'unknown';
+      console.log('[BoardPage] loadDefaultBoard - Loading project board - ProjectId:', projectId, 'UserId:', userId);
+      defaultBoard = await this.boardService.getDefaultBoard(projectId, userId);
     }
     
-    console.log('🎲 loadDefaultBoard - Default board returned:', defaultBoard);
+    console.log('[BoardPage] loadDefaultBoard - Default board returned:', defaultBoard);
     
     if (defaultBoard) {
-      console.log('🎲 loadDefaultBoard - Loading board:', defaultBoard.id, defaultBoard.name);
-      this.store.loadBoard(defaultBoard.id);
+      console.log('[BoardPage] loadDefaultBoard - Loading board:', defaultBoard.id, defaultBoard.name);
+      this.boardService.setCurrentBoard(defaultBoard.id);
       
       // Update URL with boardId query param
       this.router.navigate([], {
@@ -160,10 +216,17 @@ export class BoardPage implements OnInit {
         queryParams: { boardId: defaultBoard.id },
         queryParamsHandling: 'merge'
       });
+      
+      // Reload sprints after board is set so initial sprint selection can be applied
+      console.log('[BoardPage] Reloading sprints after board change');
+      await this.store.loadSprintsByProject(projectId);
     } else {
-      console.warn(`No default board found for project ${projectId}`);
-      // Set a safe default state
-      this.store.selectSprint('BACKLOG');
+      console.warn(`[BoardPage] No boards found for project ${projectId}`);
+      console.log('[BoardPage] TIP: Create a board in the backend first, or check if the project ID is correct');
+      
+      // Don't create fallback board - let the user know they need to create one
+      // Clear sprint selection (show all issues)
+      this.store.selectSprint(null);
     }
   }
 
@@ -190,5 +253,28 @@ export class BoardPage implements OnInit {
   // public handler for moveIssue emitted by issue-detailed-view
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }) {
     this.store.updateIssueStatus(event.issueId, 'TODO' as any);
+  }
+
+  // public handler for updateIssue emitted by issue-detailed-view
+  async onUpdateIssue(updates: Partial<Issue>): Promise<void> {
+    const issue = this.selectedIssue();
+    const projectId = this.projectContextService.currentProjectId();
+    
+    if (!issue || !projectId) {
+      console.error('[BoardPage] Cannot update issue: missing issue or project ID');
+      return;
+    }
+    
+    try {
+      console.log('[BoardPage] Updating issue:', issue.id, updates);
+      await this.store.updateIssueApi(issue.id, projectId, updates);
+      console.log('[BoardPage] Issue updated successfully');
+      
+      // Note: Edit modal closes itself after onSubmit callback
+      // The issue-detailed-view modal stays open to show the updated data
+    } catch (error) {
+      console.error('[BoardPage] Failed to update issue:', error);
+      alert('Failed to update issue. Please try again.');
+    }
   }
 }
