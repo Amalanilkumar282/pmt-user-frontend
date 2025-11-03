@@ -52,22 +52,12 @@ export class IssueApiService {
    * GET /api/Issue/project/{projectId}/issues
    */
   getIssuesByProject(projectId: string): Observable<Issue[]> {
-    this.authTokenService.logAuthStatus(); // Debug auth status
     const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain' });
-    
-    console.log('[IssueApiService] Fetching issues for project:', projectId);
-    console.log('[IssueApiService] API URL:', `${this.baseUrl}/project/${projectId}/issues`);
-    console.log('[IssueApiService] Has Auth Token:', this.authTokenService.isAuthenticated());
     
     return this.http
       .get<ApiResponse<IssueApi[]>>(`${this.baseUrl}/project/${projectId}/issues`, { headers })
       .pipe(
-        map(response => {
-          console.log('[IssueApiService] Raw API response:', response);
-          const issues = response.data.map(issue => this.mapIssueApiToIssue(issue));
-          console.log('[IssueApiService] Mapped issues:', issues);
-          return issues;
-        })
+        map(response => response.data.map(issue => this.mapIssueApiToIssue(issue)))
       );
   }
 
@@ -114,13 +104,6 @@ export class IssueApiService {
     }
 
     const mappedStatus = this.mapStatusIdToStatus(apiIssue.statusId);
-    console.log('[IssueApiService] Mapping issue:', {
-      issueId: apiIssue.id,
-      key: apiIssue.key,
-      title: apiIssue.title,
-      statusId: apiIssue.statusId,
-      mappedStatus: mappedStatus
-    });
 
     return {
       id: apiIssue.id,                    // Now using real ID from API
@@ -131,7 +114,8 @@ export class IssueApiService {
       priority: this.mapPriority(apiIssue.priority),
       status: mappedStatus, // Now mapping from statusId
       statusId: apiIssue.statusId, // CRITICAL: Preserve statusId for column matching
-      assignee: apiIssue.assigneeId?.toString(),
+      // Prefer assignee name from API when available; fall back to id string
+      assignee: (apiIssue as any).assigneeName ?? apiIssue.assigneeId?.toString(),
       labels: labels,
       sprintId: apiIssue.sprintId,
       epicId: apiIssue.epicId,

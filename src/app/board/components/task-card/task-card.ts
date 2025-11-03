@@ -19,6 +19,12 @@ import { ProjectContextService } from '../../../shared/services/project-context.
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskCard implements OnInit, AfterViewInit {
+  // Static caches shared across all card instances
+  private static projectMembersCache: Map<string, { id: number; name: string }[]> = new Map();
+  private static epicsCache: Map<string, string> = new Map();
+  private static loadingProjectMembers: Map<string, boolean> = new Map();
+  private static loadingEpics: Map<string, boolean> = new Map();
+  
   private store = inject(BoardStore);
   
   @ViewChild('titleTextarea') titleTextarea?: ElementRef<HTMLTextAreaElement>;
@@ -170,35 +176,62 @@ export class TaskCard implements OnInit, AfterViewInit {
       }
     }
 
-    // Load project members for assignee dropdown (non-blocking)
+    // Load project members for assignee dropdown (non-blocking, with caching)
     try {
       const projectId = this.projectContext.currentProjectId();
       if (projectId) {
-        this.userApi.getUsersByProject(projectId).subscribe({
-          next: members => {
-            this.projectMembers = members.map(m => ({ id: m.id, name: m.name }));
-            // Build available assignees list including Unassigned
-            this.availableAssignees = [
-              ...this.projectMembers.map(m => ({ id: m.id.toString(), name: m.name })),
-              { id: 'unassigned', name: 'Unassigned' }
-            ];
-          },
-          error: () => {
-            // fallback: keep Unassigned only
-            this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
-          }
-        });
+        // Check cache first
+        const cached = TaskCard.projectMembersCache.get(projectId);
+        if (cached) {
+          this.projectMembers = cached;
+          this.availableAssignees = [
+            ...cached.map(m => ({ id: m.id.toString(), name: m.name })),
+            { id: 'unassigned', name: 'Unassigned' }
+          ];
+        } else if (!TaskCard.loadingProjectMembers.get(projectId)) {
+          // Load once per project
+          TaskCard.loadingProjectMembers.set(projectId, true);
+          this.userApi.getUsersByProject(projectId).subscribe({
+            next: members => {
+              const memberList = members.map(m => ({ id: m.id, name: m.name }));
+              TaskCard.projectMembersCache.set(projectId, memberList);
+              TaskCard.loadingProjectMembers.delete(projectId);
+              
+              this.projectMembers = memberList;
+              this.availableAssignees = [
+                ...memberList.map(m => ({ id: m.id.toString(), name: m.name })),
+                { id: 'unassigned', name: 'Unassigned' }
+              ];
+            },
+            error: () => {
+              TaskCard.loadingProjectMembers.delete(projectId);
+              this.availableAssignees = [{ id: 'unassigned', name: 'Unassigned' }];
+            }
+          });
+        }
       }
     } catch (e) {
       // ignore in non-browser environments
     }
 
-    // Resolve epic title if epicId present
+    // Resolve epic title if epicId present (with caching)
     if (this.issue.epicId) {
-      this.epicApi.getEpicById(this.issue.epicId).subscribe({
-        next: e => this.epicTitle.set(e.title),
-        error: () => {}
-      });
+      const cachedTitle = TaskCard.epicsCache.get(this.issue.epicId);
+      if (cachedTitle) {
+        this.epicTitle.set(cachedTitle);
+      } else if (!TaskCard.loadingEpics.get(this.issue.epicId)) {
+        TaskCard.loadingEpics.set(this.issue.epicId, true);
+        this.epicApi.getEpicById(this.issue.epicId).subscribe({
+          next: e => {
+            TaskCard.epicsCache.set(this.issue.epicId!, e.title);
+            TaskCard.loadingEpics.delete(this.issue.epicId!);
+            this.epicTitle.set(e.title);
+          },
+          error: () => {
+            TaskCard.loadingEpics.delete(this.issue.epicId!);
+          }
+        });
+      }
     }
   }
 
