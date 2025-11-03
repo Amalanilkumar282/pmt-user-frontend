@@ -2,6 +2,8 @@ import { Component, Output, EventEmitter, inject, computed, OnInit, ChangeDetect
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { users } from '../../shared/data/dummy-backlog-data';
+import { ProjectMembersService } from '../../teams/services/project-members.service';
+import { ProjectMember } from '../../teams/models/project-member.model';
 import { ModalService, FormField } from '../../modal/modal-service';
 import { SidebarStateService } from '../services/sidebar-state.service';
 import { ProjectContextService } from '../services/project-context.service';
@@ -86,168 +88,202 @@ export class Navbar implements OnInit {
    * Handle the create issue modal trigger from searchbar
    * Opens the modal with pre-filled data from Gemini
    */
+  // Inject ProjectMembersService
+  private projectMembersService = inject(ProjectMembersService);
+
   handleOpenCreateModal(fields: any): void {
     console.log('Navbar received openCreateModal event with fields:', fields);
-   
+
     // Map the fields to the modal configuration
-  const issueType = fields.issueType || 'Task';
-  const title = fields.title || '';
-  const description = fields.description || '';
-  const priority = fields.priority || 'Medium';
-  const storyPoint = fields.storyPoint || '';
+    const issueType = fields.issueType || 'Task';
+    const title = fields.title || '';
+    const description = fields.description || '';
+    const priority = fields.priority || 'Medium';
+    const storyPoint = fields.storyPoint || '';
 
-    const userOptions = users.map(u => u.name);
+    // Fetch projectId from sessionStorage (or fallback to currentProjectId)
+    let projectId = '';
+    if (this.isBrowser) {
+      projectId = sessionStorage.getItem('projectId') || '';
+    }
+    if (!projectId) {
+      projectId = this.currentProjectId() || '';
+    }
 
-    // Open the create issue modal with pre-filled data
-    this.modalService.open({
-      id: 'create-issue',
-      title: 'Create Issue',
-      projectName: this.projectInfo().name,
-      modalDesc: 'Fill in the details below to create a new issue',
-      showLabels: true,
-      submitText: 'Create Issue',
-      fields: [
-        {
-          label: 'Issue Type',
-          type: 'select',
-          model: 'issueType',
-          options: ['Task', 'Bug', 'Story', 'Epic'],
-          required: true,
-          colSpan: 1
+    // First check if we have cached members for this project
+    const cachedMembers = this.projectMembersService.getMembersByProject(projectId);
+    
+    if (cachedMembers && cachedMembers.length > 0) {
+      // Use cached data immediately for fast modal opening
+      const userOptions = cachedMembers.map((u: ProjectMember) => u.userName);
+      this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions);
+    } else {
+      // Fetch from API if cache is empty
+      this.projectMembersService.fetchMembersFromApi(projectId).subscribe({
+        next: (members: ProjectMember[]) => {
+          const userOptions = members.map((u: ProjectMember) => u.userName);
+          this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions);
         },
-        {
-          label: 'Title',
-          type: 'text',
-          model: 'title',
-          required: true,
-          colSpan: 2
-        },
-        {
-          label: 'Description',
-          type: 'textarea',
-          model: 'description',
-          colSpan: 2
-        },
-        {
-          label: 'Priority',
-          type: 'select',
-          model: 'priority',
-          options: ['Critical', 'High', 'Medium', 'Low'],
-          required: true,
-          colSpan: 1
-        },
-        {
-          label: 'Assignee',
-          type: 'select',
-          model: 'assignee',
-          options: userOptions,
-          colSpan: 1
-        },
-        {
-          label: 'Start Date',
-          type: 'date',
-          model: 'startDate',
-          colSpan: 1
-        },
-        {
-          label: 'Due Date',
-          type: 'date',
-          model: 'dueDate',
-          colSpan: 1
-        },
-        {
-          label: 'Sprint',
-          type: 'select',
-          model: 'sprint',
-          options: ['Sprint 1', 'Sprint 2', 'Sprint 3'],
-          colSpan: 1
-        },
-        {
-          label: 'Story Point',
-          type: 'number',
-          model: 'storyPoint',
-          colSpan: 1
-        },
-        {
-          label: 'Parent Epic',
-          type: 'select',
-          model: 'parentEpic',
-          options: ['Epic 1', 'Epic 2', 'Epic 3'],
-          colSpan: 1
-        },
-        {
-          label: 'Reporter',
-          type: 'select',
-          model: 'reporter',
-          options: userOptions,
-          required: true,
-          colSpan: 1
-        },
-        {
-          label: 'Attachments',
-          type: 'file',
-          model: 'attachments',
-          colSpan: 2
+        error: (err) => {
+          console.error('Failed to fetch project members:', err);
+          // Open with empty user options
+          this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, []);
         }
-      ],
-      data: {
-        issueType: issueType,
-        title: title,
-        description: description,
-        priority: priority,
-        assignee: 'Unassigned',
-        startDate: '',
-        dueDate: '',
-        sprint: 'Sprint 1',
-        storyPoint: storyPoint,
-        parentEpic: '',
-        reporter: userOptions[0] || 'Unassigned',
-        labels: [],
-        attachments: []
-      },
-      onSubmit: (formData: any) => {
-        // Convert dates to ISO string format (UTC) for PostgreSQL
-        const formatDateToUTC = (dateStr: string) => {
-          if (!dateStr) return undefined;
-          const date = new Date(dateStr);
-          return date.toISOString();
-        };
+      });
+    }
+  }
 
-        console.log('handleOpenCreateModal received formData:', formData);
-        console.log('uploadedFileUrl in formData:', formData.uploadedFileUrl);
-
-        const issueReq: CreateIssueRequest = {
-          projectId: '44444444-4444-4444-4444-444444444444',
-          issueType: formData.issueType?.toUpperCase() || 'TASK',
-          title: formData.title,
-          description: formData.description || '',
-          priority: formData.priority?.toUpperCase() || 'MEDIUM',
-          assigneeId: 1, // TODO: Map assignee to actual ID
-          startDate: formatDateToUTC(formData.startDate),
-          dueDate: formatDateToUTC(formData.dueDate),
-          sprintId: null, // TODO: Map sprint to actual ID
-          storyPoints: Number(formData.storyPoints) || 0,
-          epicId: null, // TODO: Map epic to actual ID
-          reporterId: 1, // TODO: Map reporter to actual ID
-          attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
-          labels: JSON.stringify(formData.labels || [])
-        };
-
-        // Close modal immediately for instant feedback
-        this.modalService.close();
-
-        console.log('Sending issue request:', issueReq);
-        this.issueService.createIssue(issueReq).subscribe({
-          next: (res) => {
-            console.log('Issue created successfully:', res);
+  private openCreateIssueModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[]): void {
+        // Open the create issue modal with pre-filled data
+        this.modalService.open({
+          id: 'create-issue',
+          title: 'Create Issue',
+          projectName: this.projectInfo().name,
+          modalDesc: 'Fill in the details below to create a new issue',
+          showLabels: true,
+          submitText: 'Create Issue',
+          fields: [
+            {
+              label: 'Issue Type',
+              type: 'select',
+              model: 'issueType',
+              options: ['Task', 'Bug', 'Story', 'Epic'],
+              required: true,
+              colSpan: 1
+            },
+            {
+              label: 'Title',
+              type: 'text',
+              model: 'title',
+              required: true,
+              colSpan: 2
+            },
+            {
+              label: 'Description',
+              type: 'textarea',
+              model: 'description',
+              colSpan: 2
+            },
+            {
+              label: 'Priority',
+              type: 'select',
+              model: 'priority',
+              options: ['Critical', 'High', 'Medium', 'Low'],
+              required: true,
+              colSpan: 1
+            },
+            {
+              label: 'Assignee',
+              type: 'select',
+              model: 'assignee',
+              options: userOptions,
+              colSpan: 1
+            },
+            {
+              label: 'Start Date',
+              type: 'date',
+              model: 'startDate',
+              colSpan: 1
+            },
+            {
+              label: 'Due Date',
+              type: 'date',
+              model: 'dueDate',
+              colSpan: 1
+            },
+            {
+              label: 'Sprint',
+              type: 'select',
+              model: 'sprint',
+              options: ['Sprint 1', 'Sprint 2', 'Sprint 3'],
+              colSpan: 1
+            },
+            {
+              label: 'Story Point',
+              type: 'number',
+              model: 'storyPoint',
+              colSpan: 1
+            },
+            {
+              label: 'Parent Epic',
+              type: 'select',
+              model: 'parentEpic',
+              options: ['Epic 1', 'Epic 2', 'Epic 3'],
+              colSpan: 1
+            },
+            {
+              label: 'Reporter',
+              type: 'select',
+              model: 'reporter',
+              options: userOptions,
+              required: true,
+              colSpan: 1
+            },
+            {
+              label: 'Attachments',
+              type: 'file',
+              model: 'attachments',
+              colSpan: 2
+            }
+          ],
+          data: {
+            issueType: issueType,
+            title: title,
+            description: description,
+            priority: priority,
+            assignee: userOptions[0] || 'Unassigned',
+            startDate: '',
+            dueDate: '',
+            sprint: 'Sprint 1',
+            storyPoint: storyPoint,
+            parentEpic: '',
+            reporter: userOptions[0] || 'Unassigned',
+            labels: [],
+            attachments: []
           },
-          error: (err) => {
-            console.error('Failed to create issue:', err);
-            console.error('Validation errors:', err.error?.errors);
+          onSubmit: (formData: any) => {
+            // Convert dates to ISO string format (UTC) for PostgreSQL
+            const formatDateToUTC = (dateStr: string) => {
+              if (!dateStr) return undefined;
+              const date = new Date(dateStr);
+              return date.toISOString();
+            };
+
+            console.log('handleOpenCreateModal received formData:', formData);
+            console.log('uploadedFileUrl in formData:', formData.uploadedFileUrl);
+
+            const issueReq: CreateIssueRequest = {
+              projectId: projectId,
+              issueType: formData.issueType?.toUpperCase() || 'TASK',
+              title: formData.title,
+              description: formData.description || '',
+              priority: formData.priority?.toUpperCase() || 'MEDIUM',
+              assigneeId: 1, // TODO: Map assignee to actual ID
+              startDate: formatDateToUTC(formData.startDate),
+              dueDate: formatDateToUTC(formData.dueDate),
+              sprintId: null, // TODO: Map sprint to actual ID
+              storyPoints: Number(formData.storyPoint) || 0,
+              epicId: null, // TODO: Map epic to actual ID
+              reporterId: 1, // TODO: Map reporter to actual ID
+              attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
+              labels: JSON.stringify(formData.labels || [])
+            };
+
+            // Close modal immediately for instant feedback
+            this.modalService.close();
+
+            console.log('Sending issue request:', issueReq);
+            this.issueService.createIssue(issueReq).subscribe({
+              next: (res) => {
+                console.log('Issue created successfully:', res);
+              },
+              error: (err) => {
+                console.error('Failed to create issue:', err);
+                console.error('Validation errors:', err.error?.errors);
+              }
+            });
           }
         });
-      }
-    });
   }
 
   /**
@@ -287,27 +323,64 @@ export class Navbar implements OnInit {
  
 
   onCreate() {
-    const userOptions = users.map(u => u.name);
+    // Fetch projectId from sessionStorage (or fallback to currentProjectId)
+    let projectId = '';
+    if (this.isBrowser) {
+      projectId = sessionStorage.getItem('projectId') || '';
+    }
+    if (!projectId) {
+      projectId = this.currentProjectId() || '';
+    }
 
-  const fields: FormField[] = [
-    { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
-    { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
-    { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
-    { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
-    { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
-    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-    { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
-    { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-    { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
-    { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },
-    { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
-  ];
+    console.log('onCreate - projectId:', projectId);
+    
+    // First check if we have cached members for this project
+    const cachedMembers = this.projectMembersService.getMembersByProject(projectId);
+    console.log('onCreate - cachedMembers:', cachedMembers);
+    
+    if (cachedMembers && cachedMembers.length > 0) {
+      // Use cached data immediately
+      const userOptions = cachedMembers.map((u: ProjectMember) => u.userName);
+      console.log('onCreate - Using cached userOptions:', userOptions);
+      this.openCreateModal(projectId, userOptions);
+    } else {
+      // Fetch from API if cache is empty
+      console.log('onCreate - Fetching from API...');
+      this.projectMembersService.fetchMembersFromApi(projectId).subscribe({
+        next: (members: ProjectMember[]) => {
+          const userOptions = members.map((u: ProjectMember) => u.userName);
+          console.log('onCreate - Fetched userOptions:', userOptions);
+          this.openCreateModal(projectId, userOptions);
+        },
+        error: (err) => {
+          console.error('onCreate - Failed to fetch project members:', err);
+          // Open with empty user options
+          this.openCreateModal(projectId, []);
+        }
+      });
+    }
+  }
+
+  private openCreateModal(projectId: string, userOptions: string[]): void {
+    const fields: FormField[] = [
+      { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
+      { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
+      { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
+      { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
+      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
+      { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+      { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+      { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
+      { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
+      { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },
+      { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
+    ];
 
     this.modalService.open({
       id: 'createIssue',
       title: 'Create New Issue',
-      projectName: 'Project Beta',
+      projectName: this.projectInfo().name,
       modalDesc : 'Create a new issue in your project',
       fields,
       data: { priority: 'Medium', labels: [] },
@@ -325,7 +398,7 @@ export class Navbar implements OnInit {
         console.log('uploadedFileUrl in formData:', formData.uploadedFileUrl);
 
         const issueReq: CreateIssueRequest = {
-          projectId: '44444444-4444-4444-4444-444444444444',
+          projectId: projectId,
           issueType: formData.issueType?.toUpperCase() || 'TASK',
           title: formData.title,
           description: formData.description || '',
