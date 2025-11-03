@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 // Request/Response interfaces for Sprint Creation
 export interface SprintRequest {
@@ -161,6 +162,65 @@ export class SprintService {
     return this.http.post<SprintResponse>(`${this.baseUrl}`, sprint, { 
       headers: this.getAuthHeaders() 
     });
+  }
+
+  /**
+   * Update an existing sprint
+   * PUT /api/sprints/{sprintId}
+   */
+  updateSprint(sprintId: string, sprint: SprintRequest): Observable<SprintResponse> {
+    console.log('Updating sprint:', sprintId, sprint);
+    return this.http.put<SprintResponse>(`${this.baseUrl}/${sprintId}`, sprint, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  /**
+   * Get all sprints for a specific project
+   * GET /api/sprints/project/{projectId}
+   * 
+   * Returns array of sprints including their details:
+   * - id, projectId, name, sprintGoal
+   * - startDate, dueDate, status (PLANNED/ACTIVE/COMPLETED)
+   * - storyPoint, teamId, createdAt, updatedAt
+   */
+  getSprintsByProject(projectId: string, page?: number, pageSize?: number): Observable<GetSprintsResponse> {
+    let url = `${this.baseUrl}/project/${projectId}`;
+    const headers = this.getAuthHeaders();
+    
+    // Add pagination params if provided
+    if (page !== undefined && pageSize !== undefined) {
+      url += `?page=${page}&pageSize=${pageSize}`;
+    }
+    
+    console.log('🔍 [SprintService] Fetching sprints for project:', {
+      projectId,
+      url,
+      hasToken: !!sessionStorage.getItem('accessToken'),
+      pagination: page !== undefined ? { page, pageSize } : 'none'
+    });
+    
+    return this.http.get<GetSprintsResponse>(url, { headers });
+  }
+
+  /**
+   * Get paginated sprints (new optimized method)
+   */
+  getSprintsByProjectPaginated(
+    projectId: string, 
+    page: number = 1, 
+    pageSize: number = 20
+  ): Observable<{ sprints: SprintApiData[], total: number, hasMore: boolean }> {
+    const url = `${this.baseUrl}/project/${projectId}?page=${page}&pageSize=${pageSize}`;
+    const headers = this.getAuthHeaders();
+    
+    return this.http.get<GetSprintsResponse>(url, { headers }).pipe(
+      map((response: GetSprintsResponse) => ({
+        sprints: response.data || [],
+        total: response.data?.length || 0,
+        hasMore: (response.data?.length || 0) === pageSize
+      }))
+    );
   }
 
   /**
