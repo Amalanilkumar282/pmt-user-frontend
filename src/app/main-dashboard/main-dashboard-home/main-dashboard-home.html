@@ -92,14 +92,51 @@
           </section>
 
           <!-- Tabbed Issues Section -->
-          <app-tabbed-issues></app-tabbed-issues>
+          <app-tabbed-issues
+            [userIssues]="userIssues"
+            [isLoading]="isLoadingIssues()"
+          ></app-tabbed-issues>
         </div>
 
         <!-- Right Column -->
         <div class="side-column">
           <!-- Task Status Overview -->
           <div class="widget shadow-sm">
+            <!-- Loading State -->
+            <div *ngIf="isLoadingIssues()" class="p-6">
+              <h3 class="text-sm font-semibold text-gray-900 mb-2">Task Status</h3>
+              <p class="text-xs text-gray-500 mb-4">Loading task distribution...</p>
+              <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            </div>
+
+            <!-- Error State -->
+            <div *ngIf="!isLoadingIssues() && issuesError()" class="p-6">
+              <h3 class="text-sm font-semibold text-gray-900 mb-2">Task Status</h3>
+              <div class="flex items-center justify-center py-8 text-center">
+                <div class="text-red-600">
+                  <svg
+                    class="w-10 h-10 mx-auto mb-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p class="text-sm">{{ issuesError() }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Task Status Data -->
             <app-sprint-overview
+              *ngIf="!isLoadingIssues() && !issuesError()"
               class="dashboard-sprint-overview"
               title="Task Status"
               description="Current distribution of tasks across different states"
