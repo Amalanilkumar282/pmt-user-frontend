@@ -20,8 +20,7 @@ import {
   activeSprintIssues,
   plannedSprintIssues,
   backlogIssues as sharedBacklogIssues,
-  sprints as sharedSprints,
-  epics as sharedEpics
+  sprints as sharedSprints
 } from '../../shared/data/dummy-backlog-data';
 import { FormField, ModalService } from '../../modal/modal-service';
 import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
@@ -29,6 +28,7 @@ import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/serv
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
 import { IssueService } from '../../shared/services/issue.service';
+import { EpicService } from '../../shared/services/epic.service';
 
 @Component({
   selector: 'app-backlog-page',
@@ -42,7 +42,8 @@ export class BacklogPage implements OnInit {
   constructor(
     private modalService: ModalService, 
     private sprintService: SprintService,
-    private issueService: IssueService
+    private issueService: IssueService,
+    private epicService: EpicService
   ) {}
   
   private route = inject(ActivatedRoute);
@@ -68,7 +69,8 @@ export class BacklogPage implements OnInit {
   
   // Epic panel state  
   isEpicPanelOpen = false;
-  epics: Epic[] = [...sharedEpics];
+  epics: Epic[] = [];
+  isLoadingEpics = false;
   
   // Epic detail view state
   selectedEpic: Epic | null = null;
@@ -76,6 +78,11 @@ export class BacklogPage implements OnInit {
   private isResizing = false;
   private startX = 0;
   private startWidth = 0;
+  
+  // Get current project ID
+  get currentProjectId(): string {
+    return this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
+  }
   
   // AI Sprint Planning state
   isAIModalOpen = false;
@@ -692,6 +699,7 @@ export class BacklogPage implements OnInit {
     this.epics.push(newEpic);
     // Immediately open the detail view for the newly created epic
     this.selectedEpic = { ...newEpic };
+    console.log('✅ [BacklogPage] Epic created and detail view opened:', newEpic);
   }
 
   closeEpicDetailView(): void {
@@ -706,6 +714,20 @@ export class BacklogPage implements OnInit {
     }
     // Update the selected epic reference
     this.selectedEpic = { ...updatedEpic };
+    console.log('✅ [BacklogPage] Epic updated:', updatedEpic);
+  }
+
+  /**
+   * Handle epic deletion
+   */
+  onEpicDeleted(epicId: string): void {
+    // Remove epic from the list
+    this.epics = this.epics.filter(e => e.id !== epicId);
+    // Close the detail view
+    this.selectedEpic = null;
+    // Show success message
+    this.toastService.success('Epic deleted successfully');
+    console.log('✅ [BacklogPage] Epic deleted:', epicId);
   }
 
   // Resize methods
@@ -808,9 +830,10 @@ export class BacklogPage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
-      // Load sprints and issues from backend
+      // Load sprints, issues, and epics from backend
       this.loadSprints(projectId);
       this.loadProjectIssues(projectId);
+      this.loadEpics(projectId);
     } else {
       // Try to get projectId from session storage as fallback
       const storedProjectId = sessionStorage.getItem('projectId');
@@ -818,6 +841,7 @@ export class BacklogPage implements OnInit {
         this.projectContextService.setCurrentProjectId(storedProjectId);
         this.loadSprints(storedProjectId);
         this.loadProjectIssues(storedProjectId);
+        this.loadEpics(storedProjectId);
       } else {
         console.warn('No project ID found in route or session storage');
         this.toastService.warning('No project selected');
@@ -890,6 +914,30 @@ export class BacklogPage implements OnInit {
         this.toastService.error('Failed to load issues from backend');
         this.isLoadingIssues = false;
         // Keep using dummy data on error
+      }
+    });
+  }
+
+  /**
+   * Load all epics for the current project from backend
+   */
+  private loadEpics(projectId: string): void {
+    this.isLoadingEpics = true;
+    this.epicService.getAllEpicsByProject(projectId).subscribe({
+      next: (epics) => {
+        console.log('✅ [BacklogPage] Loaded epics from backend:', epics);
+        this.epics = epics.map(epic => ({
+          ...epic,
+          isExpanded: false
+        }));
+        this.toastService.success(`Loaded ${epics.length} epics successfully`);
+        this.isLoadingEpics = false;
+      },
+      error: (error) => {
+        console.error('❌ [BacklogPage] Failed to load epics:', error);
+        this.toastService.error('Failed to load epics from backend');
+        this.isLoadingEpics = false;
+        this.epics = []; // Clear epics on error
       }
     });
   }
