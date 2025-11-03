@@ -264,6 +264,14 @@ showToast(message: string, duration: number = 3000) {
       // Merge with provided data (AI autofill data takes precedence)
       this.formData = cfg.data ? { ...defaultFormData, ...cfg.data } : defaultFormData;
       
+      // Log formData and field options for debugging select field population
+      console.log('🔍 [Modal] formData after merge:', this.formData);
+      console.log('🔍 [Modal] Field options:', this.fields.filter(f => f.type === 'select').map(f => ({
+        model: f.model,
+        options: f.options,
+        value: this.formData[f.model]
+      })));
+      
       this.modalTitle = cfg.title ?? 'Modal';
       this.modalDesc = cfg.modalDesc ?? '';
       this.showLabels = cfg.showLabels ?? false;

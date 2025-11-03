@@ -135,9 +135,18 @@ export class IssueDetailedView {
 
     // Use project members loaded from API
     const members = this.projectMembers();
-    const userOptions = members.length > 0 
+    let userOptions = members.length > 0 
       ? members.map(m => ({ id: m.id.toString(), name: m.name }))
       : users.map(u => ({ id: u.id, name: u.name })); // Fallback to dummy data
+
+    // If the issue has an assignee that's not in the project members, add them to the options
+    if (issue.assigneeName && !userOptions.find(u => u.name === issue.assigneeName)) {
+      console.log(`[Edit Issue] Adding missing assignee to options: ${issue.assigneeName} (ID: ${issue.assigneeId})`);
+      userOptions = [
+        { id: issue.assigneeId?.toString() || '', name: issue.assigneeName },
+        ...userOptions
+      ];
+    }
 
     const fields: FormField[] = [
       { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required: true },
@@ -152,6 +161,12 @@ export class IssueDetailedView {
       { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 2 },
       { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
     ];
+
+    console.log('🔍 [Edit Issue] Field options:', {
+      assigneeOptions: userOptions.map(u => u.name),
+      sprintOptions,
+      members
+    });
 
     // Map priority to modal field options
     let priority = '';
@@ -310,11 +325,11 @@ export class IssueDetailedView {
       assigneeId: updates.assignee ? parseInt(updates.assignee) : (issue.assigneeId || null),
       startDate: formatDateToUTC(updates.startDate !== undefined ? updates.startDate : issue.startDate),
       dueDate: formatDateToUTC(updates.dueDate !== undefined ? updates.dueDate : issue.dueDate),
-      sprintId: updates.sprintId !== undefined ? updates.sprintId : (issue.sprintId || null),
+      sprintId: updates.sprintId !== undefined ? (updates.sprintId || null) : (issue.sprintId || null),
       storyPoints: updates.storyPoints !== undefined ? updates.storyPoints : (issue.storyPoints || 0),
-      epicId: updates.epicId !== undefined ? updates.epicId : (issue.epicId || null),
+      epicId: updates.epicId !== undefined ? (updates.epicId || null) : (issue.epicId || null),
       reporterId: issue.reporterId || null,
-      attachmentUrl: updates.attachmentUrl !== undefined ? updates.attachmentUrl : (issue.attachmentUrl || null),
+      attachmentUrl: updates.attachmentUrl !== undefined ? (updates.attachmentUrl || null) : (issue.attachmentUrl || null),
       statusId: issue.statusId || 1,
       labels: updates.labels ? JSON.stringify(updates.labels) : (issue.labels ? JSON.stringify(issue.labels) : null)
     };
@@ -340,17 +355,28 @@ export class IssueDetailedView {
       error: (error) => {
         console.error('[IssueDetailedView] Failed to update issue:', error);
         
-        // Handle validation errors
-        if (error.error && error.error.errors) {
-          const errorMessages = Object.entries(error.error.errors)
+        // Access the original error from the interceptor wrapper
+        const originalError = error.originalError || error;
+        
+        console.error('[IssueDetailedView] Error details:', {
+          status: error.status,
+          statusText: originalError.statusText,
+          error: originalError.error,
+          validationErrors: originalError.error?.errors
+        });
+        
+        // Handle validation errors from the original error
+        if (originalError.error && originalError.error.errors) {
+          const errorMessages = Object.entries(originalError.error.errors)
             .map(([field, messages]: [string, any]) => {
               const msgArray = Array.isArray(messages) ? messages : [messages];
               return `${field}: ${msgArray.join(', ')}`;
             })
             .join('; ');
+          console.error('[IssueDetailedView] Validation errors:', errorMessages);
           this.toastService.error(`Validation failed: ${errorMessages}`);
-        } else if (error.error && error.error.message) {
-          this.toastService.error(`Failed to update issue: ${error.error.message}`);
+        } else if (error.message) {
+          this.toastService.error(`Failed to update issue: ${error.message}`);
         } else {
           this.toastService.error('Failed to update issue. Please try again.');
         }

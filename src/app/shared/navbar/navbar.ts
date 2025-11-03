@@ -141,21 +141,25 @@ export class Navbar implements OnInit {
     // Fetch sprints for the project
     this.sprintService.getSprintsByProject(projectId).subscribe({
       next: (response) => {
-        const sprintOptions = response.data && response.data.length > 0
-          ? response.data.map(sprint => sprint.name)
+        const sprintsData = response.data || [];
+        const sprintOptions = sprintsData.length > 0
+          ? sprintsData.map(sprint => sprint.name)
           : ['No sprints available'];
         console.log('Fetched sprint options:', sprintOptions);
-        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, sprintOptions);
+        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, sprintOptions, sprintsData);
       },
       error: (err) => {
         console.error('Failed to fetch sprints:', err);
         // Open with default sprint options
-        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3']);
+        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3'], []);
       }
     });
   }
 
-  private openCreateIssueModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[], sprintOptions: string[]): void {
+  private openCreateIssueModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[], sprintOptions: string[], sprintsData: any[]): void {
+        // Get cached members for assignee mapping
+        const cachedMembers = this.projectMembersService.getMembersByProject(projectId);
+
         // Open the create issue modal with pre-filled data
         this.modalService.open({
           id: 'create-issue',
@@ -274,19 +278,47 @@ export class Navbar implements OnInit {
             console.log('handleOpenCreateModal received formData:', formData);
             console.log('uploadedFileUrl in formData:', formData.uploadedFileUrl);
 
+            // Map assignee name to ID
+            console.log('[Create Issue] cachedMembers:', cachedMembers);
+            console.log('[Create Issue] selected assignee:', formData.assignee);
+            let assigneeId: number | null = null;
+            if (formData.assignee && cachedMembers) {
+              const assigneeUser = cachedMembers.find((m: ProjectMember) => m.userName === formData.assignee);
+              assigneeId = assigneeUser ? Number(assigneeUser.userId) : null;
+              console.log(`Mapped assignee "${formData.assignee}" to ID: ${assigneeId}`);
+            }
+
+            // Map sprint name to ID
+            console.log('[Create Issue] sprintsData:', sprintsData);
+            console.log('[Create Issue] formData.sprint:', formData.sprint);
+            let sprintId: string | null = null;
+            if (formData.sprint && sprintsData.length > 0) {
+              const sprint = sprintsData.find((s: any) => s.name === formData.sprint);
+              sprintId = sprint ? sprint.id : null;
+              console.log(`Mapped sprint "${formData.sprint}" to ID: ${sprintId}`);
+            }
+
+            // Map reporter name to ID
+            let reporterId: number | null = null;
+            if (formData.reporter && cachedMembers) {
+              const reporterUser = cachedMembers.find((m: ProjectMember) => m.userName === formData.reporter);
+              reporterId = reporterUser ? Number(reporterUser.userId) : null;
+              console.log(`Mapped reporter "${formData.reporter}" to ID: ${reporterId}`);
+            }
+
             const issueReq: CreateIssueRequest = {
               projectId: projectId,
               issueType: formData.issueType?.toUpperCase() || 'TASK',
               title: formData.title,
               description: formData.description || '',
               priority: formData.priority?.toUpperCase() || 'MEDIUM',
-              assigneeId: 1, // TODO: Map assignee to actual ID
+              assigneeId: assigneeId,
               startDate: formatDateToUTC(formData.startDate),
               dueDate: formatDateToUTC(formData.dueDate),
-              sprintId: null, // TODO: Map sprint to actual ID
+              sprintId: sprintId,
               storyPoints: Number(formData.storyPoint) || 0,
               epicId: null, // TODO: Map epic to actual ID
-              reporterId: 1, // TODO: Map reporter to actual ID
+              reporterId: reporterId,
               attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
               labels: JSON.stringify(formData.labels || [])
             };
@@ -387,21 +419,25 @@ export class Navbar implements OnInit {
     // Fetch sprints for the project
     this.sprintService.getSprintsByProject(projectId).subscribe({
       next: (response) => {
-        const sprintOptions = response.data && response.data.length > 0
-          ? response.data.map(sprint => sprint.name)
+        const sprintsData = response.data || [];
+        const sprintOptions = sprintsData.length > 0
+          ? sprintsData.map(sprint => sprint.name)
           : ['No sprints available'];
         console.log('onCreate - Fetched sprint options:', sprintOptions);
-        this.openCreateModal(projectId, userOptions, sprintOptions);
+        this.openCreateModal(projectId, userOptions, sprintOptions, sprintsData);
       },
       error: (err) => {
         console.error('onCreate - Failed to fetch sprints:', err);
         // Open with default sprint options
-        this.openCreateModal(projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3']);
+        this.openCreateModal(projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3'], []);
       }
     });
   }
 
-  private openCreateModal(projectId: string, userOptions: string[], sprintOptions: string[]): void {
+  private openCreateModal(projectId: string, userOptions: string[], sprintOptions: string[], sprintsData: any[]): void {
+    // Get cached members for assignee/reporter mapping
+    const cachedMembers = this.projectMembersService.getMembersByProject(projectId);
+
     const fields: FormField[] = [
       { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required : true },
       { label: 'Title', type: 'text', model: 'title', colSpan: 2,required : true  },
@@ -437,19 +473,47 @@ export class Navbar implements OnInit {
         console.log('Navbar received formData:', formData);
         console.log('uploadedFileUrl in formData:', formData.uploadedFileUrl);
 
+        // Map assignee name to ID
+        console.log('[onCreate] cachedMembers:', cachedMembers);
+        console.log('[onCreate] selected assignee:', formData.assignee);
+        let assigneeId: number | null = null;
+        if (formData.assignee && cachedMembers) {
+          const assigneeUser = cachedMembers.find((m: ProjectMember) => m.userName === formData.assignee);
+          assigneeId = assigneeUser ? Number(assigneeUser.userId) : null;
+          console.log(`Mapped assignee "${formData.assignee}" to ID: ${assigneeId}`);
+        }
+
+        // Map sprint name to ID
+        console.log('[onCreate] sprintsData:', sprintsData);
+        console.log('[onCreate] formData.sprint:', formData.sprint);
+        let sprintId: string | null = null;
+        if (formData.sprint && sprintsData.length > 0) {
+          const sprint = sprintsData.find((s: any) => s.name === formData.sprint);
+          sprintId = sprint ? sprint.id : null;
+          console.log(`Mapped sprint "${formData.sprint}" to ID: ${sprintId}`);
+        }
+
+        // Map reporter name to ID
+        let reporterId: number | null = null;
+        if (formData.reporter && cachedMembers) {
+          const reporterUser = cachedMembers.find((m: ProjectMember) => m.userName === formData.reporter);
+          reporterId = reporterUser ? Number(reporterUser.userId) : null;
+          console.log(`Mapped reporter "${formData.reporter}" to ID: ${reporterId}`);
+        }
+
         const issueReq: CreateIssueRequest = {
           projectId: projectId,
           issueType: formData.issueType?.toUpperCase() || 'TASK',
           title: formData.title,
           description: formData.description || '',
           priority: formData.priority?.toUpperCase() || 'MEDIUM',
-          assigneeId: 1, // TODO: Map assignee to actual ID
+          assigneeId: assigneeId,
           startDate: formatDateToUTC(formData.startDate),
           dueDate: formatDateToUTC(formData.dueDate),
-          sprintId: null, // TODO: Map sprint to actual ID
+          sprintId: sprintId,
           storyPoints: Number(formData.storyPoint) || 0,
           epicId: null, // TODO: Map epic to actual ID
-          reporterId: 1, // TODO: Map reporter to actual ID
+          reporterId: reporterId,
           attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
           labels: JSON.stringify(formData.labels || [])
         };
