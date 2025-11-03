@@ -26,6 +26,7 @@ export interface CreateIssueRequest {
   reporterId: number | null;
   attachmentUrl: string | null;
   labels: string | undefined;
+  statusId?: number; // Optional: defaults to TODO (1) if not provided
 }
 
 export interface UpdateIssueRequest {
