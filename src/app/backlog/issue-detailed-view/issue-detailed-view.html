@@ -36,7 +36,7 @@
         <div class="detail-section">
           <h3 class="detail-label">Status</h3>
           <span [class]="'inline-flex px-3 py-1.5 rounded-md text-sm font-semibold border ' + getStatusClass(_issue()!.status)">
-            {{ _issue()!.status.replace('_', ' ') }}
+            {{ (_issue()!.statusName || _issue()!.status).replace('_', ' ') }}
           </span>
         </div>
 
@@ -53,12 +53,12 @@
           <!-- Assignee -->
           <div class="detail-section">
             <h3 class="detail-label">Assignee</h3>
-            @if (_issue()!.assignee || _issue()!.assigneeId) {
+            @if (_issue()!.assigneeName || _issue()!.assignee || _issue()!.assigneeId) {
               <div class="flex items-center gap-2">
                 <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                  {{ (_issue()!.assignee || 'U').charAt(0).toUpperCase() }}
+                  {{ (_issue()!.assigneeName || _issue()!.assignee || 'U').charAt(0).toUpperCase() }}
                 </span>
-                <span class="text-gray-900 font-medium">{{ _issue()!.assignee || 'User ' + _issue()!.assigneeId }}</span>
+                <span class="text-gray-900 font-medium">{{ _issue()!.assigneeName || _issue()!.assignee || 'User ' + _issue()!.assigneeId }}</span>
               </div>
             } @else {
               <span class="text-gray-400 italic">Unassigned</span>
@@ -90,11 +90,12 @@
           }
 
           <!-- Sprint -->
-          @if (_issue()!.sprintId) {
+          @if (_issue()!.sprintId || _issue()!.sprintName) {
             <div class="detail-section">
               <h3 class="detail-label">Sprint</h3>
               <span class="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium border border-indigo-200">
-                Sprint #{{ _issue()!.sprintId }}
+                <i class="fa-solid fa-stopwatch mr-1.5"></i>
+                {{ _issue()!.sprintName || ('Sprint #' + _issue()!.sprintId) }}
               </span>
             </div>
           }
@@ -108,12 +109,12 @@
           </div>
 
           <!-- Epic -->
-          @if (_issue()!.epicId) {
+          @if (_issue()!.epicId || _issue()!.epicName) {
             <div class="detail-section">
               <h3 class="detail-label">Epic</h3>
               <span class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 rounded-md text-sm font-medium border border-purple-200">
-                <i class="fa-solid fa-bolt mr-1"></i>
-                Epic #{{ _issue()!.epicId }}
+                <i class="fa-solid fa-bolt mr-1.5"></i>
+                {{ _issue()!.epicName || ('Epic #' + _issue()!.epicId) }}
               </span>
             </div>
           }
