@@ -198,12 +198,19 @@ export class BacklogPage implements OnInit {
    */
   onSprintCreated(event: any) {
     console.log('Sprint created:', event);
-    // TODO: Refresh sprint list from backend
-    // For now, just close the modal and show success
     this.isCreateSprintModalOpen = false;
     
-    // Optionally reload sprints from backend
-    // this.loadSprints();
+    // Reload sprints from backend to get the newly created sprint
+    const projectId = this.projectContextService.getCurrentProjectId();
+    if (projectId) {
+      this.loadSprints(projectId);
+    } else {
+      // Fallback to session storage
+      const storedProjectId = sessionStorage.getItem('projectId');
+      if (storedProjectId) {
+        this.loadSprints(storedProjectId);
+      }
+    }
   }
 
   handleStart(sprintId: string): void {
@@ -481,19 +488,60 @@ export class BacklogPage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
-      // Load issues from backend
+      // Load sprints and issues from backend
+      this.loadSprints(projectId);
       this.loadProjectIssues(projectId);
     } else {
       // Try to get projectId from session storage as fallback
       const storedProjectId = sessionStorage.getItem('projectId');
       if (storedProjectId) {
         this.projectContextService.setCurrentProjectId(storedProjectId);
+        this.loadSprints(storedProjectId);
         this.loadProjectIssues(storedProjectId);
       } else {
         console.warn('No project ID found in route or session storage');
         this.toastService.warning('No project selected');
       }
     }
+  }
+
+  /**
+   * Load all sprints for the current project from backend
+   */
+  private loadSprints(projectId: string): void {
+    this.sprintService.getSprintsByProject(projectId).subscribe({
+      next: (response) => {
+        console.log('Loaded sprints from backend:', response);
+        if (response.status === 200 && response.data) {
+          // Transform API response to Sprint interface
+          this.sprints = response.data.map(sprintData => ({
+            id: sprintData.id,
+            projectId: sprintData.projectId,
+            name: sprintData.name,
+            sprintGoal: sprintData.sprintGoal,
+            startDate: new Date(sprintData.startDate),
+            endDate: new Date(sprintData.dueDate),
+            status: sprintData.status,
+            storyPoint: sprintData.storyPoint,
+            teamId: sprintData.teamId,
+            issues: [], // Will be populated by organizeSprints
+            createdAt: new Date(sprintData.createdAt),
+            updatedAt: sprintData.updatedAt ? new Date(sprintData.updatedAt) : null
+          }));
+          
+          this.toastService.success(`Loaded ${this.sprints.length} sprints successfully`);
+          console.log('Transformed sprints:', this.sprints);
+        } else {
+          console.warn('Unexpected response format:', response);
+          this.toastService.warning('Received unexpected sprint data format');
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load sprints:', error);
+        this.toastService.error('Failed to load sprints from backend');
+        // Keep using dummy data on error (sprints already initialized with dummy data)
+      }
+    });
   }
 
   /**
@@ -521,6 +569,7 @@ export class BacklogPage implements OnInit {
   /**
    * Organize issues into sprints based on sprintId
    * This method updates the sprints with their respective issues
+   * Issues without sprintId are added to backlog
    */
   private organizeSprints(issues: Issue[]): void {
     // Group issues by sprintId
@@ -529,16 +578,18 @@ export class BacklogPage implements OnInit {
 
     issues.forEach(issue => {
       if (issue.sprintId) {
+        // Issue belongs to a sprint
         if (!issuesBySprintId.has(issue.sprintId)) {
           issuesBySprintId.set(issue.sprintId, []);
         }
         issuesBySprintId.get(issue.sprintId)!.push(issue);
       } else {
+        // Issue has no sprintId, add to backlog
         backlogIssues.push(issue);
       }
     });
 
-    // Update sprints with their issues
+    // Update sprints with their respective issues
     this.sprints.forEach(sprint => {
       const sprintIssues = issuesBySprintId.get(sprint.id) || [];
       sprint.issues = sprintIssues;
@@ -547,7 +598,10 @@ export class BacklogPage implements OnInit {
     // Update backlog issues (issues without sprintId)
     this.backlogIssues = backlogIssues;
 
-    console.log('Organized sprints:', this.sprints);
-    console.log('Backlog issues:', this.backlogIssues);
+    console.log('✅ Organized sprints with issues:');
+    this.sprints.forEach(sprint => {
+      console.log(`  - ${sprint.name} (${sprint.status}): ${sprint.issues?.length || 0} issues`);
+    });
+    console.log(`✅ Backlog issues: ${this.backlogIssues.length}`);
   }
 }
