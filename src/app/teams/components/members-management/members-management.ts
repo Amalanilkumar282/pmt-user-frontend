@@ -157,10 +157,20 @@ export class MembersManagement implements OnInit {
 
   handleMemberAdded(): void {
     this.showList();
-    // Refresh counts after adding a member
+    // Refresh counts and members list after adding a member
     const projectId = this.currentProjectId();
     if (projectId) {
       this.fetchCounts(projectId);
+      
+      // Refresh members list from API to ensure role is displayed correctly
+      this.membersService.fetchMembersFromApi(projectId).subscribe({
+        next: (members) => {
+          console.log('✅ Members list refreshed after adding new member');
+        },
+        error: (error) => {
+          console.error('❌ Failed to refresh members list:', error);
+        }
+      });
     }
   }
 
@@ -177,9 +187,39 @@ export class MembersManagement implements OnInit {
     if (this.roleChangeForm.valid && this.selectedMemberForRoleChange()) {
       const newRoleId = this.roleChangeForm.value.roleId!;
       const member = this.selectedMemberForRoleChange()!;
+      const projectId = this.currentProjectId();
       
-      this.membersService.updateMember(member.id, { roleId: newRoleId });
-      this.closeRoleModal();
+      if (!projectId) {
+        alert('Project ID not found. Please refresh the page.');
+        return;
+      }
+
+      // Call the API to update the member
+      this.membersService.updateProjectMember({
+        projectId: projectId,
+        id: Number(member.id), // projectMemberId
+        userId: Number(member.userId),
+        roleId: newRoleId
+      }).subscribe({
+        next: (updatedMember) => {
+          console.log('✅ Member role updated successfully:', updatedMember);
+          this.closeRoleModal();
+          
+          // Refresh the members list from API
+          this.membersService.fetchMembersFromApi(projectId).subscribe({
+            next: (members) => {
+              console.log('✅ Members list refreshed after role update');
+            },
+            error: (error) => {
+              console.error('❌ Failed to refresh members list:', error);
+            }
+          });
+        },
+        error: (error) => {
+          console.error('❌ Failed to update member role:', error);
+          alert('Failed to update member role. Please try again.');
+        }
+      });
     }
   }
 
@@ -194,17 +234,40 @@ export class MembersManagement implements OnInit {
     const member = this.membersService.getMemberById(memberId);
     if (!member) return;
 
+    const projectId = this.currentProjectId();
+    if (!projectId) {
+      alert('Project ID not found. Please refresh the page.');
+      return;
+    }
+
     const confirmMessage = member.teamId
       ? `Remove ${member.userName} from the project? They will also be removed from their team.`
       : `Remove ${member.userName} from the project?`;
 
     if (confirm(confirmMessage)) {
-      this.membersService.removeMember(memberId);
-      // Refresh counts after removal
-      const projectId = this.currentProjectId();
-      if (projectId) {
-        this.fetchCounts(projectId);
-      }
+      // Call the API to delete the member
+      this.membersService.deleteProjectMember(projectId, Number(member.userId)).subscribe({
+        next: (response) => {
+          console.log('✅ Member removed successfully:', response);
+          
+          // Refresh counts after removal
+          this.fetchCounts(projectId);
+          
+          // Refresh the members list from API
+          this.membersService.fetchMembersFromApi(projectId).subscribe({
+            next: (members) => {
+              console.log('✅ Members list refreshed after removal');
+            },
+            error: (error) => {
+              console.error('❌ Failed to refresh members list:', error);
+            }
+          });
+        },
+        error: (error) => {
+          console.error('❌ Failed to remove member:', error);
+          alert('Failed to remove member. Please try again.');
+        }
+      });
     }
   }
 

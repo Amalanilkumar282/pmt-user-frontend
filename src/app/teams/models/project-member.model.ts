@@ -1,4 +1,4 @@
-export type MemberRole = 'Project Manager' | 'Developer' | 'Designer' | 'QA Tester' | 'DevOps' | 'Business Analyst';
+export type MemberRole = 'Project Manager' | 'Developer' | 'Designer' | 'QA Tester' | 'DevOps' | 'Business Analyst' | 'Team Lead' | string;
 export type MemberStatus = 'Active' | 'Inactive';
 
 export interface ProjectMember {
@@ -27,6 +27,19 @@ export interface UpdateMemberDto {
   roleId?: number; // Changed from role to roleId
   status?: MemberStatus;
   teamId?: string;
+}
+
+export interface UpdateProjectMemberDto {
+  projectId: string;
+  id: number; // projectMemberId from the API
+  userId: number;
+  roleId: number;
+}
+
+export interface DeleteProjectMemberDto {
+  projectId: string;
+  userId: number;
+  deletedBy: number;
 }
 
 export interface MemberSearchResult {

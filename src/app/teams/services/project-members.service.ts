@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { map, tap, catchError } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
-import { ProjectMember, AddMemberDto, UpdateMemberDto, MemberSearchResult } from '../models/project-member.model';
+import { ProjectMember, AddMemberDto, UpdateMemberDto, UpdateProjectMemberDto, DeleteProjectMemberDto, MemberSearchResult, MemberStatus } from '../models/project-member.model';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { RoleService } from '../../shared/services/role.service';
 import { UserService } from '../../shared/services/user.service';
@@ -102,27 +102,47 @@ export class ProjectMembersService {
     return this.http.post<any>(`${this.API_BASE_URL}/Project/member`, requestBody, { headers }).pipe(
       map((response) => {
         console.log('✅ Add member API response:', response);
+        console.log('📝 Response data:', response.data);
+        console.log('📝 ProjectMemberId from response:', response.data?.projectMemberId || response.data?.id);
         
         // Get user data from cached users
         const apiUser = this.userService.getUserById(Number(dto.userId));
         const roleName = this.roleService.getRoleName(dto.roleId);
+        
+        console.log('📝 User data:', apiUser);
+        console.log('📝 Role name from roleId', dto.roleId, ':', roleName);
+        
+        // Map role name properly (same logic as fetchMembersFromApi)
+        let mappedRole: any = roleName;
+        if (/project manager/i.test(roleName)) mappedRole = 'Project Manager';
+        else if (/team lead/i.test(roleName)) mappedRole = 'Team Lead';
+        else if (/qa|tester|quality/i.test(roleName)) mappedRole = 'QA Tester';
+        else if (/designer/i.test(roleName)) mappedRole = 'Designer';
+        else if (/devops/i.test(roleName)) mappedRole = 'DevOps';
+        else if (/business analyst/i.test(roleName)) mappedRole = 'Business Analyst';
+        else if (/developer/i.test(roleName)) mappedRole = 'Developer';
+        
+        console.log('📝 Mapped role:', mappedRole);
 
-        // Create the ProjectMember object
+        // Create the ProjectMember object with projectMemberId from response
+        const projectMemberId = response.data?.projectMemberId || response.data?.id || `member-${Date.now()}`;
         const newMember: ProjectMember = {
-          id: response.data?.id || `member-${Date.now()}`,
+          id: String(projectMemberId),
           userId: String(dto.userId),
           userName: apiUser?.name || 'Unknown User',
           userEmail: apiUser?.email || '',
           projectId: dto.projectId,
           projectName: this.getProjectName(dto.projectId),
-          role: roleName as any,
+          role: mappedRole,
           roleId: dto.roleId,
-          status: 'Active',
+          status: 'Active' as MemberStatus,
           joinedDate: new Date().toISOString(),
           avatar: apiUser?.avatarUrl,
         };
 
-        // Update local state
+        console.log('✅ Created new member object:', newMember);
+
+        // Update local state with the new member
         this.membersSignal.update(members => [...members, newMember]);
         
         return newMember;
@@ -189,7 +209,67 @@ export class ProjectMembersService {
     return newMember;
   }
 
-  // Update member
+  /**
+   * Update project member via backend API
+   * @param dto - Update project member data transfer object
+   * @returns Observable of the updated project member
+   */
+  updateProjectMember(dto: UpdateProjectMemberDto): Observable<ProjectMember> {
+    console.log('📤 Updating project member:', dto);
+
+    const headers = this.getAuthHeaders();
+    
+    return this.http.put<any>(`${this.API_BASE_URL}/Project/update`, dto, { headers }).pipe(
+      map((response) => {
+        console.log('✅ Update member API response:', response);
+        
+        // Find the member in local state
+        const memberIndex = this.membersSignal().findIndex(m => m.id === String(dto.id));
+        
+        if (memberIndex !== -1) {
+          // Update local state with new role
+          this.membersSignal.update(members => {
+            const updated = [...members];
+            const member = { ...updated[memberIndex] };
+            
+            member.roleId = dto.roleId;
+            member.role = this.roleService.getRoleName(dto.roleId) as any;
+            
+            updated[memberIndex] = member;
+            return updated;
+          });
+          
+          return this.membersSignal()[memberIndex];
+        }
+        
+        // If member not found in local state, return a new member object
+        const apiUser = this.userService.getUserById(dto.userId);
+        const roleName = this.roleService.getRoleName(dto.roleId);
+        
+        const newMember: ProjectMember = {
+          id: String(dto.id),
+          userId: String(dto.userId),
+          userName: apiUser?.name || 'Unknown User',
+          userEmail: apiUser?.email || '',
+          projectId: dto.projectId,
+          projectName: this.getProjectName(dto.projectId),
+          role: roleName as any,
+          roleId: dto.roleId,
+          status: 'Active' as MemberStatus,
+          joinedDate: new Date().toISOString(),
+          avatar: apiUser?.avatarUrl,
+        };
+        
+        return newMember;
+      }),
+      catchError((error) => {
+        console.error('❌ Failed to update member:', error);
+        return throwError(() => new Error(error.error?.message || 'Failed to update project member'));
+      })
+    );
+  }
+
+  // Update member (local state only - legacy method)
   updateMember(memberId: string, dto: UpdateMemberDto): ProjectMember | null {
     const memberIndex = this.membersSignal().findIndex(m => m.id === memberId);
     if (memberIndex === -1) return null;
@@ -215,7 +295,54 @@ export class ProjectMembersService {
     return this.membersSignal()[memberIndex];
   }
 
-  // Remove member from project
+  /**
+   * Delete project member via backend API
+   * @param projectId - Project ID
+   * @param userId - User ID to delete
+   * @returns Observable of the delete response
+   */
+  deleteProjectMember(projectId: string, userId: number): Observable<any> {
+    // Get deletedBy from session storage
+    let deletedBy = 0;
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      const currentUserId = sessionStorage.getItem('userId');
+      deletedBy = currentUserId ? parseInt(currentUserId, 10) : 0;
+    }
+
+    if (deletedBy === 0) {
+      return throwError(() => new Error('User not logged in. Please refresh the page.'));
+    }
+
+    const dto: DeleteProjectMemberDto = {
+      projectId: projectId,
+      userId: userId,
+      deletedBy: deletedBy
+    };
+
+    console.log('📤 Deleting project member:', dto);
+
+    const headers = this.getAuthHeaders();
+    
+    return this.http.delete<any>(`${this.API_BASE_URL}/Project/delete`, { 
+      headers,
+      body: dto 
+    }).pipe(
+      tap((response) => {
+        console.log('✅ Delete member API response:', response);
+        
+        // Remove from local state
+        this.membersSignal.update(members => 
+          members.filter(m => m.userId !== String(userId))
+        );
+      }),
+      catchError((error) => {
+        console.error('❌ Failed to delete member:', error);
+        return throwError(() => new Error(error.error?.message || 'Failed to delete project member'));
+      })
+    );
+  }
+
+  // Remove member from project (local state only - legacy method)
   removeMember(memberId: string): boolean {
     const initialLength = this.membersSignal().length;
     this.membersSignal.update(members => members.filter(m => m.id !== memberId));
@@ -360,15 +487,24 @@ export class ProjectMembersService {
         // Get roleId from API response, default to 0 if not present
         const roleId = item.roleId !== undefined ? Number(item.roleId) : 0;
         
-        // Map roleName to local MemberRole union with safe fallbacks
+        // Get role name from API or from roleService cache
         const roleName: string = item.roleName || this.roleService.getRoleName(roleId) || '';
-        let mappedRole: any = 'Developer';
+        
+        console.log(`📝 Mapping role for user ${item.name}: roleId=${roleId}, roleName="${roleName}"`);
+        
+        // Map roleName to local MemberRole union with safe fallbacks
+        // Use the exact role name from backend if it doesn't need special mapping
+        let mappedRole: any = roleName; // Default to the actual role name from backend
+        
         if (/project manager/i.test(roleName)) mappedRole = 'Project Manager';
-        else if (/qa/i.test(roleName)) mappedRole = 'QA Tester';
+        else if (/team lead/i.test(roleName)) mappedRole = 'Team Lead';
+        else if (/qa|tester|quality/i.test(roleName)) mappedRole = 'QA Tester';
         else if (/designer/i.test(roleName)) mappedRole = 'Designer';
         else if (/devops/i.test(roleName)) mappedRole = 'DevOps';
         else if (/business analyst/i.test(roleName)) mappedRole = 'Business Analyst';
         else if (/developer/i.test(roleName)) mappedRole = 'Developer';
+        
+        console.log(`   ✅ Mapped to: "${mappedRole}"`);
 
         const pm: ProjectMember = {
           id: item.projectMemberId !== undefined ? String(item.projectMemberId) : `pm-${item.id}`,
