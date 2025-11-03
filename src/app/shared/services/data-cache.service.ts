@@ -1,0 +1,218 @@
+import { Injectable } from '@angular/core';
+import { Observable, of, BehaviorSubject, shareReplay, timer } from 'rxjs';
+import { tap, catchError, switchMap } from 'rxjs/operators';
+
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+export interface CacheConfig {
+  ttl?: number; // Time to live in milliseconds (default: 5 minutes)
+  maxSize?: number; // Maximum number of cache entries (default: 100)
+  refreshInterval?: number; // Auto-refresh interval in milliseconds (optional)
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DataCacheService {
+  private cache = new Map<string, CacheEntry<any>>();
+  private inFlightRequests = new Map<string, Observable<any>>();
+  private cacheSubjects = new Map<string, BehaviorSubject<any>>();
+  
+  private defaultTTL = 5 * 60 * 1000; // 5 minutes
+  private defaultMaxSize = 100;
+
+  /**
+   * Get data from cache or execute the data fetcher
+   */
+  get<T>(
+    key: string,
+    dataFetcher: () => Observable<T>,
+    config?: CacheConfig
+  ): Observable<T> {
+    const ttl = config?.ttl ?? this.defaultTTL;
+    const now = Date.now();
+
+    // Check if data is in cache and still valid
+    const cachedEntry = this.cache.get(key);
+    if (cachedEntry && cachedEntry.expiresAt > now) {
+      console.log(`✅ Cache HIT: ${key}`);
+      return of(cachedEntry.data as T);
+    }
+
+    // Check if request is already in-flight
+    const inFlight = this.inFlightRequests.get(key);
+    if (inFlight) {
+      console.log(`🔄 Request IN-FLIGHT: ${key}`);
+      return inFlight as Observable<T>;
+    }
+
+    // Make new request
+    console.log(`❌ Cache MISS: ${key} - Fetching data...`);
+    const request$ = dataFetcher().pipe(
+      tap(data => {
+        // Store in cache
+        this.cache.set(key, {
+          data,
+          timestamp: now,
+          expiresAt: now + ttl
+        });
+
+        // Clean up old entries if cache is too large
+        this.enforceMaxSize(config?.maxSize);
+
+        // Remove from in-flight requests
+        this.inFlightRequests.delete(key);
+
+        // Update subject if exists
+        const subject = this.cacheSubjects.get(key);
+        if (subject) {
+          subject.next(data);
+        }
+      }),
+      catchError(error => {
+        console.error(`❌ Error fetching data for key: ${key}`, error);
+        this.inFlightRequests.delete(key);
+        throw error;
+      }),
+      shareReplay(1) // Share the result with multiple subscribers
+    );
+
+    this.inFlightRequests.set(key, request$);
+    return request$;
+  }
+
+  /**
+   * Get data with auto-refresh capability
+   */
+  getWithRefresh<T>(
+    key: string,
+    dataFetcher: () => Observable<T>,
+    config?: CacheConfig
+  ): Observable<T> {
+    let subject = this.cacheSubjects.get(key);
+    
+    if (!subject) {
+      subject = new BehaviorSubject<T | null>(null);
+      this.cacheSubjects.set(key, subject);
+
+      // Initial fetch
+      this.get(key, dataFetcher, config).subscribe(data => {
+        subject!.next(data);
+      });
+
+      // Setup auto-refresh if interval is specified
+      if (config?.refreshInterval) {
+        timer(config.refreshInterval, config.refreshInterval).pipe(
+          switchMap(() => dataFetcher())
+        ).subscribe(data => {
+          this.cache.set(key, {
+            data,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + (config.ttl ?? this.defaultTTL)
+          });
+          subject!.next(data);
+        });
+      }
+    }
+
+    return subject.asObservable() as Observable<T>;
+  }
+
+  /**
+   * Invalidate cache for a specific key
+   */
+  invalidate(key: string): void {
+    this.cache.delete(key);
+    this.inFlightRequests.delete(key);
+    console.log(`🗑️ Cache invalidated: ${key}`);
+  }
+
+  /**
+   * Invalidate all cache entries matching a pattern
+   */
+  invalidatePattern(pattern: RegExp): void {
+    const keysToDelete: string[] = [];
+    
+    this.cache.forEach((_, key) => {
+      if (pattern.test(key)) {
+        keysToDelete.push(key);
+      }
+    });
+
+    keysToDelete.forEach(key => {
+      this.cache.delete(key);
+      this.inFlightRequests.delete(key);
+    });
+
+    console.log(`🗑️ Cache invalidated for pattern ${pattern}: ${keysToDelete.length} entries`);
+  }
+
+  /**
+   * Clear all cache
+   */
+  clear(): void {
+    this.cache.clear();
+    this.inFlightRequests.clear();
+    this.cacheSubjects.clear();
+    console.log('🗑️ Cache cleared completely');
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getStats(): {
+    size: number;
+    keys: string[];
+    inFlightCount: number;
+  } {
+    return {
+      size: this.cache.size,
+      keys: Array.from(this.cache.keys()),
+      inFlightCount: this.inFlightRequests.size
+    };
+  }
+
+  /**
+   * Enforce maximum cache size by removing oldest entries
+   */
+  private enforceMaxSize(maxSize?: number): void {
+    const limit = maxSize ?? this.defaultMaxSize;
+    
+    if (this.cache.size > limit) {
+      const sortedEntries = Array.from(this.cache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      
+      const toRemove = sortedEntries.slice(0, this.cache.size - limit);
+      toRemove.forEach(([key]) => {
+        this.cache.delete(key);
+        console.log(`🗑️ Cache entry removed (size limit): ${key}`);
+      });
+    }
+  }
+
+  /**
+   * Preload data into cache
+   */
+  preload<T>(
+    key: string,
+    dataFetcher: () => Observable<T>,
+    config?: CacheConfig
+  ): void {
+    this.get(key, dataFetcher, config).subscribe({
+      next: () => console.log(`✅ Preloaded: ${key}`),
+      error: (err) => console.error(`❌ Preload failed for ${key}:`, err)
+    });
+  }
+
+  /**
+   * Check if a key exists in cache and is valid
+   */
+  has(key: string): boolean {
+    const entry = this.cache.get(key);
+    return entry !== undefined && entry.expiresAt > Date.now();
+  }
+}
