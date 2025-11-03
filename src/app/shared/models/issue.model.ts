@@ -1,6 +1,6 @@
 export type IssueType = 'STORY' | 'TASK' | 'BUG' | 'EPIC' | 'SUBTASK';
 export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED';
+export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' | string; // Allow dynamic statuses
 
 export interface Issue {
   id: string;

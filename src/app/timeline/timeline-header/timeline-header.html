@@ -165,32 +165,16 @@
             </button>
             <div class="hidden absolute top-full right-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="status-dropdown">
-                <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
+                <!-- Dynamic status list from API -->
+                <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer"
+                     *ngFor="let status of getAllStatusOptions()">
                     <input type="checkbox" 
                            class="cursor-pointer w-4 h-4"
-                           value="todo" 
-                           id="status-todo"
-                           [checked]="selectedFilters.status.includes('todo')"
-                           (change)="toggleFilter('status', 'todo', $event)">
-                    <label class="cursor-pointer flex-1 m-0" for="status-todo">To Do</label>
-                </div>
-                <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" 
-                           class="cursor-pointer w-4 h-4"
-                           value="progress" 
-                           id="status-progress"
-                           [checked]="selectedFilters.status.includes('progress')"
-                           (change)="toggleFilter('status', 'progress', $event)">
-                    <label class="cursor-pointer flex-1 m-0" for="status-progress">In Progress</label>
-                </div>
-                <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" 
-                           class="cursor-pointer w-4 h-4"
-                           value="done" 
-                           id="status-done"
-                           [checked]="selectedFilters.status.includes('done')"
-                           (change)="toggleFilter('status', 'done', $event)">
-                    <label class="cursor-pointer flex-1 m-0" for="status-done">Done</label>
+                           [value]="status.value" 
+                           [id]="'status-' + status.value"
+                           [checked]="selectedFilters.status.includes(status.value)"
+                           (change)="toggleFilter('status', status.value, $event)">
+                    <label class="cursor-pointer flex-1 m-0" [for]="'status-' + status.value">{{status.displayName}}</label>
                 </div>
             </div>
         </div>

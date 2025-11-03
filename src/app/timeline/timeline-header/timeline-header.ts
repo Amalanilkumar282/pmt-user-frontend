@@ -7,6 +7,13 @@ export interface FilterState {
   status: string[];
 }
 
+export interface StatusOption {
+  id: number;
+  statusName: string;
+  displayName: string;
+  value: string;
+}
+
 @Component({
   selector: 'app-timeline-header',
   standalone: true,
@@ -24,6 +31,7 @@ export class TimelineHeaderComponent {
   };
   @Input() availableEpics: string[] = [];
   @Input() selectedEpic: string | null = null;
+  @Input() statusOptions: StatusOption[] = [];
 
   @Output() viewChanged = new EventEmitter<'day' | 'month' | 'year'>();
   @Output() filterToggled = new EventEmitter<{ type: string; value: string; checked: boolean }>();
@@ -141,5 +149,85 @@ export class TimelineHeaderComponent {
 
   clearEpicSearch() {
     this.epicSearchQuery = '';
+  }
+
+  /**
+   * Get all status options including default and API-fetched ones
+   * Always includes TO_DO, IN_PROGRESS, DONE at the top
+   */
+  getAllStatusOptions(): StatusOption[] {
+    const defaultStatuses: StatusOption[] = [
+      { id: -1, statusName: 'TODO', displayName: 'To Do', value: 'todo' },
+      { id: -2, statusName: 'IN_PROGRESS', displayName: 'In Progress', value: 'progress' },
+      { id: -3, statusName: 'DONE', displayName: 'Done', value: 'done' }
+    ];
+
+    // Filter out duplicates from API that match default statuses
+    const additionalStatuses = this.statusOptions
+      .filter(status => {
+        const normalizedName = status.statusName.toUpperCase().replace(/_/g, '');
+        return !['TODO', 'INPROGRESS', 'DONE'].includes(normalizedName);
+      })
+      .map(status => ({
+        ...status,
+        displayName: this.formatStatusName(status.statusName),
+        value: this.getStatusValue(status.statusName)
+      }));
+
+    return [...defaultStatuses, ...additionalStatuses];
+  }
+
+  /**
+   * Format status name for display (e.g., "IN_PROGRESS" -> "In Progress")
+   */
+  formatStatusName(statusName: string): string {
+    if (!statusName) return '';
+    
+    // Handle common status mappings
+    const mappings: { [key: string]: string } = {
+      'TODO': 'To Do',
+      'TO_DO': 'To Do',
+      'IN_PROGRESS': 'In Progress',
+      'INPROGRESS': 'In Progress',
+      'DONE': 'Done',
+      'IN_REVIEW': 'In Review',
+      'BLOCKED': 'Blocked'
+    };
+
+    const upperName = statusName.toUpperCase();
+    if (mappings[upperName]) {
+      return mappings[upperName];
+    }
+
+    // Convert snake_case to Title Case
+    return statusName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  /**
+   * Get filter value for status (used in filtering logic)
+   */
+  getStatusValue(statusName: string): string {
+    if (!statusName) return '';
+    
+    const upperName = statusName.toUpperCase().replace(/_/g, '');
+    
+    // Map to filter values that the timeline chart expects
+    const mappings: { [key: string]: string } = {
+      'TODO': 'todo',
+      'INPROGRESS': 'progress',
+      'DONE': 'done',
+      'INREVIEW': 'review',
+      'BLOCKED': 'blocked'
+    };
+
+    if (mappings[upperName]) {
+      return mappings[upperName];
+    }
+
+    // Default: lowercase with underscores removed
+    return statusName.toLowerCase().replace(/_/g, '');
   }
 }
