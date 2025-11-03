@@ -8,6 +8,7 @@ import { UserApiService, User } from '../../shared/services/user-api.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
 import { ToastService } from '../../shared/services/toast.service';
+import { SprintService } from '../../sprint/sprint.service';
 
 export interface Comment {
   id: string;
@@ -31,6 +32,7 @@ export class IssueDetailedView {
   private projectContextService = inject(ProjectContextService);
   private issueService = inject(IssueService);
   private toastService = inject(ToastService);
+  private sprintService = inject(SprintService);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -103,6 +105,34 @@ export class IssueDetailedView {
     const issue = this._issue();
     if (!issue) return;
 
+    // Get project ID to fetch sprints
+    const projectId = issue.projectId || this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
+    if (!projectId) {
+      console.error('No project ID found for fetching sprints');
+      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], []); // Fallback to dummy sprints
+      return;
+    }
+
+    // Fetch sprints for the project
+    this.sprintService.getSprintsByProject(projectId).subscribe({
+      next: (response) => {
+        const sprints = response.data || [];
+        const sprintOptions = sprints.length > 0
+          ? sprints.map(sprint => sprint.name)
+          : ['No sprints available'];
+        console.log('Fetched sprint options for edit:', sprintOptions);
+        this.openEditModal(issue, sprintOptions, sprints);
+      },
+      error: (err) => {
+        console.error('Failed to fetch sprints for edit modal:', err);
+        // Open with default sprint options
+        this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], []);
+      }
+    });
+  }
+
+  private openEditModal(issue: Issue, sprintOptions: string[], sprintsData: any[]): void {
+
     // Use project members loaded from API
     const members = this.projectMembers();
     const userOptions = members.length > 0 
@@ -117,7 +147,7 @@ export class IssueDetailedView {
       { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions.map(u => u.name), colSpan: 1 },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-      { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
+      { label: 'Sprint', type: 'select', model: 'sprint', options: sprintOptions, colSpan: 1 },
       { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
       { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 2 },
       { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
@@ -135,7 +165,15 @@ export class IssueDetailedView {
 
     // Find assignee name from ID
     let assigneeName = '';
-    if (issue.assignee) {
+    if (issue.assigneeName) {
+      // Use assigneeName from backend if available
+      assigneeName = issue.assigneeName;
+    } else if (issue.assigneeId) {
+      // Fallback: find by assigneeId
+      const assigneeUser = members.find(m => m.id === issue.assigneeId);
+      assigneeName = assigneeUser?.name || '';
+    } else if (issue.assignee) {
+      // Fallback: find by assignee string
       const assigneeUser = members.find(m => m.id.toString() === issue.assignee);
       assigneeName = assigneeUser?.name || '';
     }
@@ -151,26 +189,50 @@ export class IssueDetailedView {
       return `${year}-${month}-${day}`;
     };
 
+    // Find sprint name from sprintId
+    let sprintName = '';
+    if (issue.sprintName) {
+      sprintName = issue.sprintName;
+    } else if (issue.sprintId && sprintsData.length > 0) {
+      const sprint = sprintsData.find(s => s.id === issue.sprintId);
+      sprintName = sprint?.name || '';
+    }
+
+    // Prepare the data object
+    const modalData = {
+      issueType: issue.type || '',
+      title: issue.title || '',
+      description: issue.description || '',
+      priority,
+      assignee: assigneeName,
+      startDate: formatDateForInput(issue.startDate),
+      dueDate: formatDateForInput(issue.dueDate),
+      sprint: sprintName,
+      storyPoint: issue.storyPoints || '',
+      parentEpic: issue.epicName || issue.epicId || '',
+      attachments: issue.attachmentUrl || '',
+      labels: issue.labels || []
+    };
+
+    console.log('🔍 [Edit Issue] Issue data:', {
+      issue,
+      assigneeName,
+      sprintName: issue.sprintName,
+      sprintId: issue.sprintId,
+      foundSprintName: sprintName,
+      epicName: issue.epicName,
+      epicId: issue.epicId,
+      attachmentUrl: issue.attachmentUrl,
+      modalData
+    });
+
     this.modalService.open({
       id: 'editIssueModal',
       title: `Edit Issue`,
       projectName: 'Project Alpha',
       modalDesc: 'Edit an existing issue in your project',
       fields,
-      data: {
-        issueType: issue.type || '',
-        title: issue.title || '',
-        description: issue.description || '',
-        priority,
-        assignee: assigneeName,
-        startDate: formatDateForInput(issue.startDate),
-        dueDate: formatDateForInput(issue.dueDate),
-        sprint: issue.sprintId || '',
-        storyPoint: issue.storyPoints || '',
-        parentEpic: issue.epicId || '',
-        attachments: issue.attachments || [],
-        labels: issue.labels || []
-      },
+      data: modalData,
       showLabels: true,
       submitText: 'Save Changes',
       onSubmit: (formData: any) => {
@@ -204,7 +266,9 @@ export class IssueDetailedView {
           updates.dueDate = new Date(formData.dueDate);
         }
         if (formData.sprint) {
-          updates.sprintId = formData.sprint;
+          // Convert sprint name back to ID
+          const selectedSprint = sprintsData.find(s => s.name === formData.sprint);
+          updates.sprintId = selectedSprint ? selectedSprint.id : formData.sprint;
         }
         if (formData.storyPoint) {
           updates.storyPoints = Number(formData.storyPoint);
