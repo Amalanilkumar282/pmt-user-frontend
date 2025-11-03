@@ -125,7 +125,7 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 
     const data: BurnupRow[] = [
       {
-        date: this.sprintData.startDate.toISOString().split('T')[0],
+        date: this.formatBurnupDate(this.sprintData.startDate),
         event: 'Sprint Start',
         workItem: allIssues.map(i => i.title).join(', '),
         completed: 0,
@@ -143,11 +143,13 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 
     Object.keys(grouped)
       .sort()
-      .forEach(date => {
-        const issuesOnDate = grouped[date];
+      .forEach(dateStr => {
+        const issuesOnDate = grouped[dateStr];
         cumulative += issuesOnDate.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
+        // dateStr is in YYYY-MM-DD (from toISOString split). Convert back to Date then format.
+        const dateObj = new Date(dateStr + 'T00:00:00Z');
         data.push({
-          date,
+          date: this.formatBurnupDate(dateObj),
           event: 'Workitem Completed',
           workItem: issuesOnDate.map(i => i.title).join(', '),
           completed: cumulative,
@@ -194,7 +196,7 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       key: i.key || i.id, // Use key field if available, fallback to id
       summary: i.title,
       workType: i.type,
-      epic:  i.epicId || '',
+      epic:  i.epicName || i.epicId || '',
       status: i.status,
       assignee: i.assignee || 'Undefined',
       storyPoints: i.storyPoints ?? 0
@@ -263,6 +265,18 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  }
+
+  // Format burnup dates as 'D mon YYYY' (e.g., '1 nov 2025') — lowercase month short name
+  private formatBurnupDate(input?: Date | string | null): string {
+    if (!input) return '';
+    const d = new Date(input as any);
+    if (isNaN(d.getTime())) return '';
+    const day = String(d.getDate());
+    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const mon = months[d.getMonth()] || '';
+    const yyyy = d.getFullYear();
+    return `${day} ${mon} ${yyyy}`;
   }
 
   // Filter out already-defined columns for dynamic rendering
