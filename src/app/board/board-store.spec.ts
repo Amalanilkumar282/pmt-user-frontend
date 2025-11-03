@@ -743,7 +743,7 @@ describe('BoardStore', () => {
     });
   });
 
-  fdescribe('sorting by createdAt', () => {
+  describe('sorting by createdAt', () => {
     it('should sort issues by createdAt instead of updatedAt to prevent card jumping', () => {
       const s = mkSprint('s1', [
         mkIssue({id:'1', status:'TODO' as any, createdAt: new Date(2024,0,3), updatedAt: new Date(2024,0,10)}),
