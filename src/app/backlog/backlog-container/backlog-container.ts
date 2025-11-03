@@ -125,6 +125,23 @@ export class BacklogContainer {
     this.moveIssue.emit(event);
   }
 
+  onUpdateIssue(updates: Partial<Issue>): void {
+    console.log('[BacklogContainer] onUpdateIssue - updating local state with:', updates);
+    
+    const issue = this.selectedIssue();
+    if (!issue) {
+      console.error('[BacklogContainer] No selected issue found!');
+      return;
+    }
+
+    // Update the local issue in the list
+    const updatedIssue: Issue = { ...issue, ...updates };
+    this.issues = this.issues.map(i => i.id === issue.id ? updatedIssue : i);
+    this.selectedIssue.set(updatedIssue);
+    
+    console.log('[BacklogContainer] Local state updated successfully');
+  }
+
   onDrop(event: CdkDragDrop<Issue[]>): void {
     const issue = event.item.data as Issue;
     // Emit move event to parent component with null to indicate backlog

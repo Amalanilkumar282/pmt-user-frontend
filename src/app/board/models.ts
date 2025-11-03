@@ -16,6 +16,7 @@ export interface Sprint {
 
 export interface BoardColumnDef {
   id: Status;
+  columnId?: string;  // Backend column database ID (for API operations)
   title: string;
   color: string;
   position: number;  // Position order (1 for first column, 2 for second, etc.)

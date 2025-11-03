@@ -4,6 +4,7 @@ import { CdkDragDrop, DragDropModule, CdkDropList, moveItemInArray, transferArra
 import { BoardColumnDef, GroupBy } from '../../models';
 import type { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardStore } from '../../board-store';
+import { BoardService } from '../../services/board.service';
 import { TaskCard } from '../task-card/task-card';
 import { QuickCreateIssue, QuickCreateIssueData } from '../quick-create-issue/quick-create-issue';
 import { ConfirmationModal } from '../../../shared/components/confirmation-modal/confirmation-modal';
@@ -24,6 +25,7 @@ interface GroupedIssues {
 })
 export class BoardColumn {
   private store = inject(BoardStore);
+  private boardService = inject(BoardService);
   private projectContextService = inject(ProjectContextService);
   
   @Output() openIssue = new EventEmitter<Issue>();
@@ -37,6 +39,8 @@ export class BoardColumn {
 
   // Confirmation modal state
   showDeleteConfirmation = signal(false);
+  isDeletingColumn = signal(false);
+  deleteError = signal<string | null>(null);
 
   trackById(index: number, item: Issue): string {
     return item.id;
@@ -166,22 +170,58 @@ export class BoardColumn {
     return false;
   }
 
-  confirmDeleteColumn() {
-    this.showDeleteConfirmation.set(false);
-    
+  async confirmDeleteColumn() {
     // If there are items in the column, don't delete
     if ((this.items ?? []).length > 0) {
       // User confirmed but column has items - we don't actually delete
       // This shouldn't happen since we check in the modal, but just in case
+      this.showDeleteConfirmation.set(false);
       return;
     }
     
-    // Delete column via store if empty
-    this.store.removeColumn(this.def.id as any);
+    const board = this.store.currentBoard();
+    if (!board || !board.id) {
+      // Fallback: delete locally if no board context
+      this.store.removeColumn(this.def.id as any);
+      this.showDeleteConfirmation.set(false);
+      return;
+    }
+
+    // Use columnId (the backend database ID) for the API call, fallback to id
+    const columnIdToDelete = this.def.columnId || String(this.def.id);
+    
+    try {
+      this.isDeletingColumn.set(true);
+      this.deleteError.set(null);
+      
+      console.log('[BoardColumn] Deleting column:', {
+        columnId: columnIdToDelete,
+        columnTitle: this.def.title,
+        boardId: board.id,
+        columnDef: this.def
+      });
+      
+      // Call backend API to delete column
+      const success = await this.boardService.deleteColumnApi(columnIdToDelete, String(board.id));
+      
+      if (success) {
+        // Refresh board columns in store
+        this.store.loadBoard(String(board.id));
+        this.showDeleteConfirmation.set(false);
+      } else {
+        this.deleteError.set('Failed to delete column');
+      }
+    } catch (err) {
+      console.error('[BoardColumn] Error deleting column:', err);
+      this.deleteError.set('Error deleting column');
+    } finally {
+      this.isDeletingColumn.set(false);
+    }
   }
 
   cancelDeleteColumn() {
     this.showDeleteConfirmation.set(false);
+    this.deleteError.set(null);
   }
 
   getColumnColorClass(): string {

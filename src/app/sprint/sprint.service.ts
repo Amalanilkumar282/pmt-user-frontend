@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 // Request/Response interfaces for Sprint Creation
 export interface SprintRequest {
+  id?: string; // Optional - required for updates
   projectId: string;
   sprintName: string;
   sprintGoal: string | null;
@@ -27,6 +28,27 @@ export interface SprintResponse {
     status: string;
     storyPoint: number;
   };
+  message: string;
+}
+
+// Sprint API Response from GET /api/sprints/project/{projectId}
+export interface SprintApiData {
+  id: string;
+  projectId: string;
+  name: string;
+  sprintGoal: string;
+  startDate: string;
+  dueDate: string;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED';
+  storyPoint: number;
+  teamId: number;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface GetSprintsResponse {
+  status: number;
+  data: SprintApiData[];
   message: string;
 }
 
@@ -161,6 +183,39 @@ export class SprintService {
     return this.http.post<SprintResponse>(`${this.baseUrl}`, sprint, { 
       headers: this.getAuthHeaders() 
     });
+  }
+
+  /**
+   * Update an existing sprint
+   * PUT /api/sprints/{sprintId}
+   */
+  updateSprint(sprintId: string, sprint: SprintRequest): Observable<SprintResponse> {
+    console.log('Updating sprint:', sprintId, sprint);
+    return this.http.put<SprintResponse>(`${this.baseUrl}/${sprintId}`, sprint, {
+      headers: this.getAuthHeaders()
+    });
+  }
+
+  /**
+   * Get all sprints for a specific project
+   * GET /api/sprints/project/{projectId}
+   * 
+   * Returns array of sprints including their details:
+   * - id, projectId, name, sprintGoal
+   * - startDate, dueDate, status (PLANNED/ACTIVE/COMPLETED)
+   * - storyPoint, teamId, createdAt, updatedAt
+   */
+  getSprintsByProject(projectId: string): Observable<GetSprintsResponse> {
+    const url = `${this.baseUrl}/project/${projectId}`;
+    const headers = this.getAuthHeaders();
+    
+    console.log('🔍 [SprintService] Fetching sprints for project:', {
+      projectId,
+      url,
+      hasToken: !!sessionStorage.getItem('accessToken')
+    });
+    
+    return this.http.get<GetSprintsResponse>(url, { headers });
   }
 
   /**

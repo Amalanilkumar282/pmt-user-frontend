@@ -25,6 +25,7 @@
         [issue]="selectedIssue()"
         [isOpen]="isModalOpen()"
         [availableSprints]="sprints()"
+        [showMove]="false"
         (close)="isModalOpen.set(false)"
         (updateIssue)="onUpdateIssue($event)"
         (moveIssue)="onMoveIssue($event)"

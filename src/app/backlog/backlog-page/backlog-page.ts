@@ -28,12 +28,11 @@ import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
 import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/services/ai-sprint-planning.service';
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
-import { CreateSprintModal } from '../create-sprint-modal/create-sprint-modal';
 import { IssueService } from '../../shared/services/issue.service';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal, CreateSprintModal],
+  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -57,9 +56,6 @@ export class BacklogPage implements OnInit {
   private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
-  
-  // Create Sprint Modal state
-  isCreateSprintModalOpen = false;
   
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
@@ -179,17 +175,232 @@ export class BacklogPage implements OnInit {
   
 
   /**
-   * Open Create Sprint Modal
+   * Open Create Sprint Modal using reusable ModalService
    */
   handleCreateSprint() {
-    this.isCreateSprintModalOpen = true;
+    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
+    
+    // Fetch teams for the project
+    this.sprintService.getTeamsByProject(projectId).subscribe({
+      next: (response) => {
+        let teamsData: any[] = [];
+        
+        if (Array.isArray(response)) {
+          teamsData = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          teamsData = response.data;
+        }
+        
+        const teamOptions = teamsData.map((team: any) => 
+          `${team.teamName || team.name || 'Unnamed Team'}${team.members && team.members.length > 0 ? ' (' + team.members.length + ' members)' : ''}`
+        );
+        const teamIds = teamsData.map((team: any) => team.teamId || team.id || '');
+        
+        const fields: FormField[] = [
+          { 
+            label: 'Sprint Name', 
+            type: 'text', 
+            model: 'sprintName', 
+            colSpan: 2, 
+            required: true 
+          },
+          { 
+            label: 'Sprint Goal', 
+            type: 'textarea', 
+            model: 'sprintGoal', 
+            colSpan: 2 
+          },
+          { 
+            label: 'Start Date', 
+            type: 'date', 
+            model: 'startDate', 
+            colSpan: 1
+          },
+          { 
+            label: 'End Date', 
+            type: 'date', 
+            model: 'endDate', 
+            colSpan: 1
+          },
+          { 
+            label: 'Status', 
+            type: 'select', 
+            model: 'status', 
+            options: ['PLANNED', 'ACTIVE', 'COMPLETED'], 
+            colSpan: 1 
+          },
+          { 
+            label: 'Target Story Points', 
+            type: 'number', 
+            model: 'targetStoryPoints', 
+            colSpan: 1 
+          },
+          { 
+            label: 'Team', 
+            type: 'select', 
+            model: 'teamId', 
+            options: teamOptions, 
+            colSpan: 2
+          }
+        ];
+
+        this.modalService.open({
+          id: 'createSprint',
+          title: 'Create Sprint',
+          projectName: '',
+          modalDesc: 'Plan your next sprint with AI-powered suggestions',
+          fields,
+          data: { 
+            status: 'PLANNED',
+            targetStoryPoints: 40
+          },
+          showLabels: false,
+          submitText: 'Create Sprint & Get AI Suggestions',
+          onSubmit: (formData: any) => {
+            console.log('Create sprint formData:', formData);
+            
+            // Validate required field: Sprint Name
+            if (!formData.sprintName) {
+              this.toastService.error('Sprint Name is required');
+              return;
+            }
+
+            // Find the selected team index to get the actual teamId (optional)
+            let actualTeamId = null;
+            if (formData.teamId) {
+              const selectedTeamIndex = teamOptions.indexOf(formData.teamId);
+              actualTeamId = selectedTeamIndex >= 0 ? teamIds[selectedTeamIndex] : null;
+            }
+            
+            const sprintRequest: SprintRequest = {
+              projectId: projectId,
+              sprintName: formData.sprintName,
+              sprintGoal: formData.sprintGoal || null,
+              teamAssigned: actualTeamId ? parseInt(actualTeamId) : null,
+              startDate: formData.startDate || undefined,
+              dueDate: formData.endDate || undefined,
+              status: formData.status || 'PLANNED',
+              storyPoint: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40
+            };
+
+            console.log('Sprint request payload:', sprintRequest);
+            console.log('Sprint request JSON:', JSON.stringify(sprintRequest, null, 2));
+
+            this.modalService.close();
+            
+            // Create sprint
+            this.sprintService.createSprint(sprintRequest).subscribe({
+              next: (response) => {
+                console.log('Sprint created:', response);
+                const createdSprintId = response.data.id;
+                
+                // Reload sprints
+                this.loadSprints(projectId);
+                
+                // Trigger AI planning if form has sufficient data
+                if (formData.sprintGoal && formData.startDate && formData.endDate && formData.teamId) {
+                  this.generateAIPlanForSprint(createdSprintId, formData, actualTeamId);
+                } else {
+                  this.toastService.success('Sprint created successfully!');
+                }
+              },
+              error: (error) => {
+                console.error('Error creating sprint:', error);
+                console.error('Error status:', error.status);
+                console.error('Error message:', error.message);
+                
+                // Log validation errors if available
+                if (error.error && error.error.errors) {
+                  console.error('Validation errors:', error.error.errors);
+                  const errorMessages = Object.entries(error.error.errors)
+                    .map(([field, messages]: [string, any]) => {
+                      const msgArray = Array.isArray(messages) ? messages : [messages];
+                      return `${field}: ${msgArray.join(', ')}`;
+                    })
+                    .join('; ');
+                  this.toastService.error(`Validation failed: ${errorMessages}`);
+                } else if (error.error && error.error.title) {
+                  this.toastService.error(`Failed to create sprint: ${error.error.title}`);
+                } else {
+                  this.toastService.error('Failed to create sprint');
+                }
+              }
+            });
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error loading teams:', error);
+        this.toastService.error('Failed to load teams');
+      }
+    });
   }
 
   /**
-   * Handle Create Sprint Modal Close
+   * Handle Create Sprint Modal Close (no longer needed - using ModalService)
    */
   onCloseCreateSprintModal() {
-    this.isCreateSprintModalOpen = false;
+    // Method kept for backwards compatibility but does nothing
+  }
+
+  /**
+   * Generate AI Sprint Plan after sprint creation
+   */
+  private generateAIPlanForSprint(sprintId: string, formData: any, teamId: string): void {
+    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
+    
+    const aiRequest = {
+      sprintName: formData.sprintName,
+      sprintGoal: formData.sprintGoal,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      targetStoryPoints: formData.targetStoryPoints || 40,
+      teamId: teamId
+    };
+
+    console.log('Generating AI plan for sprint:', sprintId, aiRequest);
+
+    this.toastService.info('Generating AI suggestions for sprint...');
+
+    this.sprintService.generateAISprintPlan(projectId, aiRequest).subscribe({
+      next: (response) => {
+        console.log('AI plan response:', response);
+        
+        if (response.succeeded && response.data.sprintPlan) {
+          const suggestions = response.data.sprintPlan.selectedIssues;
+          const summary = response.data.sprintPlan.summary;
+          
+          this.toastService.success('Sprint created! AI suggestions generated.');
+          
+          // Show AI suggestions in a modal or notification
+          this.showAISuggestionsModal(sprintId, suggestions, summary);
+        } else {
+          this.toastService.warning('Sprint created, but AI suggestions unavailable');
+        }
+      },
+      error: (error) => {
+        console.error('Error generating AI plan:', error);
+        this.toastService.warning('Sprint created successfully, but AI planning failed');
+      }
+    });
+  }
+
+  /**
+   * Show AI suggestions in a modal
+   */
+  private showAISuggestionsModal(sprintId: string, suggestions: any[], summary: string): void {
+    // Convert backend suggestions to AISuggestionResponse format
+    this.aiSuggestions = {
+      recommended_issues: suggestions.map((issue: any) => ({
+        key: issue.issueKey || issue.key || '',
+        summary: issue.rationale || issue.summary || '',
+        story_points: issue.storyPoints || 0
+      })),
+      summary: summary
+    };
+    
+    this.isAIModalOpen = true;
+    this.cdr.detectChanges();
   }
 
   /**
@@ -198,12 +409,18 @@ export class BacklogPage implements OnInit {
    */
   onSprintCreated(event: any) {
     console.log('Sprint created:', event);
-    // TODO: Refresh sprint list from backend
-    // For now, just close the modal and show success
-    this.isCreateSprintModalOpen = false;
     
-    // Optionally reload sprints from backend
-    // this.loadSprints();
+    // Reload sprints from backend to get the newly created sprint
+    const projectId = this.projectContextService.getCurrentProjectId();
+    if (projectId) {
+      this.loadSprints(projectId);
+    } else {
+      // Fallback to session storage
+      const storedProjectId = sessionStorage.getItem('projectId');
+      if (storedProjectId) {
+        this.loadSprints(storedProjectId);
+      }
+    }
   }
 
   handleStart(sprintId: string): void {
@@ -217,46 +434,120 @@ export class BacklogPage implements OnInit {
   }
 
   handleEdit(sprintId: string): void {
-  const sprint = this.sprints.find(s => s.id === sprintId);
-  if (!sprint) {
-    console.error(`Sprint not found: ${sprintId}`);
-    return;
+    const sprint = this.sprints.find(s => s.id === sprintId);
+    if (!sprint) {
+      console.error(`Sprint not found: ${sprintId}`);
+      return;
+    }
+
+    // Derive extra info dynamically (goal, story points, etc.)
+    const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
+    const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+
+    const sprintFields: FormField[] = [
+      { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required: true },
+      { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
+      { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
+      { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
+      { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
+      { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
+      { label: 'Story Point (Total)', type: 'number', model: 'storyPoint', colSpan: 1 },
+    ];
+
+    this.modalService.open({
+      id: 'editSprintModal',
+      title: 'Edit Sprint',
+      projectName: 'Project Alpha',
+      modalDesc: 'Edit an existing sprint in your project',
+      fields: sprintFields,
+      data: {
+        sprintName: sprint.name || '',
+        sprintGoal,
+        startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
+        dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
+        status: sprint.status || 'Planned',
+        storyPoint: totalStoryPoints,
+        teamAssigned: sprint.teamAssigned || '',
+      },
+      showLabels: false,
+      submitText: 'Save Changes',
+      onSubmit: (formData: any) => {
+        this.updateSprintApi(sprintId, formData);
+      }
+    });
   }
-  
 
-  // Derive extra info dynamically (goal, story points, etc.)
-  const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
-  const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+  /**
+   * Update sprint via API
+   */
+  private updateSprintApi(sprintId: string, formData: any): void {
+    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
+    
+    if (!projectId) {
+      this.toastService.error('Project ID not found');
+      return;
+    }
 
-  const sprintFields: FormField[] = [
-    { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required:true },
-    { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
-    { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
-    { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
-    { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-    { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
-    { label: 'Story Point (Total)', type: 'number', model: 'storyPoint', colSpan: 1 },
-  ];
+    // Convert date strings to ISO 8601 UTC format for PostgreSQL
+    const formatDateToUTC = (dateString: string): string => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString(); // Returns format: "2024-11-03T00:00:00.000Z"
+    };
 
-  this.modalService.open({
-    id: 'shareModal',
-    title: 'Edit Sprint',
-    projectName: 'Project Alpha',
-    modalDesc : 'Edit an existing sprint in your project',
-    fields: sprintFields,
-    data: {
-      sprintName: sprint.name || '',
-      sprintGoal,
-      startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
-      dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
-      status: sprint.status || 'Planned',
-      storyPoint: totalStoryPoints,
-      teamAssigned: sprint.teamAssigned || '',
-    },
-    showLabels: false,
-    submitText: 'Save Changes'
-  });
-}
+    const sprintRequest: SprintRequest = {
+      id: sprintId, // Include sprint ID in the request body
+      projectId: projectId,
+      sprintName: formData.sprintName,
+      sprintGoal: formData.sprintGoal || null,
+      teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
+      startDate: formData.startDate ? formatDateToUTC(formData.startDate) : undefined,
+      dueDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
+      status: formData.status || 'PLANNED',
+      storyPoint: formData.storyPoint || 0
+    };
+
+    console.log('🔧 Update Sprint Request Details:', {
+      sprintId,
+      projectId,
+      formData,
+      sprintRequest,
+      rawFormData: JSON.stringify(formData, null, 2),
+      requestPayload: JSON.stringify(sprintRequest, null, 2)
+    });
+    this.toastService.info('Updating sprint...');
+
+    this.sprintService.updateSprint(sprintId, sprintRequest).subscribe({
+      next: (response) => {
+        console.log('Sprint updated successfully:', response);
+        this.toastService.success('Sprint updated successfully!');
+        
+        // Close the modal first
+        this.modalService.close();
+        
+        // Reload sprints to get updated data from backend
+        this.ngZone.run(() => {
+          if (projectId) {
+            this.loadSprints(projectId);
+          }
+          // Trigger change detection
+          this.cdr.detectChanges();
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error updating sprint:', {
+          error,
+          status: error.status,
+          statusText: error.statusText,
+          message: error.error?.message || error.message,
+          fullError: error.error,
+          sprintId,
+          sentRequest: sprintRequest
+        });
+        this.toastService.error(error.error?.message || 'Failed to update sprint. Please try again.');
+      }
+    });
+  }
 
 
 
@@ -471,9 +762,45 @@ export class BacklogPage implements OnInit {
   }
 
   handleCommitAISuggestions(): void {
-    // Placeholder for future implementation
-    this.toastService.info('Commit functionality coming soon!');
-    console.log('Commit AI suggestions:', this.aiSuggestions);
+    if (!this.aiSuggestions?.recommended_issues || this.aiSuggestions.recommended_issues.length === 0) {
+      this.toastService.warning('No issues to add');
+      return;
+    }
+
+    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
+    
+    // Prepare issue creation requests from AI suggestions
+    const issueRequests = this.aiSuggestions.recommended_issues.map(issue => ({
+      title: issue.key,
+      description: issue.summary,
+      issueType: 'Story',
+      priority: 'MEDIUM',
+      storyPoints: issue.story_points,
+      assigneeId: '', // AI suggestions don't have assigneeId in this format
+      projectId: projectId,
+      labels: ['AI-Suggested']
+    }));
+
+    console.log('Creating bulk issues from AI suggestions:', issueRequests);
+    this.toastService.info('Adding AI-suggested issues to backlog...');
+
+    // Create issues in bulk
+    this.sprintService.createBulkIssues(issueRequests).subscribe({
+      next: (responses) => {
+        console.log('Issues created:', responses);
+        this.toastService.success(`${responses.length} issues added to backlog successfully!`);
+        
+        // Reload issues to show newly created ones
+        this.loadProjectIssues(projectId);
+        
+        // Close the AI modal
+        this.closeAIModal();
+      },
+      error: (error) => {
+        console.error('Error creating issues:', error);
+        this.toastService.error('Failed to add some issues. Please try again.');
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -481,19 +808,68 @@ export class BacklogPage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
-      // Load issues from backend
+      // Load sprints and issues from backend
+      this.loadSprints(projectId);
       this.loadProjectIssues(projectId);
     } else {
       // Try to get projectId from session storage as fallback
       const storedProjectId = sessionStorage.getItem('projectId');
       if (storedProjectId) {
         this.projectContextService.setCurrentProjectId(storedProjectId);
+        this.loadSprints(storedProjectId);
         this.loadProjectIssues(storedProjectId);
       } else {
         console.warn('No project ID found in route or session storage');
         this.toastService.warning('No project selected');
       }
     }
+  }
+
+  /**
+   * Load all sprints for the current project from backend
+   */
+  private loadSprints(projectId: string): void {
+    this.sprintService.getSprintsByProject(projectId).subscribe({
+      next: (response) => {
+        console.log('Loaded sprints from backend:', response);
+        if (response.status === 200 && response.data) {
+          // Transform API response to Sprint interface
+          this.sprints = response.data.map(sprintData => ({
+            id: sprintData.id,
+            projectId: sprintData.projectId,
+            name: sprintData.name,
+            sprintGoal: sprintData.sprintGoal,
+            startDate: new Date(sprintData.startDate),
+            endDate: new Date(sprintData.dueDate),
+            status: sprintData.status,
+            storyPoint: sprintData.storyPoint,
+            teamId: sprintData.teamId,
+            issues: [], // Will be populated by organizeSprints
+            createdAt: new Date(sprintData.createdAt),
+            updatedAt: sprintData.updatedAt ? new Date(sprintData.updatedAt) : null
+          }));
+          
+          this.toastService.success(`Loaded ${this.sprints.length} sprints successfully`);
+          console.log('Transformed sprints:', this.sprints);
+          
+          // Reorganize issues into sprints after loading
+          if (this.allIssuesFromBackend.length > 0) {
+            this.organizeSprints(this.allIssuesFromBackend);
+          }
+          
+          // Trigger change detection
+          this.cdr.detectChanges();
+        } else {
+          console.warn('Unexpected response format:', response);
+          this.toastService.warning('Received unexpected sprint data format');
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load sprints:', error);
+        this.toastService.error('Failed to load sprints from backend');
+        // Keep using dummy data on error (sprints already initialized with dummy data)
+      }
+    });
   }
 
   /**
@@ -521,6 +897,7 @@ export class BacklogPage implements OnInit {
   /**
    * Organize issues into sprints based on sprintId
    * This method updates the sprints with their respective issues
+   * Issues without sprintId are added to backlog
    */
   private organizeSprints(issues: Issue[]): void {
     // Group issues by sprintId
@@ -529,16 +906,18 @@ export class BacklogPage implements OnInit {
 
     issues.forEach(issue => {
       if (issue.sprintId) {
+        // Issue belongs to a sprint
         if (!issuesBySprintId.has(issue.sprintId)) {
           issuesBySprintId.set(issue.sprintId, []);
         }
         issuesBySprintId.get(issue.sprintId)!.push(issue);
       } else {
+        // Issue has no sprintId, add to backlog
         backlogIssues.push(issue);
       }
     });
 
-    // Update sprints with their issues
+    // Update sprints with their respective issues
     this.sprints.forEach(sprint => {
       const sprintIssues = issuesBySprintId.get(sprint.id) || [];
       sprint.issues = sprintIssues;
@@ -547,7 +926,10 @@ export class BacklogPage implements OnInit {
     // Update backlog issues (issues without sprintId)
     this.backlogIssues = backlogIssues;
 
-    console.log('Organized sprints:', this.sprints);
-    console.log('Backlog issues:', this.backlogIssues);
+    console.log('✅ Organized sprints with issues:');
+    this.sprints.forEach(sprint => {
+      console.log(`  - ${sprint.name} (${sprint.status}): ${sprint.issues?.length || 0} issues`);
+    });
+    console.log(`✅ Backlog issues: ${this.backlogIssues.length}`);
   }
 }

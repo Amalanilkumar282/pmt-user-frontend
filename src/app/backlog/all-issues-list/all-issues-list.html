@@ -135,6 +135,7 @@
   [isOpen]="isModalOpen()"
   [availableSprints]="availableSprints"
   (close)="onCloseModal()"
+  (updateIssue)="onUpdateIssue($event)"
   (deleteIssue)="onDeleteIssue($event)"
   (moveIssue)="onMoveIssue($event)">
 </app-issue-detailed-view>

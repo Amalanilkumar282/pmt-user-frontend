@@ -13,11 +13,14 @@ export interface Issue {
   priority: IssuePriority;
   status: IssueStatus;
   statusId?: number; // Backend status ID
+  statusName?: string; // Backend status name
   assignee?: string;
   assigneeId?: number | null; // Backend assignee ID
+  assigneeName?: string; // Backend assignee name
   reporterId?: number | null; // Reporter ID
   storyPoints?: number;
-  sprintId?: string;
+  sprintId?: string | null;
+  sprintName?: string | null; // Sprint name from backend
   teamId?: string; // Team that owns this issue
   labels?: string[];
   createdAt: Date;
@@ -28,8 +31,8 @@ export interface Issue {
   completedAt?: Date; // When the issue was marked as DONE
   parentId?: string;
   parentIssueId?: string | null; // Backend field name
-  epicId?: string;
-  epicName?: string;
+  epicId?: string | null;
+  epicName?: string | null; // Epic name from backend
   attachments?: File[];
   attachmentUrl?: string | null; // Backend attachment URL
 }
@@ -44,17 +47,22 @@ export interface IssueApiResponse {
   description: string;
   priority: string;
   assigneeId: number | null;
+  assigneeName: string | null; // Assignee name from backend
   startDate: string | null;
   dueDate: string | null;
   statusId: number;
+  statusName: string; // Status name from backend
   sprintId: string | null;
+  sprintName: string | null; // Sprint name from backend
   parentIssueId: string | null;
   storyPoints: number;
   epicId: string | null;
-  epicName?: string | null;
+  epicName: string | null; // Epic name from backend
   reporterId: number | null;
   labels: string;
   attachmentUrl: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface GetIssuesResponse {

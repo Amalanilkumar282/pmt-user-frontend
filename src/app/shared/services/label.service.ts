@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { AuthTokenService } from '../../board/services/auth-token.service';
 
 export interface Label {
@@ -40,27 +41,21 @@ export interface UpdateLabelResponse {
 
 @Injectable({ providedIn: 'root' })
 export class LabelService {
-  private baseUrl = '/api/Label';
+  private baseUrl = `${environment.apiUrl}/api/Label`;
   private http = inject(HttpClient);
-  private authTokenService = inject(AuthTokenService);
+
   getAllLabels(): Observable<LabelResponse> {
-    return this.http.get<LabelResponse>(this.baseUrl, {
-      headers: this.authTokenService.getAuthHeaders()
-    });
+    // Interceptor automatically adds Authorization header
+    return this.http.get<LabelResponse>(this.baseUrl);
   }
 
   createLabel(request: CreateLabelRequest): Observable<CreateLabelResponse> {
-    let token = '';
-    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      token = sessionStorage.getItem('accessToken') || '';
-    }
-    const headers = { 'Authorization': `Bearer ${token}` };
-    return this.http.post<CreateLabelResponse>(this.baseUrl, request, { headers });
+    // Interceptor automatically adds Authorization header
+    return this.http.post<CreateLabelResponse>(this.baseUrl, request);
   }
 
   updateLabel(request: UpdateLabelRequest): Observable<UpdateLabelResponse> {
-    const token = sessionStorage.getItem('accessToken') || '';
-    const headers = { 'Authorization': `Bearer ${token}` };
-    return this.http.put<UpdateLabelResponse>(this.baseUrl, request, { headers });
+    // Interceptor automatically adds Authorization header
+    return this.http.put<UpdateLabelResponse>(this.baseUrl, request);
   }
 }

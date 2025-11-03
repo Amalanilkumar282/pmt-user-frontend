@@ -45,20 +45,27 @@ export class FilterPanel {
   });
 
   statuses = computed(() => {
-    const allStatuses = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'BLOCKED'];
+    // Derive statuses from issues visible to the board (respecting board context,
+    // sprint selection and existing filters). This ensures the status list shown
+    // in the board's filter panel matches the current board's columns and issues.
+    const issues = this.store.visibleIssues ? this.store.visibleIssues() : this.store.issues();
+    const unique = Array.from(new Set(issues.map(i => i.status))).sort();
+
     const search = this.statusSearch().toLowerCase().trim();
-    if (!search) return allStatuses;
-    
-    return allStatuses.filter(s => s.toLowerCase().includes(search));
+    if (!search) return unique;
+
+    return unique.filter(s => s.toLowerCase().includes(search));
   });
 
   workTypes = computed(() => {
-    const issues = this.store.issues();
+    // Derive work types from issues visible to the board so the filter list
+    // matches the current board context (sprint selection, team board, and other filters).
+    const issues = this.store.visibleIssues ? this.store.visibleIssues() : this.store.issues();
     const unique = Array.from(new Set(issues.map(i => i.type))).sort();
-    
+
     const search = this.workTypeSearch().toLowerCase().trim();
     if (!search) return unique;
-    
+
     return unique.filter(w => w.toLowerCase().includes(search));
   });
 
