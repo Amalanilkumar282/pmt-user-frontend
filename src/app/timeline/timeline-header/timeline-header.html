@@ -46,8 +46,35 @@
             </button>
             <div class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-lg z-50 rounded min-w-[200px] p-2 max-h-[300px] overflow-y-auto filter-dropdown" 
                  id="epic-dropdown">
+                <!-- Search Bar -->
+                <div class="sticky top-0 bg-white p-2 border-b border-gray-200 mb-2">
+                    <div class="relative">
+                        <input type="text" 
+                               class="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                               placeholder="Search epics..."
+                               [value]="epicSearchQuery"
+                               (input)="onEpicSearchChange($event)"
+                               (click)="$event.stopPropagation()">
+                        <!-- Search Icon -->
+                        <svg class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" 
+                             width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <!-- Clear Icon -->
+                        <button *ngIf="epicSearchQuery" 
+                                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                (click)="clearEpicSearch(); $event.stopPropagation()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Epic List -->
                 <div class="p-2 flex items-center gap-2 rounded transition-colors duration-200 hover:bg-gray-50 cursor-pointer" 
-                     *ngFor="let epic of availableEpics">
+                     *ngFor="let epic of getFilteredEpics()">
                     <input type="checkbox" 
                            class="cursor-pointer w-4 h-4"
                            [id]="'epic-' + epic"
@@ -56,6 +83,11 @@
                            (change)="toggleFilter('epics', epic, $event)">
                     <i class="fa-solid fa-bolt text-gray-600"></i>
                     <label class="cursor-pointer flex-1 m-0" [for]="'epic-' + epic">{{epic}}</label>
+                </div>
+                
+                <!-- No results message -->
+                <div *ngIf="getFilteredEpics().length === 0" class="p-4 text-center text-sm text-gray-500">
+                    No epics found
                 </div>
             </div>
         </div>

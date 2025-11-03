@@ -204,4 +204,39 @@ describe('TimelineHeaderComponent', () => {
     expect(component.filtersCleared.emit).toBeDefined();
     expect(component.backToEpics.emit).toBeDefined();
   });
+
+  it('should filter epics based on search query', () => {
+    component.availableEpics = ['Epic Alpha', 'Epic Beta', 'Gamma Epic', 'Delta Project'];
+    
+    // Test with no search query
+    component.epicSearchQuery = '';
+    expect(component.getFilteredEpics()).toEqual(['Epic Alpha', 'Epic Beta', 'Gamma Epic', 'Delta Project']);
+    
+    // Test with search query
+    component.epicSearchQuery = 'epic';
+    expect(component.getFilteredEpics()).toEqual(['Epic Alpha', 'Epic Beta', 'Gamma Epic']);
+    
+    // Test case-insensitive search
+    component.epicSearchQuery = 'BETA';
+    expect(component.getFilteredEpics()).toEqual(['Epic Beta']);
+    
+    // Test with no matches
+    component.epicSearchQuery = 'xyz';
+    expect(component.getFilteredEpics()).toEqual([]);
+  });
+
+  it('should update epic search query on input change', () => {
+    const mockEvent = {
+      target: { value: 'test query' }
+    } as any;
+    
+    component.onEpicSearchChange(mockEvent);
+    expect(component.epicSearchQuery).toBe('test query');
+  });
+
+  it('should clear epic search query', () => {
+    component.epicSearchQuery = 'some search';
+    component.clearEpicSearch();
+    expect(component.epicSearchQuery).toBe('');
+  });
 });

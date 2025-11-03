@@ -38,6 +38,7 @@ export class TimelineHeaderComponent {
   showCompleted: boolean = true;
   displayRangeMonths: number = 12;
   displayRangeOptions = [1, 3, 6, 12, 24];
+  epicSearchQuery: string = '';
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
@@ -121,5 +122,24 @@ export class TimelineHeaderComponent {
 
   onCollapseAllEpics() {
     this.collapseAllEpics.emit();
+  }
+
+  getFilteredEpics(): string[] {
+    if (!this.epicSearchQuery.trim()) {
+      return this.availableEpics;
+    }
+    const query = this.epicSearchQuery.toLowerCase();
+    return this.availableEpics.filter(epic => 
+      epic.toLowerCase().includes(query)
+    );
+  }
+
+  onEpicSearchChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.epicSearchQuery = input.value;
+  }
+
+  clearEpicSearch() {
+    this.epicSearchQuery = '';
   }
 }
