@@ -11,6 +11,7 @@
   <!-- Epic Panel -->
   @if (isEpicPanelOpen) {
     <app-epic-container 
+      [projectId]="currentProjectId"
       [class.sidebar-collapsed]="isSidebarCollapsed()"
       (closeEpicPanel)="closeEpicPanel()"
       (viewDetails)="openEpicDetailView($event)"
@@ -26,7 +27,8 @@
       <app-epic-detailed-view 
         [epic]="selectedEpic"
         (close)="closeEpicDetailView()"
-        (epicUpdated)="onEpicUpdated($event)">
+        (epicUpdated)="onEpicUpdated($event)"
+        (epicDeleted)="onEpicDeleted($event)">
       </app-epic-detailed-view>
     </div>
   }

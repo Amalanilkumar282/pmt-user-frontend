@@ -1,8 +1,10 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Epic, EpicStatus } from '../../../../shared/models/epic.model';
+import { Epic, EpicStatus, UpdateEpicRequest } from '../../../../shared/models/epic.model';
 import { users, User, sprints, epics as allEpics } from '../../../../shared/data/dummy-backlog-data';
+import { EpicService } from '../../../../shared/services/epic.service';
+import { ToastService } from '../../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-epic-details',
@@ -22,6 +24,10 @@ export class EpicDetails implements OnInit {
 
   editing: { [key: string]: boolean } = {};
   temp: { [key: string]: any } = {};
+  isSaving = false;
+
+  private epicService = inject(EpicService);
+  private toastService = inject(ToastService);
 
   ngOnInit() {
     this.availableEpics = allEpics.filter(e => e.id !== this.epic.id);
@@ -32,22 +38,64 @@ export class EpicDetails implements OnInit {
     this.temp[field] = value;
   }
 
+  /**
+   * Save epic field changes to backend
+   */
   save(field: string) {
     (this.epic as any)[field] = this.temp[field];
     this.editing[field] = false;
-    this.epicUpdated.emit(this.epic);
+    this.saveEpicToBackend();
   }
 
   saveDueDate() {
     this.epic.dueDate = this.temp['dueDate'] ? new Date(this.temp['dueDate']) : null;
     this.editing['dueDate'] = false;
-    this.epicUpdated.emit(this.epic);
+    this.saveEpicToBackend();
   }
 
   saveStartDate() {
     this.epic.startDate = this.temp['startDate'] ? new Date(this.temp['startDate']) : null;
     this.editing['startDate'] = false;
-    this.epicUpdated.emit(this.epic);
+    this.saveEpicToBackend();
+  }
+
+  /**
+   * Save epic updates to backend
+   */
+  private saveEpicToBackend() {
+    if (this.isSaving) return;
+
+    // Get assigneeId and reporterId from the epic or default values
+    const assigneeId = this.epic.assigneeId || this.epicService.getCurrentUserId() || 1;
+    const reporterId = this.epic.reporterId || this.epicService.getCurrentUserId() || 1;
+
+    const updateRequest: UpdateEpicRequest = {
+      id: this.epic.id,
+      title: this.epic.name || this.epic.title || '',
+      description: this.epic.description || '',
+      startDate: this.epicService.formatDateForBackend(this.epic.startDate),
+      dueDate: this.epicService.formatDateForBackend(this.epic.dueDate),
+      assigneeId: assigneeId,
+      reporterId: reporterId,
+      labels: this.epic.labels || []
+    };
+
+    this.isSaving = true;
+    console.log('🔄 [EpicDetails] Saving epic:', updateRequest);
+
+    this.epicService.updateEpic(updateRequest).subscribe({
+      next: (epicId) => {
+        console.log('✅ [EpicDetails] Epic updated successfully:', epicId);
+        this.isSaving = false;
+        this.toastService.success('Epic updated successfully');
+        this.epicUpdated.emit(this.epic);
+      },
+      error: (error) => {
+        console.error('❌ [EpicDetails] Error updating epic:', error);
+        this.isSaving = false;
+        this.toastService.error('Failed to update epic');
+      }
+    });
   }
 
   cancel(field: string) {
@@ -59,7 +107,7 @@ export class EpicDetails implements OnInit {
     if (label?.trim() && this.epic.labels) {
       if (!this.epic.labels.includes(label.trim())) {
         this.epic.labels.push(label.trim());
-        this.epicUpdated.emit(this.epic);
+        this.saveEpicToBackend();
       }
       this.temp['newLabel'] = '';
       this.editing['labels'] = false;
@@ -69,7 +117,7 @@ export class EpicDetails implements OnInit {
   removeLabel(label: string) {
     if (this.epic.labels) {
       this.epic.labels = this.epic.labels.filter(l => l !== label);
-      this.epicUpdated.emit(this.epic);
+      this.saveEpicToBackend();
     }
   }
 
