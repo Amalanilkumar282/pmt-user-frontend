@@ -6,6 +6,8 @@ import { FormField, ModalService } from '../../modal/modal-service';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { UserApiService, User } from '../../shared/services/user-api.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
+import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
+import { ToastService } from '../../shared/services/toast.service';
 
 export interface Comment {
   id: string;
@@ -27,6 +29,8 @@ export class IssueDetailedView {
   private modalService = inject(ModalService);
   private userApiService = inject(UserApiService);
   private projectContextService = inject(ProjectContextService);
+  private issueService = inject(IssueService);
+  private toastService = inject(ToastService);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -170,6 +174,9 @@ export class IssueDetailedView {
       showLabels: true,
       submitText: 'Save Changes',
       onSubmit: (formData: any) => {
+        console.log('[IssueDetailedView] onSubmit called with formData:', formData);
+        console.log('[IssueDetailedView] Current issue:', issue);
+        
         // Convert form data back to Issue partial updates
         const updates: Partial<Issue> = {};
         
@@ -210,7 +217,79 @@ export class IssueDetailedView {
         }
         
         console.log('[IssueDetailedView] Emitting issue updates:', updates);
+        
+        // Call the API to update the issue
+        this.updateIssueApi(issue, updates);
+      }
+    });
+  }
+
+  private updateIssueApi(issue: Issue, updates: Partial<Issue>): void {
+    console.log('🚀 [IssueDetailedView] updateIssueApi CALLED!');
+    console.log('[IssueDetailedView] Updating issue:', issue.id, updates);
+
+    // Helper to format dates to UTC ISO string
+    const formatDateToUTC = (date: Date | string | undefined): string | null => {
+      if (!date) return null;
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString();
+    };
+
+    // Build the update request matching the backend API format
+    const updateReq: UpdateIssueRequest = {
+      projectId: issue.projectId || '',
+      issueType: (updates.type || issue.type || 'TASK').toUpperCase(),
+      title: updates.title || issue.title,
+      description: updates.description !== undefined ? updates.description : (issue.description || ''),
+      priority: (updates.priority || issue.priority || 'MEDIUM').toUpperCase(),
+      assigneeId: updates.assignee ? parseInt(updates.assignee) : (issue.assigneeId || null),
+      startDate: formatDateToUTC(updates.startDate !== undefined ? updates.startDate : issue.startDate),
+      dueDate: formatDateToUTC(updates.dueDate !== undefined ? updates.dueDate : issue.dueDate),
+      sprintId: updates.sprintId !== undefined ? updates.sprintId : (issue.sprintId || null),
+      storyPoints: updates.storyPoints !== undefined ? updates.storyPoints : (issue.storyPoints || 0),
+      epicId: updates.epicId !== undefined ? updates.epicId : (issue.epicId || null),
+      reporterId: issue.reporterId || null,
+      attachmentUrl: updates.attachmentUrl !== undefined ? updates.attachmentUrl : (issue.attachmentUrl || null),
+      statusId: issue.statusId || 1,
+      labels: updates.labels ? JSON.stringify(updates.labels) : (issue.labels ? JSON.stringify(issue.labels) : null)
+    };
+
+    console.log('[IssueDetailedView] Sending update request:', updateReq);
+    console.log('[IssueDetailedView] Request JSON:', JSON.stringify(updateReq, null, 2));
+
+    // Call the API
+    this.issueService.updateIssue(issue.id, updateReq).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Issue updated successfully:', response);
+        
+        // Emit the update event for parent components to update their local state
         this.updateIssue.emit(updates);
+        
+        // Update the local issue signal
+        const updatedIssue: Issue = { ...issue, ...updates };
+        this._issue.set(updatedIssue);
+        
+        this.toastService.success('Issue updated successfully!');
+        this.modalService.close();
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Failed to update issue:', error);
+        
+        // Handle validation errors
+        if (error.error && error.error.errors) {
+          const errorMessages = Object.entries(error.error.errors)
+            .map(([field, messages]: [string, any]) => {
+              const msgArray = Array.isArray(messages) ? messages : [messages];
+              return `${field}: ${msgArray.join(', ')}`;
+            })
+            .join('; ');
+          this.toastService.error(`Validation failed: ${errorMessages}`);
+        } else if (error.error && error.error.message) {
+          this.toastService.error(`Failed to update issue: ${error.error.message}`);
+        } else {
+          this.toastService.error('Failed to update issue. Please try again.');
+        }
       }
     });
   }

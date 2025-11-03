@@ -415,9 +415,9 @@ describe('TaskCard', () => {
       (component as any).store = mockStore;
 
       component.showAssigneeDropdown.set(true);
-      component.selectAssignee('Alice Johnson');
+      component.selectAssignee({ id: 'user-1', name: 'Alice Johnson' });
 
-      expect(mockStore.updateIssueAssignee).toHaveBeenCalledWith('TEST-1', 'Alice Johnson');
+      expect(mockStore.updateIssueAssignee).toHaveBeenCalledWith('TEST-1', 'user-1');
       expect(component.showAssigneeDropdown()).toBe(false);
       expect(component.assigneeSearchQuery()).toBe('');
     });
@@ -429,7 +429,7 @@ describe('TaskCard', () => {
       const mockStore = jasmine.createSpyObj('BoardStore', ['updateIssueAssignee']);
       (component as any).store = mockStore;
 
-      component.selectAssignee('Unassigned');
+      component.selectAssignee({ id: 'unassigned', name: 'Unassigned' });
 
       expect(mockStore.updateIssueAssignee).toHaveBeenCalledWith('TEST-1', undefined);
     });
@@ -450,7 +450,7 @@ describe('TaskCard', () => {
       component.assigneeSearchQuery.set('alice');
       const filtered = component.filteredAssignees();
       
-      expect(filtered.every(a => a.toLowerCase().includes('alice'))).toBe(true);
+      expect(filtered.every(a => a.name.toLowerCase().includes('alice'))).toBe(true);
     });
 
     it('should return all assignees when search query is empty', () => {

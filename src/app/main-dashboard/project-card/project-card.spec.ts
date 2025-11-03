@@ -14,14 +14,9 @@ describe('ProjectCard', () => {
     name: 'E-Commerce Platform',
     type: 'Web Application',
     status: 'Active',
-    sprint: 'Sprint 5',
-    tasks: {
-      toDo: 8,
-      inProgress: 4,
-      done: 12,
-    },
-    teamMembers: ['JD', 'AS', 'MK'],
-    deadline: 'Dec 15, 2024',
+    du: 'Engineering',
+    lead: 'John Doe',
+    created: 'Jan 1, 2024',
     updated: '2 hours ago',
     starred: false,
   };
@@ -170,26 +165,6 @@ describe('ProjectCard', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty team members array', () => {
-      component.project = { ...mockProject, teamMembers: [] };
-      fixture.detectChanges();
-
-      const memberAvatars = compiled.querySelectorAll('.member-avatar');
-      expect(memberAvatars.length).toBe(0);
-    });
-
-    it('should handle zero task counts', () => {
-      component.project = {
-        ...mockProject,
-        tasks: { toDo: 0, inProgress: 0, done: 0 },
-      };
-      fixture.detectChanges();
-
-      const taskNumbers = compiled.querySelectorAll('.task-number');
-      expect(taskNumbers[0].textContent?.trim()).toBe('0');
-      expect(taskNumbers[1].textContent?.trim()).toBe('0');
-      expect(taskNumbers[2].textContent?.trim()).toBe('0');
-    });
 
     it('should handle single character project names', () => {
       component.project = { ...mockProject, name: 'A' };
@@ -206,17 +181,6 @@ describe('ProjectCard', () => {
 
       const nameElement = compiled.querySelector('.project-info h3');
       expect(nameElement?.textContent?.trim()).toBe(longName);
-    });
-
-    it('should handle many team members', () => {
-      component.project = {
-        ...mockProject,
-        teamMembers: ['JD', 'AS', 'MK', 'LT', 'PR', 'SG', 'TH'],
-      };
-      fixture.detectChanges();
-
-      const memberAvatars = compiled.querySelectorAll('.member-avatar');
-      expect(memberAvatars.length).toBe(7);
     });
   });
 

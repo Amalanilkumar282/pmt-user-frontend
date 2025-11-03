@@ -140,7 +140,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         this.loadTimelineData(this.projectId);
       } else {
         this.errorMessage = 'No project ID found in route';
-        console.error('❌ [TimelineChart] No project ID in route parameters');
       }
     });
   }
@@ -181,8 +180,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('❌ [TimelineChart] Error loading timeline data:', error);
-        
         // Don't show error message - just initialize with empty data
         this.projectData = [];
         this.epicsData = [];
@@ -505,7 +502,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     const hasData = this.projectData.length > 0 || this.epicsData.length > 0 || this.allIssues.length > 0;
     
     if (!hasData) {
-      console.warn('⚠️ [TimelineChart] No data available for this project (no sprints, epics, or issues)');
       // Still calculate date range and show empty timeline with today line
       this.calculateDynamicDateRange([]);
       return;
@@ -513,7 +509,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     // If we have no sprints but have epics/issues, continue anyway
     if (this.projectData.length === 0) {
-      console.warn('⚠️ [TimelineChart] No sprints found, but continuing with epics/issues');
+      // Continue with epics/issues
     }
 
     // 1. Add single "Sprints" overview row showing all sprints (HTML will filter out those without dates)
