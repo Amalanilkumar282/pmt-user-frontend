@@ -2,13 +2,14 @@ import { Component, Input, Output, EventEmitter, signal, computed } from '@angul
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { IssueDetailedView } from '../issue-detailed-view/issue-detailed-view';
 import { IssueList } from '../issue-list/issue-list';
 import { Issue } from '../../shared/models/issue.model';
 
 @Component({
   selector: 'app-all-issues-list',
-  imports: [CommonModule, FormsModule, DragDropModule, IssueDetailedView, IssueList],
+  imports: [CommonModule, FormsModule, DragDropModule, ScrollingModule, IssueDetailedView, IssueList],
   templateUrl: './all-issues-list.html',
   styleUrl: './all-issues-list.css'
 })

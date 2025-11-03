@@ -8,6 +8,12 @@
     <!-- User Search -->
     <div class="form-group">
       <label for="userSearch">Search User</label>
+      @if (usersLoading()) {
+        <div class="loading-message">Loading users from server...</div>
+      } @else if (usersError()) {
+        <div class="error-message">{{ usersError() }}</div>
+        <button type="button" class="btn-retry" (click)="loadUsers()">Retry Loading Users</button>
+      }
       <div class="search-wrapper">
         <div class="search-input-container">
           <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -23,6 +29,7 @@
             (input)="onSearchInput($event)"
             (focus)="showDropdown.set(true)"
             autocomplete="off"
+            [disabled]="usersLoading()"
           />
           @if (selectedUser()) {
             <button type="button" class="clear-btn" (click)="clearSelection()">
@@ -100,27 +107,46 @@
 
     <!-- Role Selection -->
     <div class="form-group">
-      <label for="role">Role</label>
-      <select id="role" formControlName="role" class="form-select">
-        @for (role of availableRoles; track role) {
-          <option [value]="role">{{ role }}</option>
-        }
-      </select>
+      <label for="roleId">Role</label>
+      @if (rolesLoading()) {
+        <div class="loading-message">Loading roles...</div>
+      } @else if (rolesError()) {
+        <div class="error-message">{{ rolesError() }}</div>
+        <button type="button" class="btn-retry" (click)="loadRoles()">Retry</button>
+      } @else {
+        <select id="roleId" formControlName="roleId" class="form-select">
+          <option [value]="0" disabled>Select a role</option>
+          @for (role of availableRoles(); track role.id) {
+            <option [value]="role.id">{{ role.name }}</option>
+          }
+        </select>
+      }
+      @if (!addMemberForm.get('roleId')?.valid && addMemberForm.get('roleId')?.touched) {
+        <span class="error-message">Please select a role</span>
+      }
     </div>
 
     <!-- Form Actions -->
     <div class="form-actions">
-      <button type="button" class="btn-cancel" (click)="onCancel()">
+      <button type="button" class="btn-cancel" (click)="onCancel()" [disabled]="addingMember()">
         Cancel
       </button>
-      <button type="submit" class="btn-submit" [disabled]="!addMemberForm.valid">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <line x1="19" y1="8" x2="19" y2="14"/>
-          <line x1="22" y1="11" x2="16" y2="11"/>
-        </svg>
-        Add Member
+      <button type="submit" class="btn-submit" [disabled]="!addMemberForm.valid || addingMember()">
+        @if (addingMember()) {
+          <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" opacity="0.25"/>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+          </svg>
+          Adding...
+        } @else {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+          Add Member
+        }
       </button>
     </div>
   </form>

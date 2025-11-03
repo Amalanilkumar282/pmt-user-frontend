@@ -2,7 +2,8 @@
   <!-- Header Component -->
   <app-epic-header 
     [epic]="epic" 
-    (close)="onClose()">
+    (close)="onClose()"
+    (epicDeleted)="onEpicDeleted($event)">
   </app-epic-header>
 
   <!-- Content -->
