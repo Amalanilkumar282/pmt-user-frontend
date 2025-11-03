@@ -136,6 +136,23 @@ export class AllIssuesList {
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
   }
+
+  onUpdateIssue(updates: Partial<Issue>): void {
+    console.log('[AllIssuesList] onUpdateIssue - updating local state with:', updates);
+    
+    const issue = this.selectedIssue();
+    if (!issue) {
+      console.error('[AllIssuesList] No selected issue found!');
+      return;
+    }
+
+    // Update the local issue in the list
+    const updatedIssue: Issue = { ...issue, ...updates };
+    this.issues = this.issues.map(i => i.id === issue.id ? updatedIssue : i);
+    this.selectedIssue.set(updatedIssue);
+    
+    console.log('[AllIssuesList] Local state updated successfully');
+  }
   
   onDropActiveIssues(event: CdkDragDrop<Issue[]>): void {
     // Don't do anything - issues should stay in their original location

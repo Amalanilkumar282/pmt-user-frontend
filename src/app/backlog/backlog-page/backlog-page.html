@@ -176,9 +176,6 @@
   </div>
 </div>
 
-<!-- Create Sprint Modal -->
-<app-create-sprint-modal
-  [isOpen]="isCreateSprintModalOpen"
-  (close)="onCloseCreateSprintModal()"
-  (sprintCreated)="onSprintCreated($event)">
-</app-create-sprint-modal>
+
+<!-- Create Sprint Modal - Now using ModalService, no separate component needed -->
+

@@ -80,6 +80,19 @@ export class IssueService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Get authorization headers with JWT token from sessionStorage
+   */
+  private getAuthHeaders() {
+    const token = sessionStorage.getItem('accessToken');
+    
+    if (!token) {
+      console.error('❌ [IssueService] No access token found in sessionStorage. Please log in.');
+    }
+    
+    return { 'Authorization': `Bearer ${token || ''}` };
+  }
+
+  /**
    * Map status ID to status string
    */
   private mapStatusIdToStatus(statusId: number): IssueStatus {
@@ -134,7 +147,7 @@ export class IssueService {
    */
   getProjectIssues(projectId: string): Observable<Issue[]> {
     const url = `${this.baseUrl}/project/${projectId}/issues`;
-    return this.http.get<GetIssuesResponse>(url).pipe(
+    return this.http.get<GetIssuesResponse>(url, { headers: this.getAuthHeaders() }).pipe(
       map((response) => {
         if (response.status === 200 && response.data) {
           return response.data.map((apiIssue) => this.mapApiResponseToIssue(apiIssue));
@@ -149,7 +162,7 @@ export class IssueService {
    */
   getIssuesByUser(userId: string): Observable<Issue[]> {
     const url = `${this.baseUrl}/user/${userId}`;
-    return this.http.get<GetIssuesResponse>(url).pipe(
+    return this.http.get<GetIssuesResponse>(url, { headers: this.getAuthHeaders() }).pipe(
       map((response) => {
         if (response.status === 200 && response.data) {
           return response.data.map((apiIssue) => this.mapApiResponseToIssue(apiIssue));
@@ -160,7 +173,7 @@ export class IssueService {
   }
 
   createIssue(issue: CreateIssueRequest): Observable<CreateIssueResponse> {
-    return this.http.post<CreateIssueResponse>(this.baseUrl, issue);
+    return this.http.post<CreateIssueResponse>(this.baseUrl, issue, { headers: this.getAuthHeaders() });
   }
 
   /**
@@ -168,7 +181,21 @@ export class IssueService {
    */
   updateIssue(issueId: string, issue: UpdateIssueRequest): Observable<UpdateIssueResponse> {
     const url = `${this.baseUrl}/${issueId}`;
-    console.log('Updating issue:', issueId, issue);
-    return this.http.put<UpdateIssueResponse>(url, issue);
+    const headers = this.getAuthHeaders();
+    
+    console.log('🔄 [IssueService] Updating issue:', {
+      issueId,
+      url,
+      headers,
+      payload: issue
+    });
+    console.log('🔄 [IssueService] Request JSON:', JSON.stringify(issue, null, 2));
+    
+    return this.http.put<UpdateIssueResponse>(url, issue, { headers }).pipe(
+      map((response) => {
+        console.log('✅ [IssueService] Update successful:', response);
+        return response;
+      })
+    );
   }
 }
