@@ -112,20 +112,24 @@ export class IssueService {
 			priority: apiIssue.priority as IssuePriority,
 			status: this.mapStatusIdToStatus(apiIssue.statusId),
 			statusId: apiIssue.statusId,
+			statusName: apiIssue.statusName,
 			assigneeId: apiIssue.assigneeId,
 			assignee: apiIssue.assigneeId ? `User ${apiIssue.assigneeId}` : undefined,
+			assigneeName: apiIssue.assigneeName || undefined,
 			reporterId: apiIssue.reporterId,
 			storyPoints: apiIssue.storyPoints,
 			sprintId: apiIssue.sprintId || undefined,
+			sprintName: apiIssue.sprintName || undefined,
 			epicId: apiIssue.epicId || undefined,
+			epicName: apiIssue.epicName || undefined,
 			parentIssueId: apiIssue.parentIssueId,
 			parentId: apiIssue.parentIssueId || undefined,
 			labels: apiIssue.labels ? JSON.parse(apiIssue.labels) : [],
 			attachmentUrl: apiIssue.attachmentUrl,
 			startDate: apiIssue.startDate ? new Date(apiIssue.startDate) : undefined,
 			dueDate: apiIssue.dueDate ? new Date(apiIssue.dueDate) : undefined,
-			createdAt: new Date(),
-			updatedAt: new Date()
+			createdAt: apiIssue.createdAt ? new Date(apiIssue.createdAt) : new Date(),
+			updatedAt: apiIssue.updatedAt ? new Date(apiIssue.updatedAt) : new Date()
 		};
 	}
 
