@@ -143,16 +143,47 @@ export class IssueService {
   }
 
   /**
-   * Get all issues for a project
+   * Get all issues for a project (with optional pagination)
    */
-  getProjectIssues(projectId: string): Observable<Issue[]> {
-    const url = `${this.baseUrl}/project/${projectId}/issues`;
+  getProjectIssues(projectId: string, page?: number, pageSize?: number): Observable<Issue[]> {
+    let url = `${this.baseUrl}/project/${projectId}/issues`;
+    
+    // Add pagination params if provided
+    if (page !== undefined && pageSize !== undefined) {
+      url += `?page=${page}&pageSize=${pageSize}`;
+    }
+    
     return this.http.get<GetIssuesResponse>(url, { headers: this.getAuthHeaders() }).pipe(
       map((response) => {
         if (response.status === 200 && response.data) {
           return response.data.map((apiIssue) => this.mapApiResponseToIssue(apiIssue));
         }
         return [];
+      })
+    );
+  }
+
+  /**
+   * Get paginated issues for a project (new optimized method)
+   */
+  getProjectIssuesPaginated(
+    projectId: string, 
+    page: number = 1, 
+    pageSize: number = 50
+  ): Observable<{ issues: Issue[], total: number, hasMore: boolean }> {
+    const url = `${this.baseUrl}/project/${projectId}/issues?page=${page}&pageSize=${pageSize}`;
+    
+    return this.http.get<GetIssuesResponse>(url, { headers: this.getAuthHeaders() }).pipe(
+      map((response) => {
+        if (response.status === 200 && response.data) {
+          const issues = response.data.map((apiIssue) => this.mapApiResponseToIssue(apiIssue));
+          return {
+            issues,
+            total: response.data.length,
+            hasMore: response.data.length === pageSize
+          };
+        }
+        return { issues: [], total: 0, hasMore: false };
       })
     );
   }
