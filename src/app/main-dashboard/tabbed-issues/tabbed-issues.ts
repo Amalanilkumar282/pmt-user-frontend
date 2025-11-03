@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Issue } from '../../shared/models/issue.model';
 import {
@@ -20,7 +20,10 @@ interface Tab {
   templateUrl: './tabbed-issues.html',
   styleUrls: ['./tabbed-issues.css'],
 })
-export class TabbedIssues implements OnInit {
+export class TabbedIssues implements OnInit, OnChanges {
+  @Input() userIssues: Issue[] = [];
+  @Input() isLoading: boolean = false;
+
   activeTab: string = 'workedOn';
   currentUser = 'Harrel Alex'; // This could come from an auth service
 
@@ -34,38 +37,58 @@ export class TabbedIssues implements OnInit {
     this.updateTabCounts();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['userIssues']) {
+      this.updateTabCounts();
+    }
+  }
+
   private updateTabCounts(): void {
     this.tabs[0].count = this.workedOnIssues.length;
     this.tabs[1].count = this.assignedIssues.length;
   }
 
   get workedOnIssues(): Issue[] {
+    if (this.userIssues.length === 0) {
+      return [];
+    }
+
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
 
-    const allIssues = [...activeSprintIssues, ...completedSprint1Issues, ...completedSprint2Issues];
-    return allIssues
-      .filter((issue) => issue.assignee === this.currentUser && issue.updatedAt >= oneMonthAgo)
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    return this.userIssues
+      .filter((issue) => issue.updatedAt && issue.updatedAt >= oneMonthAgo)
+      .sort((a, b) => {
+        const aTime = a.updatedAt?.getTime() || 0;
+        const bTime = b.updatedAt?.getTime() || 0;
+        return bTime - aTime;
+      })
       .slice(0, 10);
   }
 
   get assignedIssues(): Issue[] {
-    return activeSprintIssues
-      .filter((issue) => issue.assignee === this.currentUser)
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    if (this.userIssues.length === 0) {
+      return [];
+    }
+
+    return this.userIssues.sort((a, b) => {
+      const aTime = a.updatedAt?.getTime() || 0;
+      const bTime = b.updatedAt?.getTime() || 0;
+      return bTime - aTime;
+    });
   }
 
   getIssuesByTimeGroup(issues: Issue[]): { label: string; issues: Issue[] }[] {
     const now = new Date();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const lastWeek = issues.filter((issue) => issue.updatedAt >= sevenDaysAgo);
+    const lastWeek = issues.filter((issue) => issue.updatedAt && issue.updatedAt >= sevenDaysAgo);
     const lastMonth = issues.filter(
       (issue) =>
-        issue.updatedAt < sevenDaysAgo &&
-        issue.updatedAt >= new Date(now.setDate(now.getDate() - 30))
+        issue.updatedAt && issue.updatedAt < sevenDaysAgo && issue.updatedAt >= thirtyDaysAgo
     );
 
     const groups = [];
@@ -100,6 +123,8 @@ export class TabbedIssues implements OnInit {
   }
 
   getStatusText(issue: Issue): string {
+    if (!issue.updatedAt) return 'Updated';
+
     const now = new Date();
     const diffTime = now.getTime() - issue.updatedAt.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));

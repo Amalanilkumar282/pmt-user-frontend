@@ -35,8 +35,9 @@ export interface BurndownRow {
 export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   @Input() type: 'burnup' | 'burndown' | 'velocity' = 'burnup';
   @Input() statusFilter?: 'DONE' | 'INCOMPLETE'|'OUT_OF_SPRINT';
- 
   @Input() sprintId: string | null = null;
+  @Input() issues: Issue[] = []; // Accept issues from parent
+  @Input() sprintData: { name: string; startDate: Date; endDate: Date } | null = null; // Accept sprint data
 
   dataSource!: MatTableDataSource<any> ;
   displayedColumns: string[] = [];
@@ -48,7 +49,10 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['sprintId'] && !changes['sprintId'].firstChange) {
+    // Reload when sprintId, issues, or sprintData changes
+    if ((changes['sprintId'] && !changes['sprintId'].firstChange) ||
+        (changes['issues'] && !changes['issues'].firstChange) ||
+        (changes['sprintData'] && !changes['sprintData'].firstChange)) {
       this.loadTableData();
     }
   }
@@ -73,6 +77,19 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   }
 
   private getSelectedSprint(): Sprint | undefined {
+    // Try to use sprintData from parent first (API data)
+    if (this.sprintData) {
+      return {
+        id: this.sprintId || '',
+        name: this.sprintData.name,
+        startDate: this.sprintData.startDate,
+        endDate: this.sprintData.endDate,
+        status: 'ACTIVE',
+        issues: this.issues
+      } as Sprint;
+    }
+    
+    // Fallback to dummy data if no API data provided
     if (this.sprintId && this.sprintId !== 'all') {
       return sprints.find(s => s.id === this.sprintId);
     }
@@ -82,24 +99,35 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   }
 
   private loadBurnupData(): void {
-    const sprint = this.getSelectedSprint();
-    if (!sprint) {
+    // Use input issues if provided, otherwise get from sprint
+    const allIssues: Issue[] = this.issues.length > 0 ? this.issues : (this.getSelectedSprint()?.issues ?? []);
+    
+    if (!this.sprintData || allIssues.length === 0) {
       this.dataSource = new MatTableDataSource<BurnupRow>([]);
       return;
     }
 
-  const allIssues: Issue[] = sprint.issues ?? [];
-  const sprintEndDate = new Date(sprint.endDate);
-  // Only include issues that were completed on or before the sprint end date
-  const completedIssues = allIssues.filter(i => i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate);
+    const sprintEndDate = new Date(this.sprintData.endDate);
+    // Only include issues that were completed on or before the sprint end date
+    const completedIssues = allIssues.filter(i => {
+      if (i.status !== 'DONE') return false;
+      // Use completedAt if available, otherwise updatedAt
+      const completionDate = i.completedAt || i.updatedAt;
+      return completionDate && new Date(completionDate) <= sprintEndDate;
+    });
+    
     const totalScope = allIssues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
-    const sorted = completedIssues.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime());
+    const sorted = completedIssues.sort((a, b) => {
+      const dateA = (a.completedAt || a.updatedAt).getTime();
+      const dateB = (b.completedAt || b.updatedAt).getTime();
+      return dateA - dateB;
+    });
 
     const data: BurnupRow[] = [
       {
-        date: sprint.startDate.toISOString().split('T')[0],
+        date: this.formatBurnupDate(this.sprintData.startDate),
         event: 'Sprint Start',
-        workItem: allIssues.map(i => i.id).join(', '),
+        workItem: allIssues.map(i => i.title).join(', '),
         completed: 0,
         scope: totalScope
       }
@@ -108,20 +136,22 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
     let cumulative = 0;
     const grouped: Record<string, Issue[]> = {};
     sorted.forEach(issue => {
-      const date = issue.updatedAt.toISOString().split('T')[0];
-      if (!grouped[date]) grouped[date] = [];
-      grouped[date].push(issue);
+      const completionDate = (issue.completedAt || issue.updatedAt).toISOString().split('T')[0];
+      if (!grouped[completionDate]) grouped[completionDate] = [];
+      grouped[completionDate].push(issue);
     });
 
     Object.keys(grouped)
       .sort()
-      .forEach(date => {
-        const issues = grouped[date];
-        cumulative += issues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
+      .forEach(dateStr => {
+        const issuesOnDate = grouped[dateStr];
+        cumulative += issuesOnDate.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
+        // dateStr is in YYYY-MM-DD (from toISOString split). Convert back to Date then format.
+        const dateObj = new Date(dateStr + 'T00:00:00Z');
         data.push({
-          date,
+          date: this.formatBurnupDate(dateObj),
           event: 'Workitem Completed',
-          workItem: issues.map(i => i.id).join(', '),
+          workItem: issuesOnDate.map(i => i.title).join(', '),
           completed: cumulative,
           scope: totalScope
         });
@@ -136,32 +166,37 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   }
 
   private loadBurndownData(): void {
-    const sprint = this.getSelectedSprint();
-    if (!sprint || !sprint.issues?.length) {
+    // Use input issues if provided, otherwise get from sprint
+    let issues: Issue[] = this.issues.length > 0 ? this.issues : (this.getSelectedSprint()?.issues ?? []);
+    
+    if (!this.sprintData || issues.length === 0) {
       this.dataSource = new MatTableDataSource<BurndownRow>([]);
       return;
     }
 
-    const sprintEndDate = new Date(sprint.endDate);
-    let issues: Issue[] = sprint.issues;
+    const sprintEndDate = new Date(this.sprintData.endDate);
 
     if (this.statusFilter === 'DONE') {
-      issues = issues.filter(i => 
-        i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate
-      );
+      issues = issues.filter(i => {
+        if (i.status !== 'DONE') return false;
+        const completionDate = i.completedAt || i.updatedAt;
+        return completionDate && new Date(completionDate) <= sprintEndDate;
+      });
     } else if (this.statusFilter === 'INCOMPLETE') {
       issues = issues.filter(i => i.status !== 'DONE');
     } else if (this.statusFilter === 'OUT_OF_SPRINT') {
-      issues = issues.filter(i => 
-        i.status === 'DONE' && new Date(i.updatedAt) > sprintEndDate
-      );
+      issues = issues.filter(i => {
+        if (i.status !== 'DONE') return false;
+        const completionDate = i.completedAt || i.updatedAt;
+        return completionDate && new Date(completionDate) > sprintEndDate;
+      });
     }
 
     const rows: BurndownRow[] = issues.map(i => ({
-      key: i.id,
+      key: i.key || i.id, // Use key field if available, fallback to id
       summary: i.title,
       workType: i.type,
-      epic:  i.epicId || '',
+      epic:  i.epicName || i.epicId || '',
       status: i.status,
       assignee: i.assignee || 'Undefined',
       storyPoints: i.storyPoints ?? 0
@@ -177,23 +212,29 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
   }
 
   private loadVelocityData(): void {
-    const sprint = this.getSelectedSprint();
-    if (!sprint?.issues) {
+    // Use input issues if provided, otherwise get from sprint
+    const issues: Issue[] = this.issues.length > 0 ? this.issues : (this.getSelectedSprint()?.issues ?? []);
+    
+    if (!this.sprintData || issues.length === 0) {
       this.dataSource = new MatTableDataSource<any>([]);
       return;
     }
 
-    const sprintEndDate = new Date(sprint.endDate);
+    const sprintEndDate = new Date(this.sprintData.endDate);
 
-    const totalCommitted = sprint.issues.reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
+    const totalCommitted = issues.reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
     // Count only issues that were completed on or before the sprint end date
-    const completedPoints = sprint.issues
-      .filter(i => i.status === 'DONE' && new Date(i.updatedAt) <= sprintEndDate)
+    const completedPoints = issues
+      .filter(i => {
+        if (i.status !== 'DONE') return false;
+        const completionDate = i.completedAt || i.updatedAt;
+        return completionDate && new Date(completionDate) <= sprintEndDate;
+      })
       .reduce((sum, i) => sum + (i.storyPoints ?? 0), 0);
 
     const rows = [
       {
-        sprint: sprint.name,
+        sprint: this.sprintData.name,
         commitment: totalCommitted,
         completed: completedPoints
       }
@@ -224,6 +265,18 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  }
+
+  // Format burnup dates as 'D mon YYYY' (e.g., '1 nov 2025') — lowercase month short name
+  private formatBurnupDate(input?: Date | string | null): string {
+    if (!input) return '';
+    const d = new Date(input as any);
+    if (isNaN(d.getTime())) return '';
+    const day = String(d.getDate());
+    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const mon = months[d.getMonth()] || '';
+    const yyyy = d.getFullYear();
+    return `${day} ${mon} ${yyyy}`;
   }
 
   // Filter out already-defined columns for dynamic rendering

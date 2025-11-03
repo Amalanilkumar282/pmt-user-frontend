@@ -84,27 +84,36 @@ export class Sidebar {
   }
   
   navigateToProject(projectId: string): void {
+    // Set the current project ID in session storage
+    this.projectContextService.setCurrentProjectId(projectId);
+
     // Update recent projects - move to top
     this.boardService.accessProject(projectId);
-    
-    // Get the default "All Issues" board for this project
+
+    // Get the default "All Issues" board for this project (async)
     const userId = 'user-1'; // TODO: Get from auth service
-    const defaultBoard = this.boardService.getDefaultBoard(projectId, userId);
-    
-    if (defaultBoard) {
-      console.log('🔗 Sidebar - Navigating to project', projectId, 'with default board', defaultBoard.id);
-      // Navigate with boardId in query params
-      this.router.navigate(['/projects', projectId, 'board'], {
-        queryParams: { boardId: defaultBoard.id }
-      });
-    } else {
-      console.warn('🔗 Sidebar - No default board found for project', projectId);
-      // Navigate without boardId, board-page will handle it
+    this.boardService.getDefaultBoard(projectId, userId).then(defaultBoard => {
+      if (defaultBoard) {
+        console.log('[Sidebar] Navigating to project', projectId, 'with default board', defaultBoard.id);
+        // Navigate with boardId in query params
+        this.router.navigate(['/projects', projectId, 'board'], {
+          queryParams: { boardId: defaultBoard.id }
+        });
+      } else {
+        console.warn('[Sidebar] No default board found for project', projectId);
+        // Navigate without boardId, board-page will handle it
+        this.router.navigate(['/projects', projectId, 'board']);
+      }
+    }).catch(err => {
+      console.error('[Sidebar] Error resolving default board:', err);
       this.router.navigate(['/projects', projectId, 'board']);
-    }
+    });
   }
   
   navigateToBoard(projectId: string, boardId: string): void {
+    // Set the current project ID in session storage
+    this.projectContextService.setCurrentProjectId(projectId);
+    
     // Set current board and navigate with query param
     this.boardService.setCurrentBoard(boardId);
     this.router.navigate(['/projects', projectId, 'board'], {
@@ -123,6 +132,9 @@ export class Sidebar {
     // Navigate to the newly created board
     const board = this.boardService.getBoardById(boardId);
     if (board) {
+      // Set the current project ID in session storage
+      this.projectContextService.setCurrentProjectId(board.projectId);
+      
       this.router.navigate(['/projects', board.projectId, 'board'], {
         queryParams: { boardId }
       });

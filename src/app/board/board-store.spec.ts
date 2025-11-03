@@ -1,4 +1,9 @@
 import { BoardStore } from './board-store';
+import { TestBed } from '@angular/core/testing';
+import { Injector, runInInjectionContext } from '@angular/core';
+import { BoardService } from './services/board.service';
+import { IssueApiService } from './services/issue-api.service';
+import { SprintApiService } from './services/sprint-api.service';
 import { DEFAULT_COLUMNS, statusOrder, fuzzyIncludes } from './utils';
 import type { Issue } from '../shared/models/issue.model';
 import type { Sprint } from './models';
@@ -29,9 +34,37 @@ function mkSprint(id: string, issues: Issue[], status: Sprint['status'] = 'ACTIV
 
 describe('BoardStore', () => {
   let store: BoardStore;
+  let mockBoardService: Partial<BoardService>;
+  let mockIssueApiService: Partial<IssueApiService>;
+  let mockSprintApiService: Partial<SprintApiService>;
 
   beforeEach(() => {
-    store = new BoardStore();
+    // Provide minimal mocks so BoardStore can be instantiated via DI
+    mockBoardService = ({
+      currentBoard: () => null as any,
+      getBoardById: () => null as any,
+      setCurrentBoard: () => {}
+    } as unknown) as Partial<BoardService>;
+
+    mockIssueApiService = {
+      getIssuesByProject: () => ({ toPromise: () => Promise.resolve([]) } as any)
+    } as Partial<IssueApiService>;
+
+    mockSprintApiService = {
+      getSprintsByProject: () => ({ toPromise: () => Promise.resolve([]) } as any)
+    } as Partial<SprintApiService>;
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: BoardService, useValue: mockBoardService },
+        { provide: IssueApiService, useValue: mockIssueApiService },
+        { provide: SprintApiService, useValue: mockSprintApiService }
+      ]
+    });
+
+    // Create BoardStore inside an injection context so its `inject()` calls work
+    const injector = TestBed.inject(Injector);
+    store = runInInjectionContext(injector, () => new BoardStore());
   });
 
   it('initializes with defaults', () => {
@@ -124,7 +157,7 @@ describe('BoardStore', () => {
   });
 
   it('addColumn appends to columns', () => {
-    store.addColumn({ id: 'QA' as any, title:'QA', color:'border-slate-300' });
+    store.addColumn({ id: 'QA' as any, title:'QA', color:'border-slate-300', position: 6 });
     expect(store.columns().map(c=>c.id)).toContain('QA' as any);
   });
 
@@ -147,7 +180,7 @@ describe('BoardStore', () => {
 
   it('removeColumn removes a column by id', () => {
     const before = store.columns().map(c => c.id);
-    store.addColumn({ id: 'QA' as any, title: 'QA', color: '' });
+    store.addColumn({ id: 'QA' as any, title: 'QA', color: '', position: 6 });
     expect(store.columns().map(c => c.id)).toContain('QA' as any);
     store.removeColumn('QA' as any);
     expect(store.columns().map(c => c.id)).not.toContain('QA' as any);

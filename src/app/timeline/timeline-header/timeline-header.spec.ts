@@ -23,10 +23,8 @@ describe('TimelineHeaderComponent', () => {
     expect(component.currentView).toBe('day');
     expect(component.displayMode).toBe('epics');
     expect(component.selectedEpic).toBeNull();
-    expect(component.availableSprints).toEqual([]);
     expect(component.availableEpics).toEqual([]);
     expect(component.selectedFilters).toEqual({
-      sprints: [],
       epics: [],
       types: [],
       status: []
@@ -51,10 +49,10 @@ describe('TimelineHeaderComponent', () => {
 
     const mockEvent = { target: { checked: true } } as unknown as Event;
     
-    component.toggleFilter('sprints', 'Sprint 1', mockEvent);
+    component.toggleFilter('epics', 'Epic 1', mockEvent);
     expect(component.filterToggled.emit).toHaveBeenCalledWith({
-      type: 'sprints',
-      value: 'Sprint 1',
+      type: 'epics',
+      value: 'Epic 1',
       checked: true
     });
 
@@ -83,14 +81,12 @@ describe('TimelineHeaderComponent', () => {
 
   it('should calculate filter counts correctly', () => {
     component.selectedFilters = {
-      sprints: ['Sprint 1', 'Sprint 2'],
-      epics: ['Epic A'],
+      epics: ['Epic A', 'Epic B'],
       types: ['story', 'bug'],
       status: ['todo']
     };
 
-    expect(component.getFilterCount('sprints')).toBe(2);
-    expect(component.getFilterCount('epics')).toBe(1);
+    expect(component.getFilterCount('epics')).toBe(2);
     expect(component.getFilterCount('types')).toBe(2);
     expect(component.getFilterCount('status')).toBe(1);
   });
@@ -176,8 +172,7 @@ describe('TimelineHeaderComponent', () => {
 
   it('should accept input properties correctly', () => {
     const testFilters: FilterState = {
-      sprints: ['Sprint A'],
-      epics: ['Epic B'],
+      epics: ['Epic A', 'Epic B'],
       types: ['story'],
       status: ['done']
     };
@@ -185,7 +180,6 @@ describe('TimelineHeaderComponent', () => {
     component.currentView = 'month';
     component.displayMode = 'issues';
     component.selectedEpic = 'Test Epic';
-    component.availableSprints = ['Sprint 1', 'Sprint 2'];
     component.availableEpics = ['Epic 1', 'Epic 2', 'Epic 3'];
     component.selectedFilters = testFilters;
 
@@ -194,7 +188,6 @@ describe('TimelineHeaderComponent', () => {
     expect(component.currentView).toBe('month');
     expect(component.displayMode).toBe('issues');
     expect(component.selectedEpic).toBe('Test Epic');
-    expect(component.availableSprints).toEqual(['Sprint 1', 'Sprint 2']);
     expect(component.availableEpics).toEqual(['Epic 1', 'Epic 2', 'Epic 3']);
     expect(component.selectedFilters).toEqual(testFilters);
   });

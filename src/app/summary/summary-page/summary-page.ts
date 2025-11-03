@@ -1,5 +1,6 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { IssueSummaryCard } from '../issue-summary-card/issue-summary-card';
 import { Sidebar } from '../../shared/sidebar/sidebar';
@@ -59,6 +60,9 @@ export class SummaryPage implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private issueSummaryService = inject(IssueSummaryService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+  private cdr = inject(ChangeDetectorRef);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
@@ -89,20 +93,75 @@ export class SummaryPage implements OnInit {
   ];
 
   ngOnInit(): void {
-    // Set project context from route params
-    const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
+    // Try multiple ways to get the project ID
+    let projectId = this.route.parent?.snapshot.paramMap.get('projectId');
+    
+    // If not found in parent, try current route
+    if (!projectId) {
+      projectId = this.route.snapshot.paramMap.get('projectId');
+    }
+    
+    // If still not found, try to get from URL directly (only in browser)
+    if (!projectId && this.isBrowser) {
+      const urlSegments = window.location.pathname.split('/');
+      const projectsIndex = urlSegments.indexOf('projects');
+      if (projectsIndex !== -1 && urlSegments[projectsIndex + 1]) {
+        projectId = urlSegments[projectsIndex + 1];
+      }
+    }
+    
+    // FOR TESTING: If projectId is '1' (numeric), use the test GUID
+    // TODO: Remove this once real project IDs are properly passed from navigation
+    if (projectId === '1') {
+      console.warn('⚠️ Numeric project ID detected. Using test GUID for API call.');
+      projectId = '11111111-1111-1111-1111-111111111111'; // Use your actual project GUID
+    }
+    
+    console.log('Summary page - Project ID:', projectId);
+    if (this.isBrowser) {
+      console.log('Summary page - Full URL:', window.location.href);
+    }
+    
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
+      
+      // Load sprints for the filter from API
+      console.log('Fetching sprints for project:', projectId);
+      this.issueSummaryService.getSprintsByProjectId(projectId).subscribe({
+        next: (sprints) => {
+          console.log('✅ Loaded sprints from API:', sprints);
+          console.log('✅ Sprint count:', sprints.length);
+          console.log('✅ First sprint:', sprints[0]);
+          this.sprints = sprints;
+          console.log('✅ After assignment - this.sprints:', this.sprints);
+          console.log('✅ After assignment - this.sprints.length:', this.sprints.length);
+          
+          // Manually trigger change detection to update the view
+          this.cdr.detectChanges();
+          console.log('✅ Change detection triggered');
+        },
+        error: (error) => {
+          console.error('❌ Error loading sprints from API:', error);
+          console.error('API Error Details:', {
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url
+          });
+          // No fallback - leave sprints empty
+          this.sprints = [];
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      console.warn('⚠️ No project ID found - cannot load sprints');
+      this.sprints = [];
     }
-
-    // Load sprints for the filter
-    this.sprints = this.issueSummaryService.getAllSprints();
 
     // Load initial data based on default filter ('all')
     this.updateDashboardData();
   }
 
-  onSprintFilterChange(sprintId: string): void {
+  onSprintFilterChange(sprintId: string | null): void {
     this.selectedSprintId = sprintId;
     this.updateDashboardData();
   }

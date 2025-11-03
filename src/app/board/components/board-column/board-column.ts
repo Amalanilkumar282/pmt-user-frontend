@@ -4,9 +4,11 @@ import { CdkDragDrop, DragDropModule, CdkDropList, moveItemInArray, transferArra
 import { BoardColumnDef, GroupBy } from '../../models';
 import type { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardStore } from '../../board-store';
+import { BoardService } from '../../services/board.service';
 import { TaskCard } from '../task-card/task-card';
 import { QuickCreateIssue, QuickCreateIssueData } from '../quick-create-issue/quick-create-issue';
 import { ConfirmationModal } from '../../../shared/components/confirmation-modal/confirmation-modal';
+import { ProjectContextService } from '../../../shared/services/project-context.service';
 
 interface GroupedIssues {
   groupName: string;
@@ -23,6 +25,8 @@ interface GroupedIssues {
 })
 export class BoardColumn {
   private store = inject(BoardStore);
+  private boardService = inject(BoardService);
+  private projectContextService = inject(ProjectContextService);
   
   @Output() openIssue = new EventEmitter<Issue>();
   @Output() openIssueComments = new EventEmitter<Issue>();
@@ -35,6 +39,8 @@ export class BoardColumn {
 
   // Confirmation modal state
   showDeleteConfirmation = signal(false);
+  isDeletingColumn = signal(false);
+  deleteError = signal<string | null>(null);
 
   trackById(index: number, item: Issue): string {
     return item.id;
@@ -94,8 +100,8 @@ export class BoardColumn {
     this.openIssueComments.emit(issue);
   }
 
-  drop(event: CdkDragDrop<Issue[]>) {
-    // Same container - reorder within column
+  async drop(event: CdkDragDrop<Issue[]>) {
+    // Same container - reorder within column (no API call needed)
     if (event.previousContainer === event.container) {
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       
@@ -107,10 +113,11 @@ export class BoardColumn {
       return;
     }
     
-    // Different container - move between columns  
+    // Different container - move between columns and update via API
     const item = event.previousContainer.data[event.previousIndex];
+    const projectId = this.projectContextService.currentProjectId();
     
-    // Transfer the item
+    // Optimistic update - transfer the item in UI
     transferArrayItem(
       event.previousContainer.data,
       event.container.data,
@@ -118,12 +125,43 @@ export class BoardColumn {
       event.currentIndex
     );
     
-    // Sync both source and destination items arrays if needed
-    const sourceColumn = (event.previousContainer as any)._element?.nativeElement?.closest?.('app-board-column');
-    const destColumn = (event.container as any)._element?.nativeElement?.closest?.('app-board-column');
-    
-    // Update status in store (this will trigger re-render with correct data)
-    this.store.updateIssueStatus(item.id, this.def.id as IssueStatus);
+    // Call backend API to persist the status change
+    if (this.def.statusId !== undefined && projectId && item) {
+      try {
+        console.log('[BoardColumn] Drag-drop: Updating issue status via API', {
+          issueId: item.id,
+          issueKey: item.key,
+          fromStatus: item.statusId,
+          toStatus: this.def.statusId,
+          columnName: this.def.title
+        });
+        
+        await this.store.updateIssueStatusApi(item.id, this.def.statusId, projectId);
+        
+        console.log('[BoardColumn] Issue status updated successfully');
+      } catch (error) {
+        console.error('[BoardColumn] Failed to update issue status:', error);
+        
+        // Rollback UI change on error
+        transferArrayItem(
+          event.container.data,
+          event.previousContainer.data,
+          event.currentIndex,
+          event.previousIndex
+        );
+        
+        alert('Failed to update issue status. Please try again.');
+      }
+    } else {
+      console.error('[BoardColumn] Missing data for status update:', {
+        statusId: this.def.statusId,
+        projectId,
+        issue: item?.id
+      });
+      
+      // Fallback to local update if API data is missing
+      this.store.updateIssueStatus(item.id, this.def.id as IssueStatus);
+    }
   }
 
   onDeleteColumn() {
@@ -132,22 +170,58 @@ export class BoardColumn {
     return false;
   }
 
-  confirmDeleteColumn() {
-    this.showDeleteConfirmation.set(false);
-    
+  async confirmDeleteColumn() {
     // If there are items in the column, don't delete
     if ((this.items ?? []).length > 0) {
       // User confirmed but column has items - we don't actually delete
       // This shouldn't happen since we check in the modal, but just in case
+      this.showDeleteConfirmation.set(false);
       return;
     }
     
-    // Delete column via store if empty
-    this.store.removeColumn(this.def.id as any);
+    const board = this.store.currentBoard();
+    if (!board || !board.id) {
+      // Fallback: delete locally if no board context
+      this.store.removeColumn(this.def.id as any);
+      this.showDeleteConfirmation.set(false);
+      return;
+    }
+
+    // Use columnId (the backend database ID) for the API call, fallback to id
+    const columnIdToDelete = this.def.columnId || String(this.def.id);
+    
+    try {
+      this.isDeletingColumn.set(true);
+      this.deleteError.set(null);
+      
+      console.log('[BoardColumn] Deleting column:', {
+        columnId: columnIdToDelete,
+        columnTitle: this.def.title,
+        boardId: board.id,
+        columnDef: this.def
+      });
+      
+      // Call backend API to delete column
+      const success = await this.boardService.deleteColumnApi(columnIdToDelete, String(board.id));
+      
+      if (success) {
+        // Refresh board columns in store
+        this.store.loadBoard(String(board.id));
+        this.showDeleteConfirmation.set(false);
+      } else {
+        this.deleteError.set('Failed to delete column');
+      }
+    } catch (err) {
+      console.error('[BoardColumn] Error deleting column:', err);
+      this.deleteError.set('Error deleting column');
+    } finally {
+      this.isDeletingColumn.set(false);
+    }
   }
 
   cancelDeleteColumn() {
     this.showDeleteConfirmation.set(false);
+    this.deleteError.set(null);
   }
 
   getColumnColorClass(): string {

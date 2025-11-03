@@ -28,7 +28,7 @@
       <div class="relative" appClickOutside (outsideClick)="showTypeDropdown.set(false)">
         <button 
           type="button"
-          (click)="showTypeDropdown.set(!showTypeDropdown()); showPriorityDropdown.set(false); showAssigneeDropdown.set(false)"
+          (click)="toggleTypeDropdown()"
           class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer">
           <i [class]="getTypeIcon(issueType())"></i>
           <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -55,7 +55,7 @@
       <div class="relative" appClickOutside (outsideClick)="showPriorityDropdown.set(false)">
         <button 
           type="button"
-          (click)="showPriorityDropdown.set(!showPriorityDropdown()); showTypeDropdown.set(false); showAssigneeDropdown.set(false)"
+          (click)="togglePriorityDropdown()"
           class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer">
           <svg class="w-3 h-3" [ngClass]="getPriorityColor(issuePriority())" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -92,7 +92,7 @@
       <div class="relative" appClickOutside (outsideClick)="showAssigneeDropdown.set(false)">
         <button 
           type="button"
-          (click)="showAssigneeDropdown.set(!showAssigneeDropdown()); showTypeDropdown.set(false); showPriorityDropdown.set(false)"
+          (click)="toggleAssigneeDropdown()"
           class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer">
           <div class="w-5 h-5 rounded-full bg-blue-500 text-white text-[9px] flex items-center justify-center font-bold">
             {{ getAssigneeInitials(issueAssignee()) }}

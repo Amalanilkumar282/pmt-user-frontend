@@ -1,4 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { Issue } from '../shared/models/issue.model';
 import { Sprint } from '../sprint/sprint-container/sprint-container';
 import {
@@ -39,6 +42,11 @@ interface RecentIssue {
   providedIn: 'root',
 })
 export class IssueSummaryService {
+  private http = inject(HttpClient);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+  // Use direct API URL instead of proxy
+  private readonly API_BASE_URL = 'https://localhost:7117/api';
   private readonly CURRENT_DATE = new Date();
   private readonly MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -82,6 +90,113 @@ export class IssueSummaryService {
     ];
   }
 
+  /**
+   * Get authentication headers with access token
+   */
+  private getAuthHeaders(): HttpHeaders {
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    if (this.isBrowser) {
+      const token = sessionStorage.getItem('accessToken');
+      if (token) {
+        headers = headers.set('Authorization', `Bearer ${token}`);
+      }
+    }
+
+    return headers;
+  }
+
+  /**
+   * Fetch sprints from API for a given project
+   * Maps API response to Sprint interface
+   */
+  getSprintsByProjectId(projectId: string): Observable<Sprint[]> {
+    const headers = this.getAuthHeaders();
+    
+    return this.http.get<any>(`${this.API_BASE_URL}/sprints/project/${projectId}`, { headers }).pipe(
+      map((response) => {
+        if (response.status === 200 && response.data) {
+          return response.data.map((sprint: any) => ({
+            id: sprint.id,
+            name: sprint.name,
+            startDate: new Date(sprint.startDate),
+            endDate: new Date(sprint.dueDate), // Map dueDate to endDate
+            status: sprint.status as 'ACTIVE' | 'COMPLETED' | 'PLANNED',
+            issues: [],
+            teamAssigned: sprint.teamId ? `Team ${sprint.teamId}` : undefined,
+          }));
+        }
+        return [];
+      })
+    );
+  }
+
+  /**
+   * Fetch issues from API for a specific project and sprint
+   * API format: /api/Issue/project/{projectId}/sprint/{sprintId}/issues
+   */
+  getIssuesByProjectAndSprint(projectId: string, sprintId: string): Observable<Issue[]> {
+    const headers = this.getAuthHeaders();
+    
+    return this.http.get<any>(`${this.API_BASE_URL}/Issue/project/${projectId}/sprint/${sprintId}/issues`, { headers }).pipe(
+      map((response) => {
+        if (response.status === 200 && response.data) {
+          console.log('🔍 Raw API response - Total issues:', response.data.length);
+          return response.data.map((issue: any) => {
+            // Map statusName to our IssueStatus type
+            let status: string = 'TODO';
+            if (issue.statusName) {
+              const statusMap: { [key: string]: string } = {
+                'To Do': 'TODO',
+                'TODO': 'TODO',
+                'In Progress': 'IN_PROGRESS',
+                'IN_PROGRESS': 'IN_PROGRESS',
+                'In Review': 'IN_REVIEW',
+                'IN_REVIEW': 'IN_REVIEW',
+                'Done': 'DONE',
+                'DONE': 'DONE',
+                'Blocked': 'BLOCKED',
+                'BLOCKED': 'BLOCKED'
+              };
+              status = statusMap[issue.statusName] || issue.statusName.toUpperCase().replace(/\s+/g, '_');
+            }
+            
+            console.log('📦 Issue:', issue.title, '| Key:', issue.key, '| Status:', issue.statusName, '→', status, '| Updated:', issue.updatedAt);
+            
+            return {
+              id: issue.id || issue.issueId,
+              key: issue.key, // Map the key field (e.g., PMT-011)
+              title: issue.title || issue.name,
+              description: issue.description,
+              type: (issue.issueType || issue.type || 'TASK').toUpperCase(),
+              priority: (issue.priority || 'MEDIUM').toUpperCase(),
+              status: status,
+              assignee: issue.assigneeName || issue.assignee || issue.assignedTo,
+              storyPoints: issue.storyPoints || 0,
+              sprintId: issue.sprintId,
+              teamId: issue.teamId,
+              epicId: issue.epicId,
+              epicName: issue.epicName || null,
+              startDate: issue.startDate ? new Date(issue.startDate) : undefined,
+              dueDate: issue.dueDate ? new Date(issue.dueDate) : undefined,
+              endDate: issue.endDate ? new Date(issue.endDate) : undefined,
+              createdAt: issue.createdAt ? new Date(issue.createdAt) : new Date(),
+              updatedAt: issue.updatedAt ? new Date(issue.updatedAt) : new Date(),
+              completedAt: issue.completedAt ? new Date(issue.completedAt) : (status === 'DONE' && issue.updatedAt ? new Date(issue.updatedAt) : undefined),
+            } as Issue;
+          });
+        }
+        return [];
+      })
+    );
+  }
+
+  /**
+   * @deprecated Use getSprintsByProjectId instead
+   * Returns dummy sprint data for backward compatibility
+   */
   getAllSprints(): Sprint[] {
     return sprints;
   }

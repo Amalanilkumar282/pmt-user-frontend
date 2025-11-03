@@ -1,37 +1,63 @@
 import { Routes } from '@angular/router';
-import { BacklogPage } from './backlog/backlog-page/backlog-page';
-import { SummaryPage } from './summary/summary-page/summary-page';
-import { ReportDashboardHome } from './report-dashboard/report-dashboard-home/report-dashboard-home';
-import { BoardPage } from './board/components/board-page/board-page';
-import { MessagePage } from './message/message-page/message-page';
-import { TimelineComponent } from './timeline/timeline-component/timeline-component';
-import { BurnupChart } from './report-dashboard/burnup-chart/burnup-chart';
-import { BurndownChart } from './report-dashboard/burndown-chart/burndown-chart';
-import { VelocityChart } from './report-dashboard/velocity-chart/velocity-chart';
-import { MainDashboardHome } from './main-dashboard/main-dashboard-home/main-dashboard-home';
-import { ProjectsPage } from './projects/projects-page/projects-page';
-import { TeamsPage } from './teams/teams-page/teams-page';
-import { LoginComponent } from './auth/login/login';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'login', component: LoginComponent },
-  { path: 'dashboard', component: MainDashboardHome },
-  { path: 'projects', component: ProjectsPage },
+  { 
+    path: 'login', 
+    loadComponent: () => import('./auth/login/login').then(m => m.LoginComponent)
+  },
+  { 
+    path: 'dashboard', 
+    loadComponent: () => import('./main-dashboard/main-dashboard-home/main-dashboard-home').then(m => m.MainDashboardHome)
+  },
+  { 
+    path: 'projects', 
+    loadComponent: () => import('./projects/projects-page/projects-page').then(m => m.ProjectsPage)
+  },
   {
     path: 'projects/:projectId',
     children: [
       { path: '', redirectTo: 'board', pathMatch: 'full' },
-      { path: 'board', component: BoardPage },
-      { path: 'backlog', component: BacklogPage },
-      { path: 'summary', component: SummaryPage },
-      { path: 'messages', component: MessagePage },
-      { path: 'timeline', component: TimelineComponent },
-      { path: 'report-dashboard', component: ReportDashboardHome },
-      { path: 'report-dashboard/burnup-chart', component: BurnupChart },
-      { path: 'report-dashboard/burndown-chart', component: BurndownChart },
-      { path: 'report-dashboard/velocity-chart', component: VelocityChart },
-      { path: 'teams', component: TeamsPage },
+      { 
+        path: 'board', 
+        loadComponent: () => import('./board/components/board-page/board-page').then(m => m.BoardPage)
+      },
+      { 
+        path: 'backlog', 
+        loadComponent: () => import('./backlog/backlog-page/backlog-page').then(m => m.BacklogPage)
+      },
+      { 
+        path: 'summary', 
+        loadComponent: () => import('./summary/summary-page/summary-page').then(m => m.SummaryPage)
+      },
+      { 
+        path: 'messages', 
+        loadComponent: () => import('./message/message-page/message-page').then(m => m.MessagePage)
+      },
+      { 
+        path: 'timeline', 
+        loadComponent: () => import('./timeline/timeline-component/timeline-component').then(m => m.TimelineComponent)
+      },
+      { 
+        path: 'report-dashboard', 
+        loadComponent: () => import('./report-dashboard/report-dashboard-home/report-dashboard-home').then(m => m.ReportDashboardHome)
+      },
+      { 
+        path: 'report-dashboard/burnup-chart', 
+        loadComponent: () => import('./report-dashboard/burnup-chart/burnup-chart').then(m => m.BurnupChart)
+      },
+      { 
+        path: 'report-dashboard/burndown-chart', 
+        loadComponent: () => import('./report-dashboard/burndown-chart/burndown-chart').then(m => m.BurndownChart)
+      },
+      { 
+        path: 'report-dashboard/velocity-chart', 
+        loadComponent: () => import('./report-dashboard/velocity-chart/velocity-chart').then(m => m.VelocityChart)
+      },
+      { 
+        path: 'teams', 
+        loadComponent: () => import('./teams/teams-page/teams-page').then(m => m.TeamsPage)
+      },
     ],
   },
 ];

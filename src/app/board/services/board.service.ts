@@ -1,35 +1,139 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Board, CreateBoardDto, UpdateBoardDto, RecentProject, BoardType } from '../models/board.model';
 import { DEFAULT_COLUMNS } from '../utils';
+import { BoardColumnDef } from '../models';
 import { TeamsService } from '../../teams/services/teams.service';
+import { BoardApiService } from './board-api.service';
+import { TeamApiService } from './team-api.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BoardService {
   private teamsService = inject(TeamsService);
+  private boardApiService = inject(BoardApiService);
+  private teamApiService = inject(TeamApiService);
   
   // Signal-based state
-  private boardsSignal = signal<Board[]>(this.getInitialBoards());
+  private boardsSignal = signal<Board[]>([]);
   private recentProjectsSignal = signal<RecentProject[]>(this.getInitialRecentProjects());
   private currentBoardIdSignal = signal<string | null>(null);
+  private loadingSignal = signal<boolean>(false);
   
   // Public computed signals
   boards = this.boardsSignal.asReadonly();
   recentProjects = this.recentProjectsSignal.asReadonly();
   currentBoardId = this.currentBoardIdSignal.asReadonly();
+  loading = this.loadingSignal.asReadonly();
   
   currentBoard = computed(() => {
     const id = this.currentBoardIdSignal();
     return id ? this.boardsSignal().find(b => b.id === id) : null;
   });
   
-  // Get boards by project
+  // Load boards from backend
+  async loadBoardsByProject(projectId: string): Promise<void> {
+    try {
+      this.loadingSignal.set(true);
+      const boards = await firstValueFrom(this.boardApiService.getBoardsByProject(projectId));
+      
+      // Enrich default/project boards with aggregated columns from all project boards
+      const enrichedBoards = boards.map(board => {
+        if (board.type === 'PROJECT' || (!board.teamId && board.type !== 'TEAM')) {
+          // This is a default/project board - aggregate unique columns from all boards
+          return this.enrichDefaultBoardColumns(board, boards);
+        }
+        return board;
+      });
+      
+      this.boardsSignal.set(enrichedBoards);
+      console.log('[BoardService] Loaded boards from API:', enrichedBoards);
+    } catch (error) {
+      console.error('[BoardService] Error loading boards:', error);
+      // Fallback to empty boards on error
+      this.boardsSignal.set([]);
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  /**
+   * Enrich default board with unique columns from all project boards
+   * This ensures the default board shows all possible statuses from the entire project
+   * 
+   * IMPORTANT: Uniqueness is determined by statusId (numeric), NOT by status name.
+   * Multiple boards can have columns with the same status (e.g., "To Do", "TODO", "to do")
+   * but as long as they map to the same statusId in the backend, they count as ONE column
+   * in the default board. This prevents duplicate columns for the same status.
+   */
+  private enrichDefaultBoardColumns(defaultBoard: Board, allBoards: Board[]): Board {
+    // Collect all unique columns by statusId from all boards in the project
+    const columnsByStatusId = new Map<number, BoardColumnDef>();
+    
+    // First, iterate through all boards to find unique statusIds
+    for (const board of allBoards) {
+      if (board.projectId === defaultBoard.projectId) {
+        for (const column of board.columns) {
+          if (column.statusId !== undefined && !columnsByStatusId.has(column.statusId)) {
+            columnsByStatusId.set(column.statusId, column);
+          }
+        }
+      }
+    }
+    
+    // Convert to array and sort by position (or statusId as fallback)
+    const uniqueColumns = Array.from(columnsByStatusId.values())
+      .sort((a, b) => {
+        // Sort by position if available, otherwise by statusId
+        if (a.position !== undefined && b.position !== undefined) {
+          return a.position - b.position;
+        }
+        return (a.statusId || 0) - (b.statusId || 0);
+      })
+      // Reassign positions sequentially
+      .map((col, index) => ({ ...col, position: index }));
+    
+    return {
+      ...defaultBoard,
+      columns: uniqueColumns.length > 0 ? uniqueColumns : defaultBoard.columns
+    };
+  }
+  
+  // Load single board from backend
+  async loadBoardById(boardId: number): Promise<Board | null> {
+    try {
+      this.loadingSignal.set(true);
+      const board = await firstValueFrom(this.boardApiService.getBoardById(boardId));
+      
+      // Update the board in the signal if it exists
+      const currentBoards = this.boardsSignal();
+      const boardIndex = currentBoards.findIndex(b => b.id === board.id);
+      
+      if (boardIndex >= 0) {
+        const updatedBoards = [...currentBoards];
+        updatedBoards[boardIndex] = board;
+        this.boardsSignal.set(updatedBoards);
+      } else {
+        this.boardsSignal.set([...currentBoards, board]);
+      }
+      
+      console.log('[BoardService] Loaded board from API:', board);
+      return board;
+    } catch (error) {
+      console.error('[BoardService] Error loading board:', error);
+      return null;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Get boards by project (from cache)
   getBoardsByProject(projectId: string): Board[] {
     return this.boardsSignal().filter(b => b.projectId === projectId);
   }
   
-  // Get board by ID
+  // Get board by ID (from cache)
   getBoardById(boardId: string): Board | undefined {
     return this.boardsSignal().find(b => b.id === boardId);
   }
@@ -69,27 +173,337 @@ export class BoardService {
     return this.getBoardsByTeam(teamId)[0] || null;
   }
   
-  // Get default board for a user in a project
-  getDefaultBoard(projectId: string, userId: string): Board | null {
-    console.log('🔍 getDefaultBoard - ProjectId:', projectId, 'UserId:', userId);
+  /**
+   * Get default board for a user in a project
+   * LOGIC:
+   * 1. Check if user has teamId in current project
+   * 2. If YES → return team's board (board with that teamId)
+   * 3. If NO → return default board (type='default' or first project board)
+   */
+  async getDefaultBoard(projectId: string, userId: string): Promise<Board | null> {
+    console.log('[BoardService] getDefaultBoard - ProjectId:', projectId, 'UserId:', userId);
     
-    // ALWAYS return the PROJECT "All Issues" board when clicking on a project
-    // This matches Jira's behavior where project navigation goes to "All Issues"
-    const projectBoard = this.boardsSignal().find(
-      b => b.projectId === projectId && b.type === 'PROJECT' && b.isDefault
-    );
-    
-    console.log('🔍 getDefaultBoard - Found project board:', projectBoard);
-    
-    if (projectBoard) return projectBoard;
-    
-    // Fallback: return first board for project
-    const fallback = this.getBoardsByProject(projectId)[0] || null;
-    console.log('🔍 getDefaultBoard - Fallback board:', fallback);
-    return fallback;
+    try {
+      // Step 1: Check if user belongs to any team in this project
+      const teams = await firstValueFrom(this.teamApiService.getTeamsByProject(projectId));
+      console.log('[BoardService] Teams in project:', teams);
+      
+      // Find team where current user is a member or lead
+      const userEmail = this.getUserEmail();
+      const userTeam = teams.find(team => 
+        team.members.some(member => member.email === userEmail) ||
+        team.lead.email === userEmail
+      );
+      
+      console.log('[BoardService] User team found:', userTeam);
+      
+      if (userTeam) {
+        // User has a team - find board with this team's ID
+        // Note: TeamApi doesn't have ID, need to match by team name
+        const teamBoard = this.boardsSignal().find(
+          b => b.teamName === userTeam.name && b.projectId === projectId
+        );
+        
+        if (teamBoard) {
+          console.log('[BoardService] Returning team board:', teamBoard.name);
+          return teamBoard;
+        }
+        
+        console.warn('[BoardService] User has team but no board found for team:', userTeam.name);
+      }
+      
+      // Step 2: User has no team OR team has no board - prefer a project-level DEFAULT board
+      // First preference: a board explicitly marked as default and of type PROJECT
+      const defaultProjectBoard = this.boardsSignal().find(
+        b => b.projectId === projectId &&
+             (b.type === 'PROJECT' || b.type.toLowerCase() === 'project') &&
+             b.isDefault === true
+      );
+
+      if (defaultProjectBoard) {
+        console.log('[BoardService] Returning default project board:', defaultProjectBoard.name);
+        return defaultProjectBoard;
+      }
+
+      // Second preference: any board explicitly of type PROJECT (regardless of isDefault)
+      const anyProjectBoard = this.boardsSignal().find(
+        b => b.projectId === projectId && (b.type === 'PROJECT' || b.type.toLowerCase() === 'project')
+      );
+
+      if (anyProjectBoard) {
+        console.log('[BoardService] Returning project board (non-team):', anyProjectBoard.name);
+        return anyProjectBoard;
+      }
+
+      // Third preference: any non-team board (could be CUSTOM but not tied to a team)
+      const nonTeamBoard = this.boardsSignal().find(
+        b => b.projectId === projectId && !b.teamId
+      );
+
+      if (nonTeamBoard) {
+        console.log('[BoardService] Returning first non-team project board:', nonTeamBoard.name);
+        return nonTeamBoard;
+      }
+      
+      // Last resort: return any board for this project
+      const anyBoard = this.getBoardsByProject(projectId)[0] || null;
+      console.log('[BoardService] Returning any available board:', anyBoard?.name || 'null');
+      return anyBoard;
+      
+    } catch (error) {
+      console.error('[BoardService] Error getting user team:', error);
+      
+      // Fallback to project board on error
+      const fallback = this.boardsSignal().find(
+        b => b.projectId === projectId && b.type === 'PROJECT'
+      ) || this.getBoardsByProject(projectId)[0] || null;
+      
+      console.log('[BoardService] Error fallback board:', fallback?.name || 'null');
+      return fallback;
+    }
+  }
+  
+  /**
+   * Helper: Get current user's email from session
+   */
+  private getUserEmail(): string {
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('userEmail') || '';
+    }
+    return '';
   }
   
   // Create board
+  async createBoardApi(dto: CreateBoardDto): Promise<Board | null> {
+    // Validation
+    if (!dto.name || dto.name.trim().length === 0) {
+      console.error('[BoardService] Board name is required');
+      return null;
+    }
+    
+    if (!dto.projectId) {
+      console.error('[BoardService] Project ID is required');
+      return null;
+    }
+    
+    try {
+      this.loadingSignal.set(true);
+      
+      // Get current user ID for createdBy
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      if (!userId) {
+        console.error('[BoardService] No user ID found for board creation');
+        return null;
+      }
+      
+      // Map CreateBoardDto to backend API DTO
+      const apiDto: any = {
+        projectId: dto.projectId,
+        name: dto.name.trim(),
+        description: '',
+        type: dto.type.toLowerCase(), // Backend expects lowercase
+        teamId: dto.teamId ? parseInt(dto.teamId, 10) : null,
+        createdBy: userId,
+        metadata: null
+      };
+      
+      const response = await firstValueFrom(this.boardApiService.createBoard(apiDto));
+      
+      if (response.status === 200 || response.status === 201) {
+        console.log('[BoardService] Board created successfully:', response);
+        // Reload boards from API
+        await this.loadBoardsByProject(dto.projectId);
+        // Find the newly created board
+        const newBoard = this.boardsSignal().find(b => b.name === dto.name);
+        return newBoard || null;
+      } else {
+        console.error('[BoardService] Failed to create board:', response);
+        return null;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error creating board:', error);
+      return null;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Update board
+  async updateBoardApi(boardId: string, dto: UpdateBoardDto): Promise<Board | null> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      const apiDto: any = {
+        boardId: numericBoardId,
+        name: dto.name,
+        updatedBy: userId,
+        removeTeamAssociation: false
+      };
+      
+      const response = await firstValueFrom(this.boardApiService.updateBoard(numericBoardId, apiDto));
+      
+      if (response.status === 200) {
+        console.log('[BoardService] Board updated successfully');
+        // Reload board from API
+        return await this.loadBoardById(numericBoardId);
+      } else {
+        console.error('[BoardService] Failed to update board:', response);
+        return null;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error updating board:', error);
+      return null;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Delete board
+  async deleteBoardApi(boardId: string): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      const response = await firstValueFrom(this.boardApiService.deleteBoard(numericBoardId, userId));
+      
+      if (response.status === 200 && response.data === true) {
+        console.log('[BoardService] Board deleted successfully');
+        // Remove from local cache
+        this.boardsSignal.update(boards => boards.filter(b => b.id !== boardId));
+        return true;
+      } else {
+        console.error('[BoardService] Failed to delete board:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error deleting board:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Column Management API Methods
+  
+  /**
+   * Create a new column for a board
+   */
+  async createColumnApi(boardId: string, columnName: string, color: string, statusName: string, position: number): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const numericBoardId = parseInt(boardId, 10);
+      const dto: any = {
+        boardId: numericBoardId,
+        boardColumnName: columnName,
+        boardColor: color,
+        statusName: statusName,
+        position: position
+      };
+      
+      const response = await firstValueFrom(this.boardApiService.createBoardColumn(dto));
+      
+      if (response.status === 200 || response.status === 201) {
+        console.log('[BoardService] Column created successfully');
+        // Reload board to get updated columns
+        await this.loadBoardById(numericBoardId);
+        return true;
+      } else {
+        console.error('[BoardService] Failed to create column:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error creating column:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  /**
+   * Update an existing column
+   */
+  async updateColumnApi(columnId: string, boardId: string, updates: { name?: string; color?: string; position?: number }): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      // Build the DTO according to the API spec - all fields are optional except columnId, boardId, updatedBy
+      const dto: any = {
+        columnId: columnId,
+        boardId: numericBoardId,
+        updatedBy: userId
+      };
+      
+      // Only include fields that are being updated
+      if (updates.name !== undefined) {
+        dto.boardColumnName = updates.name;
+      }
+      if (updates.color !== undefined) {
+        dto.boardColor = updates.color;
+      }
+      if (updates.position !== undefined) {
+        dto.position = updates.position;
+      }
+      
+      console.log('[BoardService] Updating column with DTO:', dto);
+      
+      const response = await firstValueFrom(this.boardApiService.updateBoardColumn(columnId, dto));
+      
+      if (response.status === 200) {
+        console.log('[BoardService] Column updated successfully:', response.data);
+        // Reload board to get updated columns
+        await this.loadBoardById(numericBoardId);
+        return true;
+      } else {
+        console.error('[BoardService] Failed to update column:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error updating column:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  /**
+   * Delete a column from a board
+   */
+  async deleteColumnApi(columnId: string, boardId: string): Promise<boolean> {
+    try {
+      this.loadingSignal.set(true);
+      
+      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      const numericBoardId = parseInt(boardId, 10);
+      
+      const response = await firstValueFrom(this.boardApiService.deleteBoardColumn(columnId, numericBoardId, userId));
+      
+      if (response.status === 200) {
+        console.log('[BoardService] Column deleted successfully');
+        // Reload board to get updated columns
+        await this.loadBoardById(numericBoardId);
+        return true;
+      } else {
+        console.error('[BoardService] Failed to delete column:', response);
+        return false;
+      }
+    } catch (error) {
+      console.error('[BoardService] Error deleting column:', error);
+      return false;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+  
+  // Create board (local - kept for backward compatibility)
   createBoard(dto: CreateBoardDto): Board | null {
     // Validation
     if (!dto.name || dto.name.trim().length === 0) {

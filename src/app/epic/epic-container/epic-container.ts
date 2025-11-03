@@ -1,10 +1,11 @@
-import { Component, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Output, EventEmitter, inject, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EpicList } from '../epic-list/epic-list';
-import { Epic } from '../../shared/models/epic.model';
-import { epics as initialEpics } from '../../shared/data/dummy-backlog-data';
+import { Epic, CreateEpicRequest } from '../../shared/models/epic.model';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { EpicService } from '../../shared/services/epic.service';
+import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
   selector: 'app-epic-container',
@@ -13,20 +14,71 @@ import { SidebarStateService } from '../../shared/services/sidebar-state.service
   templateUrl: './epic-container.html',
   styleUrl: './epic-container.css',
 })
-export class EpicContainer {
-  epics: Epic[] = [...initialEpics];
+export class EpicContainer implements OnInit, OnChanges {
+  @Input() projectId: string = '';
+  
+  epics: Epic[] = [];
   isCreating = false;
   newEpicName = '';
+  isLoading = false;
+  
   private sidebarStateService = inject(SidebarStateService);
-
-  isSidebarCollapsed(): boolean {
-    return this.sidebarStateService.getCollapsed();
-  }
+  private epicService = inject(EpicService);
+  private toastService = inject(ToastService);
 
   @Output() epicSelected = new EventEmitter<string>();
   @Output() closeEpicPanel = new EventEmitter<void>();
   @Output() viewDetails = new EventEmitter<string>();
   @Output() epicCreated = new EventEmitter<Epic>();
+
+  ngOnInit(): void {
+    this.loadEpics();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Reload epics when projectId changes
+    if (changes['projectId'] && !changes['projectId'].firstChange) {
+      this.loadEpics();
+    }
+  }
+
+  isSidebarCollapsed(): boolean {
+    return this.sidebarStateService.getCollapsed();
+  }
+
+  /**
+   * Load epics from backend by project ID
+   */
+  loadEpics(): void {
+    if (!this.projectId) {
+      // Try to get project ID from session storage
+      if (typeof sessionStorage !== 'undefined') {
+        this.projectId = sessionStorage.getItem('projectId') || '';
+      }
+    }
+
+    if (!this.projectId) {
+      console.warn('⚠️ [EpicContainer] No project ID available');
+      return;
+    }
+
+    this.isLoading = true;
+    this.epicService.getAllEpicsByProject(this.projectId).subscribe({
+      next: (epics) => {
+        this.epics = epics.map(epic => ({
+          ...epic,
+          isExpanded: false
+        }));
+        this.isLoading = false;
+        console.log('✅ [EpicContainer] Loaded epics:', this.epics);
+      },
+      error: (error) => {
+        console.error('❌ [EpicContainer] Error loading epics:', error);
+        this.isLoading = false;
+        this.toastService.error('Failed to load epics');
+      }
+    });
+  }
 
   onToggleExpand(epicId: string): void {
     this.epics = this.epics.map((epic) =>
@@ -56,31 +108,46 @@ export class EpicContainer {
   }
 
   createEpic(): void {
-    if (this.newEpicName.trim()) {
-      const newEpic: Epic = {
-        id: `epic-${Date.now()}`,
-        name: this.newEpicName.trim(),
-        description: '',
-        startDate: null,
-        dueDate: null,
-        progress: 0,
-        issueCount: 0,
-        isExpanded: true,
-        assignee: 'Unassigned',
-        labels: [],
-        parent: 'None',
-        team: 'None',
-        sprint: 'None',
-        storyPoints: 0,
-        reporter: 'Unassigned',
-        status: 'TODO',
-        childWorkItems: [],
-      };
-      this.epics.push(newEpic);
-      this.epicCreated.emit(newEpic);
-      this.isCreating = false;
-      this.newEpicName = '';
+    if (!this.newEpicName.trim()) {
+      this.toastService.error('Epic name is required');
+      return;
     }
+
+    if (!this.projectId) {
+      this.toastService.error('Project ID is not available');
+      return;
+    }
+
+    const userId = this.epicService.getCurrentUserId() || 1; // Default to 1 if not available
+
+    const epicRequest: CreateEpicRequest = {
+      projectId: this.projectId,
+      title: this.newEpicName.trim(),
+      description: '',
+      startDate: null,
+      dueDate: null,
+      assigneeId: userId,
+      reporterId: userId,
+      labels: []
+    };
+
+    this.epicService.createEpic(epicRequest).subscribe({
+      next: (newEpic) => {
+        this.epics.push({
+          ...newEpic,
+          isExpanded: true
+        });
+        this.epicCreated.emit(newEpic);
+        this.isCreating = false;
+        this.newEpicName = '';
+        this.toastService.success('Epic created successfully');
+        console.log('✅ [EpicContainer] Epic created:', newEpic);
+      },
+      error: (error) => {
+        console.error('❌ [EpicContainer] Error creating epic:', error);
+        this.toastService.error('Failed to create epic');
+      }
+    });
   }
 
   onKeyDown(event: KeyboardEvent): void {
