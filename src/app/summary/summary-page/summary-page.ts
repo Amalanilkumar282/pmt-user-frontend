@@ -155,7 +155,8 @@ export class SummaryPage implements OnInit {
             function formatDate(dateStr: string): string {
               const d = new Date(dateStr);
               const day = d.getDate();
-              const month = d.toLocaleString('en-US', { month: 'short' });
+              let month = d.toLocaleString('en-US', { month: 'short' });
+              month = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
               const year = d.getFullYear();
               return `${day} ${month} ${year}`;
             }
