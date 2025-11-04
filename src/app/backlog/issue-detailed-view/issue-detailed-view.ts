@@ -10,6 +10,7 @@ import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.se
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService } from '../../sprint/sprint.service';
 import { StatusApiService, Status } from '../../board/services/status-api.service';
+import { formatDisplayDate } from '../../shared/utils/date-formatter';
 
 export interface Comment {
   id: string;
@@ -497,21 +498,20 @@ export class IssueDetailedView {
   }
 
   protected formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDisplayDate(date);
   }
 
   protected formatShortDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDisplayDate(date);
+  }
+
+  protected getProjectKey(): string | null {
+    const issue = this._issue();
+    if (!issue || !issue.key) return null;
+    
+    // Extract project key from issue key (e.g., "PROJ001-1" -> "PROJ001")
+    const parts = issue.key.split('-');
+    return parts.length > 1 ? parts[0] : null;
   }
 
   protected onClose(): void {

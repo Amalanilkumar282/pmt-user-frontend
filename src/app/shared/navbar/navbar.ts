@@ -63,21 +63,13 @@ export class Navbar implements OnInit {
 
   // Computed property to get project info based on current project ID
   projectInfo = computed(() => {
-    const projectId = this.currentProjectId();
-    if (!projectId) {
-      return { name: 'Project Alpha', type: 'Software', icon: 'PA' };
+    const projectInfo = this.projectContextService.currentProjectInfo();
+    if (projectInfo) {
+      return { name: projectInfo.name, type: 'Software', icon: projectInfo.icon || 'PR' };
     }
-   
-    // Get project info from dummy data (you can replace this with actual service call)
-    const projects: Record<string, any> = {
-      '1': { name: 'Website Redesign', type: 'Software', icon: 'WR' },
-      '2': { name: 'Mobile App Development', type: 'Software', icon: 'MA' },
-      '3': { name: 'Marketing Campaign', type: 'Marketing', icon: 'MC' },
-      '4': { name: 'Backend Infrastructure', type: 'Software', icon: 'BI' },
-      '5': { name: 'Customer Portal', type: 'Software', icon: 'CP' },
-    };
-   
-    return projects[projectId] || { name: 'Project Alpha', type: 'Software', icon: 'PA' };
+    
+    // Fallback if no project info is available
+    return { name: 'Project', type: 'Software', icon: 'PR' };
   });
 
 

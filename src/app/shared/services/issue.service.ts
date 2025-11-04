@@ -127,6 +127,7 @@ export class IssueService {
       assignee: apiIssue.assigneeId ? `User ${apiIssue.assigneeId}` : undefined,
       assigneeName: apiIssue.assigneeName || undefined,
       reporterId: apiIssue.reporterId,
+      reporterName: apiIssue.reporterName || undefined,
       storyPoints: apiIssue.storyPoints,
       sprintId: apiIssue.sprintId || undefined,
       sprintName: apiIssue.sprintName || undefined,
