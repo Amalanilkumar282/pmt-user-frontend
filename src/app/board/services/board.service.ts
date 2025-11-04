@@ -623,21 +623,26 @@ export class BoardService {
       
       const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
       const numericBoardId = parseInt(boardId, 10);
-      
+
       const response = await firstValueFrom(this.boardApiService.deleteBoardColumn(columnId, numericBoardId, userId));
-      
+
       if (response.status === 200) {
         console.log('[BoardService] Column deleted successfully');
         // Reload board to get updated columns
         await this.loadBoardById(numericBoardId);
         return true;
-      } else {
-        console.error('[BoardService] Failed to delete column:', response);
-        return false;
       }
+
+      // Non-200 responses should surface their server message to the caller so
+      // the UI can display helpful information. Throwing lets the caller catch
+      // and show the server-provided message (if any).
+      const serverMessage = (response && (response.data as any)?.message) || `Failed to delete column (status ${response.status})`;
+      console.error('[BoardService] Failed to delete column:', response, 'serverMessage:', serverMessage);
+      throw new Error(serverMessage);
     } catch (error) {
       console.error('[BoardService] Error deleting column:', error);
-      return false;
+      // Re-throw so callers can present the exact error message
+      throw error;
     } finally {
       this.loadingSignal.set(false);
     }

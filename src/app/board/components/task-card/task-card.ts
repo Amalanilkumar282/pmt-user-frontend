@@ -71,7 +71,12 @@ export class TaskCard implements OnInit, AfterViewInit {
   });
   
   // Basic metadata placeholders
-  commentsCount = 0;
+  // commentsCount reflects the number of comments on the issue (if present)
+  readonly commentsCount = computed(() => {
+    // Use optional chaining and a cast to `any` because Issue type may not include comments
+    const count = (this.issue as any)?.comments?.length;
+    return typeof count === 'number' ? count : 0;
+  });
   attachmentsCount = 0;
 
   // Resolved display values
@@ -159,7 +164,7 @@ export class TaskCard implements OnInit, AfterViewInit {
   ngOnInit() {
     // Deterministic demo values derived from issue id so UI is stable and testable
     const num = this.issue.id.split('').reduce((a,c)=>a + c.charCodeAt(0), 0);
-    this.commentsCount = num % 10;          // 0..9
+    // attachmentsCount remains demo-based
     this.attachmentsCount = num % 7;        // 0..6
 
     // Resolve assignee name if assignee is an id
