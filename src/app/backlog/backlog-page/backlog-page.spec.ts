@@ -148,7 +148,7 @@ describe('BacklogPage', () => {
 			type: null,
 			priority: null,
 			status: null,
-			assignee: null,
+			assignees: [],
 			sort: 'recent',
 			view: 'sprints',
 			epicId: 'epic-1',

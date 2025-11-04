@@ -11,7 +11,7 @@ import { BoardStore } from '../../board-store';
 import { BoardToolbar } from '../board-toolbar/board-toolbar';
 import { BoardColumnsContainer } from '../board-columns-container/board-columns-container';
 import { IssueDetailedView } from '../../../backlog/issue-detailed-view/issue-detailed-view';
-import { ActivityPanel } from '../../../shared/activity-panel/activity-panel';
+// import { ActivityPanel } from '../../../shared/activity-panel/activity-panel';
 import { BoardService } from '../../services/board.service';
 import { signal } from '@angular/core';
 import { DEFAULT_COLUMNS } from '../../utils';
@@ -30,7 +30,7 @@ import { firstValueFrom } from 'rxjs';
     BoardToolbar,
     BoardColumnsContainer,
   IssueDetailedView,
-  ActivityPanel,
+  // ActivityPanel,
   ],
   templateUrl: './board-page.html',
   styleUrls: ['./board-page.css'],
