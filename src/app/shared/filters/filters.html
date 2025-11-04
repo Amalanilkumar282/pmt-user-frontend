@@ -225,21 +225,21 @@
     <div class="filter-dropdown">
       <button class="dropdown-toggle" (click)="toggleDropdown('assignee')">
         <span class="dropdown-label">Assignee:</span>
-        <span class="dropdown-value">{{ selectedAssignee || 'All' }}</span>
+        <span class="dropdown-value">{{ (selectedAssignees && selectedAssignees.length) ? (selectedAssignees.length > 2 ? (selectedAssignees[0] + ' +' + (selectedAssignees.length - 1)) : selectedAssignees.join(', ')) : 'All' }}</span>
         <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       @if (openDropdown === 'assignee') {
         <div class="dropdown-menu">
-          <div class="dropdown-item" (click)="selectAssignee(null)">All Assignees</div>
-          <div class="dropdown-item" (click)="selectAssignee('John Doe')">John Doe</div>
-          <div class="dropdown-item" (click)="selectAssignee('Jane Smith')">Jane Smith</div>
-          <div class="dropdown-item" (click)="selectAssignee('Alex Johnson')">Alex Johnson</div>
-          <div class="dropdown-item" (click)="selectAssignee('Sarah Lee')">Sarah Lee</div>
-          <div class="dropdown-item" (click)="selectAssignee('Mike Brown')">Mike Brown</div>
-          <div class="dropdown-item" (click)="selectAssignee('Emma Wilson')">Emma Wilson</div>
-          <div class="dropdown-item" (click)="selectAssignee('Oliver Davis')">Oliver Davis</div>
+          <div class="dropdown-item" (click)="toggleAssignee(null)">All Assignees</div>
+          <div class="dropdown-item" (click)="toggleAssignee('John Doe')" [class.selected]="selectedAssignees.includes('John Doe')">John Doe</div>
+          <div class="dropdown-item" (click)="toggleAssignee('Jane Smith')" [class.selected]="selectedAssignees.includes('Jane Smith')">Jane Smith</div>
+          <div class="dropdown-item" (click)="toggleAssignee('Alex Johnson')" [class.selected]="selectedAssignees.includes('Alex Johnson')">Alex Johnson</div>
+          <div class="dropdown-item" (click)="toggleAssignee('Sarah Lee')" [class.selected]="selectedAssignees.includes('Sarah Lee')">Sarah Lee</div>
+          <div class="dropdown-item" (click)="toggleAssignee('Mike Brown')" [class.selected]="selectedAssignees.includes('Mike Brown')">Mike Brown</div>
+          <div class="dropdown-item" (click)="toggleAssignee('Emma Wilson')" [class.selected]="selectedAssignees.includes('Emma Wilson')">Emma Wilson</div>
+          <div class="dropdown-item" (click)="toggleAssignee('Oliver Davis')" [class.selected]="selectedAssignees.includes('Oliver Davis')">Oliver Davis</div>
         </div>
       }
     </div>

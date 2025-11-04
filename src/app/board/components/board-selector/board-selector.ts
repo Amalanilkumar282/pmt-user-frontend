@@ -25,14 +25,11 @@ export class BoardSelector {
   // Use computed signal instead of getter for better reactivity
   projectBoards = computed(() => {
     const projectId = this.projectContextService.currentProjectId();
-    const boards = projectId ? this.boardService.getBoardsByProject(projectId) : [];
-    console.log('[BoardSelector] Project ID:', projectId, 'Boards:', boards.map(b => ({ id: b.id, name: b.name, projectId: b.projectId })));
-    return boards;
+    return projectId ? this.boardService.getBoardsByProject(projectId) : [];
   });
   
   get currentBoardName(): string {
     const board = this.currentBoard();
-    console.log('[BoardSelector] Current Board:', board);
     return board ? board.name : 'Select Board';
   }
   

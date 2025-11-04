@@ -546,16 +546,8 @@ app-sprint-overview {
 }
 
 .activity-list {
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  height: 304px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  position: relative;
-  margin: 0 -4px;
-  padding: 0 4px;
+  height: 288px;
+  overflow-y: scroll;
 }
 
 .activity-list::-webkit-scrollbar {
@@ -613,6 +605,10 @@ app-sprint-overview {
 .activity-avatar.completed {
   background: #3d62a8;
   color: #ffffff;
+}
+
+.last {
+  padding: 4px 12px;
 }
 
 .activity-avatar.commented {

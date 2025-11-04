@@ -40,9 +40,9 @@
               </span>
             }
             
-            @if (issue.assignee) {
+            @if (issue.assigneeName || issue.assignee || issue.assigneeId) {
               <span [class]="'w-6 h-6 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'bg-green-500' : 'bg-blue-500')">
-                {{ issue.assignee.charAt(0).toUpperCase() }}
+                {{ (issue.assigneeName || issue.assignee || 'U').charAt(0).toUpperCase() }}
               </span>
             }
             

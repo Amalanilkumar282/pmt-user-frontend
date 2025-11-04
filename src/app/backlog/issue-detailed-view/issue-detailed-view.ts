@@ -10,6 +10,9 @@ import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.se
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService } from '../../sprint/sprint.service';
 import { StatusApiService, Status } from '../../board/services/status-api.service';
+import { formatDisplayDate } from '../../shared/utils/date-formatter';
+import { ProjectMembersCacheService } from '../../shared/services/project-members-cache.service';
+import { EpicService } from '../../shared/services/epic.service';
 
 export interface Comment {
   id: string;
@@ -30,11 +33,13 @@ export interface Comment {
 export class IssueDetailedView {
   private modalService = inject(ModalService);
   private userApiService = inject(UserApiService);
+  private membersCacheService = inject(ProjectMembersCacheService);
   private projectContextService = inject(ProjectContextService);
   private issueService = inject(IssueService);
   private toastService = inject(ToastService);
   private sprintService = inject(SprintService);
   private statusApiService = inject(StatusApiService);
+  private epicService = inject(EpicService);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -73,9 +78,9 @@ export class IssueDetailedView {
   }
   
   private loadProjectMembers(projectId: string): void {
-    this.userApiService.getUsersByProject(projectId).subscribe({
+    // Use cached service to prevent duplicate API calls
+    this.membersCacheService.getProjectMembers(projectId).subscribe({
       next: (members) => {
-        console.log('[IssueDetailedView] Loaded project members:', members);
         this.projectMembers.set(members);
       },
       error: (error) => {
@@ -107,60 +112,58 @@ export class IssueDetailedView {
     const issue = this._issue();
     if (!issue) return;
 
-    // Get project ID to fetch sprints and statuses
+    // Get project ID to fetch sprints, statuses, and epics
     const projectId = issue.projectId || this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
     if (!projectId) {
-      console.error('No project ID found for fetching sprints and statuses');
-      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], [], []); // Fallback
+      console.error('No project ID found for fetching sprints, statuses, and epics');
+      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], [], [], [], []); // Fallback
       return;
     }
 
-    // Fetch sprints and try to fetch statuses (fallback to defaults if API fails)
-    this.sprintService.getSprintsByProject(projectId).subscribe({
-      next: (sprintResponse) => {
-        const sprints = sprintResponse?.data || [];
-        const sprintOptions = sprints.length > 0
-          ? sprints.map(sprint => sprint.name)
-          : ['No sprints available'];
-        
-        // Try to fetch statuses, but use defaults if API doesn't exist
-        this.statusApiService.getAllStatuses().subscribe({
-          next: (statuses) => {
-            const statusesData = statuses || [];
-            console.log('Fetched sprint options for edit:', sprintOptions);
-            console.log('Fetched status options for edit:', statusesData);
-            this.openEditModal(issue, sprintOptions, sprints, statusesData, statusesData);
-          },
-          error: (statusErr) => {
-            console.warn('Status API not available, using default statuses:', statusErr);
-            // Use default hardcoded statuses
-            const defaultStatuses: Status[] = [
-              { id: 1, statusName: 'TODO' },
-              { id: 2, statusName: 'IN_PROGRESS' },
-              { id: 3, statusName: 'IN_REVIEW' },
-              { id: 4, statusName: 'DONE' },
-              { id: 5, statusName: 'BLOCKED' }
-            ];
-            this.openEditModal(issue, sprintOptions, sprints, defaultStatuses, defaultStatuses);
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Failed to fetch sprints for edit modal:', err);
-        // Use default statuses as fallback
-        const defaultStatuses: Status[] = [
-          { id: 1, statusName: 'TODO' },
-          { id: 2, statusName: 'IN_PROGRESS' },
-          { id: 3, statusName: 'IN_REVIEW' },
-          { id: 4, statusName: 'DONE' },
-          { id: 5, statusName: 'BLOCKED' }
-        ];
-        this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], defaultStatuses, defaultStatuses);
-      }
+    // Fetch sprints, statuses, and epics in parallel
+    Promise.all([
+      this.sprintService.getSprintsByProject(projectId).toPromise(),
+      this.statusApiService.getAllStatuses().toPromise().catch(() => null),
+      this.epicService.getAllEpicsByProject(projectId).toPromise().catch(() => [])
+    ]).then(([sprintResponse, statuses, epics]) => {
+      const sprints = sprintResponse?.data || [];
+      const sprintOptions = sprints.length > 0
+        ? sprints.map(sprint => sprint.name)
+        : ['No sprints available'];
+      
+      const statusesData = statuses || [
+        { id: 1, statusName: 'TODO' },
+        { id: 2, statusName: 'IN_PROGRESS' },
+        { id: 3, statusName: 'IN_REVIEW' },
+        { id: 4, statusName: 'DONE' },
+        { id: 5, statusName: 'BLOCKED' }
+      ];
+
+      const epicsData = epics || [];
+      const epicOptions = epicsData.length > 0
+        ? epicsData.map(epic => epic.title || epic.name)
+        : ['No epics available'];
+      
+      console.log('Fetched sprint options for edit:', sprintOptions);
+      console.log('Fetched status options for edit:', statusesData);
+      console.log('Fetched epic options for edit:', epicOptions);
+      
+      this.openEditModal(issue, sprintOptions, sprints, statusesData, statusesData, epicOptions, epicsData);
+    }).catch((err) => {
+      console.error('Failed to fetch data for edit modal:', err);
+      // Use default options
+      const defaultStatuses: Status[] = [
+        { id: 1, statusName: 'TODO' },
+        { id: 2, statusName: 'IN_PROGRESS' },
+        { id: 3, statusName: 'IN_REVIEW' },
+        { id: 4, statusName: 'DONE' },
+        { id: 5, statusName: 'BLOCKED' }
+      ];
+      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], defaultStatuses, defaultStatuses, ['Epic 1', 'Epic 2', 'Epic 3'], []);
     });
   }
 
-  private openEditModal(issue: Issue, sprintOptions: string[], sprintsData: any[], statusOptions: Status[], statusesData: Status[]): void {
+  private openEditModal(issue: Issue, sprintOptions: string[], sprintsData: any[], statusOptions: Status[], statusesData: Status[], epicOptions: string[], epicsData: any[]): void {
 
     // Use project members loaded from API
     const members = this.projectMembers();
@@ -193,7 +196,7 @@ export class IssueDetailedView {
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
       { label: 'Sprint', type: 'select', model: 'sprint', options: sprintOptions, colSpan: 1 },
       { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 2 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: epicOptions, colSpan: 1 },
       { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
     ];
 
@@ -201,6 +204,7 @@ export class IssueDetailedView {
       assigneeOptions: userOptions.map(u => u.name),
       sprintOptions,
       statusOptions: statusDropdownOptions,
+      epicOptions,
       members
     });
 
@@ -261,6 +265,15 @@ export class IssueDetailedView {
       statusName = issue.status;
     }
 
+    // Find epic name from epicId
+    let epicName = '';
+    if (issue.epicName) {
+      epicName = issue.epicName;
+    } else if (issue.epicId && epicsData.length > 0) {
+      const epic = epicsData.find(e => e.id === issue.epicId);
+      epicName = epic?.title || epic?.name || '';
+    }
+
     // Prepare the data object
     const modalData = {
       issueType: issue.type || '',
@@ -273,7 +286,7 @@ export class IssueDetailedView {
       dueDate: formatDateForInput(issue.dueDate),
       sprint: sprintName,
       storyPoint: issue.storyPoints || '',
-      parentEpic: issue.epicName || issue.epicId || '',
+      parentEpic: epicName,
       attachments: issue.attachmentUrl || '',
       labels: issue.labels || []
     };
@@ -289,6 +302,7 @@ export class IssueDetailedView {
       foundStatusName: statusName,
       epicName: issue.epicName,
       epicId: issue.epicId,
+      foundEpicName: epicName,
       attachmentUrl: issue.attachmentUrl,
       modalData
     });
@@ -358,7 +372,11 @@ export class IssueDetailedView {
           updates.storyPoints = Number(formData.storyPoint);
         }
         if (formData.parentEpic) {
-          updates.epicId = formData.parentEpic;
+          // Convert epic name back to ID
+          const selectedEpic = epicsData.find(e => (e.title || e.name) === formData.parentEpic);
+          console.log('[IssueDetailedView] Found epic:', selectedEpic);
+          updates.epicId = selectedEpic ? selectedEpic.id : formData.parentEpic;
+          console.log('[IssueDetailedView] Set epicId:', updates.epicId);
         }
         if (formData.labels) {
           updates.labels = formData.labels;
@@ -497,21 +515,20 @@ export class IssueDetailedView {
   }
 
   protected formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDisplayDate(date);
   }
 
   protected formatShortDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDisplayDate(date);
+  }
+
+  protected getProjectKey(): string | null {
+    const issue = this._issue();
+    if (!issue || !issue.key) return null;
+    
+    // Extract project key from issue key (e.g., "PROJ001-1" -> "PROJ001")
+    const parts = issue.key.split('-');
+    return parts.length > 1 ? parts[0] : null;
   }
 
   protected onClose(): void {
@@ -527,10 +544,39 @@ export class IssueDetailedView {
   protected onDelete(): void {
     if (this.isReadOnly) return;
     const issue = this._issue();
-    if (issue && confirm(`Are you sure you want to delete issue ${issue.id}?`)) {
-      this.deleteIssue.emit(issue.id);
-      this.onClose();
-    }
+    if (!issue) return;
+
+    // Show custom confirmation modal
+    this.modalService.open({
+      id: 'confirmDeleteIssue',
+      title: 'Delete Issue',
+      modalDesc: `Are you sure you want to delete issue "${issue.title}"? This action cannot be undone.`,
+      fields: [],
+      submitText: 'Delete',
+      showLabels: false,
+      onSubmit: () => {
+        console.log('[IssueDetailedView] Deleting issue:', issue.id);
+        this.toastService.info('Deleting issue...');
+
+        this.issueService.deleteIssue(issue.id).subscribe({
+          next: (response) => {
+            console.log('[IssueDetailedView] Issue deleted successfully:', response);
+            this.toastService.success('Issue deleted successfully!');
+            this.modalService.close();
+            
+            // Emit delete event for parent components to update their local state
+            this.deleteIssue.emit(issue.id);
+            
+            // Close the detailed view
+            this.onClose();
+          },
+          error: (error) => {
+            console.error('[IssueDetailedView] Failed to delete issue:', error);
+            this.toastService.error(error.message || 'Failed to delete issue. Please try again.');
+          }
+        });
+      }
+    });
   }
 
   protected toggleMoveDropdown(): void {

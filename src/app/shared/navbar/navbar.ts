@@ -15,6 +15,7 @@ import { SummaryModal } from '../summary-modal/summary-modal';
 import { IssueService, CreateIssueRequest } from '../services/issue.service';
 import { ActivityService, ActivityLogDto } from '../services/activity.service';
 import { SprintService } from '../../sprint/sprint.service';
+import { EpicService } from '../services/epic.service';
 import { filter } from 'rxjs';
 
 @Component({
@@ -43,6 +44,7 @@ export class Navbar implements OnInit {
   private issueService = inject(IssueService);
   private activityService = inject(ActivityService);
   private sprintService = inject(SprintService);
+  private epicService = inject(EpicService);
   private sidebarState = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private router = inject(Router);
@@ -63,21 +65,13 @@ export class Navbar implements OnInit {
 
   // Computed property to get project info based on current project ID
   projectInfo = computed(() => {
-    const projectId = this.currentProjectId();
-    if (!projectId) {
-      return { name: 'Project Alpha', type: 'Software', icon: 'PA' };
+    const projectInfo = this.projectContextService.currentProjectInfo();
+    if (projectInfo) {
+      return { name: projectInfo.name, type: 'Software', icon: projectInfo.icon || 'PR' };
     }
-   
-    // Get project info from dummy data (you can replace this with actual service call)
-    const projects: Record<string, any> = {
-      '1': { name: 'Website Redesign', type: 'Software', icon: 'WR' },
-      '2': { name: 'Mobile App Development', type: 'Software', icon: 'MA' },
-      '3': { name: 'Marketing Campaign', type: 'Marketing', icon: 'MC' },
-      '4': { name: 'Backend Infrastructure', type: 'Software', icon: 'BI' },
-      '5': { name: 'Customer Portal', type: 'Software', icon: 'CP' },
-    };
-   
-    return projects[projectId] || { name: 'Project Alpha', type: 'Software', icon: 'PA' };
+    
+    // Fallback if no project info is available
+    return { name: 'Project', type: 'Software', icon: 'PR' };
   });
 
 
@@ -138,25 +132,33 @@ export class Navbar implements OnInit {
   }
 
   private fetchSprintsAndOpenModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[]): void {
-    // Fetch sprints for the project
-    this.sprintService.getSprintsByProject(projectId).subscribe({
-      next: (response) => {
-        const sprintsData = response.data || [];
-        const sprintOptions = sprintsData.length > 0
-          ? sprintsData.map(sprint => sprint.name)
-          : ['No sprints available'];
-        console.log('Fetched sprint options:', sprintOptions);
-        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, sprintOptions, sprintsData);
-      },
-      error: (err) => {
-        console.error('Failed to fetch sprints:', err);
-        // Open with default sprint options
-        this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3'], []);
-      }
+    // Fetch both sprints and epics for the project in parallel
+    Promise.all([
+      this.sprintService.getSprintsByProject(projectId).toPromise(),
+      this.epicService.getAllEpicsByProject(projectId).toPromise()
+    ]).then(([sprintResponse, epics]) => {
+      const sprintsData = sprintResponse?.data || [];
+      const sprintOptions = sprintsData.length > 0
+        ? sprintsData.map(sprint => sprint.name)
+        : ['No sprints available'];
+      
+      const epicsData = epics || [];
+      const epicOptions = epicsData.length > 0
+        ? epicsData.map(epic => epic.title || epic.name)
+        : ['No epics available'];
+      
+      console.log('Fetched sprint options:', sprintOptions);
+      console.log('Fetched epic options:', epicOptions);
+      
+      this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, sprintOptions, sprintsData, epicOptions, epicsData);
+    }).catch((err) => {
+      console.error('Failed to fetch sprints or epics:', err);
+      // Open with default options (empty arrays if API fails)
+      this.openCreateIssueModal(issueType, title, description, priority, storyPoint, projectId, userOptions, ['No sprints available'], [], ['No epics available'], []);
     });
   }
 
-  private openCreateIssueModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[], sprintOptions: string[], sprintsData: any[]): void {
+  private openCreateIssueModal(issueType: string, title: string, description: string, priority: string, storyPoint: string, projectId: string, userOptions: string[], sprintOptions: string[], sprintsData: any[], epicOptions: string[], epicsData: any[]): void {
         // Get cached members for assignee mapping
         const cachedMembers = this.projectMembersService.getMembersByProject(projectId);
 
@@ -234,7 +236,7 @@ export class Navbar implements OnInit {
               label: 'Parent Epic',
               type: 'select',
               model: 'parentEpic',
-              options: ['Epic 1', 'Epic 2', 'Epic 3'],
+              options: epicOptions,
               colSpan: 1
             },
             {
@@ -306,6 +308,16 @@ export class Navbar implements OnInit {
               console.log(`Mapped reporter "${formData.reporter}" to ID: ${reporterId}`);
             }
 
+            // Map epic name to ID
+            console.log('[Create Issue] epicsData:', epicsData);
+            console.log('[Create Issue] formData.parentEpic:', formData.parentEpic);
+            let epicId: string | null = null;
+            if (formData.parentEpic && epicsData.length > 0) {
+              const epic = epicsData.find((e: any) => (e.title || e.name) === formData.parentEpic);
+              epicId = epic ? epic.id : null;
+              console.log(`Mapped epic "${formData.parentEpic}" to ID: ${epicId}`);
+            }
+
             const issueReq: CreateIssueRequest = {
               projectId: projectId,
               issueType: formData.issueType?.toUpperCase() || 'TASK',
@@ -317,7 +329,7 @@ export class Navbar implements OnInit {
               dueDate: formatDateToUTC(formData.dueDate),
               sprintId: sprintId,
               storyPoints: Number(formData.storyPoint) || 0,
-              epicId: null, // TODO: Map epic to actual ID
+              epicId: epicId,
               reporterId: reporterId,
               attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
               labels: JSON.stringify(formData.labels || []),
@@ -417,25 +429,33 @@ export class Navbar implements OnInit {
   }
 
   private fetchSprintsAndOpenCreateModal(projectId: string, userOptions: string[]): void {
-    // Fetch sprints for the project
-    this.sprintService.getSprintsByProject(projectId).subscribe({
-      next: (response) => {
-        const sprintsData = response.data || [];
-        const sprintOptions = sprintsData.length > 0
-          ? sprintsData.map(sprint => sprint.name)
-          : ['No sprints available'];
-        console.log('onCreate - Fetched sprint options:', sprintOptions);
-        this.openCreateModal(projectId, userOptions, sprintOptions, sprintsData);
-      },
-      error: (err) => {
-        console.error('onCreate - Failed to fetch sprints:', err);
-        // Open with default sprint options
-        this.openCreateModal(projectId, userOptions, ['Sprint 1', 'Sprint 2', 'Sprint 3'], []);
-      }
+    // Fetch sprints and epics in parallel for the project
+    Promise.all([
+      this.sprintService.getSprintsByProject(projectId).toPromise(),
+      this.epicService.getAllEpicsByProject(projectId).toPromise()
+    ]).then(([sprintResponse, epics]) => {
+      const sprintsData = sprintResponse?.data || [];
+      const sprintOptions = sprintsData.length > 0
+        ? sprintsData.map(sprint => sprint.name)
+        : ['No sprints available'];
+      
+      const epicsData = epics || [];
+      const epicOptions = epicsData.length > 0
+        ? epicsData.map(epic => epic.title || epic.name)
+        : ['No epics available'];
+      
+      console.log('onCreate - Fetched sprint options:', sprintOptions);
+      console.log('onCreate - Fetched epic options:', epicOptions);
+      
+      this.openCreateModal(projectId, userOptions, sprintOptions, sprintsData, epicOptions, epicsData);
+    }).catch((err) => {
+      console.error('onCreate - Failed to fetch sprints or epics:', err);
+      // Open with default options (empty arrays if API fails)
+      this.openCreateModal(projectId, userOptions, ['No sprints available'], [], ['No epics available'], []);
     });
   }
 
-  private openCreateModal(projectId: string, userOptions: string[], sprintOptions: string[], sprintsData: any[]): void {
+  private openCreateModal(projectId: string, userOptions: string[], sprintOptions: string[], sprintsData: any[], epicOptions: string[], epicsData: any[]): void {
     // Get cached members for assignee/reporter mapping
     const cachedMembers = this.projectMembersService.getMembersByProject(projectId);
 
@@ -449,7 +469,7 @@ export class Navbar implements OnInit {
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
       { label: 'Sprint', type: 'select', model: 'sprint', options: sprintOptions, colSpan: 1 },
       { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: epicOptions, colSpan: 1 },
       { label: 'Reporter', type: 'select', model: 'reporter', options: userOptions, colSpan: 1, required : true  },
       { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
     ];
@@ -502,6 +522,16 @@ export class Navbar implements OnInit {
           console.log(`Mapped reporter "${formData.reporter}" to ID: ${reporterId}`);
         }
 
+        // Map epic name/title to ID
+        console.log('[onCreate] epicsData:', epicsData);
+        console.log('[onCreate] formData.parentEpic:', formData.parentEpic);
+        let epicId: string | null = null;
+        if (formData.parentEpic && epicsData.length > 0) {
+          const epic = epicsData.find((e: any) => (e.title || e.name) === formData.parentEpic);
+          epicId = epic ? epic.id : null;
+          console.log(`Mapped epic "${formData.parentEpic}" to ID: ${epicId}`);
+        }
+
         const issueReq: CreateIssueRequest = {
           projectId: projectId,
           issueType: formData.issueType?.toUpperCase() || 'TASK',
@@ -513,7 +543,7 @@ export class Navbar implements OnInit {
           dueDate: formatDateToUTC(formData.dueDate),
           sprintId: sprintId,
           storyPoints: Number(formData.storyPoint) || 0,
-          epicId: null, // TODO: Map epic to actual ID
+          epicId: epicId,
           reporterId: reporterId,
           attachmentUrl: formData.uploadedFileUrl || null, // Use uploaded file URL
           labels: JSON.stringify(formData.labels || [])
@@ -551,12 +581,12 @@ export class Navbar implements OnInit {
     // Get user ID from sessionStorage or your auth service
     const userId = this.getUserIdFromSession();
     
-    console.log('Loading user activities for userId:', userId);
-    
     if (!userId) {
-      console.warn('No user ID found in session');
+      // Silently skip if user not logged in - this is expected before login
       return;
     }
+    
+    console.log('Loading user activities for userId:', userId);
 
     this.activityService.getUserActivities(userId, 20).subscribe({
       next: (response) => {

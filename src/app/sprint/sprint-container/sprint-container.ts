@@ -4,6 +4,7 @@ import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IssueList } from '../../backlog/issue-list/issue-list';
 import { IssueDetailedView } from '../../backlog/issue-detailed-view/issue-detailed-view';
 import { Issue } from '../../shared/models/issue.model';
+import { formatDisplayDate } from '../../shared/utils/date-formatter';
 
 export interface Sprint {
   id: string;
@@ -58,10 +59,7 @@ export class SprintContainer {
   }
 
   formatDate(date: Date): string {
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${month} ${day},${year}`;
+    return formatDisplayDate(date);
   }
 
   toggleCollapse(): void {
