@@ -181,7 +181,7 @@ export class SummaryPage implements OnInit {
           
           this.sprints = sprints;
           
-          // Auto-select the active sprint if it exists
+          // Auto-select the active sprint if it exists, otherwise default to "all"
           const activeSprint = sprints.find(sprint => sprint.status === 'ACTIVE');
           if (activeSprint) {
             this.selectedSprintId = activeSprint.id;
