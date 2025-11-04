@@ -46,6 +46,7 @@ export class IssueDetailedView {
   private epicService = inject(EpicService);
   private commentService = inject(IssueCommentService);
   private userContextService = inject(UserContextService);
+  private cdr = inject(ChangeDetectorRef);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
