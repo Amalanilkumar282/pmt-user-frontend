@@ -39,6 +39,22 @@ export class BoardColumn {
   @Input() connectedTo: string[] = [];
   @Input() groupBy: GroupBy = 'NONE';
 
+  // Whether this column can be deleted from the currently loaded board.
+  // A column is deletable only when:
+  // - It has a backend `columnId` (not an aggregated/status-only column),
+  // - The current board actually owns the column (columnId present in board.columns),
+  // - The current board is not the project-default board (we avoid deleting aggregated default board columns here).
+  readonly canDeleteColumn = computed(() => {
+    const board = this.store.currentBoard();
+    if (!board || !board.columns) return false;
+    if (!this.def.columnId) return false;
+    // Don't allow deleting columns from default/project boards here
+    if ((board as any).isDefault) return false;
+
+    const columnIdToCheck = String(this.def.columnId);
+    return board.columns.some(c => String((c as any).columnId || c.id) === columnIdToCheck);
+  });
+
   // Confirmation modal state
   showDeleteConfirmation = signal(false);
   isDeletingColumn = signal(false);
@@ -191,6 +207,20 @@ export class BoardColumn {
     const columnIdToDelete = this.def.columnId || String(this.def.id);
     
     try {
+      // Sanity: ensure the column actually belongs to this board according to
+      // the current board object. Sending a columnId with a mismatched
+      // boardId will cause a Bad Request from the API (we saw 400s for this).
+      const boardColumns = board.columns || [];
+      const belongs = boardColumns.some(c => String(c.columnId) === String(columnIdToDelete) || String(c.id) === String(columnIdToDelete));
+      if (!belongs) {
+        const message = `Column ${columnIdToDelete} does not belong to board ${board.id}. Aborting delete.`;
+        console.warn('[BoardColumn] Delete aborted - column not found on current board:', { columnIdToDelete, boardId: board.id });
+        this.deleteError.set(message);
+        try { this.toastService.error(message); } catch {}
+        this.showDeleteConfirmation.set(false);
+        return;
+      }
+
       this.isDeletingColumn.set(true);
       this.deleteError.set(null);
       
@@ -203,17 +233,19 @@ export class BoardColumn {
       
       // Call backend API to delete column
       const success = await this.boardService.deleteColumnApi(columnIdToDelete, String(board.id));
-      
+
       if (success) {
         // Refresh board columns in store
         this.store.loadBoard(String(board.id));
         this.showDeleteConfirmation.set(false);
-      } else {
-        this.deleteError.set('Failed to delete column');
       }
     } catch (err) {
+      // Capture server-provided message when available so the user sees why
+      // the delete failed (for example: column used by other boards, forbidden, etc.).
       console.error('[BoardColumn] Error deleting column:', err);
-      this.deleteError.set('Error deleting column');
+      const msg = (err as any)?.message || (err as any)?.error?.message || 'Error deleting column';
+      this.deleteError.set(msg);
+      try { this.toastService.error(`Failed to delete column: ${msg}`); } catch {}
     } finally {
       this.isDeletingColumn.set(false);
     }
