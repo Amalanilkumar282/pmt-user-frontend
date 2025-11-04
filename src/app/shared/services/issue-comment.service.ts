@@ -77,13 +77,16 @@ export interface DeleteCommentResponse {
 })
 export class IssueCommentService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/Issue`;
+  private baseUrl = '/api/Issue';
 
   /**
    * Get all comments for an issue
    */
   getCommentsByIssue(issueId: string): Observable<GetCommentsResponse> {
-    return this.http.get<GetCommentsResponse>(`${this.baseUrl}/${issueId}/comments`);
+    const url = `${this.baseUrl}/${issueId}/comments`;
+    console.log('[IssueCommentService] GET getCommentsByIssue URL:', url);
+    
+    return this.http.get<GetCommentsResponse>(url);
   }
 
   /**
@@ -97,10 +100,11 @@ export class IssueCommentService {
    * Create a new comment
    */
   createComment(request: CreateCommentRequest): Observable<CreateCommentResponse> {
-    return this.http.post<CreateCommentResponse>(
-      `${this.baseUrl}/${request.issueId}/comments`,
-      request
-    );
+    const url = `${this.baseUrl}/${request.issueId}/comments`;
+    console.log('[IssueCommentService] POST createComment URL:', url);
+    console.log('[IssueCommentService] Request body:', request);
+    
+    return this.http.post<CreateCommentResponse>(url, request);
   }
 
   /**
