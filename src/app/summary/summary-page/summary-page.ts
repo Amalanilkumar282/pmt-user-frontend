@@ -159,7 +159,8 @@ export class SummaryPage implements OnInit {
             function formatDate(dateStr: string): string {
               const d = new Date(dateStr);
               const day = d.getDate();
-              const month = d.toLocaleString('en-US', { month: 'short' });
+              let month = d.toLocaleString('en-US', { month: 'short' });
+              month = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
               const year = d.getFullYear();
               return `${day} ${month} ${year}`;
             }
@@ -180,7 +181,7 @@ export class SummaryPage implements OnInit {
           
           this.sprints = sprints;
           
-          // Auto-select the active sprint if it exists
+          // Auto-select the active sprint if it exists, otherwise default to "all"
           const activeSprint = sprints.find(sprint => sprint.status === 'ACTIVE');
           if (activeSprint) {
             this.selectedSprintId = activeSprint.id;
