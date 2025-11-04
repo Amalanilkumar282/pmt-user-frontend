@@ -13,7 +13,7 @@
         <span class="status-badge" [class.active]="team.status === 'Active'" [class.inactive]="team.status === 'Inactive'">
           {{ team.status }}
         </span>
-        <button class="action-btn" (click)="onEdit()" title="Edit team">
+        <button class="action-btn" (click)="onEdit()" title="Edit team" *hasPermission="'canManageTeams'">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
         <button class="close-btn" (click)="onClose()" aria-label="Close">

@@ -69,8 +69,8 @@ export class Navbar implements OnInit {
       return { name: projectInfo.name, type: 'Software', icon: projectInfo.icon || 'PR' };
     }
     
-    // Fallback if no project info is available
-    return { name: 'Project', type: 'Software', icon: 'PR' };
+    // Fallback if no project info is available - show PMT as the app name
+    return { name: 'PMT', type: 'Software', icon: 'PMT' };
   });
 
 

@@ -8,6 +8,7 @@ import { WorkItemsTable } from './components/work-items-table/work-items-table';
 import { WorkItemForm } from './components/work-item-form/work-item-form';
 import { EpicDetails } from './components/epic-details/epic-details';
 import { EpicService } from '../../shared/services/epic.service';
+import { IssueService } from '../../shared/services/issue.service';
 import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
@@ -48,6 +49,7 @@ export class EpicDetailedView implements OnInit, OnChanges {
   isLoadingEpicDetails = false;
 
   private epicService = inject(EpicService);
+  private issueService = inject(IssueService);
   private toastService = inject(ToastService);
 
   ngOnInit() {
@@ -182,13 +184,57 @@ export class EpicDetailedView implements OnInit, OnChanges {
   }
 
   /**
-   * Handle work item creation (placeholder - actual implementation would use IssueService)
+   * Handle work item creation
    */
-  onWorkItemCreated(newWorkItem: Issue) {
-    // Note: Actual implementation should use IssueService.createIssue()
-    // For now, just reload work items to show updated list
-    this.toastService.info('Work item creation will be implemented using IssueService');
-    this.loadWorkItems();
+  onWorkItemCreated(newWorkItem: Partial<Issue>) {
+    // Get project ID from sessionStorage or epic context
+    const projectId = sessionStorage.getItem('projectId');
+    
+    if (!projectId) {
+      this.toastService.error('Project ID not found');
+      return;
+    }
+
+    if (!this.epic.id) {
+      this.toastService.error('Epic ID not found');
+      return;
+    }
+
+    // Prepare issue creation request with epic ID
+    const issueRequest = {
+      projectId: projectId,
+      issueType: newWorkItem.type || 'TASK',
+      title: newWorkItem.title || 'Untitled',
+      description: newWorkItem.description || '',
+      priority: newWorkItem.priority || 'MEDIUM',
+      assigneeId: null,
+      startDate: undefined,
+      dueDate: undefined,
+      sprintId: null,
+      storyPoints: newWorkItem.storyPoints || 0,
+      epicId: this.epic.id, // Link to current epic
+      reporterId: null,
+      attachmentUrl: null,
+      statusId: 1, // TODO status
+      labels: undefined
+    };
+
+    this.toastService.info('Creating work item...');
+    
+    this.issueService.createIssue(issueRequest).subscribe({
+      next: (response: any) => {
+        console.log('✅ Work item created successfully:', response);
+        this.toastService.success('Work item created successfully!');
+        // Reload work items to show the new item
+        this.loadWorkItems();
+        // Also reload epic details to update counts
+        this.loadEpicDetails();
+      },
+      error: (error: any) => {
+        console.error('❌ Error creating work item:', error);
+        this.toastService.error(error.error?.message || 'Failed to create work item');
+      }
+    });
   }
 
   /**

@@ -1,11 +1,13 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Team, TeamStats, TeamMember } from '../../models/team.model';
+import { PermissionService } from '../../../auth/permission.service';
+import { HasPermissionDirective } from '../../../auth/has-permission.directive';
 
 @Component({
   selector: 'app-team-details',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HasPermissionDirective],
   templateUrl: './team-details.html',
   styleUrls: ['./team-details.css'],
 })
@@ -14,6 +16,8 @@ export class TeamDetailsComponent implements OnInit {
   @Input() stats!: TeamStats;
   @Output() close = new EventEmitter<void>();
   @Output() edit = new EventEmitter<string>();
+
+  protected permissionService = inject(PermissionService);
 
   ngOnInit(): void {
     if (!this.team) {

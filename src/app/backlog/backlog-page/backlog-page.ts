@@ -249,7 +249,7 @@ export class BacklogPage implements OnInit {
         label: 'Status', 
         type: 'select', 
         model: 'status', 
-        options: ['PLANNED', 'ACTIVE', 'COMPLETED'], 
+        options: ['Planned', 'Active', 'Completed'], 
         colSpan: 1 
       },
       { 
@@ -277,7 +277,7 @@ export class BacklogPage implements OnInit {
       modalDesc: 'Plan your next sprint with AI-powered suggestions',
       fields,
       data: { 
-        status: 'PLANNED',
+        status: 'Planned',
         targetStoryPoints: 40
       },
       showLabels: false,
@@ -308,16 +308,16 @@ export class BacklogPage implements OnInit {
           return dateObj.toISOString();
         };
         
-        // Store sprint data for later use - matching API field names
+        // Store sprint data for later use - matching exact backend API structure
         this.currentSprintData = {
           projectId: projectId,
           sprintName: formData.sprintName,
           sprintGoal: formData.sprintGoal || null,
-          teamAssigned: actualTeamId ? parseInt(actualTeamId) : null, // Changed from teamId to teamAssigned (integer)
+          teamAssigned: actualTeamId ? parseInt(actualTeamId) : null,
           startDate: formatDateToUTC(formData.startDate),
-          dueDate: formatDateToUTC(formData.endDate), // Changed from endDate to dueDate
-          status: formData.status || 'Planned', // Changed from PLANNED to Planned
-          storyPoint: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40 // Changed from targetStoryPoints to storyPoint
+          dueDate: formatDateToUTC(formData.endDate),
+          status: formData.status ? formData.status.toUpperCase() : 'PLANNED', // Backend expects UPPERCASE
+          storyPoint: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40
         };
 
         console.log('Sprint request payload:', this.currentSprintData);
@@ -570,14 +570,16 @@ export class BacklogPage implements OnInit {
           return new Date(date).toISOString();
         };
 
-        const sprintRequest: SprintRequest = {
+        // Match exact backend API structure
+        const sprintRequest: any = {
+          id: sprintId, // Backend expects "id" not "sprintId"
           projectId: projectId,
           sprintName: sprint.name,
           sprintGoal: sprint.sprintGoal || null,
           teamAssigned: sprint.teamId ? parseInt(String(sprint.teamId)) : null,
           startDate: formatDateToUTC(sprint.startDate),
           dueDate: formatDateToUTC(sprint.endDate),
-          status: 'Active', // Set status to Active
+          status: 'ACTIVE', // Backend expects UPPERCASE
           storyPoint: sprint.storyPoint || 0
         };
 
@@ -623,16 +625,50 @@ export class BacklogPage implements OnInit {
     const hasUnfinishedIssues = unfinishedIssues.length > 0;
 
     if (hasUnfinishedIssues) {
-      // Show confirmation modal for unfinished issues
+      // Get list of planned sprints for the dropdown
+      const plannedSprintsList = this.sprints
+        .filter(s => s.status === 'PLANNED' && s.id !== sprintId)
+        .map(s => s.name);
+
+      // Show modal to let user choose where to move unfinished issues
       this.modalService.open({
         id: 'confirmCompleteSprint',
-        title: 'Complete Sprint',
-        modalDesc: `Sprint "${sprint.name}" has ${unfinishedIssues.length} unfinished issue(s). Do you want to mark all unfinished issues as DONE and complete the sprint?`,
-        fields: [],
+        title: 'Unfinished Issues Detected',
+        modalDesc: `Sprint "${sprint.name}" has ${unfinishedIssues.length} unfinished issue(s). Where would you like to move them?`,
+        fields: [
+          {
+            label: 'Move Issues To',
+            model: 'destination',
+            type: 'select',
+            required: true,
+            options: [
+              'Backlog',
+              ...(plannedSprintsList.length > 0 ? plannedSprintsList : ['No planned sprints available'])
+            ]
+          }
+        ],
+        data: {
+          destination: 'Backlog'
+        },
         submitText: 'Complete Sprint',
-        showLabels: false,
-        onSubmit: () => {
-          this.completeSprintWithIssues(sprintId, projectId, unfinishedIssues);
+        showLabels: true,
+        onSubmit: (formData: any) => {
+          const destination = formData.destination;
+          
+          if (destination === 'Backlog') {
+            // Move to backlog (set sprintId to null)
+            this.moveUnfinishedIssuesAndComplete(sprintId, projectId, sprint, unfinishedIssues, null, 'Backlog');
+          } else if (destination !== 'No planned sprints available') {
+            // Move to selected planned sprint
+            const targetSprint = this.sprints.find(s => s.name === destination && s.status === 'PLANNED');
+            if (targetSprint) {
+              this.moveUnfinishedIssuesAndComplete(sprintId, projectId, sprint, unfinishedIssues, targetSprint.id, targetSprint.name);
+            } else {
+              this.toastService.error('Selected sprint not found');
+            }
+          } else {
+            this.toastService.error('Please select a valid destination');
+          }
         }
       });
     } else {
@@ -641,47 +677,136 @@ export class BacklogPage implements OnInit {
     }
   }
 
-  private completeSprintWithIssues(sprintId: string, projectId: string, unfinishedIssues: Issue[]): void {
-    const sprint = this.sprints.find(s => s.id === sprintId);
-    if (!sprint) return;
+  /**
+   * Move unfinished issues to a destination (backlog or another sprint) and then complete the sprint
+   */
+  private moveUnfinishedIssuesAndComplete(
+    sprintId: string, 
+    projectId: string, 
+    sprint: Sprint, 
+    unfinishedIssues: Issue[], 
+    destinationSprintId: string | null,
+    destinationName: string
+  ): void {
+    this.toastService.info(`Moving ${unfinishedIssues.length} unfinished issue(s) to ${destinationName}...`);
 
-    this.toastService.info('Updating unfinished issues...');
-
-    // Update all unfinished issues to DONE (statusId: 4)
+    // Update sprint ID for all unfinished issues using the v2 API
     const updateObservables = unfinishedIssues.map(issue => {
-      const updateRequest = {
-        projectId: projectId,
-        issueType: issue.issueType || issue.type,
-        title: issue.title,
-        description: issue.description,
-        priority: issue.priority,
-        assigneeId: issue.assigneeId || null,
-        startDate: issue.startDate ? new Date(issue.startDate).toISOString() : null,
-        dueDate: issue.dueDate ? new Date(issue.dueDate).toISOString() : null,
-        sprintId: issue.sprintId || null,
-        storyPoints: issue.storyPoints || 0,
-        epicId: issue.epicId || null,
-        reporterId: issue.reporterId || null,
-        attachmentUrl: issue.attachmentUrl || null,
-        statusId: 4, // DONE
-        labels: issue.labels && issue.labels.length > 0 ? JSON.stringify(issue.labels) : null
-      };
-
-      return this.issueService.updateIssue(issue.id, updateRequest);
+      return this.issueService.updateIssueV2(issue.id, {
+        sprintId: destinationSprintId // null for backlog, or target sprint ID
+      });
     });
 
     // Use forkJoin to wait for all issue updates to complete
     forkJoin(updateObservables).subscribe({
       next: (responses) => {
-        console.log('✅ All unfinished issues marked as DONE:', responses);
-        this.toastService.success(`${unfinishedIssues.length} issue(s) marked as DONE`);
+        console.log(`✅ All unfinished issues moved to ${destinationName}:`, responses);
+        this.toastService.success(`${unfinishedIssues.length} issue(s) moved to ${destinationName}`);
         
         // Now complete the sprint
         this.completeSprintDirectly(sprintId, projectId, sprint);
       },
       error: (error) => {
-        console.error('❌ Error updating issues:', error);
-        this.toastService.error('Failed to update some issues. Please try again.');
+        console.error('❌ Error moving issues:', error);
+        this.toastService.error('Failed to move some issues. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Move unfinished issues to a destination and then update sprint with new data (used during edit)
+   */
+  private moveUnfinishedIssuesAndUpdateSprint(
+    sprintId: string, 
+    projectId: string, 
+    sprint: Sprint, 
+    unfinishedIssues: Issue[], 
+    destinationSprintId: string | null,
+    destinationName: string,
+    formData: any,
+    teamsDataMap?: Map<string, number>
+  ): void {
+    this.toastService.info(`Moving ${unfinishedIssues.length} unfinished issue(s) to ${destinationName}...`);
+
+    // Update sprint ID for all unfinished issues using the v2 API
+    const updateObservables = unfinishedIssues.map(issue => {
+      return this.issueService.updateIssueV2(issue.id, {
+        sprintId: destinationSprintId // null for backlog, or target sprint ID
+      });
+    });
+
+    // Use forkJoin to wait for all issue updates to complete
+    forkJoin(updateObservables).subscribe({
+      next: (responses) => {
+        console.log(`✅ All unfinished issues moved to ${destinationName}:`, responses);
+        this.toastService.success(`${unfinishedIssues.length} issue(s) moved to ${destinationName}`);
+        
+        // Now update the sprint with the form data (which includes status change to COMPLETED)
+        this.performSprintUpdate(sprintId, projectId, formData, teamsDataMap);
+      },
+      error: (error) => {
+        console.error('❌ Error moving issues:', error);
+        this.toastService.error('Failed to move some issues. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Perform the actual sprint update API call (extracted for reuse)
+   */
+  private performSprintUpdate(sprintId: string, projectId: string, formData: any, teamsDataMap?: Map<string, number>): void {
+    // Convert date strings to ISO 8601 UTC format for PostgreSQL
+    const formatDateToUTC = (dateString: string): string => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString();
+    };
+
+    // Convert team name to team ID using the map
+    let teamId: number | null = null;
+    if (formData.teamAssigned && teamsDataMap) {
+      teamId = teamsDataMap.get(formData.teamAssigned) || null;
+    }
+
+    // Convert status to UPPERCASE
+    let statusUpperCase = 'PLANNED';
+    if (formData.status) {
+      statusUpperCase = formData.status.toUpperCase();
+    }
+
+    const sprintRequest: any = {
+      id: sprintId,
+      projectId: projectId,
+      sprintName: formData.sprintName,
+      sprintGoal: formData.sprintGoal || null,
+      teamAssigned: teamId,
+      startDate: formData.startDate ? formatDateToUTC(formData.startDate) : undefined,
+      dueDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
+      status: statusUpperCase,
+      storyPoint: formData.storyPoint || 0
+    };
+
+    console.log('🔧 Update Sprint Request:', sprintRequest);
+    this.toastService.info('Updating sprint...');
+
+    this.sprintService.updateSprint(sprintId, sprintRequest).subscribe({
+      next: (response) => {
+        console.log('Sprint updated successfully:', response);
+        this.toastService.success('Sprint updated successfully!');
+        
+        // Close the modal
+        this.modalService.close();
+        
+        // Reload sprints to get updated data from backend
+        if (projectId) {
+          this.loadSprints(projectId);
+        }
+        // Trigger change detection
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('❌ Error updating sprint:', error);
+        this.toastService.error(error.error?.message || 'Failed to update sprint. Please try again.');
       }
     });
   }
@@ -692,14 +817,16 @@ export class BacklogPage implements OnInit {
       return new Date(date).toISOString();
     };
 
-    const sprintRequest: SprintRequest = {
+    // Match exact backend API structure
+    const sprintRequest: any = {
+      id: sprintId, // Backend expects "id" not "sprintId"
       projectId: projectId,
       sprintName: sprint.name,
       sprintGoal: sprint.sprintGoal || null,
       teamAssigned: sprint.teamId ? parseInt(String(sprint.teamId)) : null,
       startDate: formatDateToUTC(sprint.startDate),
       dueDate: formatDateToUTC(sprint.endDate),
-      status: 'Completed', // Set status to Completed
+      status: 'COMPLETED', // Backend expects UPPERCASE
       storyPoint: sprint.storyPoint || 0
     };
 
@@ -727,7 +854,11 @@ export class BacklogPage implements OnInit {
   }
 
   handleEdit(sprintId: string): void {
-    const sprint = this.sprints.find(s => s.id === sprintId);
+    // Look for sprint in both active/planned sprints and completed sprints
+    let sprint = this.sprints.find(s => s.id === sprintId);
+    if (!sprint) {
+      sprint = this.completedSprints.find(s => s.id === sprintId);
+    }
     if (!sprint) {
       console.error(`Sprint not found: ${sprintId}`);
       return;
@@ -745,33 +876,23 @@ export class BacklogPage implements OnInit {
       { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: ['Loading teams...'], colSpan: 2, required: false },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-      { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
+      { label: 'Status', type: 'select', model: 'status', options: ['Planned', 'Active', 'Completed'], colSpan: 1 },
       { label: 'Story Point (Total)', type: 'number', model: 'storyPoint', colSpan: 1 },
     ];
 
-    this.modalService.open({
-      id: 'editSprintModal',
-      title: 'Edit Sprint',
-      projectName: 'Project Alpha',
-      modalDesc: 'Edit an existing sprint in your project',
-      fields: sprintFields,
-      data: {
-        sprintName: sprint.name || '',
-        sprintGoal,
-        startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
-        dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
-        status: sprint.status || 'Planned',
-        storyPoint: totalStoryPoints,
-        teamAssigned: sprint.teamAssigned || '',
-      },
-      showLabels: false,
-      submitText: 'Save Changes',
-      onSubmit: (formData: any) => {
-        this.updateSprintApi(sprintId, formData);
-      }
-    });
-    
-    // Load teams dynamically in the background
+    // Map internal status format (UPPERCASE) to display format (Title Case) for the modal
+    let statusDisplay = 'Planned';
+    switch (sprint.status) {
+      case 'PLANNED': statusDisplay = 'Planned'; break;
+      case 'ACTIVE': statusDisplay = 'Active'; break;
+      case 'COMPLETED': statusDisplay = 'Completed'; break;
+      default: statusDisplay = 'Planned'; break;
+    }
+
+    // Store teams data for later lookup
+    const teamsDataMap: Map<string, number> = new Map(); // team name -> team id
+
+    // First, fetch teams to get the current team name
     this.sprintService.getTeamsByProject(projectId).subscribe({
       next: (response) => {
         let teamsData: any[] = [];
@@ -781,14 +902,52 @@ export class BacklogPage implements OnInit {
           teamsData = response;
         }
         
+        // Build team name to ID map
+        teamsData.forEach((team: any) => {
+          const teamName = team.name || team.teamName || 'Unnamed Team';
+          const teamId = team.id || team.teamId;
+          teamsDataMap.set(teamName, teamId);
+        });
+
+        // Find current team name
+        let currentTeamName = '';
+        if (sprint.teamId) {
+          const currentTeam = teamsData.find((team: any) => (team.id || team.teamId) === sprint.teamId);
+          currentTeamName = currentTeam ? (currentTeam.name || currentTeam.teamName || '') : '';
+        }
+        
         const teamOptions = teamsData.length > 0 
           ? teamsData.map((team: any) => team.name || team.teamName || 'Unnamed Team')
           : ['No teams found'];
         
+        // Update team field options
         const teamField = sprintFields.find(f => f.model === 'teamAssigned');
         if (teamField) {
           teamField.options = teamOptions;
         }
+
+        // Now open modal with correct team name
+        this.modalService.open({
+          id: 'editSprintModal',
+          title: 'Edit Sprint',
+          projectName: 'Project Alpha',
+          modalDesc: 'Edit an existing sprint in your project',
+          fields: sprintFields,
+          data: {
+            sprintName: sprint.name || '',
+            sprintGoal,
+            startDate: sprint.startDate ? sprint.startDate.toISOString().split('T')[0] : '',
+            dueDate: sprint.endDate ? sprint.endDate.toISOString().split('T')[0] : '',
+            status: statusDisplay,
+            storyPoint: totalStoryPoints,
+            teamAssigned: currentTeamName,
+          },
+          showLabels: false,
+          submitText: 'Save Changes',
+          onSubmit: (formData: any) => {
+            this.updateSprintApi(sprintId, formData, teamsDataMap);
+          }
+        });
       },
       error: (error) => {
         console.error('Error loading teams:', error);
@@ -803,7 +962,7 @@ export class BacklogPage implements OnInit {
   /**
    * Update sprint via API
    */
-  private updateSprintApi(sprintId: string, formData: any): void {
+  private updateSprintApi(sprintId: string, formData: any, teamsDataMap?: Map<string, number>): void {
     const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
     
     if (!projectId) {
@@ -818,55 +977,86 @@ export class BacklogPage implements OnInit {
       return date.toISOString(); // Returns format: "2024-11-03T00:00:00.000Z"
     };
 
-    const sprintRequest: SprintRequest = {
-      projectId: projectId,
-      sprintName: formData.sprintName,
-      sprintGoal: formData.sprintGoal || null,
-      teamAssigned: formData.teamAssigned ? parseInt(String(formData.teamAssigned)) : null,
-      startDate: formData.startDate ? formatDateToUTC(formData.startDate) : undefined,
-      dueDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
-      status: formData.status || 'Planned',
-      storyPoint: formData.storyPoint || 0
-    };
+    // Convert team name to team ID using the map
+    let teamId: number | null = null;
+    if (formData.teamAssigned && teamsDataMap) {
+      teamId = teamsDataMap.get(formData.teamAssigned) || null;
+      console.log('🔍 Team lookup:', { 
+        teamName: formData.teamAssigned, 
+        teamId, 
+        availableTeams: Array.from(teamsDataMap.keys()) 
+      });
+    }
 
-    console.log('🔧 Update Sprint Request Details:', {
-      sprintId,
-      projectId,
-      formData,
-      sprintRequest,
-      rawFormData: JSON.stringify(formData, null, 2),
-      requestPayload: JSON.stringify(sprintRequest, null, 2)
-    });
-    this.toastService.info('Updating sprint...');
+    // Match exact backend API structure
+    // Convert status from Title Case (Planned) to UPPERCASE (PLANNED)
+    let statusUpperCase = 'PLANNED';
+    if (formData.status) {
+      statusUpperCase = formData.status.toUpperCase();
+    }
 
-    this.sprintService.updateSprint(sprintId, sprintRequest).subscribe({
-      next: (response) => {
-        console.log('Sprint updated successfully:', response);
-        this.toastService.success('Sprint updated successfully!');
-        
-        // Close the modal first
+    // Check if status is being changed to COMPLETED
+    const sprint = this.sprints.find(s => s.id === sprintId);
+    if (statusUpperCase === 'COMPLETED' && sprint) {
+      // Check for unfinished issues (status !== 'DONE')
+      const unfinishedIssues = sprint.issues?.filter(issue => issue.status !== 'DONE') || [];
+      
+      if (unfinishedIssues.length > 0) {
+        // Close the edit modal first
         this.modalService.close();
         
-        // Reload sprints to get updated data from backend
-        if (projectId) {
-          this.loadSprints(projectId);
-        }
-        // Trigger change detection
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('❌ Error updating sprint:', {
-          error,
-          status: error.status,
-          statusText: error.statusText,
-          message: error.error?.message || error.message,
-          fullError: error.error,
-          sprintId,
-          sentRequest: sprintRequest
+        // Get list of planned sprints for the dropdown
+        const plannedSprintsList = this.sprints
+          .filter(s => s.status === 'PLANNED' && s.id !== sprintId)
+          .map(s => s.name);
+
+        // Show modal to let user choose where to move unfinished issues
+        this.modalService.open({
+          id: 'confirmCompleteSprintViaEdit',
+          title: 'Unfinished Issues Detected',
+          modalDesc: `Sprint "${sprint.name}" has ${unfinishedIssues.length} unfinished issue(s). Where would you like to move them before completing?`,
+          fields: [
+            {
+              label: 'Move Issues To',
+              model: 'destination',
+              type: 'select',
+              required: true,
+              options: [
+                'Backlog',
+                ...(plannedSprintsList.length > 0 ? plannedSprintsList : ['No planned sprints available'])
+              ]
+            }
+          ],
+          data: {
+            destination: 'Backlog'
+          },
+          submitText: 'Complete Sprint',
+          showLabels: true,
+          onSubmit: (moveData: any) => {
+            const destination = moveData.destination;
+            
+            if (destination === 'Backlog') {
+              // Move to backlog (set sprintId to null) and then update sprint status
+              this.moveUnfinishedIssuesAndUpdateSprint(sprintId, projectId, sprint, unfinishedIssues, null, 'Backlog', formData, teamsDataMap);
+            } else if (destination !== 'No planned sprints available') {
+              // Move to selected planned sprint and then update sprint status
+              const targetSprint = this.sprints.find(s => s.name === destination && s.status === 'PLANNED');
+              if (targetSprint) {
+                this.moveUnfinishedIssuesAndUpdateSprint(sprintId, projectId, sprint, unfinishedIssues, targetSprint.id, targetSprint.name, formData, teamsDataMap);
+              } else {
+                this.toastService.error('Selected sprint not found');
+              }
+            } else {
+              this.toastService.error('Please select a valid destination');
+            }
+          }
         });
-        this.toastService.error(error.error?.message || 'Failed to update sprint. Please try again.');
+        return; // Stop the normal update flow
       }
-    });
+    }
+
+    // No unfinished issues or status is not COMPLETED, proceed with normal update
+    this.performSprintUpdate(sprintId, projectId, formData, teamsDataMap);
   }
 
 
@@ -1174,10 +1364,8 @@ export class BacklogPage implements OnInit {
     // Search in backlog
     const backlogIndex = this.backlogIssues.findIndex(i => i.id === issueId);
     if (backlogIndex !== -1) {
-      // Create a copy to avoid reference issues
       movedIssue = { ...this.backlogIssues[backlogIndex] };
-      // Remove from backlog by creating a new array
-      this.backlogIssues = [...this.backlogIssues.filter(i => i.id !== issueId)];
+      sourceSprintId = null; // Coming from backlog
     }
 
     // Search in sprints if not found in backlog
@@ -1186,42 +1374,83 @@ export class BacklogPage implements OnInit {
         if (sprint.issues) {
           const issueIndex = sprint.issues.findIndex(i => i.id === issueId);
           if (issueIndex !== -1) {
-            // Create a copy to avoid reference issues
             movedIssue = { ...sprint.issues[issueIndex] };
             sourceSprintId = sprint.id;
-            // Remove from sprint by creating a new array
-            sprint.issues = [...sprint.issues.filter(i => i.id !== issueId)];
             break;
           }
         }
       }
     }
 
-    if (movedIssue) {
-      // Update the issue's sprintId and timestamp
-      movedIssue.sprintId = destinationSprintId || undefined;
-      movedIssue.updatedAt = new Date();
-
-      // Add to destination
-      if (destinationSprintId) {
-        const targetSprint = this.sprints.find(s => s.id === destinationSprintId);
-        if (targetSprint) {
-          // Initialize issues array if it doesn't exist
-          if (!targetSprint.issues) {
-            targetSprint.issues = [];
-          }
-          // Add to sprint by creating a new array
-          targetSprint.issues = [...targetSprint.issues, movedIssue];
-        }
-      } else {
-        // Move to backlog by creating a new array
-        this.backlogIssues = [...this.backlogIssues, movedIssue];
-      }
-
-      console.log(`Issue ${issueId} moved successfully from ${sourceSprintId || 'backlog'} to ${destinationSprintId || 'backlog'}`);
-    } else {
+    if (!movedIssue) {
       console.error(`Issue ${issueId} not found`);
+      this.toastService.error('Issue not found');
+      return;
     }
+
+    // Don't move if source and destination are the same
+    if (sourceSprintId === destinationSprintId) {
+      console.log('Issue is already in the target location');
+      return;
+    }
+
+    // Show loading toast
+    const sourceName = sourceSprintId ? this.sprints.find(s => s.id === sourceSprintId)?.name : 'Backlog';
+    const destName = destinationSprintId ? this.sprints.find(s => s.id === destinationSprintId)?.name : 'Backlog';
+    this.toastService.info(`Moving issue from ${sourceName} to ${destName}...`);
+
+    // Call backend API to update the issue's sprintId using V2 endpoint
+    const updatePayload: any = {
+      sprintId: destinationSprintId || null // null for backlog, sprintId for sprint
+    };
+
+    console.log('🔄 Updating issue sprintId via API:', { issueId, updatePayload });
+
+    this.issueService.updateIssueV2(issueId, updatePayload).subscribe({
+      next: (response) => {
+        console.log('✅ Issue sprintId updated successfully in backend:', response);
+        
+        // Update local state after successful backend update
+        // Remove from source
+        if (sourceSprintId) {
+          const sourceSprint = this.sprints.find(s => s.id === sourceSprintId);
+          if (sourceSprint && sourceSprint.issues) {
+            sourceSprint.issues = sourceSprint.issues.filter(i => i.id !== issueId);
+          }
+        } else {
+          this.backlogIssues = this.backlogIssues.filter(i => i.id !== issueId);
+        }
+
+        // Update the issue's sprintId and timestamp
+        movedIssue!.sprintId = destinationSprintId || undefined;
+        movedIssue!.updatedAt = new Date();
+
+        // Add to destination
+        if (destinationSprintId) {
+          const targetSprint = this.sprints.find(s => s.id === destinationSprintId);
+          if (targetSprint) {
+            if (!targetSprint.issues) {
+              targetSprint.issues = [];
+            }
+            targetSprint.issues = [...targetSprint.issues, movedIssue!];
+          }
+        } else {
+          this.backlogIssues = [...this.backlogIssues, movedIssue!];
+        }
+
+        this.toastService.success(`Issue moved to ${destName} successfully!`);
+        console.log(`✅ Issue ${issueId} moved successfully from ${sourceName} to ${destName}`);
+        
+        // Trigger change detection
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('❌ Error updating issue sprintId:', error);
+        this.toastService.error('Failed to move issue. Please try again.');
+        
+        // Local state remains unchanged on error, so no need to revert
+      }
+    });
   }
 
   onToggleSidebar(): void {
@@ -1343,6 +1572,7 @@ export class BacklogPage implements OnInit {
         console.log('Loaded sprints from backend:', response);
         if (response.status === 200 && response.data) {
           // Transform API response to Sprint interface
+          // Normalize status to uppercase for consistency
           this.sprints = response.data.map(sprintData => ({
             id: sprintData.id,
             projectId: sprintData.projectId,
@@ -1350,7 +1580,7 @@ export class BacklogPage implements OnInit {
             sprintGoal: sprintData.sprintGoal,
             startDate: new Date(sprintData.startDate),
             endDate: new Date(sprintData.dueDate),
-            status: sprintData.status,
+            status: (sprintData.status || 'PLANNED').toUpperCase() as 'ACTIVE' | 'COMPLETED' | 'PLANNED',
             storyPoint: sprintData.storyPoint,
             teamId: sprintData.teamId,
             issues: [], // Will be populated by organizeSprints
