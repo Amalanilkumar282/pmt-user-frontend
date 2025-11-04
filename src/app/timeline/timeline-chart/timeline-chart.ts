@@ -510,25 +510,71 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     // Check if it's an epic
     const epic = this.epicsData.find(e => e.id === rowId);
     if (epic) {
-      // Note: Epic model might not have startDate/endDate properties
-      // This is a placeholder for future database update
-      // TODO: Call API service to update epic dates in database
-      // this.epicService.updateEpicDates(epic.id, startDate, endDate).subscribe();
+      // Store original dates in case we need to revert
+      const originalStartDate = epic.startDate;
+      const originalDueDate = epic.dueDate;
+      
+      // Update local data optimistically
+      epic.startDate = startDate;
+      epic.dueDate = endDate;
+      
+      // Call API to persist changes
+      this.timelineService.updateEpicDates(epic.id, startDate, endDate).subscribe({
+        next: (response) => {
+          console.log('Epic dates updated successfully', response);
+          // Optionally show success notification
+          // this.showSuccessToast('Epic dates updated successfully');
+        },
+        error: (error) => {
+          console.error('Failed to update epic dates:', error);
+          
+          // Revert changes on error
+          epic.startDate = originalStartDate;
+          epic.dueDate = originalDueDate;
+          
+          // Refresh the timeline to ensure consistency
+          this.prepareTimelineData();
+          this.cdr.detectChanges();
+          
+          // Optionally show error notification
+          // this.showErrorToast('Failed to update epic dates. Please try again.');
+        }
+      });
       return;
     }
     
     // Check if it's an issue
-    for (const sprint of this.projectData) {
-      if (sprint.issues) {
-        const issue = sprint.issues.find(i => i.id === rowId);
-        if (issue) {
-          issue.createdAt = startDate;
-          issue.updatedAt = endDate;
-          // TODO: Call API service to update issue dates in database
-          // this.issueService.updateIssueDates(issue.id, startDate, endDate).subscribe();
-          return;
+    const issue = this.allIssues.find(i => i.id === rowId);
+    if (issue) {
+      // Store original dates in case we need to revert
+      const originalStartDate = issue.startDate;
+      const originalDueDate = issue.dueDate;
+      
+      // Update local data optimistically
+      issue.startDate = startDate;
+      issue.dueDate = endDate;
+      
+      // Call API to persist changes
+      this.timelineService.updateIssueDates(issue.id, startDate, endDate).subscribe({
+        next: (response) => {
+          console.log('Issue dates updated successfully', response);
+          // Optionally show success notification
+        },
+        error: (error) => {
+          console.error('Failed to update issue dates:', error);
+          
+          // Revert changes on error
+          issue.startDate = originalStartDate;
+          issue.dueDate = originalDueDate;
+          
+          // Refresh the timeline to ensure consistency
+          this.prepareTimelineData();
+          this.cdr.detectChanges();
+          
+          // Optionally show error notification
         }
-      }
+      });
+      return;
     }
     
     // Check if it's a sprint
@@ -536,8 +582,9 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     if (sprint) {
       sprint.startDate = startDate;
       sprint.endDate = endDate;
-      // TODO: Call API service to update sprint dates in database
+      // TODO: Implement sprint dates update API when available
       // this.sprintService.updateSprintDates(sprint.id, startDate, endDate).subscribe();
+      console.log('Sprint dates updated (API not yet implemented):', sprint.id, startDate, endDate);
       return;
     }
   }
