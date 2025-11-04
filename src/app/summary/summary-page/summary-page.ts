@@ -56,9 +56,11 @@ interface RecentIssue {
   styleUrl: './summary-page.css',
 })
 export class SummaryPage implements OnInit {
+  private projectMembersService = inject(require('../../teams/services/project-members.service').ProjectMembersService) as import('../../teams/services/project-members.service').ProjectMembersService;
   private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+    private projectService = inject(require('../../projects/services/project.service').ProjectService) as import('../../projects/services/project.service').ProjectService;
   private issueSummaryService = inject(IssueSummaryService);
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
@@ -77,20 +79,8 @@ export class SummaryPage implements OnInit {
   // Recent issues property
   RecentIssueData: RecentIssue[] = [];
 
-  projectLeads = [
-    {
-      initials: 'AS',
-      name: 'Alice Smith',
-      role: 'Project Manager',
-      bgColor: 'bg-[#FF5722]',
-    },
-  ];
-
-  projectDetails = [
-    { label: 'Name', value: 'Mobile App Alpha' },
-    { label: 'Type', value: 'Software Development' },
-    { label: 'Created', value: '15 Sep 2024' },
-  ];
+  projectLeads: any[] = [];
+  projectDetails: any[] = [];
 
   ngOnInit(): void {
     // Try multiple ways to get the project ID
@@ -124,6 +114,58 @@ export class SummaryPage implements OnInit {
     
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
+      
+      // Fetch recent issues from API and assign to RecentIssueData
+      this.issueSummaryService.getRecentIssuesByProjectId(projectId, 6).subscribe({
+        next: (issues: any[]) => {
+          console.log('✅ Fetched recent issues:', issues);
+          console.log('✅ Recent issues count:', issues.length);
+          if (issues.length > 0) {
+            console.log('✅ First issue:', issues[0]);
+          }
+          this.RecentIssueData = issues;
+          this.cdr.detectChanges();
+        },
+        error: (err: unknown) => {
+          console.error('❌ Failed to fetch recent issues:', err);
+        }
+      });
+      // Fetch project details from API
+      this.projectService.getProjectsByUserId(this.projectService.getUserId() || '').subscribe({
+        next: (projects: import('../../projects/services/project.service').Project[]) => {
+          // Find the current project
+          const project = projects.find((p: import('../../projects/services/project.service').Project) => p.id === projectId);
+          if (project) {
+            // Set project lead info
+            this.projectLeads = [{
+              initials: project.projectManagerName ? (project.projectManagerName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0,2)) : '?',
+              name: project.projectManagerName || 'N/A',
+              role: 'Project Lead',
+              bgColor: 'bg-[#FF5722]',
+            }];
+            // Set project details
+            this.projectDetails = [
+              { label: 'Name', value: project.name },
+              { label: 'Type', value: 'Software Development' },
+              { label: 'Created', value: project.lastUpdated ? formatDate(project.lastUpdated) : '' },
+              { label: 'Customer', value: project.customerOrgName || '' },
+              { label: 'Delivery Unit', value: project.deliveryUnitName || '' },
+              { label: 'Status', value: project.status },
+            ];
+            function formatDate(dateStr: string): string {
+              const d = new Date(dateStr);
+              const day = d.getDate();
+              const month = d.toLocaleString('en-US', { month: 'short' });
+              const year = d.getFullYear();
+              return `${day} ${month} ${year}`;
+            }
+            this.cdr.detectChanges();
+          }
+        },
+        error: (err: unknown) => {
+          console.error('Failed to fetch project details:', err);
+        }
+      });
       
       // Load sprints for the filter from API
       console.log('Fetching sprints for project:', projectId);
@@ -176,9 +218,7 @@ export class SummaryPage implements OnInit {
     // Update issue chart data
     this.issueChartData = this.issueSummaryService.getIssueTypeCounts(this.selectedSprintId);
 
-    // UPDATED: Load Recent Issues data from the service, filtered by the selected sprint ID
-    this.RecentIssueData = this.issueSummaryService.getRecentIssues(this.selectedSprintId);
-    console.log(this.RecentIssueData);
+  // Recent issues are now loaded from backend in ngOnInit only
   }
 
   onToggleSidebar(): void {
