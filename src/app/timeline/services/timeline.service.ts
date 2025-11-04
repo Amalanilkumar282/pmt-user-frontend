@@ -312,6 +312,44 @@ export class TimelineService {
   }
 
   /**
+   * Update epic dates (for drag-and-drop timeline functionality)
+   * PUT /api/Epic/{epicId}/dates
+   */
+  updateEpicDates(epicId: string, startDate: Date, dueDate: Date): Observable<any> {
+    const headers = this.getAuthHeaders();
+    const url = `${this.apiUrl}/api/Epic/${epicId}/dates`;
+    
+    return this.http.put(url, {
+      startDate: startDate.toISOString(),
+      dueDate: dueDate.toISOString()
+    }, { headers }).pipe(
+      catchError(error => {
+        console.error('Error updating epic dates:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Update issue dates (for drag-and-drop timeline functionality)
+   * PUT /api/Issue/{issueId}/dates
+   */
+  updateIssueDates(issueId: string, startDate: Date, dueDate: Date): Observable<any> {
+    const headers = this.getAuthHeaders();
+    const url = `${this.apiUrl}/api/Issue/${issueId}/dates`;
+    
+    return this.http.put(url, {
+      startDate: startDate.toISOString(),
+      dueDate: dueDate.toISOString()
+    }, { headers }).pipe(
+      catchError(error => {
+        console.error('Error updating issue dates:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
    * Fetch all timeline data for a project in parallel (legacy method)
    * Use getTimelineData() instead for better performance
    */
