@@ -7,6 +7,7 @@ import { AvatarClassPipe, InitialsPipe } from '../../../shared/pipes/avatar.pipe
 import { BoardStore } from '../../board-store';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 import { UserApiService } from '../../../shared/services/user-api.service';
+import { ToastService } from '../../../shared/services/toast.service';
 import { shareReplay } from 'rxjs/operators';
 import { EpicApiService } from '../../services/epic-api.service';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
@@ -83,6 +84,16 @@ export class TaskCard implements OnInit, AfterViewInit {
 
   // Cached project members
   private projectMembers: { id: number; name: string }[] = [];
+  private toastService = inject(ToastService);
+
+  // Whether the currently selected sprint (if any) is completed. When true,
+  // in-card edits should be disabled.
+  readonly isSprintCompleted = computed(() => {
+    const sprintId = this.store.selectedSprintId();
+    if (!sprintId) return false;
+    const sprint = this.store.sprints().find(s => s.id === sprintId);
+    return sprint?.status === 'COMPLETED';
+  });
 
   // Helper to provide a display string used by pipes in template
   displayAssignee(): string {
@@ -518,6 +529,10 @@ export class TaskCard implements OnInit, AfterViewInit {
   // Title editing methods
   startEditingTitle(event: Event): void {
     event.stopPropagation(); // Prevent card click
+    if (this.isSprintCompleted()) {
+      try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
+      return;
+    }
     this.editedTitle.set(this.issue.title);
     this.isEditingTitle.set(true);
     // Resize after Angular renders the textarea
@@ -576,6 +591,10 @@ export class TaskCard implements OnInit, AfterViewInit {
   // Description editing
   startEditingDescription(event: Event): void {
     event.stopPropagation();
+    if (this.isSprintCompleted()) {
+      try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
+      return;
+    }
     this.editedDescription.set(this.issue.description || '');
     this.isEditingDescription.set(true);
   }
@@ -604,12 +623,20 @@ export class TaskCard implements OnInit, AfterViewInit {
   // Assignee click handler
   onAssigneeClick(event: Event): void {
     event.stopPropagation(); // Prevent card click
+    if (this.isSprintCompleted()) {
+      try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
+      return;
+    }
     this.assigneeSearchQuery.set(''); // Reset search when opening
     this.showDatePicker.set(false); // Close date picker if open
     this.showAssigneeDropdown.set(!this.showAssigneeDropdown());
   }
   
   selectAssignee(assigneeEntry: { id: string | 'unassigned', name: string }): void {
+    if (this.isSprintCompleted()) {
+      try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
+      return;
+    }
     const newAssignee = assigneeEntry.id === 'unassigned' ? undefined : assigneeEntry.id;
     try {
       const projectId = this.projectContext.currentProjectId();
@@ -635,11 +662,19 @@ export class TaskCard implements OnInit, AfterViewInit {
   // Due date handlers
   onDueDateClick(event: Event): void {
     event.stopPropagation();
+    if (this.isSprintCompleted()) {
+      try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
+      return;
+    }
     this.showAssigneeDropdown.set(false); // Close assignee dropdown if open
     this.showDatePicker.set(!this.showDatePicker());
   }
   
   onDateChange(event: Event): void {
+    if (this.isSprintCompleted()) {
+      try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const newDate = input.value ? new Date(input.value) : undefined;
     try {
@@ -687,5 +722,13 @@ export class TaskCard implements OnInit, AfterViewInit {
   onCommentsClick(event: Event): void {
     event.stopPropagation();
     this.openComments.emit(this.issue);
+  }
+
+  // Open card (only when sprint not completed)
+  onOpenCard(event?: Event): void {
+    if (event) event.stopPropagation();
+    // Always allow opening the issue for viewing. Edits are separately
+    // guarded on individual actions (title/description/assignee/date).
+    this.open.emit(this.issue);
   }
 }
