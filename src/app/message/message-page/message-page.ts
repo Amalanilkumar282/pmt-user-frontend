@@ -6,6 +6,8 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
+import { TeamsService } from '../../teams/services/teams.service';
+import { ChannelService } from '../services/channel.service';
 import { ChannelList } from '../channel-list/channel-list';
 import { MessageList } from '../message-list/message-list';
 import { MessageInput } from '../message-input/message-input';
@@ -44,12 +46,14 @@ export class MessagePage implements OnInit {
   private route = inject(ActivatedRoute);
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  private teamsService = inject(TeamsService);
+  private channelService = inject(ChannelService);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
   // Team and channel selection
-  selectedTeamId = signal<string>('team-1');
-  selectedChannelId = signal<string>('channel-1');
+  selectedTeamId = signal<string | null>(null);
+  selectedChannelId = signal<string | null>(null);
   messageText = signal<string>('');
   showTeamDropdown = signal<boolean>(false);
 
@@ -57,142 +61,28 @@ export class MessagePage implements OnInit {
   showSearch = signal<boolean>(false);
   searchQuery = signal<string>('');
 
-  // Available teams with channels
-  teams = signal<Team[]>([
-    {
-      id: 'team-1',
-      name: 'Backend Development Team',
-      icon: 'BD',
-      channels: [
-        {
-          id: 'channel-1',
-          name: 'announcements',
-          type: 'channel',
-          unreadCount: 0,
-          isPrivate: false,
-        },
-        {
-          id: 'channel-2',
-          name: 'project-gizmo',
-          type: 'channel',
-          unreadCount: 3,
-          isPrivate: false,
-        },
-        {
-          id: 'channel-3',
-          name: 'team-marketing',
-          type: 'channel',
-          unreadCount: 0,
-          isPrivate: false,
-        },
-        { id: 'channel-4', name: 'random', type: 'channel', unreadCount: 0, isPrivate: false },
-        { id: 'channel-5', name: 'engineering', type: 'channel', unreadCount: 0, isPrivate: true },
-      ],
-    },
-    {
-      id: 'team-2',
-      name: 'Frontend Development Team',
-      icon: 'FD',
-      channels: [
-        { id: 'channel-6', name: 'general', type: 'channel', unreadCount: 2, isPrivate: false },
-        { id: 'channel-7', name: 'dev-team', type: 'channel', unreadCount: 5, isPrivate: false },
-      ],
-    },
-    {
-      id: 'team-3',
-      name: 'Mobile Development Team',
-      icon: 'MD',
-      channels: [
-        {
-          id: 'channel-8',
-          name: 'design-feedback',
-          type: 'channel',
-          unreadCount: 0,
-          isPrivate: false,
-        },
-        { id: 'channel-9', name: 'clients', type: 'channel', unreadCount: 1, isPrivate: true },
-      ],
-    },
-  ]);
+  // Loading state
+  isLoadingTeams = signal<boolean>(false);
 
-  // Messages for each channel
-  private allMessages = signal<Record<string, Message[]>>({
-    'channel-2': [
-      {
-        id: 'm1',
-        user: 'Sarah Johnson',
-        userAvatar: 'SJ',
-        text: 'Hey team! Just finished the wireframes for the new dashboard. Would love to get your feedback.',
-        timestamp: new Date('2025-10-15T09:30:00'),
-      },
-      {
-        id: 'm2',
-        user: 'Mike Chen',
-        userAvatar: 'MC',
-        text: 'Great work Sarah! The layout looks much cleaner than the previous version.',
-        timestamp: new Date('2025-10-15T09:45:00'),
-      },
-      {
-        id: 'm3',
-        user: 'Alex Rivera',
-        userAvatar: 'AR',
-        text: '@Sarah the color scheme is perfect. When can we start implementing this?',
-        timestamp: new Date('2025-10-15T10:15:00'),
-      },
-      {
-        id: 'm4',
-        user: 'Emma Watson',
-        userAvatar: 'EW',
-        text: 'Quick reminder: We have the Project Status Meeting today from 01:30-02:00 IST',
-        timestamp: new Date('2025-10-15T11:00:00'),
-      },
-    ],
-    'channel-1': [
-      {
-        id: 'm5',
-        user: 'Admin',
-        userAvatar: 'AD',
-        text: '📢 Welcome to the announcements channel! Important updates will be posted here.',
-        timestamp: new Date('2025-10-14T09:00:00'),
-      },
-    ],
-    'channel-3': [
-      {
-        id: 'm6',
-        user: 'Lisa Park',
-        userAvatar: 'LP',
-        text: 'Marketing campaign for Q4 is ready for review. Check the shared drive!',
-        timestamp: new Date('2025-10-15T08:00:00'),
-      },
-      {
-        id: 'm7',
-        user: 'Tom Williams',
-        userAvatar: 'TW',
-        text: "Looks great! Let's schedule a meeting to discuss the rollout plan.",
-        timestamp: new Date('2025-10-13T08:30:00'),
-      },
-    ],
-    'channel-5': [
-      {
-        id: 'm8',
-        user: 'John Davis',
-        userAvatar: 'JD',
-        text: 'Code review needed for PR #234. It includes the new authentication module.',
-        timestamp: new Date('2025-10-15T07:15:00'),
-      },
-    ],
-  });
+  // Available teams with channels (loaded from API)
+  teams = signal<Team[]>([]);
+
+  // Messages for each channel (will be loaded from API later)
+  private allMessages = signal<Record<string, Message[]>>({});
 
   // Computed messages for selected channel (with search filtering)
   messages = computed(() => {
     const channelId = this.selectedChannelId();
+    if (!channelId) return [];
+
     const allChannelMessages = this.allMessages()[channelId] || [];
 
     // If search is active and has a query, filter messages
     if (this.showSearch() && this.searchQuery().trim()) {
       const query = this.searchQuery().toLowerCase().trim();
       return allChannelMessages.filter(
-        (msg) => msg.text.toLowerCase().includes(query) || msg.user.toLowerCase().includes(query)
+        (msg: Message) =>
+          msg.text.toLowerCase().includes(query) || msg.user.toLowerCase().includes(query)
       );
     }
 
@@ -219,7 +109,89 @@ export class MessagePage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
+      this.loadTeams(projectId);
     }
+  }
+
+  /**
+   * Load teams from API for the current project
+   */
+  private loadTeams(projectId: string): void {
+    this.isLoadingTeams.set(true);
+
+    this.teamsService.getTeamsByProjectId(projectId).subscribe({
+      next: (apiTeams) => {
+        console.log('Loaded teams from API:', apiTeams);
+
+        // Transform API teams to message page team format
+        const messageTeams: Team[] = apiTeams.map((team) => ({
+          id: team.id,
+          name: team.name,
+          icon: this.getTeamInitials(team.name),
+          channels: [], // Channels will be loaded when team is selected
+        }));
+
+        this.teams.set(messageTeams);
+
+        // Auto-select first team and load its channels
+        if (messageTeams.length > 0) {
+          this.selectedTeamId.set(messageTeams[0].id);
+          this.loadChannelsForTeam(messageTeams[0].id);
+        }
+
+        this.isLoadingTeams.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading teams:', error);
+        this.isLoadingTeams.set(false);
+        // Don't fallback to dummy data - keep empty
+      },
+    });
+  }
+
+  /**
+   * Load channels for a specific team
+   */
+  private loadChannelsForTeam(teamId: string): void {
+    console.log('Loading channels for team:', teamId);
+
+    this.channelService.getChannelsByTeamId(teamId).subscribe({
+      next: (channels) => {
+        console.log('Loaded channels:', channels);
+
+        // Update the team's channels
+        this.teams.update((teams) =>
+          teams.map((team) => {
+            if (team.id === teamId) {
+              return { ...team, channels };
+            }
+            return team;
+          })
+        );
+
+        // Auto-select first channel if available
+        if (channels.length > 0) {
+          this.selectedChannelId.set(channels[0].id);
+        } else {
+          this.selectedChannelId.set(null);
+        }
+      },
+      error: (error) => {
+        console.error('Error loading channels for team:', teamId, error);
+      },
+    });
+  }
+
+  /**
+   * Get team initials from team name
+   */
+  private getTeamInitials(name: string): string {
+    return name
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
   }
 
   onToggleSidebar(): void {
@@ -229,10 +201,15 @@ export class MessagePage implements OnInit {
   selectTeam(teamId: string): void {
     this.selectedTeamId.set(teamId);
     this.showTeamDropdown.set(false);
-    // Select first channel of the new team
+
+    // Check if team already has channels loaded
     const team = this.teams().find((t) => t.id === teamId);
     if (team && team.channels.length > 0) {
+      // Channels already loaded, just select first one
       this.selectedChannelId.set(team.channels[0].id);
+    } else {
+      // Load channels for this team
+      this.loadChannelsForTeam(teamId);
     }
   }
 
@@ -263,6 +240,9 @@ export class MessagePage implements OnInit {
     const text = this.messageText().trim();
     if (!text) return;
 
+    const channelId = this.selectedChannelId();
+    if (!channelId) return;
+
     const newMessage: Message = {
       id: 'm' + Date.now(),
       user: 'You',
@@ -271,7 +251,6 @@ export class MessagePage implements OnInit {
       timestamp: new Date(),
     };
 
-    const channelId = this.selectedChannelId();
     this.allMessages.update((messages) => ({
       ...messages,
       [channelId]: [...(messages[channelId] || []), newMessage],
