@@ -1093,7 +1093,6 @@ export class BacklogPage implements OnInit {
             updatedAt: sprintData.updatedAt ? new Date(sprintData.updatedAt) : null
           }));
           
-          this.toastService.success(`Loaded ${this.sprints.length} sprints successfully`);
           console.log('Transformed sprints:', this.sprints);
           
           // Reorganize issues into sprints after loading
@@ -1126,7 +1125,6 @@ export class BacklogPage implements OnInit {
         console.log('Loaded issues from backend:', issues);
         this.allIssuesFromBackend = issues;
         this.organizeSprints(issues);
-        this.toastService.success(`Loaded ${issues.length} issues successfully`);
         this.isLoadingIssues = false;
       },
       error: (error) => {
@@ -1150,7 +1148,6 @@ export class BacklogPage implements OnInit {
           ...epic,
           isExpanded: false
         }));
-        this.toastService.success(`Loaded ${epics.length} epics successfully`);
         this.isLoadingEpics = false;
       },
       error: (error) => {
