@@ -61,6 +61,25 @@ export interface Message {
   timestamp: Date;
 }
 
+export interface CreateMessageRequest {
+  channelId: string;
+  body: string;
+  mentionUserId?: number;
+  createdBy: number;
+}
+
+export interface CreateMessageResponse {
+  status: number;
+  data: MessageDto;
+  message: string;
+}
+
+export interface DeleteChannelResponse {
+  status: number;
+  data: boolean;
+  message: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -143,8 +162,11 @@ export class ChannelService {
               timestamp: new Date(messageDto.createdAt),
             }));
 
-            console.log('ChannelService - Mapped messages:', messages);
-            return messages;
+            // Reverse to show oldest first (latest at bottom)
+            const sortedMessages = messages.reverse();
+
+            console.log('ChannelService - Mapped messages:', sortedMessages);
+            return sortedMessages;
           }
 
           return [];
@@ -163,5 +185,56 @@ export class ChannelService {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  }
+
+  /**
+   * Create a new message in a channel
+   */
+  createMessage(
+    channelId: string,
+    body: string,
+    createdBy: number,
+    mentionUserId?: number
+  ): Observable<Message> {
+    const request: CreateMessageRequest = {
+      channelId,
+      body,
+      createdBy,
+      ...(mentionUserId && { mentionUserId }),
+    };
+
+    return this.http.post<CreateMessageResponse>(`${this.API_BASE_URL}/Message`, request).pipe(
+      map((response) => {
+        console.log('ChannelService - Create message response:', response);
+
+        // Transform API response to Message interface
+        const message: Message = {
+          id: response.data.id,
+          user: response.data.creatorName,
+          userAvatar: this.getInitials(response.data.creatorName),
+          text: response.data.body,
+          timestamp: new Date(response.data.createdAt),
+        };
+
+        console.log('ChannelService - Created message:', message);
+        return message;
+      })
+    );
+  }
+
+  /**
+   * Delete a channel
+   */
+  deleteChannel(channelId: string, deletedBy?: number): Observable<boolean> {
+    const params = deletedBy ? `?deletedBy=${deletedBy}` : '';
+
+    return this.http
+      .delete<DeleteChannelResponse>(`${this.API_BASE_URL}/Channel/${channelId}${params}`)
+      .pipe(
+        map((response) => {
+          console.log('ChannelService - Delete channel response:', response);
+          return response.data;
+        })
+      );
   }
 }

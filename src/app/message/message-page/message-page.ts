@@ -61,6 +61,9 @@ export class MessagePage implements OnInit {
   showSearch = signal<boolean>(false);
   searchQuery = signal<string>('');
 
+  // More menu dropdown
+  showMoreMenu = signal<boolean>(false);
+
   // Loading state
   isLoadingTeams = signal<boolean>(false);
   isLoadingMessages = signal<boolean>(false);
@@ -279,20 +282,32 @@ export class MessagePage implements OnInit {
     const channelId = this.selectedChannelId();
     if (!channelId) return;
 
-    const newMessage: Message = {
-      id: 'm' + Date.now(),
-      user: 'You',
-      userAvatar: 'YO',
-      text: text,
-      timestamp: new Date(),
-    };
+    // Get current user ID from session storage
+    const userIdStr = sessionStorage.getItem('userId');
+    if (!userIdStr) {
+      console.error('User ID not found in session storage');
+      return;
+    }
+    const userId = parseInt(userIdStr);
 
-    this.allMessages.update((messages) => ({
-      ...messages,
-      [channelId]: [...(messages[channelId] || []), newMessage],
-    }));
+    // Call API to create message
+    this.channelService.createMessage(channelId, text, userId).subscribe({
+      next: (newMessage) => {
+        console.log('Message created:', newMessage);
 
-    this.messageText.set('');
+        // Add the new message to the channel's messages
+        this.allMessages.update((messages) => ({
+          ...messages,
+          [channelId]: [...(messages[channelId] || []), newMessage],
+        }));
+
+        this.messageText.set('');
+      },
+      error: (error) => {
+        console.error('Error creating message:', error);
+        // You can add toast notification here
+      },
+    });
   }
 
   onMessageSent(text: string): void {
@@ -314,6 +329,73 @@ export class MessagePage implements OnInit {
 
   clearSearch(): void {
     this.searchQuery.set('');
+  }
+
+  // More menu functionality
+  toggleMoreMenu(): void {
+    this.showMoreMenu.update((v) => !v);
+  }
+
+  closeMoreMenu(): void {
+    this.showMoreMenu.set(false);
+  }
+
+  deleteChannel(): void {
+    const channelId = this.selectedChannelId();
+    const teamId = this.selectedTeamId();
+
+    if (!channelId || !teamId) return;
+
+    // Get current user ID from session storage
+    const userIdStr = sessionStorage.getItem('userId');
+    const userId = userIdStr ? parseInt(userIdStr) : undefined;
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete this channel? This action cannot be undone.`)) {
+      return;
+    }
+
+    // Close the more menu
+    this.closeMoreMenu();
+
+    // Call API to delete channel
+    this.channelService.deleteChannel(channelId, userId).subscribe({
+      next: (success) => {
+        console.log('Channel deleted:', success);
+
+        if (success) {
+          // Remove the channel from the team's channels
+          this.teams.update((teams) =>
+            teams.map((team) => {
+              if (team.id === teamId) {
+                const updatedChannels = team.channels.filter((c) => c.id !== channelId);
+                return { ...team, channels: updatedChannels };
+              }
+              return team;
+            })
+          );
+
+          // Remove messages for this channel
+          this.allMessages.update((messages) => {
+            const { [channelId]: deleted, ...rest } = messages;
+            return rest;
+          });
+
+          // Select first available channel or null
+          const currentTeam = this.teams().find((t) => t.id === teamId);
+          if (currentTeam && currentTeam.channels.length > 0) {
+            this.selectedChannelId.set(currentTeam.channels[0].id);
+            this.loadMessagesForChannel(currentTeam.channels[0].id);
+          } else {
+            this.selectedChannelId.set(null);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error deleting channel:', error);
+        alert('Failed to delete channel. Please try again.');
+      },
+    });
   }
 
   addChannel(channelName: string): void {
