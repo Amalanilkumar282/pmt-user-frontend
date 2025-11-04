@@ -328,51 +328,28 @@ export class IssueSummaryService {
    */
   getIssueSummaryCards(projectId: string, sprintId: string | null = null): Observable<SummaryCardData[]> {
     const headers = this.getAuthHeaders();
-    const days = 7;
     
     console.log('📊 [getIssueSummaryCards] Called with:', { projectId, sprintId });
     
-    // If no sprint selected or 'all', use project-level metrics
+    // If no sprint selected or 'all', use activity-summary API endpoint
     if (!sprintId || sprintId === 'all') {
-      console.log('📊 Fetching issue summary for all sprints in project:', projectId);
-      const url = `${this.API_BASE_URL}/Issue/project/${projectId}/recent`;
+      console.log('📊 Fetching activity summary for all sprints in project:', projectId);
+      const url = `${this.API_BASE_URL}/Issue/project/${projectId}/activity-summary`;
       console.log('📊 API URL:', url);
       
-      // Fetch all issues for the project and calculate metrics
+      // Use the new activity-summary endpoint
       return this.http.get<any>(url, { headers }).pipe(
         map((response) => {
-          console.log('📥 [getIssueSummaryCards] API response:', response);
-          if (response.status === 200 && Array.isArray(response.data)) {
-            const issues = response.data;
-            console.log('📊 Total issues received:', issues.length);
-            const now = new Date();
-            const sevenDaysAgo = new Date(now.getTime() - days * this.MS_PER_DAY);
-            const sevenDaysLater = new Date(now.getTime() + days * this.MS_PER_DAY);
-            
-            const completed = issues.filter((issue: any) => 
-              issue.status === 4 && issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
-            ).length;
-            
-            const updated = issues.filter((issue: any) => 
-              issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
-            ).length;
-            
-            const created = issues.filter((issue: any) => 
-              issue.createdAt && new Date(issue.createdAt) >= sevenDaysAgo
-            ).length;
-            
-            const dueSoon = issues.filter((issue: any) => 
-              issue.status !== 4 && issue.dueDate && 
-              new Date(issue.dueDate) <= sevenDaysLater && new Date(issue.dueDate) >= now
-            ).length;
-            
-            console.log('✅ Summary cards calculated:', { completed, updated, created, dueSoon });
+          console.log('📥 [getIssueSummaryCards] Activity summary API response:', response);
+          if (response.status === 200 && response.data) {
+            const data = response.data;
+            console.log('✅ Activity summary data:', data);
             
             return [
-              { type: 'completed' as const, count: completed, label: 'COMPLETED', timePeriod: 'in the last 7 days' },
-              { type: 'updated' as const, count: updated, label: 'UPDATED', timePeriod: 'in the last 7 days' },
-              { type: 'created' as const, count: created, label: 'CREATED', timePeriod: 'in the last 7 days' },
-              { type: 'due-soon' as const, count: dueSoon, label: 'DUE SOON', timePeriod: 'in the next 7 days' },
+              { type: 'completed' as const, count: data.completed || 0, label: 'COMPLETED', timePeriod: 'in the last 7 days' },
+              { type: 'updated' as const, count: data.updated || 0, label: 'UPDATED', timePeriod: 'in the last 7 days' },
+              { type: 'created' as const, count: data.created || 0, label: 'CREATED', timePeriod: 'in the last 7 days' },
+              { type: 'due-soon' as const, count: data.dueSoon || 0, label: 'DUE SOON', timePeriod: 'in the next 7 days' },
             ];
           }
           console.warn('⚠️ [getIssueSummaryCards] Invalid response format');
@@ -381,48 +358,23 @@ export class IssueSummaryService {
       );
     }
     
-    // Sprint-specific metrics - use project endpoint and filter by sprint
-    console.log('📊 Fetching issue summary for sprint:', sprintId);
-    const url = `${this.API_BASE_URL}/Issue/project/${projectId}/recent`;
+    // Sprint-specific metrics - use sprint activity-summary endpoint
+    console.log('📊 Fetching activity summary for sprint:', sprintId, 'in project:', projectId);
+    const url = `${this.API_BASE_URL}/Issue/project/${projectId}/sprint/${sprintId}/activity-summary`;
     console.log('📊 API URL:', url);
     
     return this.http.get<any>(url, { headers }).pipe(
       map((response) => {
-        console.log('📥 [getIssueSummaryCards] API response for sprint:', response);
-        if (response.status === 200 && Array.isArray(response.data)) {
-          // Filter issues by sprint ID
-          const allIssues = response.data;
-          const issues = allIssues.filter((issue: any) => issue.sprintId === sprintId);
-          console.log('📊 Issues in sprint', sprintId, ':', issues.length, 'out of', allIssues.length);
-          
-          const now = new Date();
-          const sevenDaysAgo = new Date(now.getTime() - days * this.MS_PER_DAY);
-          const sevenDaysLater = new Date(now.getTime() + days * this.MS_PER_DAY);
-          
-          const completed = issues.filter((issue: any) => 
-            issue.status === 4 && issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
-          ).length;
-          
-          const updated = issues.filter((issue: any) => 
-            issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
-          ).length;
-          
-          const created = issues.filter((issue: any) => 
-            issue.createdAt && new Date(issue.createdAt) >= sevenDaysAgo
-          ).length;
-          
-          const dueSoon = issues.filter((issue: any) => 
-            issue.status !== 4 && issue.dueDate && 
-            new Date(issue.dueDate) <= sevenDaysLater && new Date(issue.dueDate) >= now
-          ).length;
-          
-          console.log('✅ Summary cards calculated for sprint:', { completed, updated, created, dueSoon });
+        console.log('📥 [getIssueSummaryCards] Sprint activity summary API response:', response);
+        if (response.status === 200 && response.data) {
+          const data = response.data;
+          console.log('✅ Sprint activity summary data:', data);
           
           return [
-            { type: 'completed' as const, count: completed, label: 'COMPLETED', timePeriod: 'in the last 7 days' },
-            { type: 'updated' as const, count: updated, label: 'UPDATED', timePeriod: 'in the last 7 days' },
-            { type: 'created' as const, count: created, label: 'CREATED', timePeriod: 'in the last 7 days' },
-            { type: 'due-soon' as const, count: dueSoon, label: 'DUE SOON', timePeriod: 'in the next 7 days' },
+            { type: 'completed' as const, count: data.completed || 0, label: 'COMPLETED', timePeriod: 'in the last 7 days' },
+            { type: 'updated' as const, count: data.updated || 0, label: 'UPDATED', timePeriod: 'in the last 7 days' },
+            { type: 'created' as const, count: data.created || 0, label: 'CREATED', timePeriod: 'in the last 7 days' },
+            { type: 'due-soon' as const, count: data.dueSoon || 0, label: 'DUE SOON', timePeriod: 'in the next 7 days' },
           ];
         }
         console.warn('⚠️ [getIssueSummaryCards] Invalid response format for sprint');
