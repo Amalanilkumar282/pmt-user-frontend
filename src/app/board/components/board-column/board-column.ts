@@ -69,8 +69,6 @@ export class BoardColumn {
       return issue.assignee || 'Unassigned';
     } else if (this.groupBy === 'EPIC') {
       return issue.epicId || 'No Epic';
-    } else if (this.groupBy === 'SUBTASK') {
-      return issue.parentId || 'No Parent';
     }
     return '';
   }

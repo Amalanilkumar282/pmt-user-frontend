@@ -60,6 +60,16 @@ export class BoardToolbar {
     // Hide for default/project boards (no teamId)
     return shouldShow;
   });
+
+  // Expose a null-safe computed used by the template to decide whether to
+  // render board controls (Add Column / Edit Columns). The template engine's
+  // type-checker may not preserve narrowing across multiple `currentBoard()`
+  // calls, so compute once here and use the boolean in the template to avoid
+  // TS2533 errors.
+  readonly showBoardControls = computed(() => {
+    const b = this.currentBoard();
+    return !!b && !b.isDefault;
+  });
   
   readonly assignees = computed(() => {
     const set = new Set<string>();
@@ -185,7 +195,6 @@ export class BoardToolbar {
       NONE: 'None',
       ASSIGNEE: 'Assignee',
       EPIC: 'Epic',
-      SUBTASK: 'Sub Task'
     };
     return labels[groupBy];
   }

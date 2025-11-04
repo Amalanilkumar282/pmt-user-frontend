@@ -137,7 +137,9 @@ export class Navbar implements OnInit {
       this.sprintService.getSprintsByProject(projectId).toPromise(),
       this.epicService.getAllEpicsByProject(projectId).toPromise()
     ]).then(([sprintResponse, epics]) => {
-      const sprintsData = sprintResponse?.data || [];
+      const allSprints = sprintResponse?.data || [];
+      // Filter out completed sprints
+      const sprintsData = allSprints.filter(sprint => sprint.status !== 'COMPLETED');
       const sprintOptions = sprintsData.length > 0
         ? sprintsData.map(sprint => sprint.name)
         : ['No sprints available'];
@@ -351,6 +353,9 @@ export class Navbar implements OnInit {
             });
           }
         });
+        
+        // Force change detection to ensure modal appears immediately
+        this.cdr.detectChanges();
   }
 
   /**
@@ -434,7 +439,9 @@ export class Navbar implements OnInit {
       this.sprintService.getSprintsByProject(projectId).toPromise(),
       this.epicService.getAllEpicsByProject(projectId).toPromise()
     ]).then(([sprintResponse, epics]) => {
-      const sprintsData = sprintResponse?.data || [];
+      const allSprints = sprintResponse?.data || [];
+      // Filter out completed sprints
+      const sprintsData = allSprints.filter(sprint => sprint.status !== 'COMPLETED');
       const sprintOptions = sprintsData.length > 0
         ? sprintsData.map(sprint => sprint.name)
         : ['No sprints available'];
@@ -564,6 +571,9 @@ export class Navbar implements OnInit {
         });
       }
     });
+    
+    // Force change detection to ensure modal appears immediately
+    this.cdr.detectChanges();
   }
 
   // Notification modal state

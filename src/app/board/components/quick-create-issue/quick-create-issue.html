@@ -96,7 +96,7 @@
           class="flex items-center gap-1 px-2 py-1 text-xs border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer">
           <div 
             class="w-5 h-5 rounded-full text-white text-[9px] flex items-center justify-center font-bold"
-            [style.background-color]="getAssigneeColor(issueAssigneeId())">
+            style="background-color:#2563EB">
             {{ getAssigneeInitials(issueAssigneeName()) }}
           </div>
           <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -126,7 +126,7 @@
                 [class.bg-blue-50]="member.id === issueAssigneeId()">
                 <div 
                   class="w-5 h-5 rounded-full text-white text-[9px] flex items-center justify-center font-bold"
-                  [style.background-color]="getAssigneeColor(member.id)">
+                  style="background-color:#2563EB">
                   {{ getAssigneeInitials(member.name) }}
                 </div>
                 <span>{{ member.name }}</span>

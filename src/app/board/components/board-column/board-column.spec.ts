@@ -399,33 +399,7 @@ describe('BoardColumn', () => {
       expect(cmp.shouldShowGroupHeader(sorted[3], sorted[2])).toBe(true);
     });
 
-    it('should group by parent when groupBy is SUBTASK', () => {
-      const fixture = TestBed.createComponent(BoardColumn);
-      const cmp = fixture.componentInstance;
-      
-      cmp.groupBy = 'SUBTASK';
-      cmp.items = [
-        { id: '1', parentId: 'PARENT-2' } as any,
-        { id: '2', parentId: 'PARENT-1' } as any,
-        { id: '3', parentId: 'PARENT-1' } as any,
-        { id: '4', parentId: undefined } as any
-      ];
-      
-      const sorted = cmp.sortedItems;
-      expect(sorted.length).toBe(4);
-      
-      // Should be sorted alphabetically: No Parent, PARENT-1, PARENT-2
-      expect(sorted[0].parentId).toBeUndefined();
-      expect(sorted[1].parentId).toBe('PARENT-1');
-      expect(sorted[2].parentId).toBe('PARENT-1');
-      expect(sorted[3].parentId).toBe('PARENT-2');
-      
-      // Check group headers
-      expect(cmp.shouldShowGroupHeader(sorted[0], null)).toBe(true);
-      expect(cmp.shouldShowGroupHeader(sorted[1], sorted[0])).toBe(true);
-      expect(cmp.shouldShowGroupHeader(sorted[2], sorted[1])).toBe(false);
-      expect(cmp.shouldShowGroupHeader(sorted[3], sorted[2])).toBe(true);
-    });
+    // SUBTASK grouping removed - test case for grouping by parent has been removed
 
     it('should handle empty items array', () => {
       const fixture = TestBed.createComponent(BoardColumn);

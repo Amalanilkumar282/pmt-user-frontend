@@ -20,7 +20,7 @@ export class GroupByMenu {
     { label: 'None', value: 'NONE' as const },
     { label: 'Assignee', value: 'ASSIGNEE' as const },
     { label: 'Epic', value: 'EPIC' as const },
-    { label: 'Subtask', value: 'SUBTASK' as const }
+    // Subtask grouping removed per request
   ];
 
   getCurrentLabel(): string {

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BoardService } from '../../services/board.service';
 import { BoardStore } from '../../board-store';
+import { ToastService } from '../../../shared/services/toast.service';
 import { ConfirmationModal } from '../../../shared/components/confirmation-modal/confirmation-modal';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
 
@@ -16,6 +17,7 @@ import { ClickOutsideDirective } from '../../../shared/directives/click-outside.
 export class BoardOptionsMenu {
   private boardService = inject(BoardService);
   private store = inject(BoardStore);
+  private toast = inject(ToastService);
 
   showMenu = signal(false);
   showEditModal = signal(false);
@@ -43,8 +45,16 @@ export class BoardOptionsMenu {
 
   canEditBoard = computed(() => {
     const board = this.currentBoard();
-    // Allow editing for all boards (both default and custom)
-    return board !== null;
+    // Do not allow editing of default (all-issues) boards. Only allow edit
+    // when a non-default board is present. This hides the 'Edit Board' action
+    // for the special default board as requested.
+    return !!board && !board.isDefault;
+  });
+
+  // Whether there are any visible options to show in the menu. If false,
+  // the toolbar can omit rendering the three-dots button entirely.
+  readonly hasOptions = computed(() => {
+    return this.canEditBoard() || this.canDeleteBoard();
   });
 
   toggleMenu() {
@@ -69,12 +79,30 @@ export class BoardOptionsMenu {
     this.editedBoardName.set('');
   }
 
-  saveEdit() {
+  async saveEdit() {
     const board = this.currentBoard();
     const name = this.editedBoardName().trim();
-    
-    if (board && name) {
-      this.boardService.updateBoard(board.id, { name });
+
+    if (!board) return;
+    if (!name) {
+      try { this.toast.error('Board name cannot be empty'); } catch {}
+      return;
+    }
+
+    try {
+      // Call API to update board. updateBoardApi will reload the board on success.
+      const updated = await this.boardService.updateBoardApi(board.id, { name });
+      if (updated) {
+        try { this.toast.success('Board updated successfully'); } catch {}
+        // Ensure store is showing the updated board
+        this.store.loadBoard(updated.id);
+      } else {
+        try { this.toast.error('Failed to update board'); } catch {}
+      }
+    } catch (err) {
+      console.error('[BoardOptionsMenu] Error updating board via API:', err);
+      try { this.toast.error('Error updating board'); } catch {}
+    } finally {
       this.closeEditModal();
     }
   }

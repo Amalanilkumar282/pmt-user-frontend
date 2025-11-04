@@ -428,31 +428,7 @@ describe('BoardStore', () => {
       expect(todoBucket?.items[3].id).toBe('4'); // No Epic - MEDIUM
     });
 
-    it('should group issues by parent within each column when groupBy is SUBTASK', () => {
-      const s = mkSprint('s1', [
-        mkIssue({id:'1', parentId:'PARENT-2', status:'TODO' as any, priority:'HIGH' as any}),
-        mkIssue({id:'2', parentId:'PARENT-1', status:'TODO' as any, priority:'LOW' as any}),
-        mkIssue({id:'3', parentId:'PARENT-1', status:'TODO' as any, priority:'CRITICAL' as any}),
-        mkIssue({id:'4', parentId: undefined, status:'TODO' as any, priority:'MEDIUM' as any}),
-      ]);
-      store.loadData([s]);
-      store.selectSprint('s1');
-      store.setGroupBy('SUBTASK');
-
-      const buckets = store.columnBuckets();
-      
-      // Should still have the same number of columns
-      expect(buckets.length).toBe(DEFAULT_COLUMNS.length);
-      
-      // Check TODO column - issues grouped by parent, sorted by priority within each
-      const todoBucket = buckets.find(b => b.def.id === 'TODO');
-      expect(todoBucket?.items.length).toBe(4);
-      // No Parent, PARENT-1, then PARENT-2 (alphabetically)
-      expect(todoBucket?.items[0].id).toBe('4'); // No Parent - MEDIUM
-      expect(todoBucket?.items[1].id).toBe('3'); // PARENT-1 - CRITICAL
-      expect(todoBucket?.items[2].id).toBe('2'); // PARENT-1 - LOW
-      expect(todoBucket?.items[3].id).toBe('1'); // PARENT-2 - HIGH
-    });
+    // SUBTASK grouping removed - test case for grouping by parent has been removed
 
     it('should sort issues by priority when groupBy is NONE', () => {
       const s = mkSprint('s1', [

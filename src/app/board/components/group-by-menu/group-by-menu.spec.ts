@@ -31,21 +31,19 @@ describe('GroupByMenu', () => {
 
   it('should define all group by options', () => {
     expect(component.groupByOptions).toBeDefined();
-    expect(component.groupByOptions.length).toBe(4);
+    expect(component.groupByOptions.length).toBe(3);
     
     const optionValues = component.groupByOptions.map(opt => opt.value);
     expect(optionValues).toContain('NONE');
     expect(optionValues).toContain('ASSIGNEE');
     expect(optionValues).toContain('EPIC');
-    expect(optionValues).toContain('SUBTASK');
   });
 
   it('should have correct labels for options', () => {
     const optionLabels = component.groupByOptions.map(opt => opt.label);
-    expect(optionLabels).toContain('None');
-    expect(optionLabels).toContain('Assignee');
-    expect(optionLabels).toContain('Epic');
-    expect(optionLabels).toContain('Subtask');
+  expect(optionLabels).toContain('None');
+  expect(optionLabels).toContain('Assignee');
+  expect(optionLabels).toContain('Epic');
   });
 
   describe('getCurrentLabel', () => {
@@ -64,10 +62,7 @@ describe('GroupByMenu', () => {
       expect(component.getCurrentLabel()).toBe('Epic');
     });
 
-    it('should return correct label for SUBTASK', () => {
-      storeMock.groupBy.set('SUBTASK');
-      expect(component.getCurrentLabel()).toBe('Subtask');
-    });
+    // SUBTASK option removed - no test for it
 
     it('should default to None for unknown values', () => {
       storeMock.groupBy.set('UNKNOWN' as any);
@@ -83,9 +78,8 @@ describe('GroupByMenu', () => {
 
     it('should return false for non-selected options', () => {
       storeMock.groupBy.set('ASSIGNEE');
-      expect(component.isSelected('NONE')).toBe(false);
-      expect(component.isSelected('EPIC')).toBe(false);
-      expect(component.isSelected('SUBTASK')).toBe(false);
+    expect(component.isSelected('NONE')).toBe(false);
+    expect(component.isSelected('EPIC')).toBe(false);
     });
 
     it('should react to store changes', () => {
@@ -135,7 +129,7 @@ describe('GroupByMenu', () => {
     });
 
     it('should handle all valid options', () => {
-      const validOptions: GroupBy[] = ['NONE', 'ASSIGNEE', 'EPIC', 'SUBTASK'];
+      const validOptions: GroupBy[] = ['NONE', 'ASSIGNEE', 'EPIC'];
       
       validOptions.forEach(option => {
         component.isOpen = true;
@@ -207,8 +201,7 @@ describe('GroupByMenu', () => {
       expect(component.groupByOptions).toEqual([
         { label: 'None', value: 'NONE' },
         { label: 'Assignee', value: 'ASSIGNEE' },
-        { label: 'Epic', value: 'EPIC' },
-        { label: 'Subtask', value: 'SUBTASK' }
+        { label: 'Epic', value: 'EPIC' }
       ]);
     });
   });
