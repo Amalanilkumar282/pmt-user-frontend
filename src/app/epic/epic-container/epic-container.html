@@ -63,13 +63,6 @@
       </p>
     </div>
     } @if (epics.length > 0) {
-    <div class="epic-filter">
-      <button class="no-epic-btn">
-        <i class="fa-solid fa-bolt text-purple-600"></i>
-        <span>No epic</span>
-      </button>
-    </div>
-
     <div class="epic-list">
       @for (epic of epics; track epic.id) {
       <app-epic-list
