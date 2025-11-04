@@ -1,7 +1,6 @@
 import { Component, Output, EventEmitter, inject, computed, OnInit, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
-import { users } from '../../shared/data/dummy-backlog-data';
 import { ProjectMembersService } from '../../teams/services/project-members.service';
 import { ProjectMember } from '../../teams/models/project-member.model';
 import { ModalService, FormField } from '../../modal/modal-service';

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Issue } from '../../shared/models/issue.model';
 import { FormField, ModalService } from '../../modal/modal-service';
-import { users } from '../../shared/data/dummy-backlog-data';
 import { UserApiService, User } from '../../shared/services/user-api.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
@@ -96,9 +95,12 @@ export class IssueDetailedView {
    * Load comments from backend when issue changes
    */
   private loadComments(issueId: string): void {
+    console.log('[IssueDetailedView] Loading comments for issue:', issueId);
+    this.isLoadingComments.set(true);
+    
     this.commentService.getCommentsByIssue(issueId).subscribe({
       next: (response) => {
-        console.log('[IssueDetailedView] Comments loaded successfully:', response);
+        console.log('[IssueDetailedView] ✅ Comments loaded successfully:', response);
         
         // Convert backend comments to local Comment interface
         const convertedComments: Comment[] = response.data.map(c => ({
@@ -111,11 +113,20 @@ export class IssueDetailedView {
           updatedAt: new Date(c.updatedAt)
         }));
         
+        console.log('[IssueDetailedView] Converted comments:', convertedComments);
         this.comments.set(convertedComments);
+        this.isLoadingComments.set(false);
       },
       error: (error) => {
-        console.error('[IssueDetailedView] Error loading comments:', error);
+        console.error('[IssueDetailedView] ❌ Error loading comments:', error);
+        console.error('[IssueDetailedView] Error details:', {
+          message: error.message,
+          status: error.status,
+          issueId
+        });
         this.comments.set([]);
+        this.isLoadingComments.set(false);
+        // Don't show error toast for loading comments - it's not critical
       }
     });
   }
@@ -216,7 +227,7 @@ export class IssueDetailedView {
     const members = this.projectMembers();
     let userOptions = members.length > 0 
       ? members.map(m => ({ id: m.id.toString(), name: m.name }))
-      : users.map(u => ({ id: u.id, name: u.name })); // Fallback to dummy data
+      : []; // No fallback - members should be loaded from API
 
     // If the issue has an assignee that's not in the project members, add them to the options
     if (issue.assigneeName && !userOptions.find(u => u.name === issue.assigneeName)) {
@@ -724,16 +735,37 @@ export class IssueDetailedView {
   }
 
   protected addComment(): void {
-    if (this.isReadOnly) return;
+    if (this.isReadOnly) {
+      console.warn('[IssueDetailedView] Cannot add comment - component is read-only');
+      return;
+    }
+    
     const text = this.newCommentText().trim();
-    if (!text) return;
+    if (!text) {
+      console.warn('[IssueDetailedView] Cannot add comment - text is empty');
+      this.toastService.error('Please enter a comment');
+      return;
+    }
     
     const issue = this._issue();
-    if (!issue) return;
+    if (!issue) {
+      console.error('[IssueDetailedView] Cannot add comment - no issue loaded');
+      this.toastService.error('No issue selected');
+      return;
+    }
+    
+    console.log('[IssueDetailedView] Current issue:', {
+      id: issue.id,
+      title: issue.title,
+      projectId: issue.projectId
+    });
     
     // Get current user ID from session
     const currentUserId = this.userContextService.getCurrentUserId();
+    console.log('[IssueDetailedView] Current user ID from context:', currentUserId);
+    
     if (!currentUserId) {
+      console.error('[IssueDetailedView] User not authenticated - no userId in session');
       this.toastService.error('User not authenticated. Please log in.');
       return;
     }
@@ -741,22 +773,20 @@ export class IssueDetailedView {
     // Extract mentioned user IDs
     const mentionedUserIds = this.extractMentions(text);
     
-    console.log('[IssueDetailedView] Adding comment:', {
+    const requestPayload = {
       issueId: issue.id,
       body: text,
       authorId: currentUserId,
       mentionedUserIds
-    });
+    };
+    
+    console.log('[IssueDetailedView] Creating comment with payload:', requestPayload);
+    console.log('[IssueDetailedView] Request JSON:', JSON.stringify(requestPayload, null, 2));
     
     // Call the API to create comment
-    this.commentService.createComment({
-      issueId: issue.id,
-      body: text,
-      authorId: currentUserId,
-      mentionedUserIds
-    }).subscribe({
+    this.commentService.createComment(requestPayload).subscribe({
       next: (response) => {
-        console.log('[IssueDetailedView] Comment created successfully:', response);
+        console.log('[IssueDetailedView] ✅ Comment created successfully:', response);
         this.toastService.success('Comment added successfully!');
         
         // Reload comments to get the full comment with author details
@@ -767,8 +797,28 @@ export class IssueDetailedView {
         this.showMentionDropdown.set(false);
       },
       error: (error) => {
-        console.error('[IssueDetailedView] Error creating comment:', error);
-        this.toastService.error(error.message || 'Failed to add comment. Please try again.');
+        console.error('[IssueDetailedView] ❌ Error creating comment:', error);
+        console.error('[IssueDetailedView] Error details:', {
+          message: error.message,
+          status: error.status,
+          originalError: error.originalError
+        });
+        
+        // Provide more specific error messages
+        let errorMsg = 'Failed to add comment. ';
+        if (error.status === 0) {
+          errorMsg += 'Cannot connect to server. Please check if the backend is running.';
+        } else if (error.status === 400) {
+          errorMsg += 'Invalid request. Please check the comment data.';
+        } else if (error.status === 401) {
+          errorMsg += 'You are not authorized. Please log in again.';
+        } else if (error.status === 404) {
+          errorMsg += 'Issue not found.';
+        } else {
+          errorMsg += error.message || 'Please try again.';
+        }
+        
+        this.toastService.error(errorMsg);
       }
     });
   }

@@ -24,7 +24,9 @@
           (cdkDropListDropped)="onDropActiveIssues($event)">
           <app-issue-list 
             [issues]="activeIssues()"
-            (issueClick)="onIssueClick($event)">
+            (issueClick)="onIssueClick($event)"
+            (issueUpdated)="onIssueUpdatedInline($event)"
+            (issueDeleted)="onIssueDeletedInline($event)">
           </app-issue-list>
         </div>
       </div>
@@ -45,7 +47,9 @@
           (cdkDropListDropped)="onDropCompletedIssues($event)">
           <app-issue-list 
             [issues]="completedIssues()"
-            (issueClick)="onIssueClick($event)">
+            (issueClick)="onIssueClick($event)"
+            (issueUpdated)="onIssueUpdatedInline($event)"
+            (issueDeleted)="onIssueDeletedInline($event)">
           </app-issue-list>
         </div>
       </div>

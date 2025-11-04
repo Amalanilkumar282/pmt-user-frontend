@@ -45,6 +45,8 @@ export class SprintContainer {
   @Output() startSprint = new EventEmitter<string>();
   @Output() editSprint = new EventEmitter<string>();
   @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
+  @Output() issueUpdated = new EventEmitter<Issue>();
+  @Output() issueDeleted = new EventEmitter<string>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -106,10 +108,47 @@ export class SprintContainer {
     if (this.sprint.issues) {
       this.sprint.issues = this.sprint.issues.filter(i => i.id !== issueId);
     }
+    this.issueDeleted.emit(issueId);
+  }
+
+  onIssueUpdatedInline(updatedIssue: Issue): void {
+    // Update local state
+    if (this.sprint.issues) {
+      this.sprint.issues = this.sprint.issues.map(i => i.id === updatedIssue.id ? updatedIssue : i);
+    }
+    // Emit to parent
+    this.issueUpdated.emit(updatedIssue);
+  }
+
+  onIssueDeletedInline(issueId: string): void {
+    // Update local state
+    if (this.sprint.issues) {
+      this.sprint.issues = this.sprint.issues.filter(i => i.id !== issueId);
+    }
+    this.issueDeleted.emit(issueId);
   }
 
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
+  }
+
+  onUpdateIssue(updates: Partial<Issue>): void {
+    console.log('[SprintContainer] onUpdateIssue - updating local state with:', updates);
+    
+    const issue = this.selectedIssue();
+    if (!issue) {
+      console.error('[SprintContainer] No selected issue found!');
+      return;
+    }
+
+    // Update the local issue in the list
+    const updatedIssue: Issue = { ...issue, ...updates };
+    if (this.sprint.issues) {
+      this.sprint.issues = this.sprint.issues.map(i => i.id === issue.id ? updatedIssue : i);
+    }
+    this.selectedIssue.set(updatedIssue);
+    
+    console.log('[SprintContainer] Local state updated successfully');
   }
 
   onDrop(event: CdkDragDrop<Issue[]>): void {

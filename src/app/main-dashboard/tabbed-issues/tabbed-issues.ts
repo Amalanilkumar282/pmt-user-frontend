@@ -1,11 +1,6 @@
 import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Issue } from '../../shared/models/issue.model';
-import {
-  activeSprintIssues,
-  completedSprint1Issues,
-  completedSprint2Issues,
-} from '../../shared/data/dummy-backlog-data';
 
 interface Tab {
   id: string;

@@ -31,7 +31,7 @@
             </td>
             <td class="col-work">
               <div class="work-info">
-                <span class="work-icon">{{ getTypeIcon(item.type) }}</span>
+                <i [class]="getTypeIcon(item.type)" class="work-icon"></i>
                 @if (!isEditing(item.id, 'title')) {
                   <span class="work-id editable-cell" (click)="startEditing(item.id, 'title')">
                     {{ item.title || item.id }}
@@ -69,8 +69,8 @@
             <td class="col-assignee">
               @if (!isEditing(item.id, 'assignee')) {
                 <div class="assignee-info editable-cell" (click)="startEditing(item.id, 'assignee')">
-                  <div class="avatar">{{ item.assignee?.charAt(0) || 'U' }}</div>
-                  <span>{{ item.assignee || 'Unassigned' }}</span>
+                  <div class="avatar">{{ (item.assigneeName || item.assignee || 'U').charAt(0) }}</div>
+                  <span>{{ item.assigneeName || item.assignee || 'Unassigned' }}</span>
                 </div>
               } @else {
                 <select 
@@ -78,8 +78,8 @@
                   class="inline-select-small"
                   (change)="saveItem(item.id, 'assignee')">
                   <option value="Unassigned">Unassigned</option>
-                  @for (user of availableUsers; track user.id) {
-                    <option [value]="user.name">{{ user.name }}</option>
+                  @for (member of projectMembers(); track member.id) {
+                    <option [value]="member.name">{{ member.name }}</option>
                   }
                 </select>
               }
@@ -95,17 +95,21 @@
                   [(ngModel)]="tempValues[item.id]['status']"
                   class="inline-select-small"
                   (change)="saveItem(item.id, 'status')">
-                  @for (status of statuses; track status) {
-                    <option [value]="status">{{ getStatusLabel(status) }}</option>
+                  @if (projectStatuses().length > 0) {
+                    @for (status of projectStatuses(); track status.id) {
+                      <option [value]="status.name">{{ getStatusLabel(status.name) }}</option>
+                    }
+                  } @else {
+                    @for (status of statuses; track status) {
+                      <option [value]="status">{{ getStatusLabel(status) }}</option>
+                    }
                   }
                 </select>
               }
             </td>
             <td class="col-actions">
               <button class="btn-delete" (click)="deleteItem(item.id)" title="Delete work item">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M3 4H11M5 4V3C5 2.44772 5.44772 2 6 2H8C8.55228 2 9 2.44772 9 3V4M6 7V10M8 7V10M4 4L4.5 11C4.5 11.5523 4.94772 12 5.5 12H8.5C9.05228 12 9.5 11.5523 9.5 11L10 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                </svg>
+                <i class="fa-solid fa-trash"></i>
               </button>
             </td>
           </tr>

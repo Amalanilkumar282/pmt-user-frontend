@@ -7,26 +7,18 @@ import { AllIssuesList } from '../all-issues-list/all-issues-list';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
-import { users } from '../../shared/data/dummy-backlog-data';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { EpicContainer } from '../../epic/epic-container/epic-container';
 import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
 import { Epic } from '../../shared/models/epic.model';
-import {
-  completedSprint1Issues,
-  completedSprint2Issues,
-  activeSprintIssues,
-  plannedSprintIssues,
-  backlogIssues as sharedBacklogIssues,
-  sprints as sharedSprints
-} from '../../shared/data/dummy-backlog-data';
 import { FormField, ModalService } from '../../modal/modal-service';
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
 import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
 import { EpicService } from '../../shared/services/epic.service';
+import { InlineEditService } from '../../shared/services/inline-edit.service';
 import { forkJoin } from 'rxjs';
 import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
 import { AISprintPlanRequest, AISprintPlanResponse } from '../../sprint/sprint.service';
@@ -38,9 +30,6 @@ import { AISprintPlanRequest, AISprintPlanResponse } from '../../sprint/sprint.s
   styleUrl: './backlog-page.css'
 })
 export class BacklogPage implements OnInit {
-  // Dummy team names for dropdown
-  teamOptions: string[] = ['Frontend Team', 'Backend Team', 'QA Team', 'DevOps Team', 'Design Team'];
-  
   // AI Sprint Planning state
   isAIModalOpen = false;
   aiSuggestions: any = null;
@@ -51,7 +40,8 @@ export class BacklogPage implements OnInit {
     private modalService: ModalService, 
     private sprintService: SprintService,
     private issueService: IssueService,
-    private epicService: EpicService
+    private epicService: EpicService,
+    private inlineEditService: InlineEditService
   ) {}
   
   private route = inject(ActivatedRoute);
@@ -78,6 +68,10 @@ export class BacklogPage implements OnInit {
   epics: Epic[] = [];
   isLoadingEpics = false;
   
+  // Project members for filter dropdown
+  projectMembers: Array<{ id: number; name: string }> = [];
+  isLoadingMembers = false;
+  
   // Epic detail view state
   selectedEpic: Epic | null = null;
   epicDetailPanelWidth = 600; // Default width in pixels
@@ -90,17 +84,11 @@ export class BacklogPage implements OnInit {
     return this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
   }
   
-  // Use shared dummy data from shared/data/dummy-backlog-data.ts
-  private completedSprint1Issues: Issue[] = completedSprint1Issues;
-  private completedSprint2Issues: Issue[] = completedSprint2Issues;
-  private activeSprintIssues: Issue[] = activeSprintIssues;
-  private plannedSprintIssues: Issue[] = plannedSprintIssues;
+  // Backlog issues (not assigned to any sprint) - loaded from backend
+  backlogIssues: Issue[] = [];
 
-  // Backlog issues (not assigned to any sprint)
-  backlogIssues: Issue[] = sharedBacklogIssues;
-
-  // All sprints
-  sprints: Sprint[] = sharedSprints;
+  // All sprints - loaded from backend
+  sprints: Sprint[] = [];
 
   // All issues from backend
   private allIssuesFromBackend: Issue[] = [];
@@ -126,19 +114,35 @@ export class BacklogPage implements OnInit {
     return this.sprints.filter(s => s.status === 'COMPLETED');
   }
 
-  // Get backlog issues excluding completed ones
+  // Get backlog issues excluding completed ones (with filters applied)
   get filteredBacklogIssues(): Issue[] {
-    return this.backlogIssues.filter(issue => issue.status !== 'DONE');
+    let issues = this.backlogIssues.filter(issue => issue.status !== 'DONE');
+    
+    // Apply current filters if they exist
+    if (this.currentFilterCriteria) {
+      issues = this.filterIssues(issues, this.currentFilterCriteria);
+      issues = this.sortIssues(issues, this.currentFilterCriteria.sort);
+    }
+    
+    return issues;
   }
 
-  // Get all issues from backend (replaces dummy data when loaded)
+  // Get all issues from backend with filters applied
   get allIssues(): Issue[] {
+    let issues: Issue[] = [];
+    
+    // Use backend data only - no fallback to dummy data
     if (this.allIssuesFromBackend.length > 0) {
-      return this.allIssuesFromBackend;
+      issues = this.allIssuesFromBackend;
     }
-    // Fallback to dummy data if backend data not loaded
-    const sprintIssues = this.sprints.flatMap(sprint => sprint.issues || []);
-    return [...sprintIssues, ...this.backlogIssues];
+    
+    // Apply current filters if they exist
+    if (this.currentFilterCriteria) {
+      issues = this.filterIssues(issues, this.currentFilterCriteria);
+      issues = this.sortIssues(issues, this.currentFilterCriteria.sort);
+    }
+    
+    return issues;
   }
 
   // Toggle view between sprints and all issues
@@ -703,14 +707,16 @@ export class BacklogPage implements OnInit {
       return;
     }
 
+    const projectId = this.currentProjectId;
+    
     // Derive extra info dynamically (goal, story points, etc.)
     const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
-    const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+    const sprintGoal = sprint.sprintGoal || 'Refine sprint goals and deliver planned issues';
 
     const sprintFields: FormField[] = [
       { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required: true },
       { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
-      { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
+      { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: ['Loading teams...'], colSpan: 2, required: false },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
       { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
@@ -736,6 +742,34 @@ export class BacklogPage implements OnInit {
       submitText: 'Save Changes',
       onSubmit: (formData: any) => {
         this.updateSprintApi(sprintId, formData);
+      }
+    });
+    
+    // Load teams dynamically in the background
+    this.sprintService.getTeamsByProject(projectId).subscribe({
+      next: (response) => {
+        let teamsData: any[] = [];
+        if (response && response.succeeded && Array.isArray(response.data)) {
+          teamsData = response.data;
+        } else if (Array.isArray(response)) {
+          teamsData = response;
+        }
+        
+        const teamOptions = teamsData.length > 0 
+          ? teamsData.map((team: any) => team.name || team.teamName || 'Unnamed Team')
+          : ['No teams found'];
+        
+        const teamField = sprintFields.find(f => f.model === 'teamAssigned');
+        if (teamField) {
+          teamField.options = teamOptions;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading teams:', error);
+        const teamField = sprintFields.find(f => f.model === 'teamAssigned');
+        if (teamField) {
+          teamField.options = ['Failed to load teams'];
+        }
       }
     });
   }
@@ -851,8 +885,15 @@ export class BacklogPage implements OnInit {
     });
   }
 
+  // Store current filter criteria
+  private currentFilterCriteria: FilterCriteria | null = null;
+
   onFiltersChanged(criteria: FilterCriteria): void {
     console.log('Filters changed:', criteria);
+    
+    // Store filter criteria for use in filtering methods
+    this.currentFilterCriteria = criteria;
+    
     // Update view states from filter criteria
     this.currentView = criteria.view;
     // detect transition from hidden -> shown so we can scroll into view
@@ -864,8 +905,175 @@ export class BacklogPage implements OnInit {
     }
     this.isEpicPanelOpen = criteria.showEpicPanel;
     this.selectedEpicFilter = criteria.epicId;
-    // Additional filter logic can be implemented here
-    // Filter sprints and backlog issues based on other criteria
+    
+    // Apply filters and sorting to issues
+    this.applyFiltersAndSorting();
+  }
+  
+  /**
+   * Apply all filter criteria and sorting to issues
+   */
+  private applyFiltersAndSorting(): void {
+    if (!this.currentFilterCriteria) return;
+    
+    const criteria = this.currentFilterCriteria;
+    
+    // Re-organize sprints with filtered and sorted issues
+    if (this.allIssuesFromBackend.length > 0) {
+      // Filter issues first
+      let filteredIssues = this.filterIssues(this.allIssuesFromBackend, criteria);
+      
+      // Sort issues
+      filteredIssues = this.sortIssues(filteredIssues, criteria.sort);
+      
+      // Re-organize sprints with filtered issues
+      this.organizeSprints(filteredIssues);
+    }
+    
+    // Trigger change detection
+    this.cdr.detectChanges();
+  }
+  
+  /**
+   * Filter issues based on filter criteria
+   */
+  private filterIssues(issues: Issue[], criteria: FilterCriteria): Issue[] {
+    let filtered = [...issues];
+    
+    // Search text filter - searches in title, description, key
+    if (criteria.searchText && criteria.searchText.trim()) {
+      const searchLower = criteria.searchText.toLowerCase().trim();
+      filtered = filtered.filter(issue => 
+        (issue.title?.toLowerCase().includes(searchLower)) ||
+        (issue.description?.toLowerCase().includes(searchLower)) ||
+        (issue.key?.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Quick filters
+    if (criteria.quickFilter) {
+      switch (criteria.quickFilter) {
+        case 'assigned-to-me':
+          // Filter issues assigned to current user
+          filtered = filtered.filter(issue => 
+            issue.assigneeName === criteria.currentUserName ||
+            issue.assignee === criteria.currentUserName ||
+            (criteria.currentUserId && issue.assigneeId?.toString() === criteria.currentUserId)
+          );
+          break;
+          
+        case 'recent':
+          // Filter issues updated in last 7 days
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          filtered = filtered.filter(issue => {
+            const updatedDate = issue.updatedAt ? new Date(issue.updatedAt) : null;
+            return updatedDate && updatedDate >= sevenDaysAgo;
+          });
+          break;
+          
+        case 'my-open':
+          // Filter issues assigned to current user that are not done
+          filtered = filtered.filter(issue => {
+            const isAssignedToMe = issue.assigneeName === criteria.currentUserName ||
+              issue.assignee === criteria.currentUserName ||
+              (criteria.currentUserId && issue.assigneeId?.toString() === criteria.currentUserId);
+            const isNotDone = issue.status !== 'DONE' && issue.statusId !== 4;
+            return isAssignedToMe && isNotDone;
+          });
+          break;
+          
+        case 'unassigned':
+          // Filter unassigned issues
+          filtered = filtered.filter(issue => 
+            !issue.assignee && !issue.assigneeName && !issue.assigneeId
+          );
+          break;
+      }
+    }
+    
+    // Type filter
+    if (criteria.type) {
+      filtered = filtered.filter(issue => 
+        issue.type === criteria.type || issue.issueType === criteria.type
+      );
+    }
+    
+    // Priority filter
+    if (criteria.priority) {
+      filtered = filtered.filter(issue => issue.priority === criteria.priority);
+    }
+    
+    // Status filter
+    if (criteria.status) {
+      filtered = filtered.filter(issue => issue.status === criteria.status);
+    }
+    
+    // Assignee filter (multi-select)
+    if (criteria.assignees && criteria.assignees.length > 0) {
+      filtered = filtered.filter(issue => 
+        criteria.assignees.includes(issue.assignee || '') ||
+        criteria.assignees.includes(issue.assigneeName || '')
+      );
+    }
+    
+    // Epic filter
+    if (criteria.epicId) {
+      filtered = filtered.filter(issue => issue.epicId === criteria.epicId);
+    }
+    
+    return filtered;
+  }
+  
+  /**
+   * Sort issues based on sort criteria
+   */
+  private sortIssues(issues: Issue[], sortBy: string): Issue[] {
+    const sorted = [...issues];
+    
+    switch (sortBy) {
+      case 'Recently Updated':
+        sorted.sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        });
+        break;
+        
+      case 'Recently Created':
+        sorted.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        });
+        break;
+        
+      case 'Issue Key (A-Z)':
+        sorted.sort((a, b) => {
+          const keyA = a.key || '';
+          const keyB = b.key || '';
+          return keyA.localeCompare(keyB);
+        });
+        break;
+        
+      case 'Issue Key (Z-A)':
+        sorted.sort((a, b) => {
+          const keyA = a.key || '';
+          const keyB = b.key || '';
+          return keyB.localeCompare(keyA);
+        });
+        break;
+        
+      case 'Story Points':
+        sorted.sort((a, b) => {
+          const pointsA = a.storyPoints || 0;
+          const pointsB = b.storyPoints || 0;
+          return pointsB - pointsA; // Highest first
+        });
+        break;
+    }
+    
+    return sorted;
   }
 
   // Get list of all sprints for move dropdown
@@ -1048,10 +1256,11 @@ export class BacklogPage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
-      // Load sprints, issues, and epics from backend
+      // Load sprints, issues, epics, and members from backend
       this.loadSprints(projectId);
       this.loadProjectIssues(projectId);
       this.loadEpics(projectId);
+      this.loadProjectMembers(projectId);
     } else {
       // Try to get projectId from session storage as fallback
       const storedProjectId = sessionStorage.getItem('projectId');
@@ -1060,6 +1269,7 @@ export class BacklogPage implements OnInit {
         this.loadSprints(storedProjectId);
         this.loadProjectIssues(storedProjectId);
         this.loadEpics(storedProjectId);
+        this.loadProjectMembers(storedProjectId);
       } else {
         console.warn('No project ID found in route or session storage');
         this.toastService.warning('No project selected');
@@ -1108,7 +1318,7 @@ export class BacklogPage implements OnInit {
       error: (error) => {
         console.error('Failed to load sprints:', error);
         this.toastService.error('Failed to load sprints from backend');
-        // Keep using dummy data on error (sprints already initialized with dummy data)
+        // Sprints remain empty on error
       }
     });
   }
@@ -1129,7 +1339,7 @@ export class BacklogPage implements OnInit {
         console.error('Failed to load issues:', error);
         this.toastService.error('Failed to load issues from backend');
         this.isLoadingIssues = false;
-        // Keep using dummy data on error
+        // Issues remain empty on error
       }
     });
   }
@@ -1156,11 +1366,31 @@ export class BacklogPage implements OnInit {
       }
     });
   }
+  
+  /**
+   * Load all project members for filter dropdown
+   */
+  private loadProjectMembers(projectId: string): void {
+    this.isLoadingMembers = true;
+    this.inlineEditService.getProjectMembers(projectId).subscribe({
+      next: (members) => {
+        console.log('✅ [BacklogPage] Loaded project members:', members);
+        this.projectMembers = members;
+        this.isLoadingMembers = false;
+      },
+      error: (error) => {
+        console.error('❌ [BacklogPage] Failed to load project members:', error);
+        this.isLoadingMembers = false;
+        this.projectMembers = []; // Clear members on error
+      }
+    });
+  }
 
   /**
    * Organize issues into sprints based on sprintId
    * This method updates the sprints with their respective issues
    * Issues without sprintId are added to backlog
+   * Note: This method now receives already filtered issues
    */
   private organizeSprints(issues: Issue[]): void {
     // Group issues by sprintId

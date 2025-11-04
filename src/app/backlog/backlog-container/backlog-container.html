@@ -21,7 +21,9 @@
       (cdkDropListDropped)="onDrop($event)">
       <app-issue-list 
         [issues]="paginatedIssues()"
-        (issueClick)="onIssueClick($event)">
+        (issueClick)="onIssueClick($event)"
+        (issueUpdated)="onIssueUpdatedInline($event)"
+        (issueDeleted)="onIssueDeletedInline($event)">
       </app-issue-list>
     </div>
 

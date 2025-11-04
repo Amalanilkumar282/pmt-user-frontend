@@ -30,17 +30,14 @@ export class BoardOptionsMenu {
   canDeleteBoard = computed(() => {
     const board = this.currentBoard();
     if (!board) return false;
-    
     // Can't delete default boards
     if (board.isDefault) return false;
-    
-    // Check if there are any issues
-    const hasIssues = this.store.issues().length > 0;
-    
-    // Check if there are custom columns (more than default)
-    const hasCustomColumns = board.columns.length > 3;
-    
-    return !hasIssues && !hasCustomColumns;
+
+    // As requested, allow deletion of a non-default board even if it has issues
+    // or custom columns. The server-side soft-delete endpoint will handle
+    // deleting associated issues/relations. Only prevent deletion for the
+    // special default board.
+    return true;
   });
 
   canEditBoard = computed(() => {
@@ -119,15 +116,28 @@ export class BoardOptionsMenu {
   confirmDelete() {
     const board = this.currentBoard();
     if (board) {
-      this.boardService.deleteBoard(board.id);
-      this.closeDeleteConfirmation();
-      
-      // Navigate to default board for this project (async)
-      this.boardService.getDefaultBoard(board.projectId, 'user-1').then(defaultBoard => {
-        if (defaultBoard) {
-          this.store.loadBoard(defaultBoard.id);
+      // Call the API-backed delete which performs a soft-delete server-side.
+      // This allows deleting boards that still contain issues.
+      (async () => {
+        try {
+          const deleted = await this.boardService.deleteBoardApi(board.id);
+          this.closeDeleteConfirmation();
+          if (deleted) {
+            try { this.toast.success('Board deleted successfully'); } catch {}
+            // Navigate to default board for this project (async)
+            const defaultBoard = await this.boardService.getDefaultBoard(board.projectId, 'user-1');
+            if (defaultBoard) {
+              this.store.loadBoard(defaultBoard.id);
+            }
+          } else {
+            try { this.toast.error('Failed to delete board'); } catch {}
+          }
+        } catch (err) {
+          console.error('[BoardOptionsMenu] Error deleting board via API:', err);
+          try { this.toast.error('Error deleting board: ' + ((err as any)?.message || 'Unknown error')); } catch {}
+          this.closeDeleteConfirmation();
         }
-      });
+      })();
     }
   }
 }
