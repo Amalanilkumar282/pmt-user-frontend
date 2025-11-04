@@ -69,8 +69,8 @@
             <td class="col-assignee">
               @if (!isEditing(item.id, 'assignee')) {
                 <div class="assignee-info editable-cell" (click)="startEditing(item.id, 'assignee')">
-                  <div class="avatar">{{ item.assignee?.charAt(0) || 'U' }}</div>
-                  <span>{{ item.assignee || 'Unassigned' }}</span>
+                  <div class="avatar">{{ (item.assigneeName || item.assignee || 'U').charAt(0) }}</div>
+                  <span>{{ item.assigneeName || item.assignee || 'Unassigned' }}</span>
                 </div>
               } @else {
                 <select 
@@ -78,8 +78,8 @@
                   class="inline-select-small"
                   (change)="saveItem(item.id, 'assignee')">
                   <option value="Unassigned">Unassigned</option>
-                  @for (user of availableUsers; track user.id) {
-                    <option [value]="user.name">{{ user.name }}</option>
+                  @for (member of projectMembers(); track member.id) {
+                    <option [value]="member.name">{{ member.name }}</option>
                   }
                 </select>
               }
@@ -95,8 +95,14 @@
                   [(ngModel)]="tempValues[item.id]['status']"
                   class="inline-select-small"
                   (change)="saveItem(item.id, 'status')">
-                  @for (status of statuses; track status) {
-                    <option [value]="status">{{ getStatusLabel(status) }}</option>
+                  @if (projectStatuses().length > 0) {
+                    @for (status of projectStatuses(); track status.id) {
+                      <option [value]="status.name">{{ getStatusLabel(status.name) }}</option>
+                    }
+                  } @else {
+                    @for (status of statuses; track status) {
+                      <option [value]="status">{{ getStatusLabel(status) }}</option>
+                    }
                   }
                 </select>
               }
