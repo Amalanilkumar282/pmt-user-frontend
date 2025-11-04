@@ -1,17 +1,21 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProjectMember } from '../../models/project-member.model';
+import { PermissionService } from '../../../auth/permission.service';
+import { HasPermissionDirective } from '../../../auth/has-permission.directive';
 
 @Component({
   selector: 'app-member-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HasPermissionDirective],
   templateUrl: './member-card.html',
   styleUrls: ['./member-card.css'],
 })
 export class MemberCard {
   @Input({ required: true }) member!: ProjectMember;
   @Input() showActions = true;
+  
+  permissionService = inject(PermissionService);
   
   @Output() changeRole = new EventEmitter<string>();
   @Output() removeMember = new EventEmitter<string>();

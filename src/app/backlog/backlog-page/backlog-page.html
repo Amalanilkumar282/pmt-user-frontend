@@ -47,7 +47,7 @@
     </app-filters>
 
     <!-- Page Header - Simplified -->
-    <div class="page-header">
+    <div class="page-header" *hasPermission="'canManageTeams'">
       <button 
         class="create-sprint-btn"
         (click)="handleCreateSprint()">

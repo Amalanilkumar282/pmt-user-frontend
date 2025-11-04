@@ -48,8 +48,8 @@
         <div class="tab-content">
           <!-- List View -->
           @if (viewMode() === 'list') {
-            <!-- Action Button -->
-            <div class="tab-actions">
+            <!-- Action Button - Only for users with team management permission -->
+            <div class="tab-actions" *hasPermission="'canManageTeams'">
               <button class="btn-primary" (click)="showCreateForm()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -167,7 +167,7 @@
                   }
                 </p>
                 @if (!searchQuery() && filterStatus() === 'all') {
-                  <button class="btn-primary" (click)="showCreateForm()">
+                  <button class="btn-primary" (click)="showCreateForm()" *hasPermission="'canManageTeams'">
                     Create Your First Team
                   </button>
                 }
