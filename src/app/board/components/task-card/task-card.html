@@ -2,7 +2,7 @@
      [style.border-left]="'3px solid ' + colorClass"
      [class.z-50]="showAssigneeDropdown() || showDatePicker()"
      [class.z-10]="true"
-     (click)="open.emit(issue)">
+  (click)="onOpenCard($event)">
   <div class="content" cdkDragHandle>
     <div class="content-header flex items-start justify-between">
       <!-- Title - Click icon to edit -->
