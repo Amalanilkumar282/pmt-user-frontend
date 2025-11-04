@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Issue } from '../../shared/models/issue.model';
 import { FormField, ModalService } from '../../modal/modal-service';
-import { users } from '../../shared/data/dummy-backlog-data';
 import { UserApiService, User } from '../../shared/services/user-api.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
@@ -228,7 +227,7 @@ export class IssueDetailedView {
     const members = this.projectMembers();
     let userOptions = members.length > 0 
       ? members.map(m => ({ id: m.id.toString(), name: m.name }))
-      : users.map(u => ({ id: u.id, name: u.name })); // Fallback to dummy data
+      : []; // No fallback - members should be loaded from API
 
     // If the issue has an assignee that's not in the project members, add them to the options
     if (issue.assigneeName && !userOptions.find(u => u.name === issue.assigneeName)) {

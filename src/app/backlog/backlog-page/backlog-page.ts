@@ -7,21 +7,12 @@ import { AllIssuesList } from '../all-issues-list/all-issues-list';
 import { Issue } from '../../shared/models/issue.model';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Navbar } from '../../shared/navbar/navbar';
-import { users } from '../../shared/data/dummy-backlog-data';
 import { Filters, FilterCriteria } from '../../shared/filters/filters';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { EpicContainer } from '../../epic/epic-container/epic-container';
 import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
 import { Epic } from '../../shared/models/epic.model';
-import {
-  completedSprint1Issues,
-  completedSprint2Issues,
-  activeSprintIssues,
-  plannedSprintIssues,
-  backlogIssues as sharedBacklogIssues,
-  sprints as sharedSprints
-} from '../../shared/data/dummy-backlog-data';
 import { FormField, ModalService } from '../../modal/modal-service';
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
@@ -39,9 +30,6 @@ import { AISprintPlanRequest, AISprintPlanResponse } from '../../sprint/sprint.s
   styleUrl: './backlog-page.css'
 })
 export class BacklogPage implements OnInit {
-  // Dummy team names for dropdown
-  teamOptions: string[] = ['Frontend Team', 'Backend Team', 'QA Team', 'DevOps Team', 'Design Team'];
-  
   // AI Sprint Planning state
   isAIModalOpen = false;
   aiSuggestions: any = null;
@@ -96,17 +84,11 @@ export class BacklogPage implements OnInit {
     return this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
   }
   
-  // Use shared dummy data from shared/data/dummy-backlog-data.ts
-  private completedSprint1Issues: Issue[] = completedSprint1Issues;
-  private completedSprint2Issues: Issue[] = completedSprint2Issues;
-  private activeSprintIssues: Issue[] = activeSprintIssues;
-  private plannedSprintIssues: Issue[] = plannedSprintIssues;
+  // Backlog issues (not assigned to any sprint) - loaded from backend
+  backlogIssues: Issue[] = [];
 
-  // Backlog issues (not assigned to any sprint)
-  backlogIssues: Issue[] = sharedBacklogIssues;
-
-  // All sprints
-  sprints: Sprint[] = sharedSprints;
+  // All sprints - loaded from backend
+  sprints: Sprint[] = [];
 
   // All issues from backend
   private allIssuesFromBackend: Issue[] = [];
@@ -145,16 +127,13 @@ export class BacklogPage implements OnInit {
     return issues;
   }
 
-  // Get all issues from backend (replaces dummy data when loaded) with filters applied
+  // Get all issues from backend with filters applied
   get allIssues(): Issue[] {
     let issues: Issue[] = [];
     
+    // Use backend data only - no fallback to dummy data
     if (this.allIssuesFromBackend.length > 0) {
       issues = this.allIssuesFromBackend;
-    } else {
-      // Fallback to dummy data if backend data not loaded
-      const sprintIssues = this.sprints.flatMap(sprint => sprint.issues || []);
-      issues = [...sprintIssues, ...this.backlogIssues];
     }
     
     // Apply current filters if they exist
@@ -689,14 +668,16 @@ export class BacklogPage implements OnInit {
       return;
     }
 
+    const projectId = this.currentProjectId;
+    
     // Derive extra info dynamically (goal, story points, etc.)
     const totalStoryPoints = sprint.issues?.reduce((sum, issue) => sum + (issue.storyPoints || 0), 0) || 0;
-    const sprintGoal = sprint.issues?.[0]?.description || 'Refine sprint goals and deliver planned issues';
+    const sprintGoal = sprint.sprintGoal || 'Refine sprint goals and deliver planned issues';
 
     const sprintFields: FormField[] = [
       { label: 'Sprint Name', type: 'text', model: 'sprintName', colSpan: 2, required: true },
       { label: 'Sprint Goal', type: 'textarea', model: 'sprintGoal', colSpan: 2 },
-      { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: this.teamOptions, colSpan: 2, required: false },
+      { label: 'Team Assigned', type: 'select', model: 'teamAssigned', options: ['Loading teams...'], colSpan: 2, required: false },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
       { label: 'Status', type: 'select', model: 'status', options: ['PLANNED', 'ACTIVE', 'COMPLETED'], colSpan: 1 },
@@ -722,6 +703,34 @@ export class BacklogPage implements OnInit {
       submitText: 'Save Changes',
       onSubmit: (formData: any) => {
         this.updateSprintApi(sprintId, formData);
+      }
+    });
+    
+    // Load teams dynamically in the background
+    this.sprintService.getTeamsByProject(projectId).subscribe({
+      next: (response) => {
+        let teamsData: any[] = [];
+        if (response && response.succeeded && Array.isArray(response.data)) {
+          teamsData = response.data;
+        } else if (Array.isArray(response)) {
+          teamsData = response;
+        }
+        
+        const teamOptions = teamsData.length > 0 
+          ? teamsData.map((team: any) => team.name || team.teamName || 'Unnamed Team')
+          : ['No teams found'];
+        
+        const teamField = sprintFields.find(f => f.model === 'teamAssigned');
+        if (teamField) {
+          teamField.options = teamOptions;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading teams:', error);
+        const teamField = sprintFields.find(f => f.model === 'teamAssigned');
+        if (teamField) {
+          teamField.options = ['Failed to load teams'];
+        }
       }
     });
   }
@@ -1270,7 +1279,7 @@ export class BacklogPage implements OnInit {
       error: (error) => {
         console.error('Failed to load sprints:', error);
         this.toastService.error('Failed to load sprints from backend');
-        // Keep using dummy data on error (sprints already initialized with dummy data)
+        // Sprints remain empty on error
       }
     });
   }
@@ -1291,7 +1300,7 @@ export class BacklogPage implements OnInit {
         console.error('Failed to load issues:', error);
         this.toastService.error('Failed to load issues from backend');
         this.isLoadingIssues = false;
-        // Keep using dummy data on error
+        // Issues remain empty on error
       }
     });
   }

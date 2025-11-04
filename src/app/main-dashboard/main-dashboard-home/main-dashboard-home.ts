@@ -13,12 +13,32 @@ import { ProjectService, Project } from '../../projects/services/project.service
 import { IssueService } from '../../shared/services/issue.service';
 import { Issue } from '../../shared/models/issue.model';
 import { ActivityService, ActivityLogDto } from '../../shared/services/activity.service';
-import {
-  DashboardProject,
-  dashboardStats,
-  DashboardStats,
-  TaskStatus,
-} from '../../shared/data/dummy-backlog-data';
+
+// Define interfaces locally
+interface DashboardProject {
+  id: string;
+  name: string;
+  type: string;
+  status: 'Active' | 'Completed';
+  du: string;
+  lead: string;
+  created: string;
+  updated: string;
+  starred?: boolean;
+}
+
+interface DashboardStats {
+  activeProjects: number;
+  issuesInProgress: number;
+  sprintsInProgress: number;
+}
+
+interface TaskStatus {
+  toDo: number;
+  inProgress: number;
+  completed: number;
+  onHold: number;
+}
 
 @Component({
   selector: 'app-main-dashboard-home',
@@ -61,17 +81,18 @@ export class MainDashboardHome implements OnInit {
     return this.sidebarStateService.getCollapsed();
   }
 
-  dashstats: DashboardStats = dashboardStats;
+  // Dashboard stats - loaded from backend or calculated from projects
+  dashstats: DashboardStats = {
+    activeProjects: 0,
+    issuesInProgress: 0,
+    sprintsInProgress: 0,
+  };
 
   get stats() {
-    const activeProjects = this.dashstats.activeProjects;
-    const issuesInProgress = this.dashstats.issuesInProgress;
-    const sprintsInProgress = this.dashstats.sprintsInProgress;
-
     return {
-      activeProjects,
-      issuesInProgress,
-      sprintsInProgress,
+      activeProjects: this.dashstats.activeProjects,
+      issuesInProgress: this.dashstats.issuesInProgress,
+      sprintsInProgress: this.dashstats.sprintsInProgress,
     };
   }
 
@@ -114,6 +135,12 @@ export class MainDashboardHome implements OnInit {
         console.log('✅ User issues loaded:', issues);
         this.userIssues = issues;
         this.calculateTaskStatus(issues);
+        
+        // Calculate issues in progress count for dashboard stats
+        this.dashstats.issuesInProgress = issues.filter(
+          i => i.statusName === 'IN_PROGRESS' || i.statusName === 'IN_REVIEW'
+        ).length;
+        
         this.isLoadingIssues.set(false);
       },
       error: (error: any) => {
@@ -214,6 +241,10 @@ export class MainDashboardHome implements OnInit {
       next: (projects: Project[]) => {
         console.log('✅ Recent projects loaded:', projects);
         this.projects = projects.map((p: Project) => this.transformToDashboardProject(p));
+        
+        // Calculate dashboard stats from loaded projects
+        this.dashstats.activeProjects = projects.filter(p => p.status === 'active').length;
+        
         this.isLoadingProjects.set(false);
       },
       error: (error: any) => {

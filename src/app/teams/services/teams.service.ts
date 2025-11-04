@@ -3,7 +3,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
 import { Team, TeamMember, CreateTeamDto, UpdateTeamDto, TeamStats } from '../models/team.model';
-import { users } from '../../shared/data/dummy-backlog-data';
 import { ProjectMembersService } from './project-members.service';
 
 export interface TeamCountResponse {
@@ -282,7 +281,7 @@ export class TeamsService {
     this.selectedTeamIdSignal.set(id);
   }
 
-  // Get team statistics
+  // Get team statistics (should be fetched from backend API in production)
   getTeamStats(teamId: string): TeamStats {
     const team = this.getTeamById(teamId);
     if (!team) {
@@ -296,14 +295,14 @@ export class TeamsService {
       };
     }
 
-    // Mock statistics - in real app, fetch from backend
+    // Return calculated statistics from team data
     return {
       totalMembers: team.members.length,
-      activeSprints: team.activeSprints.length,
-      completedSprints: Math.floor(Math.random() * 10),
-      totalIssues: Math.floor(Math.random() * 100) + 20,
-      completedIssues: Math.floor(Math.random() * 80) + 10,
-      velocity: Math.floor(Math.random() * 50) + 20,
+      activeSprints: team.activeSprints?.length || 0,
+      completedSprints: 0, // TODO: Should be fetched from backend
+      totalIssues: 0, // TODO: Should be fetched from backend
+      completedIssues: 0, // TODO: Should be fetched from backend
+      velocity: 0, // TODO: Should be fetched from backend
     };
   }
 

@@ -3,7 +3,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { map, tap, catchError } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
 import { ProjectMember, AddMemberDto, UpdateMemberDto, UpdateProjectMemberDto, DeleteProjectMemberDto, MemberSearchResult, MemberStatus } from '../models/project-member.model';
-import { users } from '../../shared/data/dummy-backlog-data';
 import { RoleService } from '../../shared/services/role.service';
 import { UserService } from '../../shared/services/user.service';
 
@@ -156,13 +155,10 @@ export class ProjectMembersService {
 
   // Legacy synchronous method (kept for backward compatibility)
   addMember(dto: AddMemberDto): ProjectMember {
-    // Try to find user from backend API first
+    // Find user from backend API
     const apiUser = this.userService.getUserById(Number(dto.userId));
     
-    // Fallback to dummy data if API user not found
-    const dummyUser = users.find(u => u.id === dto.userId);
-    
-    if (!apiUser && !dummyUser) {
+    if (!apiUser) {
       throw new Error('User not found');
     }
 
@@ -178,17 +174,12 @@ export class ProjectMembersService {
     // Get role name from roleId
     const roleName = this.roleService.getRoleName(dto.roleId);
 
-    // Use API user data if available, otherwise use dummy data
-    const userData = apiUser ? {
+    // Use API user data
+    const userData = {
       id: String(apiUser.id),
       name: apiUser.name,
       email: apiUser.email,
       avatar: apiUser.avatarUrl,
-    } : {
-      id: dummyUser!.id,
-      name: dummyUser!.name,
-      email: dummyUser!.email,
-      avatar: dummyUser!.avatar,
     };
 
     const newMember: ProjectMember = {
@@ -382,79 +373,9 @@ export class ProjectMembersService {
     return `Team ${teamId}`;
   }
 
-  // Initialize with some members
+  // Initialize with empty array - members loaded from backend
   private getInitialMembers(): ProjectMember[] {
-    return [
-      {
-        id: 'member-1',
-        userId: 'user-1',
-        userName: 'Amal A',
-        userEmail: 'amal@example.com',
-        projectId: '1',
-        projectName: 'Website Redesign',
-        role: 'Project Manager',
-        roleId: 1, // Default roleId for mock data
-        status: 'Active',
-        joinedDate: '2024-09-01T10:00:00Z',
-        teamId: 'team-1',
-        teamName: 'Frontend Development Team',
-      },
-      {
-        id: 'member-2',
-        userId: 'user-2',
-        userName: 'Kiran Paulson',
-        userEmail: 'kiran@example.com',
-        projectId: '1',
-        projectName: 'Website Redesign',
-        role: 'Developer',
-        roleId: 2, // Default roleId for mock data
-        status: 'Active',
-        joinedDate: '2024-09-01T10:00:00Z',
-        teamId: 'team-1',
-        teamName: 'Frontend Development Team',
-      },
-      {
-        id: 'member-3',
-        userId: 'user-3',
-        userName: 'Kavya S',
-        userEmail: 'kavya@example.com',
-        projectId: '1',
-        projectName: 'Website Redesign',
-        role: 'QA Tester',
-        roleId: 4, // Default roleId for mock data
-        status: 'Active',
-        joinedDate: '2024-09-05T10:00:00Z',
-        teamId: 'team-4',
-        teamName: 'QA & Testing Team',
-      },
-      {
-        id: 'member-4',
-        userId: 'user-4',
-        userName: 'Harrel Alex',
-        userEmail: 'harrelalex@example.com',
-        projectId: '4',
-        projectName: 'Backend Infrastructure',
-        role: 'Developer',
-        roleId: 2, // Default roleId for mock data
-        status: 'Active',
-        joinedDate: '2024-08-20T10:00:00Z',
-        teamId: 'team-2',
-        teamName: 'Backend API Team',
-      },
-      {
-        id: 'member-5',
-        userId: 'user-5',
-        userName: 'Sharath Shony',
-        userEmail: 'sharath@example.com',
-        projectId: '1',
-        projectName: 'Website Redesign',
-        role: 'Developer',
-        roleId: 2, // Default roleId for mock data
-        status: 'Active',
-        joinedDate: '2024-09-10T10:00:00Z',
-        // Not assigned to any team yet
-      },
-    ];
+    return [];
   }
 
   /**
