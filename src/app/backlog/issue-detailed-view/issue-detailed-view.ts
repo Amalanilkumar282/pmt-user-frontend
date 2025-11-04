@@ -13,15 +13,19 @@ import { StatusApiService, Status } from '../../board/services/status-api.servic
 import { formatDisplayDate } from '../../shared/utils/date-formatter';
 import { ProjectMembersCacheService } from '../../shared/services/project-members-cache.service';
 import { EpicService } from '../../shared/services/epic.service';
+import { IssueCommentService, IssueComment, CommentMention } from '../../shared/services/issue-comment.service';
+import { UserContextService } from '../../shared/services/user-context.service';
 
 export interface Comment {
   id: string;
   author: string;
-  authorId: string;
+  authorId: number;
   content: string;
-  mentions: string[];
+  mentions: CommentMention[];
   createdAt: Date;
   updatedAt: Date;
+  isEditing?: boolean;
+  editText?: string;
 }
 
 @Component({
@@ -40,6 +44,8 @@ export class IssueDetailedView {
   private sprintService = inject(SprintService);
   private statusApiService = inject(StatusApiService);
   private epicService = inject(EpicService);
+  private commentService = inject(IssueCommentService);
+  private userContextService = inject(UserContextService);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -75,6 +81,42 @@ export class IssueDetailedView {
         this.loadProjectMembers(projectId);
       }
     });
+
+    // Load comments when issue changes
+    effect(() => {
+      const issue = this._issue();
+      if (issue && issue.id) {
+        this.loadComments(issue.id);
+      }
+    });
+  }
+
+  /**
+   * Load comments from backend when issue changes
+   */
+  private loadComments(issueId: string): void {
+    this.commentService.getCommentsByIssue(issueId).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Comments loaded successfully:', response);
+        
+        // Convert backend comments to local Comment interface
+        const convertedComments: Comment[] = response.data.map(c => ({
+          id: c.id,
+          author: c.authorName,
+          authorId: c.authorId,
+          content: c.body,
+          mentions: c.mentions,
+          createdAt: new Date(c.createdAt),
+          updatedAt: new Date(c.updatedAt)
+        }));
+        
+        this.comments.set(convertedComments);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error loading comments:', error);
+        this.comments.set([]);
+      }
+    });
   }
   
   private loadProjectMembers(projectId: string): void {
@@ -96,12 +138,14 @@ export class IssueDetailedView {
   protected showMentionDropdown = signal(false);
   protected mentionSearchQuery = signal('');
   protected cursorPosition = signal(0);
+  protected isLoadingComments = signal(false);
   
-  protected availableUsers = signal(users);
+  // Use project members for mentions instead of dummy users
   protected filteredUsers = computed(() => {
     const query = this.mentionSearchQuery().toLowerCase();
-    if (!query) return this.availableUsers();
-    return this.availableUsers().filter(user => 
+    const members = this.projectMembers();
+    if (!query) return members;
+    return members.filter(user => 
       user.name.toLowerCase().includes(query) || 
       user.email.toLowerCase().includes(query)
     );
@@ -647,15 +691,21 @@ export class IssueDetailedView {
     }
   }
 
-  protected extractMentions(text: string): string[] {
+  /**
+   * Extract mentioned user IDs from comment text
+   * Returns array of user IDs (numbers)
+   */
+  protected extractMentions(text: string): number[] {
     const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
-    const mentions: string[] = [];
+    const mentions: number[] = [];
     let match;
+    
+    const members = this.projectMembers();
     
     while ((match = mentionPattern.exec(text)) !== null) {
       const mentionedName = match[1];
-      // Verify it's a valid user
-      const user = this.availableUsers().find(u => u.name === mentionedName);
+      // Verify it's a valid user from project members
+      const user = members.find(u => u.name === mentionedName);
       if (user) {
         mentions.push(user.id);
       }
@@ -669,37 +719,173 @@ export class IssueDetailedView {
     const text = this.newCommentText().trim();
     if (!text) return;
     
-    const mentions = this.extractMentions(text);
-    const currentUser = users[0]; // Assuming first user is the current user
+    const issue = this._issue();
+    if (!issue) return;
     
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      author: currentUser.name,
-      authorId: currentUser.id,
-      content: text,
-      mentions: mentions,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    this.comments.update(comments => [...comments, newComment]);
-    this.newCommentText.set('');
-    this.showMentionDropdown.set(false);
-    
-    // Notify mentioned users (you can emit an event here for parent component to handle)
-    if (mentions.length > 0) {
-      console.log('Mentioned users:', mentions);
-      // this.mentionNotification.emit({ issueId: this._issue()!.id, mentions });
+    // Get current user ID from session
+    const currentUserId = this.userContextService.getCurrentUserId();
+    if (!currentUserId) {
+      this.toastService.error('User not authenticated. Please log in.');
+      return;
     }
+    
+    // Extract mentioned user IDs
+    const mentionedUserIds = this.extractMentions(text);
+    
+    console.log('[IssueDetailedView] Adding comment:', {
+      issueId: issue.id,
+      body: text,
+      authorId: currentUserId,
+      mentionedUserIds
+    });
+    
+    // Call the API to create comment
+    this.commentService.createComment({
+      issueId: issue.id,
+      body: text,
+      authorId: currentUserId,
+      mentionedUserIds
+    }).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Comment created successfully:', response);
+        this.toastService.success('Comment added successfully!');
+        
+        // Reload comments to get the full comment with author details
+        this.loadComments(issue.id);
+        
+        // Clear input
+        this.newCommentText.set('');
+        this.showMentionDropdown.set(false);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error creating comment:', error);
+        this.toastService.error(error.message || 'Failed to add comment. Please try again.');
+      }
+    });
   }
 
   protected deleteComment(commentId: string): void {
     if (this.isReadOnly) return;
+    
+    const issue = this._issue();
+    if (!issue) return;
+    
     if (confirm('Are you sure you want to delete this comment?')) {
-      this.comments.update(comments => 
-        comments.filter(c => c.id !== commentId)
-      );
+      console.log('[IssueDetailedView] Deleting comment:', commentId);
+      
+      this.commentService.deleteComment(commentId).subscribe({
+        next: (response) => {
+          console.log('[IssueDetailedView] Comment deleted successfully:', response);
+          this.toastService.success('Comment deleted successfully!');
+          
+          // Remove comment from local state
+          this.comments.update(comments => 
+            comments.filter(c => c.id !== commentId)
+          );
+        },
+        error: (error) => {
+          console.error('[IssueDetailedView] Error deleting comment:', error);
+          this.toastService.error(error.message || 'Failed to delete comment. Please try again.');
+        }
+      });
     }
+  }
+
+  /**
+   * Enable edit mode for a comment
+   */
+  protected editComment(comment: Comment): void {
+    if (this.isReadOnly) return;
+    
+    // Set edit mode and populate edit text
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        isEditing: c.id === comment.id,
+        editText: c.id === comment.id ? c.content : c.editText
+      }))
+    );
+  }
+
+  /**
+   * Cancel editing a comment
+   */
+  protected cancelEditComment(commentId: string): void {
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        isEditing: c.id === commentId ? false : c.isEditing,
+        editText: c.id === commentId ? undefined : c.editText
+      }))
+    );
+  }
+
+  /**
+   * Save edited comment
+   */
+  protected saveEditComment(comment: Comment): void {
+    if (this.isReadOnly) return;
+    
+    const editText = comment.editText?.trim();
+    if (!editText) {
+      this.toastService.error('Comment cannot be empty');
+      return;
+    }
+    
+    const issue = this._issue();
+    if (!issue) return;
+    
+    // Get current user ID for updatedBy field
+    const currentUserId = this.userContextService.getCurrentUserId();
+    if (!currentUserId) {
+      this.toastService.error('User not authenticated. Please log in.');
+      return;
+    }
+    
+    // Extract mentioned user IDs from edited text
+    const mentionedUserIds = this.extractMentions(editText);
+    
+    console.log('[IssueDetailedView] Updating comment:', {
+      commentId: comment.id,
+      body: editText,
+      updatedBy: currentUserId,
+      mentionedUserIds
+    });
+    
+    // Call the API to update comment
+    this.commentService.updateComment(comment.id, {
+      id: comment.id,
+      body: editText,
+      updatedBy: currentUserId,
+      mentionedUserIds
+    }).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Comment updated successfully:', response);
+        this.toastService.success('Comment updated successfully!');
+        
+        // Reload comments to get updated data
+        this.loadComments(issue.id);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error updating comment:', error);
+        this.toastService.error(error.message || 'Failed to update comment. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Handle edit textarea input
+   */
+  protected onEditCommentInput(event: Event, commentId: string): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const text = textarea.value;
+    
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        editText: c.id === commentId ? text : c.editText
+      }))
+    );
   }
 
   protected formatCommentDate(date: Date): string {
