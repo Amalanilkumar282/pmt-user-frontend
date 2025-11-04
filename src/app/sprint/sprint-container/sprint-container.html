@@ -51,7 +51,9 @@
       <app-issue-list 
         [issues]="sprint.issues || []"
         [isReadOnly]="sprint.status === 'COMPLETED'"
-        (issueClick)="onIssueClick($event)">
+        (issueClick)="onIssueClick($event)"
+        (issueUpdated)="onIssueUpdatedInline($event)"
+        (issueDeleted)="onIssueDeletedInline($event)">
       </app-issue-list>
     </div>
   </div>
@@ -64,6 +66,7 @@
   [isReadOnly]="sprint.status === 'COMPLETED'"
   [availableSprints]="availableSprints"
   (close)="onCloseModal()"
+  (updateIssue)="onUpdateIssue($event)"
   (deleteIssue)="onDeleteIssue($event)"
   (moveIssue)="onMoveIssue($event)">
 </app-issue-detailed-view>

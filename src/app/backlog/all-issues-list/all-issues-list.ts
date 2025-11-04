@@ -26,6 +26,8 @@ export class AllIssuesList {
   
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
   @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
+  @Output() issueUpdated = new EventEmitter<Issue>();
+  @Output() issueDeleted = new EventEmitter<string>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -153,6 +155,19 @@ export class AllIssuesList {
     this.selectedIssue.set(updatedIssue);
     
     console.log('[AllIssuesList] Local state updated successfully');
+  }
+  
+  onIssueUpdatedInline(updatedIssue: Issue): void {
+    // Update local state
+    this.issues = this.issues.map(i => i.id === updatedIssue.id ? updatedIssue : i);
+    // Emit to parent
+    this.issueUpdated.emit(updatedIssue);
+  }
+
+  onIssueDeletedInline(issueId: string): void {
+    // Update local state
+    this.issues = this.issues.filter(i => i.id !== issueId);
+    this.issueDeleted.emit(issueId);
   }
   
   onDropActiveIssues(event: CdkDragDrop<Issue[]>): void {
