@@ -209,18 +209,23 @@
           <form [formGroup]="roleChangeForm" (ngSubmit)="submitRoleChange()">
             <div class="form-group">
               <label for="newRole">New Role</label>
-              <select id="newRole" formControlName="role" class="form-select">
-                @for (role of availableRoles; track role) {
-                  <option [value]="role">{{ role }}</option>
-                }
-              </select>
+              @if (rolesLoading()) {
+                <div class="loading-message">Loading roles...</div>
+              } @else {
+                <select id="newRole" formControlName="roleId" class="form-select">
+                  <option [value]="0" disabled>Select a role</option>
+                  @for (role of availableRoles(); track role.id) {
+                    <option [value]="role.id">{{ role.name }}</option>
+                  }
+                </select>
+              }
             </div>
 
             <div class="modal-actions">
               <button type="button" class="btn-cancel" (click)="closeRoleModal()">
                 Cancel
               </button>
-              <button type="submit" class="btn-submit" [disabled]="!roleChangeForm.valid">
+              <button type="submit" class="btn-submit" [disabled]="!roleChangeForm.valid || rolesLoading()">
                 Update Role
               </button>
             </div>

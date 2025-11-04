@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { map, tap, catchError } from 'rxjs/operators';
 import { Team, TeamMember, CreateTeamDto, UpdateTeamDto, TeamStats } from '../models/team.model';
 import { users } from '../../shared/data/dummy-backlog-data';
 import { ProjectMembersService } from './project-members.service';
@@ -104,20 +105,28 @@ export class TeamsService {
             projectId: projectId,
             projectName: team.projectName || '',
             lead: {
-              // Use email as ID for lead
-              id: team.lead?.id || team.lead?.email || '',
+              // CRITICAL: Always use projectMemberId as ID for consistency with availableMembers
+              // Only fall back to email if projectMemberId is truly missing (not 0)
+              id: (team.lead?.projectMemberId != null && team.lead?.projectMemberId !== 0) 
+                ? team.lead.projectMemberId.toString() 
+                : team.lead?.email || '',
               name: team.lead?.name || 'Unknown',
               email: team.lead?.email || '',
               role: 'Team Lead' as const,
               joinedDate: team.createdAt || new Date().toISOString(),
+              projectMemberId: team.lead?.projectMemberId,
             },
-            // Map members array from API
+            // Map members array from API - use projectMemberId for consistency
             members: team.members?.map((member: any) => ({
-              id: member.id || member.email || '',
+              // CRITICAL: Always use projectMemberId as ID for consistency with availableMembers
+              id: (member.projectMemberId != null && member.projectMemberId !== 0)
+                ? member.projectMemberId.toString()
+                : member.email || '',
               name: member.name || 'Unknown',
               email: member.email || '',
               role: member.role as any || 'Developer',
               joinedDate: member.joinedDate || team.createdAt || new Date().toISOString(),
+              projectMemberId: member.projectMemberId,
             })) || [],
             // Keep activeSprints as empty array (for sprint IDs if needed later)
             activeSprints: [],
@@ -151,8 +160,13 @@ export class TeamsService {
     return this.http.get<any>(`${this.API_BASE_URL}/Project/${projectId}/users`, { headers }).pipe(
       map((response) => {
         const membersData = Array.isArray(response.data) ? response.data : response.data || [];
-        return membersData.map((member: any) => ({
-          id: member.projectMemberId?.toString() || member.id?.toString(),
+        console.log('TeamsService - Raw members data:', membersData);
+        
+        const mappedMembers = membersData.map((member: any) => ({
+          // CRITICAL: Always use projectMemberId as ID - never fall back to undefined
+          id: (member.projectMemberId != null && member.projectMemberId !== 0)
+            ? member.projectMemberId.toString()
+            : (member.id?.toString() || ''),
           name: member.name,
           email: member.email,
           role: member.roleName || 'Developer',
@@ -160,6 +174,15 @@ export class TeamsService {
           joinedDate: member.addedAt || new Date().toISOString(),
           projectMemberId: member.projectMemberId,
         }));
+        
+        console.log('TeamsService - Mapped available members:', mappedMembers.map((m: TeamMember) => ({
+          id: m.id,
+          name: m.name,
+          email: m.email,
+          projectMemberId: m.projectMemberId
+        })));
+        
+        return mappedMembers;
       })
     );
   }
@@ -211,8 +234,23 @@ export class TeamsService {
   }
 
   updateTeam(id: string, dto: UpdateTeamDto): Observable<any> {
+    console.log('📤 Updating team:', id, dto);
     const headers = this.getAuthHeaders();
-    return this.http.put<any>(`${this.API_BASE_URL}/Team/${id}`, dto, { headers });
+    return this.http.put<any>(`${this.API_BASE_URL}/Team/${id}`, dto, { headers }).pipe(
+      tap((response) => {
+        console.log('✅ Team updated successfully:', response);
+      }),
+      catchError((error) => {
+        console.error('❌ Failed to update team:', error);
+        console.error('Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.error?.message || error.message,
+          errors: error.error?.errors
+        });
+        return throwError(() => error);
+      })
+    );
   }
 
   /**

@@ -1,13 +1,14 @@
-﻿import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Epic } from '../../shared/models/epic.model';
 import { Issue } from '../../shared/models/issue.model';
-import { epic1WorkItems, epic2WorkItems } from '../../shared/data/dummy-backlog-data';
 import { EpicHeader } from './components/epic-header/epic-header';
 import { EpicDescription } from './components/epic-description/epic-description';
 import { WorkItemsTable } from './components/work-items-table/work-items-table';
 import { WorkItemForm } from './components/work-item-form/work-item-form';
 import { EpicDetails } from './components/epic-details/epic-details';
+import { EpicService } from '../../shared/services/epic.service';
+import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
   selector: 'app-epic-detailed-view',
@@ -16,7 +17,7 @@ import { EpicDetails } from './components/epic-details/epic-details';
   templateUrl: './epic-detailed-view.html',
   styleUrl: './epic-detailed-view.css'
 })
-export class EpicDetailedView implements OnInit {
+export class EpicDetailedView implements OnInit, OnChanges {
   // provide a safe default so unit tests that instantiate the component without inputs
   // don't run into `Cannot read properties of undefined` when accessing epic fields
   @Input() epic: Epic = {
@@ -40,13 +41,31 @@ export class EpicDetailedView implements OnInit {
   };
   @Output() close = new EventEmitter<void>();
   @Output() epicUpdated = new EventEmitter<Epic>();
+  @Output() epicDeleted = new EventEmitter<string>();
 
   workItems: Issue[] = [];
+  isLoadingWorkItems = false;
+  isLoadingEpicDetails = false;
+
+  private epicService = inject(EpicService);
+  private toastService = inject(ToastService);
 
   ngOnInit() {
     // ensure defaults are set before any code reads epic properties
     this.initializeEpicDefaults();
+    this.loadEpicDetails();
     this.loadWorkItems();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Reload epic details and work items when epic ID changes
+    if (changes['epic'] && !changes['epic'].firstChange) {
+      if (changes['epic'].currentValue?.id !== changes['epic'].previousValue?.id) {
+        this.initializeEpicDefaults();
+        this.loadEpicDetails();
+        this.loadWorkItems();
+      }
+    }
   }
 
   private initializeEpicDefaults() {
@@ -62,52 +81,121 @@ export class EpicDetailedView implements OnInit {
     if (!this.epic.description) this.epic.description = '';
   }
 
-  private loadWorkItems() {
-    if (this.epic.id === 'epic-1') {
-      this.workItems = [...epic1WorkItems];
-    } else if (this.epic.id === 'epic-2') {
-      this.workItems = [...epic2WorkItems];
-    } else {
-      this.workItems = [];
+  /**
+   * Load epic details from backend
+   */
+  private loadEpicDetails() {
+    if (!this.epic.id) {
+      console.warn('⚠️ [EpicDetailedView] No epic ID available');
+      return;
     }
+
+    this.isLoadingEpicDetails = true;
+    this.epicService.getEpicById(this.epic.id).subscribe({
+      next: (epicDetails) => {
+        // Update epic with fresh data from backend
+        this.epic = {
+          ...this.epic,
+          ...epicDetails,
+          name: epicDetails.title || epicDetails.name,
+          isExpanded: this.epic.isExpanded // Preserve UI state
+        };
+        this.isLoadingEpicDetails = false;
+        console.log('✅ [EpicDetailedView] Epic details loaded:', this.epic);
+      },
+      error: (error) => {
+        console.error('❌ [EpicDetailedView] Error loading epic details:', error);
+        this.isLoadingEpicDetails = false;
+        this.toastService.error('Failed to load epic details');
+      }
+    });
+  }
+
+  /**
+   * Load child work items from backend
+   */
+  private loadWorkItems() {
+    if (!this.epic.id) {
+      console.warn('⚠️ [EpicDetailedView] No epic ID available');
+      this.workItems = [];
+      return;
+    }
+
+    this.isLoadingWorkItems = true;
+    this.epicService.getChildWorkItemsByEpicId(this.epic.id).subscribe({
+      next: (workItems) => {
+        this.workItems = workItems;
+        this.epic.childWorkItems = workItems.map(item => item.id);
+        this.epic.issueCount = workItems.length;
+        
+        // Calculate progress based on completed work items
+        const completedItems = workItems.filter(item => item.status === 'DONE').length;
+        this.epic.progress = workItems.length > 0 ? Math.round((completedItems / workItems.length) * 100) : 0;
+        
+        this.isLoadingWorkItems = false;
+        console.log('✅ [EpicDetailedView] Work items loaded:', this.workItems);
+      },
+      error: (error) => {
+        console.error('❌ [EpicDetailedView] Error loading work items:', error);
+        this.isLoadingWorkItems = false;
+        this.workItems = [];
+        this.toastService.error('Failed to load work items');
+      }
+    });
   }
 
   onClose() {
     this.close.emit();
   }
 
+  /**
+   * Handle epic updates from child components
+   */
   onEpicUpdated(updatedEpic: Epic) {
     this.epic = updatedEpic;
     this.epicUpdated.emit(this.epic);
+    // Reload data from backend to ensure consistency
+    this.loadEpicDetails();
   }
 
+  /**
+   * Handle epic deletion
+   */
+  onEpicDeleted(epicId: string) {
+    this.epicDeleted.emit(epicId);
+    this.close.emit();
+  }
+
+  /**
+   * Handle work items changes
+   */
   onWorkItemsChanged(updatedWorkItems: Issue[]) {
     this.workItems = updatedWorkItems;
     this.epic.childWorkItems = updatedWorkItems.map(item => item.id);
     this.epic.issueCount = updatedWorkItems.length;
+    
+    // Recalculate progress
+    const completedItems = updatedWorkItems.filter(item => item.status === 'DONE').length;
+    this.epic.progress = updatedWorkItems.length > 0 ? Math.round((completedItems / updatedWorkItems.length) * 100) : 0;
+    
     this.epicUpdated.emit(this.epic);
   }
 
+  /**
+   * Handle work item creation (placeholder - actual implementation would use IssueService)
+   */
   onWorkItemCreated(newWorkItem: Issue) {
-    const newId = `SCRUM-${Date.now()}`;
-    const workItem: Issue = {
-      ...newWorkItem,
-      id: newId,
-      epicId: this.epic.id,
-      priority: 'MEDIUM',
-      status: 'TODO',
-      assignee: 'Unassigned',
-      storyPoints: 0,
-      description: '',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.workItems.push(workItem);
-    if (!this.epic.childWorkItems) {
-      this.epic.childWorkItems = [];
-    }
-    this.epic.childWorkItems.push(newId);
-    this.epic.issueCount = this.workItems.length;
-    this.epicUpdated.emit(this.epic);
+    // Note: Actual implementation should use IssueService.createIssue()
+    // For now, just reload work items to show updated list
+    this.toastService.info('Work item creation will be implemented using IssueService');
+    this.loadWorkItems();
+  }
+
+  /**
+   * Refresh epic data and work items
+   */
+  refreshEpicData() {
+    this.loadEpicDetails();
+    this.loadWorkItems();
   }
 }

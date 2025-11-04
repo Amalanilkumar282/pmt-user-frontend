@@ -20,15 +20,16 @@ import {
   activeSprintIssues,
   plannedSprintIssues,
   backlogIssues as sharedBacklogIssues,
-  sprints as sharedSprints,
-  epics as sharedEpics
+  sprints as sharedSprints
 } from '../../shared/data/dummy-backlog-data';
 import { FormField, ModalService } from '../../modal/modal-service';
 import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
 import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/services/ai-sprint-planning.service';
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
-import { IssueService } from '../../shared/services/issue.service';
+import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
+import { EpicService } from '../../shared/services/epic.service';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-backlog-page',
@@ -42,7 +43,8 @@ export class BacklogPage implements OnInit {
   constructor(
     private modalService: ModalService, 
     private sprintService: SprintService,
-    private issueService: IssueService
+    private issueService: IssueService,
+    private epicService: EpicService
   ) {}
   
   private route = inject(ActivatedRoute);
@@ -68,7 +70,8 @@ export class BacklogPage implements OnInit {
   
   // Epic panel state  
   isEpicPanelOpen = false;
-  epics: Epic[] = [...sharedEpics];
+  epics: Epic[] = [];
+  isLoadingEpics = false;
   
   // Epic detail view state
   selectedEpic: Epic | null = null;
@@ -76,6 +79,11 @@ export class BacklogPage implements OnInit {
   private isResizing = false;
   private startX = 0;
   private startWidth = 0;
+  
+  // Get current project ID
+  get currentProjectId(): string {
+    return this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
+  }
   
   // AI Sprint Planning state
   isAIModalOpen = false;
@@ -272,13 +280,20 @@ export class BacklogPage implements OnInit {
               actualTeamId = selectedTeamIndex >= 0 ? teamIds[selectedTeamIndex] : null;
             }
             
+            // Helper function to convert date to UTC ISO string
+            const formatDateToUTC = (date: any): string | undefined => {
+              if (!date) return undefined;
+              const dateObj = typeof date === 'string' ? new Date(date) : date;
+              return dateObj.toISOString();
+            };
+            
             const sprintRequest: SprintRequest = {
               projectId: projectId,
               sprintName: formData.sprintName,
               sprintGoal: formData.sprintGoal || null,
               teamAssigned: actualTeamId ? parseInt(actualTeamId) : null,
-              startDate: formData.startDate || undefined,
-              dueDate: formData.endDate || undefined,
+              startDate: formatDateToUTC(formData.startDate),
+              dueDate: formatDateToUTC(formData.endDate),
               status: formData.status || 'PLANNED',
               storyPoint: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40
             };
@@ -424,13 +439,193 @@ export class BacklogPage implements OnInit {
   }
 
   handleStart(sprintId: string): void {
-    console.log('Start sprint:', sprintId);
-    // Add your start logic here
+    const sprint = this.sprints.find(s => s.id === sprintId);
+    if (!sprint) {
+      console.error(`Sprint not found: ${sprintId}`);
+      return;
+    }
+
+    // Show custom confirmation modal
+    this.modalService.open({
+      id: 'confirmStartSprint',
+      title: 'Start Sprint',
+      modalDesc: `Are you sure you want to start "${sprint.name}"? This will move the sprint to Active status.`,
+      fields: [],
+      submitText: 'Start',
+      showLabels: false,
+      onSubmit: () => {
+        const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
+        if (!projectId) {
+          this.toastService.error('Project ID not found');
+          return;
+        }
+
+        // Prepare update request with ACTIVE status
+        const formatDateToUTC = (date: Date | undefined): string | undefined => {
+          if (!date) return undefined;
+          return new Date(date).toISOString();
+        };
+
+        const sprintRequest: SprintRequest = {
+          id: sprintId,
+          projectId: projectId,
+          sprintName: sprint.name,
+          sprintGoal: sprint.sprintGoal || null,
+          teamAssigned: sprint.teamId || null,
+          startDate: formatDateToUTC(sprint.startDate),
+          dueDate: formatDateToUTC(sprint.endDate),
+          status: 'ACTIVE', // Set status to ACTIVE
+          storyPoint: sprint.storyPoint || 0
+        };
+
+        console.log('Starting sprint:', sprintId, sprintRequest);
+        this.toastService.info('Starting sprint...');
+
+        this.sprintService.updateSprint(sprintId, sprintRequest).subscribe({
+          next: (response) => {
+            console.log('Sprint started successfully:', response);
+            this.toastService.success(`Sprint "${sprint.name}" started successfully!`);
+            this.modalService.close();
+            // Reload sprints to get updated data from backend and reorganize
+            this.ngZone.run(() => {
+              if (projectId) {
+                this.loadSprints(projectId);
+              }
+              // Trigger change detection
+              this.cdr.detectChanges();
+            });
+          },
+          error: (error) => {
+            console.error('Error starting sprint:', error);
+            this.toastService.error(error.error?.message || 'Failed to start sprint. Please try again.');
+          }
+        });
+      }
+    });
   }
 
   handleComplete(sprintId: string): void {
-    console.log('Complete sprint:', sprintId);
-    // Add your completion logic here
+    const sprint = this.sprints.find(s => s.id === sprintId);
+    if (!sprint) {
+      console.error(`Sprint not found: ${sprintId}`);
+      return;
+    }
+
+    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
+    if (!projectId) {
+      this.toastService.error('Project ID not found');
+      return;
+    }
+
+    // Check for unfinished issues (status !== 'DONE')
+    const unfinishedIssues = sprint.issues?.filter(issue => issue.status !== 'DONE') || [];
+    const hasUnfinishedIssues = unfinishedIssues.length > 0;
+
+    if (hasUnfinishedIssues) {
+      // Show confirmation modal for unfinished issues
+      this.modalService.open({
+        id: 'confirmCompleteSprint',
+        title: 'Complete Sprint',
+        modalDesc: `Sprint "${sprint.name}" has ${unfinishedIssues.length} unfinished issue(s). Do you want to mark all unfinished issues as DONE and complete the sprint?`,
+        fields: [],
+        submitText: 'Complete Sprint',
+        showLabels: false,
+        onSubmit: () => {
+          this.completeSprintWithIssues(sprintId, projectId, unfinishedIssues);
+        }
+      });
+    } else {
+      // No unfinished issues, directly complete the sprint
+      this.completeSprintDirectly(sprintId, projectId, sprint);
+    }
+  }
+
+  private completeSprintWithIssues(sprintId: string, projectId: string, unfinishedIssues: Issue[]): void {
+    const sprint = this.sprints.find(s => s.id === sprintId);
+    if (!sprint) return;
+
+    this.toastService.info('Updating unfinished issues...');
+
+    // Update all unfinished issues to DONE (statusId: 4)
+    const updateObservables = unfinishedIssues.map(issue => {
+      const updateRequest = {
+        projectId: projectId,
+        issueType: issue.issueType || issue.type,
+        title: issue.title,
+        description: issue.description,
+        priority: issue.priority,
+        assigneeId: issue.assigneeId || null,
+        startDate: issue.startDate ? new Date(issue.startDate).toISOString() : null,
+        dueDate: issue.dueDate ? new Date(issue.dueDate).toISOString() : null,
+        sprintId: issue.sprintId || null,
+        storyPoints: issue.storyPoints || 0,
+        epicId: issue.epicId || null,
+        reporterId: issue.reporterId || null,
+        attachmentUrl: issue.attachmentUrl || null,
+        statusId: 4, // DONE
+        labels: issue.labels && issue.labels.length > 0 ? JSON.stringify(issue.labels) : null
+      };
+
+      return this.issueService.updateIssue(issue.id, updateRequest);
+    });
+
+    // Use forkJoin to wait for all issue updates to complete
+    forkJoin(updateObservables).subscribe({
+      next: (responses) => {
+        console.log('✅ All unfinished issues marked as DONE:', responses);
+        this.toastService.success(`${unfinishedIssues.length} issue(s) marked as DONE`);
+        
+        // Now complete the sprint
+        this.completeSprintDirectly(sprintId, projectId, sprint);
+      },
+      error: (error) => {
+        console.error('❌ Error updating issues:', error);
+        this.toastService.error('Failed to update some issues. Please try again.');
+      }
+    });
+  }
+
+  private completeSprintDirectly(sprintId: string, projectId: string, sprint: Sprint): void {
+    const formatDateToUTC = (date: Date | undefined): string | undefined => {
+      if (!date) return undefined;
+      return new Date(date).toISOString();
+    };
+
+    const sprintRequest: SprintRequest = {
+      id: sprintId,
+      projectId: projectId,
+      sprintName: sprint.name,
+      sprintGoal: sprint.sprintGoal || null,
+      teamAssigned: sprint.teamId || null,
+      startDate: formatDateToUTC(sprint.startDate),
+      dueDate: formatDateToUTC(sprint.endDate),
+      status: 'COMPLETED', // Set status to COMPLETED
+      storyPoint: sprint.storyPoint || 0
+    };
+
+    console.log('Completing sprint:', sprintId, sprintRequest);
+    this.toastService.info('Completing sprint...');
+
+    this.sprintService.updateSprint(sprintId, sprintRequest).subscribe({
+      next: (response) => {
+        console.log('Sprint completed successfully:', response);
+        this.toastService.success(`Sprint "${sprint.name}" completed successfully!`);
+        this.modalService.close();
+        
+        // Reload sprints to get updated data from backend and reorganize
+        this.ngZone.run(() => {
+          if (projectId) {
+            this.loadSprints(projectId);
+          }
+          // Trigger change detection
+          this.cdr.detectChanges();
+        });
+      },
+      error: (error) => {
+        console.error('Error completing sprint:', error);
+        this.toastService.error(error.error?.message || 'Failed to complete sprint. Please try again.');
+      }
+    });
   }
 
   handleEdit(sprintId: string): void {
@@ -692,6 +887,7 @@ export class BacklogPage implements OnInit {
     this.epics.push(newEpic);
     // Immediately open the detail view for the newly created epic
     this.selectedEpic = { ...newEpic };
+    console.log('✅ [BacklogPage] Epic created and detail view opened:', newEpic);
   }
 
   closeEpicDetailView(): void {
@@ -706,6 +902,20 @@ export class BacklogPage implements OnInit {
     }
     // Update the selected epic reference
     this.selectedEpic = { ...updatedEpic };
+    console.log('✅ [BacklogPage] Epic updated:', updatedEpic);
+  }
+
+  /**
+   * Handle epic deletion
+   */
+  onEpicDeleted(epicId: string): void {
+    // Remove epic from the list
+    this.epics = this.epics.filter(e => e.id !== epicId);
+    // Close the detail view
+    this.selectedEpic = null;
+    // Show success message
+    this.toastService.success('Epic deleted successfully');
+    console.log('✅ [BacklogPage] Epic deleted:', epicId);
   }
 
   // Resize methods
@@ -808,9 +1018,10 @@ export class BacklogPage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
-      // Load sprints and issues from backend
+      // Load sprints, issues, and epics from backend
       this.loadSprints(projectId);
       this.loadProjectIssues(projectId);
+      this.loadEpics(projectId);
     } else {
       // Try to get projectId from session storage as fallback
       const storedProjectId = sessionStorage.getItem('projectId');
@@ -818,6 +1029,7 @@ export class BacklogPage implements OnInit {
         this.projectContextService.setCurrentProjectId(storedProjectId);
         this.loadSprints(storedProjectId);
         this.loadProjectIssues(storedProjectId);
+        this.loadEpics(storedProjectId);
       } else {
         console.warn('No project ID found in route or session storage');
         this.toastService.warning('No project selected');
@@ -895,6 +1107,30 @@ export class BacklogPage implements OnInit {
   }
 
   /**
+   * Load all epics for the current project from backend
+   */
+  private loadEpics(projectId: string): void {
+    this.isLoadingEpics = true;
+    this.epicService.getAllEpicsByProject(projectId).subscribe({
+      next: (epics) => {
+        console.log('✅ [BacklogPage] Loaded epics from backend:', epics);
+        this.epics = epics.map(epic => ({
+          ...epic,
+          isExpanded: false
+        }));
+        this.toastService.success(`Loaded ${epics.length} epics successfully`);
+        this.isLoadingEpics = false;
+      },
+      error: (error) => {
+        console.error('❌ [BacklogPage] Failed to load epics:', error);
+        this.toastService.error('Failed to load epics from backend');
+        this.isLoadingEpics = false;
+        this.epics = []; // Clear epics on error
+      }
+    });
+  }
+
+  /**
    * Organize issues into sprints based on sprintId
    * This method updates the sprints with their respective issues
    * Issues without sprintId are added to backlog
@@ -931,5 +1167,7 @@ export class BacklogPage implements OnInit {
       console.log(`  - ${sprint.name} (${sprint.status}): ${sprint.issues?.length || 0} issues`);
     });
     console.log(`✅ Backlog issues: ${this.backlogIssues.length}`);
+      // Fix ExpressionChangedAfterItHasBeenCheckedError
+      this.cdr.detectChanges();
   }
 }

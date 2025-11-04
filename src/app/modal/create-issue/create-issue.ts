@@ -264,6 +264,14 @@ showToast(message: string, duration: number = 3000) {
       // Merge with provided data (AI autofill data takes precedence)
       this.formData = cfg.data ? { ...defaultFormData, ...cfg.data } : defaultFormData;
       
+      // Log formData and field options for debugging select field population
+      console.log('🔍 [Modal] formData after merge:', this.formData);
+      console.log('🔍 [Modal] Field options:', this.fields.filter(f => f.type === 'select').map(f => ({
+        model: f.model,
+        options: f.options,
+        value: this.formData[f.model]
+      })));
+      
       this.modalTitle = cfg.title ?? 'Modal';
       this.modalDesc = cfg.modalDesc ?? '';
       this.showLabels = cfg.showLabels ?? false;
@@ -519,6 +527,32 @@ shakeFields: Set<string> = new Set();
 
   removeLabel(label: string) {
     this.formData.labels = this.formData.labels.filter((l: string) => l !== label);
+  }
+
+  /**
+   * Extract filename from attachment URL
+   */
+  getFileNameFromUrl(url: string): string {
+    if (!url) return 'Attachment';
+    try {
+      const parts = url.split('/');
+      const fileNameWithId = parts[parts.length - 1];
+      // Remove the UUID prefix if present (format: uuid_uuid_filename.ext)
+      const withoutUuid = fileNameWithId.split('_').slice(2).join('_');
+      return decodeURIComponent(withoutUuid || fileNameWithId);
+    } catch (e) {
+      return 'Attachment';
+    }
+  }
+
+  /**
+   * Remove existing attachment URL
+   */
+  removeExistingAttachment(fieldModel: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.formData[fieldModel] = '';
+    this.uploadedFileUrl = null;
   }
 
   updateFieldVisibility(issueType: string) {
