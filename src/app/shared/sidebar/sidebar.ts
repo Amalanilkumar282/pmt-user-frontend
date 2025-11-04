@@ -107,8 +107,13 @@ export class Sidebar implements OnInit {
   }
 
   navigateToProject(projectId: string): void {
-    // Set the current project ID in session storage
-    this.projectContextService.setCurrentProjectId(projectId);
+    // Find the project to get its name
+    const project = this.recentProjects().find(p => p.id === projectId);
+    const projectName = project?.name || 'Unknown Project';
+    
+    // Set the current project ID and name in session storage
+    this.projectContextService.setCurrentProjectId(projectId, projectName);
+    console.log('✅ [Sidebar] Navigating to project:', projectId, projectName);
 
     // Update recent projects - move to top (async but don't await)
     this.boardService.accessProject(projectId);
@@ -142,8 +147,12 @@ export class Sidebar implements OnInit {
   }
 
   navigateToBoard(projectId: string, boardId: string): void {
-    // Set the current project ID in session storage
-    this.projectContextService.setCurrentProjectId(projectId);
+    // Find the project to get its name
+    const project = this.recentProjects().find(p => p.id === projectId);
+    const projectName = project?.name || 'Unknown Project';
+    
+    // Set the current project ID and name in session storage
+    this.projectContextService.setCurrentProjectId(projectId, projectName);
 
     // Set current board and navigate with query param
     this.boardService.setCurrentBoard(boardId);

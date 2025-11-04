@@ -79,6 +79,16 @@ export class ProjectContextService {
       sessionStorage.setItem('currentProjectId', projectInfo.id);
       console.log('✅ Current project info set:', projectInfo);
     }
+
+    // Fetch user permissions for this project
+    this.permissionService.getUserPermissions(projectInfo.id).subscribe({
+      next: (permissions) => {
+        console.log('✅ Loaded permissions for project:', projectInfo.id, permissions);
+      },
+      error: (error) => {
+        console.error('❌ Error loading permissions for project:', projectInfo.id, error);
+      }
+    });
   }
 
   private generateProjectIcon(projectName: string): string {
