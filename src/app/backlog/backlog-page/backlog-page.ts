@@ -27,6 +27,7 @@ import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
 import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
 import { EpicService } from '../../shared/services/epic.service';
+import { InlineEditService } from '../../shared/services/inline-edit.service';
 import { forkJoin } from 'rxjs';
 import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
 import { AISprintPlanRequest, AISprintPlanResponse } from '../../sprint/sprint.service';
@@ -51,7 +52,8 @@ export class BacklogPage implements OnInit {
     private modalService: ModalService, 
     private sprintService: SprintService,
     private issueService: IssueService,
-    private epicService: EpicService
+    private epicService: EpicService,
+    private inlineEditService: InlineEditService
   ) {}
   
   private route = inject(ActivatedRoute);
@@ -77,6 +79,10 @@ export class BacklogPage implements OnInit {
   isEpicPanelOpen = false;
   epics: Epic[] = [];
   isLoadingEpics = false;
+  
+  // Project members for filter dropdown
+  projectMembers: Array<{ id: number; name: string }> = [];
+  isLoadingMembers = false;
   
   // Epic detail view state
   selectedEpic: Epic | null = null;
@@ -126,19 +132,38 @@ export class BacklogPage implements OnInit {
     return this.sprints.filter(s => s.status === 'COMPLETED');
   }
 
-  // Get backlog issues excluding completed ones
+  // Get backlog issues excluding completed ones (with filters applied)
   get filteredBacklogIssues(): Issue[] {
-    return this.backlogIssues.filter(issue => issue.status !== 'DONE');
+    let issues = this.backlogIssues.filter(issue => issue.status !== 'DONE');
+    
+    // Apply current filters if they exist
+    if (this.currentFilterCriteria) {
+      issues = this.filterIssues(issues, this.currentFilterCriteria);
+      issues = this.sortIssues(issues, this.currentFilterCriteria.sort);
+    }
+    
+    return issues;
   }
 
-  // Get all issues from backend (replaces dummy data when loaded)
+  // Get all issues from backend (replaces dummy data when loaded) with filters applied
   get allIssues(): Issue[] {
+    let issues: Issue[] = [];
+    
     if (this.allIssuesFromBackend.length > 0) {
-      return this.allIssuesFromBackend;
+      issues = this.allIssuesFromBackend;
+    } else {
+      // Fallback to dummy data if backend data not loaded
+      const sprintIssues = this.sprints.flatMap(sprint => sprint.issues || []);
+      issues = [...sprintIssues, ...this.backlogIssues];
     }
-    // Fallback to dummy data if backend data not loaded
-    const sprintIssues = this.sprints.flatMap(sprint => sprint.issues || []);
-    return [...sprintIssues, ...this.backlogIssues];
+    
+    // Apply current filters if they exist
+    if (this.currentFilterCriteria) {
+      issues = this.filterIssues(issues, this.currentFilterCriteria);
+      issues = this.sortIssues(issues, this.currentFilterCriteria.sort);
+    }
+    
+    return issues;
   }
 
   // Toggle view between sprints and all issues
@@ -812,8 +837,15 @@ export class BacklogPage implements OnInit {
     });
   }
 
+  // Store current filter criteria
+  private currentFilterCriteria: FilterCriteria | null = null;
+
   onFiltersChanged(criteria: FilterCriteria): void {
     console.log('Filters changed:', criteria);
+    
+    // Store filter criteria for use in filtering methods
+    this.currentFilterCriteria = criteria;
+    
     // Update view states from filter criteria
     this.currentView = criteria.view;
     // detect transition from hidden -> shown so we can scroll into view
@@ -825,8 +857,175 @@ export class BacklogPage implements OnInit {
     }
     this.isEpicPanelOpen = criteria.showEpicPanel;
     this.selectedEpicFilter = criteria.epicId;
-    // Additional filter logic can be implemented here
-    // Filter sprints and backlog issues based on other criteria
+    
+    // Apply filters and sorting to issues
+    this.applyFiltersAndSorting();
+  }
+  
+  /**
+   * Apply all filter criteria and sorting to issues
+   */
+  private applyFiltersAndSorting(): void {
+    if (!this.currentFilterCriteria) return;
+    
+    const criteria = this.currentFilterCriteria;
+    
+    // Re-organize sprints with filtered and sorted issues
+    if (this.allIssuesFromBackend.length > 0) {
+      // Filter issues first
+      let filteredIssues = this.filterIssues(this.allIssuesFromBackend, criteria);
+      
+      // Sort issues
+      filteredIssues = this.sortIssues(filteredIssues, criteria.sort);
+      
+      // Re-organize sprints with filtered issues
+      this.organizeSprints(filteredIssues);
+    }
+    
+    // Trigger change detection
+    this.cdr.detectChanges();
+  }
+  
+  /**
+   * Filter issues based on filter criteria
+   */
+  private filterIssues(issues: Issue[], criteria: FilterCriteria): Issue[] {
+    let filtered = [...issues];
+    
+    // Search text filter - searches in title, description, key
+    if (criteria.searchText && criteria.searchText.trim()) {
+      const searchLower = criteria.searchText.toLowerCase().trim();
+      filtered = filtered.filter(issue => 
+        (issue.title?.toLowerCase().includes(searchLower)) ||
+        (issue.description?.toLowerCase().includes(searchLower)) ||
+        (issue.key?.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Quick filters
+    if (criteria.quickFilter) {
+      switch (criteria.quickFilter) {
+        case 'assigned-to-me':
+          // Filter issues assigned to current user
+          filtered = filtered.filter(issue => 
+            issue.assigneeName === criteria.currentUserName ||
+            issue.assignee === criteria.currentUserName ||
+            (criteria.currentUserId && issue.assigneeId?.toString() === criteria.currentUserId)
+          );
+          break;
+          
+        case 'recent':
+          // Filter issues updated in last 7 days
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          filtered = filtered.filter(issue => {
+            const updatedDate = issue.updatedAt ? new Date(issue.updatedAt) : null;
+            return updatedDate && updatedDate >= sevenDaysAgo;
+          });
+          break;
+          
+        case 'my-open':
+          // Filter issues assigned to current user that are not done
+          filtered = filtered.filter(issue => {
+            const isAssignedToMe = issue.assigneeName === criteria.currentUserName ||
+              issue.assignee === criteria.currentUserName ||
+              (criteria.currentUserId && issue.assigneeId?.toString() === criteria.currentUserId);
+            const isNotDone = issue.status !== 'DONE' && issue.statusId !== 4;
+            return isAssignedToMe && isNotDone;
+          });
+          break;
+          
+        case 'unassigned':
+          // Filter unassigned issues
+          filtered = filtered.filter(issue => 
+            !issue.assignee && !issue.assigneeName && !issue.assigneeId
+          );
+          break;
+      }
+    }
+    
+    // Type filter
+    if (criteria.type) {
+      filtered = filtered.filter(issue => 
+        issue.type === criteria.type || issue.issueType === criteria.type
+      );
+    }
+    
+    // Priority filter
+    if (criteria.priority) {
+      filtered = filtered.filter(issue => issue.priority === criteria.priority);
+    }
+    
+    // Status filter
+    if (criteria.status) {
+      filtered = filtered.filter(issue => issue.status === criteria.status);
+    }
+    
+    // Assignee filter (multi-select)
+    if (criteria.assignees && criteria.assignees.length > 0) {
+      filtered = filtered.filter(issue => 
+        criteria.assignees.includes(issue.assignee || '') ||
+        criteria.assignees.includes(issue.assigneeName || '')
+      );
+    }
+    
+    // Epic filter
+    if (criteria.epicId) {
+      filtered = filtered.filter(issue => issue.epicId === criteria.epicId);
+    }
+    
+    return filtered;
+  }
+  
+  /**
+   * Sort issues based on sort criteria
+   */
+  private sortIssues(issues: Issue[], sortBy: string): Issue[] {
+    const sorted = [...issues];
+    
+    switch (sortBy) {
+      case 'Recently Updated':
+        sorted.sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        });
+        break;
+        
+      case 'Recently Created':
+        sorted.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        });
+        break;
+        
+      case 'Issue Key (A-Z)':
+        sorted.sort((a, b) => {
+          const keyA = a.key || '';
+          const keyB = b.key || '';
+          return keyA.localeCompare(keyB);
+        });
+        break;
+        
+      case 'Issue Key (Z-A)':
+        sorted.sort((a, b) => {
+          const keyA = a.key || '';
+          const keyB = b.key || '';
+          return keyB.localeCompare(keyA);
+        });
+        break;
+        
+      case 'Story Points':
+        sorted.sort((a, b) => {
+          const pointsA = a.storyPoints || 0;
+          const pointsB = b.storyPoints || 0;
+          return pointsB - pointsA; // Highest first
+        });
+        break;
+    }
+    
+    return sorted;
   }
 
   // Get list of all sprints for move dropdown
@@ -1009,10 +1208,11 @@ export class BacklogPage implements OnInit {
     const projectId = this.route.parent?.snapshot.paramMap.get('projectId');
     if (projectId) {
       this.projectContextService.setCurrentProjectId(projectId);
-      // Load sprints, issues, and epics from backend
+      // Load sprints, issues, epics, and members from backend
       this.loadSprints(projectId);
       this.loadProjectIssues(projectId);
       this.loadEpics(projectId);
+      this.loadProjectMembers(projectId);
     } else {
       // Try to get projectId from session storage as fallback
       const storedProjectId = sessionStorage.getItem('projectId');
@@ -1021,6 +1221,7 @@ export class BacklogPage implements OnInit {
         this.loadSprints(storedProjectId);
         this.loadProjectIssues(storedProjectId);
         this.loadEpics(storedProjectId);
+        this.loadProjectMembers(storedProjectId);
       } else {
         console.warn('No project ID found in route or session storage');
         this.toastService.warning('No project selected');
@@ -1117,11 +1318,31 @@ export class BacklogPage implements OnInit {
       }
     });
   }
+  
+  /**
+   * Load all project members for filter dropdown
+   */
+  private loadProjectMembers(projectId: string): void {
+    this.isLoadingMembers = true;
+    this.inlineEditService.getProjectMembers(projectId).subscribe({
+      next: (members) => {
+        console.log('✅ [BacklogPage] Loaded project members:', members);
+        this.projectMembers = members;
+        this.isLoadingMembers = false;
+      },
+      error: (error) => {
+        console.error('❌ [BacklogPage] Failed to load project members:', error);
+        this.isLoadingMembers = false;
+        this.projectMembers = []; // Clear members on error
+      }
+    });
+  }
 
   /**
    * Organize issues into sprints based on sprintId
    * This method updates the sprints with their respective issues
    * Issues without sprintId are added to backlog
+   * Note: This method now receives already filtered issues
    */
   private organizeSprints(issues: Issue[]): void {
     // Group issues by sprintId
