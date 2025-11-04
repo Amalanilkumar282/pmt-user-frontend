@@ -1,7 +1,9 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Issue } from '../shared/models/issue.model';
 import { Sprint } from '../sprint/sprint-container/sprint-container';
 import {
@@ -43,6 +45,54 @@ interface RecentIssue {
 })
 export class IssueSummaryService {
   private http = inject(HttpClient);
+  private apiUrl = environment.apiUrl;
+
+  /**
+   * Fetch recent issues for a project from backend API
+   */
+  getRecentIssuesByProjectId(projectId: string, limit: number = 6): Observable<RecentIssue[]> {
+    console.log('🔄 Fetching recent issues for project:', projectId);
+    return this.http.get<any>(`${this.apiUrl}/api/Issue/project/${projectId}/recent`).pipe(
+      map((response) => {
+        console.log('📥 Recent issues API response:', response);
+        if (response.status === 200 && Array.isArray(response.data)) {
+          console.log('✅ Valid response with', response.data.length, 'issues');
+          return response.data.slice(0, limit).map((issue: any) => {
+            // Assignee Initials Logic
+            const assigneeName = issue.assigneeName || 'Unassigned';
+            const initialsMatch = assigneeName.match(/\b\w/g) || [];
+            const assigneeInitials = (
+              initialsMatch.length > 1
+                ? initialsMatch.slice(0, 2).join('').toUpperCase()
+                : assigneeName.slice(0, 2).toUpperCase()
+            ).padEnd(2, '?');
+
+            // Generate consistent color for assignee using the initials
+            const assigneeBg = this.stringToHslColor(assigneeInitials, 70, 45);
+
+            // Get issue type from backend
+            const issueType = (issue.issueType || 'TASK').toUpperCase();
+            
+            // Get status display name
+            const statusDisplay = this.STATUS_DISPLAY_MAP[issue.status] || issue.status || 'Open';
+
+            return {
+              title: issue.title,
+              code: issue.key || '',
+              statusBg: this.ISSUE_TYPE_COLOR_MAP[issueType] || '#9CA3AF',
+              statusLetter: this.STATUS_LETTER_MAP[issueType] || '?',
+              assigneeBg: assigneeBg,
+              assigneeInitials: assigneeInitials,
+              description: issue.description,
+              status: statusDisplay,
+              priority: issue.priority ? (issue.priority.charAt(0) + issue.priority.slice(1).toLowerCase()) : 'Medium',
+            };
+          });
+        }
+        return [];
+      })
+    );
+  }
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
   // Use direct API URL instead of proxy

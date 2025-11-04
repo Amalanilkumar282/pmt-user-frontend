@@ -8,6 +8,7 @@ export interface Issue {
   statusLetter: string;
   assigneeBg: string;
   assigneeInitials: string;
+  // typeIcon removed, only use statusLetter and statusBg for icon
   description?: string; // add description
   status?: string; // e.g. "In Progress", "Done"
   priority?: string; // e.g. "High", "Medium"
