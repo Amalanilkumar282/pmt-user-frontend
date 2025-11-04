@@ -15,7 +15,7 @@ export class ProjectMembersService {
   private http = inject(HttpClient);
   private roleService = inject(RoleService);
   private userService = inject(UserService);
-  private readonly API_BASE_URL = 'https://localhost:7117/api';
+  private readonly API_BASE_URL = 'https://pmt-backend.runasp.net/api';
   
   // Public computed signals
   members = this.membersSignal.asReadonly();

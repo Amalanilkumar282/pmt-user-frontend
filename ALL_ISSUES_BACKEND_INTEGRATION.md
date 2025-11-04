@@ -114,7 +114,7 @@ GET /api/Issue/project/{projectId}/issues
 
 ### Example Request
 ```
-GET https://localhost:7117/api/Issue/project/11111111-1111-1111-1111-111111111111/issues
+GET https://pmt-backend.runasp.net/swagger/index.html/api/Issue/project/11111111-1111-1111-1111-111111111111/issues
 Authorization: Bearer {accessToken}
 ```
 
@@ -284,7 +284,7 @@ The following must be present in session storage:
 ```json
 {
   "/api": {
-    "target": "https://localhost:7117",
+    "target": "https://pmt-backend.runasp.net/swagger/index.html",
     "secure": false,
     "changeOrigin": true
   }
@@ -328,7 +328,7 @@ Backlog issues: [...]
 2. Verify `accessToken` exists in session storage
 3. Verify `projectId` in route params or session storage
 4. Check network tab for API request/response
-5. Confirm backend API is running on https://localhost:7117
+5. Confirm backend API is running on https://pmt-backend.runasp.net/swagger/index.html
 
 ### Wrong Data Displayed
 1. Clear browser cache and reload

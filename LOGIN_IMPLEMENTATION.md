@@ -7,7 +7,7 @@ Implemented frontend login integration with .NET backend API, including proper e
 
 ### 1. Environment Configuration
 **File:** `src/environments/environment.ts`
-- Added `apiUrl: 'https://localhost:7117'` for backend API endpoint
+- Added `apiUrl: 'https://pmt-backend.runasp.net/swagger/index.html'` for backend API endpoint
 
 ### 2. Authentication Service Updates
 **File:** `src/app/auth/auth.service.ts`
@@ -154,7 +154,7 @@ Implemented frontend login integration with .NET backend API, including proper e
 
 ## Notes
 
-- CORS must be enabled on backend for `https://localhost:7117`
+- CORS must be enabled on backend for `https://pmt-backend.runasp.net/swagger/index.html`
 - SSL certificate warnings may appear in development
 - Session storage ensures security (auto-clear on browser close)
 - All color themes updated to `#3d62a8` brand color

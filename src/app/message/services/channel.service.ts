@@ -85,7 +85,7 @@ export interface DeleteChannelResponse {
 })
 export class ChannelService {
   private http = inject(HttpClient);
-  private readonly API_BASE_URL = 'https://localhost:7117/api';
+  private readonly API_BASE_URL = 'https://pmt-backend.runasp.net/api';
 
   /**
    * Get all channels for a specific team

@@ -17,7 +17,7 @@ export interface TeamCountResponse {
 export class TeamsService {
   private http = inject(HttpClient);
   private projectMembersService = inject(ProjectMembersService);
-  private readonly API_BASE_URL = 'https://localhost:7117/api';
+  private readonly API_BASE_URL = 'https://pmt-backend.runasp.net/api';
 
   // Signal-based state management
   private teamsSignal = signal<Team[]>(this.getInitialTeams());

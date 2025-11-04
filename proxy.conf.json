@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "https://localhost:7117",
+    "target": "https://pmt-backend.runasp.net",
     "secure": false,
     "changeOrigin": true
   }
