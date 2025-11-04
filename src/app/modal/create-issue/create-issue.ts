@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { NgIf, NgFor, NgClass, NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -224,6 +224,7 @@ showToast(message: string, duration: number = 3000) {
     private labelService: LabelService,
     private attachmentService: AttachmentService,
     private authService: AuthService,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) platformId: Object
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
@@ -232,7 +233,7 @@ showToast(message: string, duration: number = 3000) {
       this.activeModalId = id;
       if (!id) {
         this.show = false;
-        if (this.isBrowser) document.body.style.overflow = '';
+        this.cdr.detectChanges();
         return;
       }
 
@@ -271,12 +272,6 @@ showToast(message: string, duration: number = 3000) {
       this.formData = cfg.data ? { ...defaultFormData, ...cfg.data } : defaultFormData;
       
       // Log formData and field options for debugging select field population
-      console.log('🔍 [Modal] formData after merge:', this.formData);
-      console.log('🔍 [Modal] Field options:', this.fields.filter(f => f.type === 'select').map(f => ({
-        model: f.model,
-        options: f.options,
-        value: this.formData[f.model]
-      })));
       
       this.modalTitle = cfg.title ?? 'Modal';
       this.modalDesc = cfg.modalDesc ?? '';
@@ -288,7 +283,7 @@ showToast(message: string, duration: number = 3000) {
       }
     }
 
-      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
+      this.cdr.detectChanges();
     });
 }
 
@@ -324,7 +319,6 @@ showToast(message: string, duration: number = 3000) {
     if (this.sub) {
       this.sub.unsubscribe();
     }
-    if (this.isBrowser) document.body.style.overflow = '';
   }
 
 close() { 
@@ -399,8 +393,6 @@ shakeFields: Set<string> = new Set();
           ...this.formData,
           uploadedFileUrl: this.uploadedFileUrl
         };
-        console.log('[CreateIssueModal] Submitting with onSubmit callback');
-        console.log('[CreateIssueModal] Full submission data:', submissionData);
         
         // Call the onSubmit callback
         cfg.onSubmit(submissionData);
@@ -412,7 +404,6 @@ shakeFields: Set<string> = new Set();
     }
 
     // No backend integration: just log and close
-    console.log('Form submitted (no API):', this.formData);
     this.showToast('Issue saved locally (no backend).', 1500);
     this.close();
   }
@@ -446,29 +437,22 @@ shakeFields: Set<string> = new Set();
     // Always convert FileList to array for display
     this.formData[field.model] = event.target.files ? Array.from(event.target.files) : [];
     
-    console.log('handleFileSelect called, files:', event.target.files);
     
     // Upload file to Supabase if a file was selected
     if (event.target.files && event.target.files.length > 0) {
       const file: File = event.target.files[0]; // Get the first file
       
-      console.log('Uploading file to Supabase:', file.name);
-      console.log('Current uploadedFileUrl before upload:', this.uploadedFileUrl);
       
       this.attachmentService.uploadFile(file, 'attachments').subscribe({
         next: (response) => {
-          console.log('File uploaded successfully:', response);
           this.uploadedFileUrl = response.data; // Store the URL
-          console.log('Stored attachment URL:', this.uploadedFileUrl);
         },
         error: (error) => {
-          console.error('Error uploading file:', error);
           this.showToast('Failed to upload file. Please try again.');
           this.uploadedFileUrl = null;
         }
       });
     } else {
-      console.log('No files selected');
       this.uploadedFileUrl = null;
     }
     

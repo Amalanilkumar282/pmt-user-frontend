@@ -94,8 +94,11 @@
     <div class="flex items-center gap-2">
       <app-filter-panel></app-filter-panel>
       <app-group-by-menu></app-group-by-menu>
-      <app-add-column-button></app-add-column-button>
-      <app-edit-board-columns></app-edit-board-columns>
+      <!-- Show add/edit column controls only for non-default (custom/team) boards -->
+      @if (showBoardControls()) {
+        <app-add-column-button></app-add-column-button>
+        <app-edit-board-columns></app-edit-board-columns>
+      }
       <app-board-options-menu></app-board-options-menu>
     </div>
   </div>
