@@ -195,7 +195,6 @@ export class BoardToolbar {
       NONE: 'None',
       ASSIGNEE: 'Assignee',
       EPIC: 'Epic',
-      SUBTASK: 'Sub Task'
     };
     return labels[groupBy];
   }
