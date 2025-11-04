@@ -1,8 +1,6 @@
 <div class="section needs-done-section">
   <div class="input-with-icon">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="input-icon">
-      <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
+    <i class="fa-solid fa-plus input-icon"></i>
     <input 
       type="text" 
       placeholder="What needs to be done?" 
@@ -15,9 +13,7 @@
     <button class="task-btn" (click)="toggleTypeDropdown()">
       <span class="task-icon">{{ getTypeIcon(type) }}</span>
       <span>{{ type }}</span>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <i class="fa-solid fa-chevron-down"></i>
     </button>
     @if (showTypeDropdown) {
       <div class="type-dropdown">
