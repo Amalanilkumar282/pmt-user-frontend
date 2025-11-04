@@ -6,14 +6,6 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Issue } from '../shared/models/issue.model';
 import { Sprint } from '../sprint/sprint-container/sprint-container';
-import {
-  activeSprintIssues,
-  backlogIssues,
-  completedSprint1Issues,
-  completedSprint2Issues,
-  plannedSprintIssues,
-  sprints,
-} from '../shared/data/dummy-backlog-data';
 
 interface SummaryCardData {
   type: 'completed' | 'updated' | 'created' | 'due-soon';
@@ -131,13 +123,8 @@ export class IssueSummaryService {
   }
 
   private getAllIssues(): Issue[] {
-    return [
-      ...completedSprint1Issues,
-      ...completedSprint2Issues,
-      ...activeSprintIssues,
-      ...plannedSprintIssues,
-      ...backlogIssues,
-    ];
+    // TODO: Replace with actual API call to fetch all issues
+    return [];
   }
 
   /**
@@ -261,20 +248,15 @@ export class IssueSummaryService {
 
   /**
    * @deprecated Use getSprintsByProjectId instead
-   * Returns dummy sprint data for backward compatibility
+   * Returns empty array - no more dummy data
    */
   getAllSprints(): Sprint[] {
-    return sprints;
+    return [];
   }
 
   getIssuesBySprintId(sprintId: string | null): Issue[] {
-    if (!sprintId || sprintId === 'all') {
-      return this.getAllIssues();
-    }
-    if (sprintId === 'backlog') {
-      return backlogIssues;
-    }
-    return this.getAllIssues().filter((issue) => issue.sprintId === sprintId);
+    // TODO: Replace with actual API call to fetch issues by sprint ID
+    return this.getAllIssues();
   }
 
   private isWithinLastDays(date: Date, days: number): boolean {
@@ -306,20 +288,8 @@ export class IssueSummaryService {
   }
 
   getDueSoonCount(sprintId: string | null, days: number = 7): number {
-    const issues = this.getIssuesBySprintId(sprintId);
-    let sprintEndDate: Date | undefined;
-
-    if (sprintId && sprintId !== 'all' && sprintId !== 'backlog') {
-      sprintEndDate = sprints.find((s) => s.id === sprintId)?.endDate;
-    } else if (sprintId === 'all' || !sprintId) {
-      sprintEndDate = sprints.find((s) => s.status === 'ACTIVE')?.endDate;
-    }
-
-    if (!sprintEndDate) return 0;
-
-    return issues.filter(
-      (issue) => issue.status !== 'DONE' && this.isWithinNextDays(sprintEndDate, days)
-    ).length;
+    // TODO: Replace with actual API call
+    return 0;
   }
 
   /**

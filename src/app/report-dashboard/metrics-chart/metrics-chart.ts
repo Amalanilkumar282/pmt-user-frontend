@@ -1,7 +1,6 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, AfterViewInit, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Issue } from '../../shared/models/issue.model';
-import { sprints } from '../../shared/data/dummy-backlog-data';
 import { NgApexchartsModule, ChartComponent } from 'ng-apexcharts';
 import {
   ApexAxisChartSeries,
@@ -267,36 +266,15 @@ export class MetricsChart implements OnInit, OnChanges, AfterViewInit {
 
     console.log('📊 Using issues:', issues.length, 'issues');
 
-    // Priority 1: Use sprintData passed from parent (from API)
+    // Use sprintData passed from parent (from API)
     if (this.sprintData) {
       console.log('✅ Using sprintData from parent:', this.sprintData);
       sprintName = this.sprintData.name;
       sprintStartDate = this.sprintData.startDate;
       sprintEndDate = this.sprintData.endDate;
-    } else if (this.sprintId && this.sprintId !== 'all') {
-      // Fallback: try to find sprint from dummy data
-      const sprint = sprints.find(s => s.id === this.sprintId);
-      if (sprint) {
-        issues = sprint.issues || [];
-        sprintName = sprint.name;
-        sprintStartDate = sprint.startDate;
-        sprintEndDate = sprint.endDate;
-      }
     } else {
-      // Final fallback: use active sprint from dummy data
-      let sprint = sprints.find(s => new Date(s.startDate) <= today && today <= new Date(s.endDate));
-      if (!sprint) {
-        const completedSprints = sprints
-          .filter(s => new Date(s.endDate) < today)
-          .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
-        sprint = completedSprints[0];
-      }
-      if (sprint) {
-        issues = sprint.issues || [];
-        sprintName = sprint.name;
-        sprintStartDate = sprint.startDate;
-        sprintEndDate = sprint.endDate;
-      }
+      console.warn('⚠️ No sprint data provided. Chart cannot be rendered without sprint information.');
+      return;
     }
 
     if (!sprintStartDate || !sprintEndDate) {

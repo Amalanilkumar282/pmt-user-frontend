@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { Issue } from '../../shared/models/issue.model';
-import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -89,13 +88,8 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       } as Sprint;
     }
     
-    // Fallback to dummy data if no API data provided
-    if (this.sprintId && this.sprintId !== 'all') {
-      return sprints.find(s => s.id === this.sprintId);
-    }
-    return sprints
-      .filter(s => s.status === 'COMPLETED' || s.status === 'ACTIVE')
-      .sort((a, b) => b.endDate.getTime() - a.endDate.getTime())[0];
+    // Return undefined if no sprint data provided
+    return undefined;
   }
 
   private loadBurnupData(): void {
