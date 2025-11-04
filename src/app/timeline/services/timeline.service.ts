@@ -67,7 +67,11 @@ export interface IssueDto {
   issue_type?: string;
   issueType?: string;
   priority: string;
-  status: string | number;
+  status?: string | number;
+  status_id?: number;
+  statusId?: number;
+  status_name?: string;
+  statusName?: string;
   assignee_id?: number;
   assigneeId?: number;
   assignee_name?: string;
@@ -92,6 +96,11 @@ export interface IssueDto {
   startDate?: string | null;
   due_date?: string | null;
   dueDate?: string | null;
+}
+
+export interface StatusDto {
+  id: number;
+  statusName: string;
 }
 
 @Injectable({
@@ -195,6 +204,33 @@ export class TimelineService {
       }),
       catchError(error => {
         // If 404 (no issues found) or 401 (unauthorized), return empty array instead of throwing error
+        if (error.status === 404 || error.status === 401) {
+          return of([]);
+        }
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Fetch all unique statuses for a project
+   * GET /api/Issue/project/{projectId}/statuses
+   */
+  getStatusesByProject(projectId: string): Observable<StatusDto[]> {
+    const headers = this.getAuthHeaders();
+    const url = `${this.apiUrl}/api/Issue/project/${projectId}/statuses`;
+    
+    return this.http.get<ApiResponse<StatusDto[]>>(url, { headers }).pipe(
+      map(response => {
+        // Handle wrapped response format
+        if (response && 'data' in response && response.data) {
+          return response.data;
+        }
+        
+        return [];
+      }),
+      catchError(error => {
+        // If 404 (no statuses found) or 401 (unauthorized), return empty array instead of throwing error
         if (error.status === 404 || error.status === 401) {
           return of([]);
         }

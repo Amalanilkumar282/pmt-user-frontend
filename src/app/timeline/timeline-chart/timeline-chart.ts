@@ -1,12 +1,12 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { TimelineHeaderComponent, FilterState } from '../timeline-header/timeline-header';
+import { TimelineHeaderComponent, FilterState, StatusOption } from '../timeline-header/timeline-header';
 import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
 import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
 import { IssueDetailedView } from '../../backlog/issue-detailed-view/issue-detailed-view';
-import { TimelineService, SprintDto, EpicDto, IssueDto } from '../services/timeline.service';
+import { TimelineService, SprintDto, EpicDto, IssueDto, StatusDto } from '../services/timeline.service';
 
 interface Sprint {
   id: string;
@@ -88,6 +88,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   displayMode: 'epics' | 'issues' = 'epics';
   selectedEpic: string | null = null;
   availableEpics: string[] = [];
+  availableStatuses: StatusOption[] = [];
+  statusIdToNameMap: Map<number, string> = new Map(); // Map status ID to status name
   isLoading: boolean = false;
   errorMessage: string | null = null;
   projectId: string | null = null;
@@ -151,6 +153,41 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     this.isLoading = true;
     this.errorMessage = null;
     
+    // First, load statuses for the project to build ID -> Name mapping
+    this.timelineService.getStatusesByProject(projectId).subscribe({
+      next: (statuses) => {
+        // Build the status ID to name mapping
+        this.statusIdToNameMap.clear();
+        statuses.forEach(status => {
+          this.statusIdToNameMap.set(status.id, status.statusName);
+        });
+        
+        // Transform API statuses to StatusOption format for the filter dropdown
+        this.availableStatuses = statuses.map(status => ({
+          id: status.id,
+          statusName: status.statusName,
+          displayName: this.formatStatusName(status.statusName),
+          value: this.getStatusValue(status.statusName)
+        }));
+        
+        // Now load the timeline data with the status mapping ready
+        this.loadTimelineDataInternal(projectId);
+      },
+      error: (error) => {
+        // Continue loading timeline data even if statuses fail
+        // Use default hardcoded mapping as fallback
+        console.warn('Failed to load statuses, using default mapping', error);
+        this.availableStatuses = [];
+        this.statusIdToNameMap.clear();
+        this.loadTimelineDataInternal(projectId);
+      }
+    });
+  }
+
+  /**
+   * Internal method to load timeline data after statuses are loaded
+   */
+  private loadTimelineDataInternal(projectId: string): void {
     this.timelineService.getTimelineData(projectId).subscribe({
       next: (data) => {
         // Transform sprints
@@ -294,8 +331,11 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       const dueDate = dto.due_date || dto.dueDate;
       const startDate = dto.start_date || dto.startDate;
       
-      // Map numeric status to string
-      const status = this.mapNumericStatus(dto.status);
+      // Get status - try multiple possible fields
+      const rawStatus = dto.status ?? dto.status_id ?? dto.statusId ?? dto.status_name ?? dto.statusName ?? 1;
+      
+      // Map numeric or string status to string
+      const status = this.mapNumericStatus(rawStatus);
       
       return {
         id: dto.id,
@@ -323,13 +363,17 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   /**
    * Map numeric status (1,2,3,4) to string status
+   * Uses dynamic mapping from status API if available, falls back to defaults
    */
-  private mapNumericStatus(status: string | number): 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' {
-    // If it's already a string, try to map it
+  private mapNumericStatus(status: string | number): string {
+    // If it's already a string, return it normalized
     if (typeof status === 'string') {
       const upperStatus = status.toUpperCase();
-      const statusMap: { [key: string]: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' } = {
+      
+      // Map common variations to standard names
+      const statusMap: { [key: string]: string } = {
         'TODO': 'TODO',
+        'TO_DO': 'TODO',
         'IN_PROGRESS': 'IN_PROGRESS',
         'INPROGRESS': 'IN_PROGRESS',
         'IN_REVIEW': 'IN_REVIEW',
@@ -338,11 +382,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
         'COMPLETED': 'DONE',
         'BLOCKED': 'BLOCKED'
       };
-      return statusMap[upperStatus] || 'TODO';
+      
+      // If status is in the map, use the mapped value
+      // Otherwise, return the original status (for dynamic statuses from API)
+      return statusMap[upperStatus] || status.toUpperCase();
     }
     
-    // Map numeric status: 1=TODO, 2=IN_PROGRESS, 3=IN_REVIEW, 4=DONE
-    const numericStatusMap: { [key: number]: 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' } = {
+    // For numeric status, first check if we have a mapping from the status API
+    if (this.statusIdToNameMap.has(status as number)) {
+      const statusName = this.statusIdToNameMap.get(status as number)!;
+      return statusName.toUpperCase();
+    }
+    
+    // Fallback to default mapping if status API didn't load
+    const defaultNumericStatusMap: { [key: number]: string } = {
       1: 'TODO',
       2: 'IN_PROGRESS',
       3: 'IN_REVIEW',
@@ -350,7 +403,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       5: 'BLOCKED'
     };
     
-    return numericStatusMap[status as number] || 'TODO';
+    return defaultNumericStatusMap[status as number] || 'TODO';
   }
 
   /**
@@ -726,14 +779,19 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private isIssueStatusVisible(issueStatus: string): boolean {
     if (this.selectedFilters.status.length === 0) return true;
-    const statusMap: { [key: string]: string } = {
+    
+    // Map issue status to filter value using the same logic as getStatusValue
+    const upperName = issueStatus.toUpperCase().replace(/_/g, '');
+    
+    const mappings: { [key: string]: string } = {
       'TODO': 'todo',
-      'IN_PROGRESS': 'progress',
+      'INPROGRESS': 'progress',
       'DONE': 'done',
-      'IN_REVIEW': 'progress',
+      'INREVIEW': 'review',
       'BLOCKED': 'blocked'
     };
-    const filterStatus = statusMap[issueStatus] || issueStatus.toLowerCase();
+    
+    const filterStatus = mappings[upperName] || issueStatus.toLowerCase().replace(/_/g, '');
     return this.selectedFilters.status.includes(filterStatus);
   }
 
@@ -1029,6 +1087,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getStatusLabel(status: string): string {
+    if (!status) return 'To Do';
+    
     const statusLabelMap: { [key: string]: string } = {
       'COMPLETED': 'Done',
       'ACTIVE': 'In Progress',
@@ -1036,9 +1096,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       'DONE': 'Done',
       'IN_PROGRESS': 'In Progress',
       'TODO': 'To Do',
-      'IN_REVIEW': 'In Progress'
+      'TO_DO': 'To Do',
+      'IN_REVIEW': 'In Review',
+      'BLOCKED': 'Blocked'
     };
-    return statusLabelMap[status] || 'To Do';
+    
+    const upperStatus = status.toUpperCase();
+    
+    // If we have a mapped label, use it
+    if (statusLabelMap[upperStatus]) {
+      return statusLabelMap[upperStatus];
+    }
+    
+    // Otherwise, format the status name nicely
+    return this.formatStatusName(status);
   }
 
   getTypeIcon(issueType?: string): string {
@@ -1373,5 +1444,59 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private applyFilters() {
     this.prepareTimelineData();
+  }
+
+  /**
+   * Format status name for display (e.g., "IN_PROGRESS" -> "In Progress")
+   */
+  private formatStatusName(statusName: string): string {
+    if (!statusName) return '';
+    
+    // Handle common status mappings
+    const mappings: { [key: string]: string } = {
+      'TODO': 'To Do',
+      'TO_DO': 'To Do',
+      'IN_PROGRESS': 'In Progress',
+      'INPROGRESS': 'In Progress',
+      'DONE': 'Done',
+      'IN_REVIEW': 'In Review',
+      'BLOCKED': 'Blocked'
+    };
+
+    const upperName = statusName.toUpperCase();
+    if (mappings[upperName]) {
+      return mappings[upperName];
+    }
+
+    // Convert snake_case to Title Case
+    return statusName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  /**
+   * Get filter value for status (used in filtering logic)
+   */
+  private getStatusValue(statusName: string): string {
+    if (!statusName) return '';
+    
+    const upperName = statusName.toUpperCase().replace(/_/g, '');
+    
+    // Map to filter values
+    const mappings: { [key: string]: string } = {
+      'TODO': 'todo',
+      'INPROGRESS': 'progress',
+      'DONE': 'done',
+      'INREVIEW': 'review',
+      'BLOCKED': 'blocked'
+    };
+
+    if (mappings[upperName]) {
+      return mappings[upperName];
+    }
+
+    // Default: lowercase with underscores removed
+    return statusName.toLowerCase().replace(/_/g, '');
   }
 }
