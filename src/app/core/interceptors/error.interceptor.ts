@@ -14,7 +14,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An error occurred';
 
-      if (error.error instanceof ErrorEvent) {
+      // Check if it's a client-side error (network issue, etc.)
+      // Use property check instead of instanceof to avoid SSR issues with ErrorEvent
+      if (error.error && typeof error.error === 'object' && 'message' in error.error && error.status === 0) {
         // Client-side error (network issue, etc.)
         errorMessage = `Client Error: ${error.error.message}`;
         console.error('🔴 Client-side error:', error.error.message);

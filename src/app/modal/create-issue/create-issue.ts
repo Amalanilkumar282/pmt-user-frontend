@@ -6,6 +6,7 @@ import { ModalService, FormField } from '../modal-service';
 import { isPlatformBrowser } from '@angular/common';
 import { LabelService, Label, CreateLabelRequest, UpdateLabelRequest } from '../../shared/services/label.service';
 import { AttachmentService } from '../../shared/services/attachment.service';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-create-issue',
@@ -216,17 +217,17 @@ showToast(message: string, duration: number = 3000) {
 }
 
 
+  private labelsLoaded = false; // Track if labels have been loaded
+
   constructor(
     private modalService: ModalService,
     private labelService: LabelService,
     private attachmentService: AttachmentService,
+    private authService: AuthService,
     @Inject(PLATFORM_ID) platformId: Object
   ) { this.isBrowser = isPlatformBrowser(platformId); }
 
   ngOnInit() {
-    // Load labels from backend
-    this.loadLabelsFromBackend();
-
     this.sub = this.modalService.activeModal$.subscribe((id) => {
       this.activeModalId = id;
       if (!id) {
@@ -239,6 +240,11 @@ showToast(message: string, duration: number = 3000) {
       this.show = !!cfg;
 
     if (cfg) {
+      // Load labels only when modal is opened and user is authenticated
+      if (!this.labelsLoaded && this.authService.isAuthenticated()) {
+        this.loadLabelsFromBackend();
+        this.labelsLoaded = true;
+      }
       this.fields = cfg.fields ?? [];
       
       // Initialize formData with default values for all fields
@@ -287,9 +293,16 @@ showToast(message: string, duration: number = 3000) {
 }
 
   loadLabelsFromBackend() {
+    // Only fetch labels if user is authenticated
+    if (!this.authService.isAuthenticated()) {
+      console.log('⏭️ Skipping label fetch - user not authenticated');
+      this.backendLabels = [];
+      return;
+    }
+
     this.labelService.getAllLabels().subscribe({
       next: (response) => {
-        console.log('Labels fetched from backend:', response);
+        console.log('✅ Labels fetched from backend:', response);
         this.backendLabels = response.data;
         // Map backend colors to labelColors
         response.data.forEach(label => {
@@ -297,7 +310,7 @@ showToast(message: string, duration: number = 3000) {
         });
       },
       error: (err) => {
-        console.error('Failed to fetch labels:', err);
+        console.error('❌ Failed to fetch labels:', err);
         // Fallback to empty array if API fails
         this.backendLabels = [];
       }

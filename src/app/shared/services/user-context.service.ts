@@ -27,7 +27,7 @@ export class UserContextService {
 
     const userId = sessionStorage.getItem('userId');
     if (!userId) {
-      console.warn('[UserContextService] No userId found in sessionStorage');
+      // Silently return null if user not logged in - this is expected before login
       return null;
     }
 

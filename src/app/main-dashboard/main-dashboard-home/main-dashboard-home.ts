@@ -101,7 +101,7 @@ export class MainDashboardHome implements OnInit {
     const userId = this.projectService.getUserId();
 
     if (!userId) {
-      console.warn('⚠️ No user ID found, skipping issues load');
+      // Silently skip if user not logged in - this is expected before login
       return;
     }
 
@@ -202,8 +202,7 @@ export class MainDashboardHome implements OnInit {
     const userId = this.projectService.getUserId();
 
     if (!userId) {
-      console.warn('⚠️ No user ID found, skipping recent projects load');
-      this.projectsError.set('Please log in to view recent projects');
+      // Silently skip if user not logged in - this is expected before login
       return;
     }
 
