@@ -64,6 +64,7 @@ export interface CreateIssueResponse {
     reporterId: number;
     attachmentUrl: string;
     labels: string;
+    statusId: number;
   };
   message: string;
 }
