@@ -5,31 +5,28 @@ import { map } from 'rxjs/operators';
 
 // Request/Response interfaces for Sprint Creation
 export interface SprintRequest {
-  id?: string; // Optional - required for updates
-  projectId: string;
-  sprintName: string;
-  sprintGoal: string | null;
-  teamAssigned: number | null;
-  startDate: string | undefined;
-  dueDate: string | undefined;
-  status: string;
-  storyPoint: number;
+  projectId: string; // Required
+  sprintName?: string | null; // Optional - auto-generated if null
+  sprintGoal?: string | null; // Optional
+  teamId?: string | null; // Optional - changed to string (GUID)
+  startDate?: string | null; // Optional - ISO 8601 format
+  endDate?: string | null; // Optional - ISO 8601 format
+  targetStoryPoints?: number | null; // Optional
+  status?: string | null; // Optional
 }
 
 export interface SprintResponse {
-  status: number;
+  succeeded: boolean;
+  statusCode: number;
   data: {
     id: string;
-    projectId: string;
     sprintName: string;
-    sprintGoal: string;
-    teamAssigned: number;
+    status: string;
     startDate: string;
     dueDate: string;
-    status: string;
     storyPoint: number;
   };
-  message: string;
+  message?: string;
 }
 
 // Sprint API Response from GET /api/sprints/project/{projectId}
@@ -57,7 +54,7 @@ export interface GetSprintsResponse {
 export interface TeamMember {
   id: string;
   name: string;
-  email: string;
+  email: string | null; // ⚠️ Can be null - V2 API handles nullable emails
   role: string;
 }
 
@@ -87,25 +84,25 @@ export interface TeamsApiResponse {
 
 // AI Sprint Plan Request/Response
 export interface AISprintPlanRequest {
-  sprintName: string;
-  sprintGoal: string;
-  startDate: string;
-  endDate: string;
-  targetStoryPoints: number;
-  teamId: string;
+  sprintGoal?: string | null; // Optional
+  startDate?: string | null; // Optional - ISO 8601 format
+  endDate?: string | null; // Optional - ISO 8601 format
+  status?: string | null; // Optional
+  targetStoryPoints?: number | null; // Optional
+  teamId?: number | null; // Optional - backend uses integer
 }
 
 export interface AISprintPlanIssue {
   issueId: string;
   issueKey: string;
+  title: string; // Issue title from response
   storyPoints: number;
   suggestedAssigneeId: number;
   rationale: string;
 }
 
 export interface AISprintPlanResponse {
-  succeeded: boolean;
-  statusCode: number;
+  status: number;
   data: {
     sprintPlan: {
       selectedIssues: AISprintPlanIssue[];
@@ -123,6 +120,7 @@ export interface AISprintPlanResponse {
       };
     };
   };
+  message: string;
 }
 
 // Issue Creation interfaces
@@ -285,21 +283,19 @@ export class SprintService {
   }
 
   /**
-   * Fetch teams for a specific project
-   * GET /api/Team/project/{projectId}
+   * Fetch teams for a specific project using V2 API
+   * GET /api/Team/project/{projectId}/v2
    * 
-   * Note: Backend returns array directly, not wrapped in {succeeded, data} format
-   * Returns: [{teamId, teamName, projectName, description, isActive, ...}, ...]
+   * V2 API properly handles nullable emails and returns wrapped response:
+   * Response: {succeeded: true, statusCode: 200, data: [{id, name, members: [...]}]}
    * 
-   * TODO: Currently using hardcoded projectId: f3a2b1c4-9f6d-4e1a-9b89-7b2f3c8d9a01
-   * Update to fetch projectId from URL parameters once routing is implemented
-   * Example route: /projects/:projectId/backlog
+   * Each team member may have null email if not set in database.
    */
   getTeamsByProject(projectId: string): Observable<any> {
-    const url = `${this.teamsBaseUrl}/project/${projectId}`;
+    const url = `${this.teamsBaseUrl}/project/${projectId}/v2`;
     const headers = this.getAuthHeaders();
     
-    console.log('🔍 [SprintService] Fetching teams for project:', {
+    console.log('🔍 [SprintService] Fetching teams for project (V2 API):', {
       projectId,
       url,
       hasToken: !!sessionStorage.getItem('accessToken'),

@@ -81,6 +81,12 @@ export class CreateSprintModal implements OnInit, OnChanges {
   // AI suggestions
   aiSuggestions: AISprintPlanIssue[] = [];
   aiSummary = '';
+  aiRecommendations: Array<{type: string; severity: string; message: string}> = [];
+  aiCapacityAnalysis: {
+    teamCapacityUtilization: number;
+    estimatedCompletionProbability: number;
+    riskFactors: string[];
+  } | null = null;
   createdSprintId: string | null = null;
 
   // Status options
@@ -173,7 +179,7 @@ export class CreateSprintModal implements OnInit, OnChanges {
   }
 
   /**
-   * Validate form data
+   * Validate form data - Only sprintName is required
    */
   private validateForm(): boolean {
     if (!this.formData.sprintName.trim()) {
@@ -181,28 +187,15 @@ export class CreateSprintModal implements OnInit, OnChanges {
       return false;
     }
 
-    if (!this.formData.startDate) {
-      this.toastService.error('Start date is required');
-      return false;
-    }
+    // Validate date range only if both dates are provided
+    if (this.formData.startDate && this.formData.endDate) {
+      const startDate = new Date(this.formData.startDate);
+      const endDate = new Date(this.formData.endDate);
 
-    if (!this.formData.endDate) {
-      this.toastService.error('End date is required');
-      return false;
-    }
-
-    // Validate date range
-    const startDate = new Date(this.formData.startDate);
-    const endDate = new Date(this.formData.endDate);
-
-    if (endDate <= startDate) {
-      this.toastService.error('End date must be after start date');
-      return false;
-    }
-
-    if (!this.formData.teamId) {
-      this.toastService.error('Please select a team');
-      return false;
+      if (endDate <= startDate) {
+        this.toastService.error('End date must be after start date');
+        return false;
+      }
     }
 
     return true;
@@ -222,36 +215,45 @@ export class CreateSprintModal implements OnInit, OnChanges {
 
   /**
    * Create sprint via API
-   * 
-   * TODO: projectId is currently hardcoded as 'f3a2b1c4-9f6d-4e1a-9b89-7b2f3c8d9a01'
-   * In the future, fetch it from URL parameters
+   * Only sprintName is required, all other fields are optional
    */
   private createSprint(): void {
     const sprintRequest: SprintRequest = {
-      projectId: this.projectId, // TODO: Get from URL params instead of hardcoded value
-      sprintName: this.formData.sprintName,
-      sprintGoal: this.formData.sprintGoal || null,
-      teamAssigned: parseInt(this.formData.teamId), // Backend expects number
-      startDate: this.formData.startDate,
-      dueDate: this.formData.endDate,
-      status: this.formData.status,
-      storyPoint: this.formData.targetStoryPoints
+      projectId: this.projectId,
+      sprintName: this.formData.sprintName.trim() || null,
+      sprintGoal: this.formData.sprintGoal.trim() || null,
+      teamId: this.formData.teamId || null,
+      startDate: this.formData.startDate || null,
+      endDate: this.formData.endDate || null,
+      targetStoryPoints: this.formData.targetStoryPoints || null,
+      status: this.formData.status || null
     };
 
+    console.log('📤 [CreateSprint] Sending sprint creation request:', sprintRequest);
     this.currentState.set(ModalState.AI_LOADING);
 
     this.sprintService.createSprint(sprintRequest).subscribe({
       next: (response) => {
-        console.log('Sprint created:', response);
+        console.log('✅ [CreateSprint] Sprint created successfully!');
+        console.log('📊 [CreateSprint] Response:', response);
+        console.log('🆔 [CreateSprint] Sprint ID:', response.data.id);
+        
         this.createdSprintId = response.data.id;
-        this.toastService.success('Sprint created successfully!');
+        this.toastService.success(`Sprint "${response.data.sprintName}" created successfully!`);
         
         // Now trigger AI planning
         this.generateAIPlan();
       },
       error: (error) => {
-        console.error('Error creating sprint:', error);
-        this.toastService.error('Failed to create sprint');
+        console.error('❌ [CreateSprint] Error creating sprint:', error);
+        console.error('❌ [CreateSprint] Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error
+        });
+        
+        this.toastService.error(`Failed to create sprint: ${error.error?.message || error.message}`);
         this.currentState.set(ModalState.FORM);
       }
     });
@@ -259,36 +261,55 @@ export class CreateSprintModal implements OnInit, OnChanges {
 
   /**
    * Generate AI sprint plan
-   * 
-   * TODO: projectId is currently hardcoded as 'f3a2b1c4-9f6d-4e1a-9b89-7b2f3c8d9a01'
-   * In the future, fetch it from URL parameters
+   * All fields are optional
    */
   private generateAIPlan(): void {
     const aiRequest: AISprintPlanRequest = {
-      sprintName: this.formData.sprintName,
-      sprintGoal: this.formData.sprintGoal,
-      startDate: this.formData.startDate,
-      endDate: this.formData.endDate,
-      targetStoryPoints: this.formData.targetStoryPoints,
-      teamId: this.formData.teamId
+      sprintGoal: this.formData.sprintGoal || null,
+      startDate: this.formData.startDate || null,
+      endDate: this.formData.endDate || null,
+      status: this.formData.status || null,
+      targetStoryPoints: this.formData.targetStoryPoints || null,
+      teamId: this.formData.teamId ? parseInt(this.formData.teamId) : null
     };
 
-    // TODO: this.projectId is hardcoded, should come from URL params
+    console.log('📤 [AISprintPlan] Sending AI plan request for projectId:', this.projectId);
+    console.log('📊 [AISprintPlan] Request data:', aiRequest);
+
     this.sprintService.generateAISprintPlan(this.projectId, aiRequest).subscribe({
       next: (response) => {
-        if (response.succeeded && response.data.sprintPlan) {
+        console.log('✅ [AISprintPlan] AI plan generated successfully!');
+        console.log('📊 [AISprintPlan] Full Response:', response);
+        console.log('📊 [AISprintPlan] Sprint Plan:', response.data.sprintPlan);
+        console.log('📊 [AISprintPlan] Selected Issues:', response.data.sprintPlan.selectedIssues);
+        console.log('📊 [AISprintPlan] Total Story Points:', response.data.sprintPlan.totalStoryPoints);
+        console.log('📊 [AISprintPlan] Summary:', response.data.sprintPlan.summary);
+        console.log('📊 [AISprintPlan] Recommendations:', response.data.sprintPlan.recommendations);
+        console.log('📊 [AISprintPlan] Capacity Analysis:', response.data.sprintPlan.capacityAnalysis);
+        
+        if (response.status === 200 && response.data.sprintPlan) {
           this.aiSuggestions = response.data.sprintPlan.selectedIssues;
           this.aiSummary = response.data.sprintPlan.summary;
+          this.aiRecommendations = response.data.sprintPlan.recommendations;
+          this.aiCapacityAnalysis = response.data.sprintPlan.capacityAnalysis;
           this.currentState.set(ModalState.AI_RESULTS);
-          console.log('AI suggestions received:', this.aiSuggestions);
+          this.toastService.success('AI suggestions generated successfully!');
         } else {
+          console.error('❌ [AISprintPlan] Unexpected response format');
           this.toastService.error('Failed to generate AI suggestions');
           this.skipAI();
         }
       },
       error: (error) => {
-        console.error('Error generating AI plan:', error);
-        this.toastService.error('AI planning failed. Sprint created without suggestions.');
+        console.error('❌ [AISprintPlan] Error generating AI plan:', error);
+        console.error('❌ [AISprintPlan] Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error
+        });
+        
+        this.toastService.error(`AI planning failed: ${error.error?.message || error.message}`);
         this.skipAI();
       }
     });
