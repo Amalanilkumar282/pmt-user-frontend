@@ -152,8 +152,9 @@ export class IssueApiService {
       storyPoints: apiIssue.storyPoints,
       startDate: apiIssue.startDate ? new Date(apiIssue.startDate) : undefined,
       dueDate: apiIssue.dueDate ? new Date(apiIssue.dueDate) : undefined,
-      createdAt: new Date(), // API doesn't provide, using current time
-      updatedAt: new Date(), // API doesn't provide, using current time
+    // Backend does not always return createdAt/updatedAt in Issue API; use current time when missing
+    createdAt: new Date(),
+    updatedAt: new Date(),
       teamId: undefined // Not provided in API response
     };
   }
@@ -165,15 +166,14 @@ export class IssueApiService {
   private mapStatusIdToStatus(statusId: number): 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' {
     // Map statusId to the actual column names used by the board
     // These should match the column names returned from the board API
-    const statusMap: Record<number, any> = {
-      1: 'To Do',        // Match board column name
-      2: 'In Progress',  // Match board column name
-      3: 'In Review',    // Match board column name
-      4: 'Done',         // Match board column name
-      5: 'On Hold',      // Match board column name
-      6: 'BLOCKED'       // Fallback
-    };
-    return statusMap[statusId] || 'To Do';
+      const statusMap: Record<number, 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED'> = {
+        1: 'TODO',        // To Do
+        2: 'IN_PROGRESS', // In Progress
+        3: 'IN_REVIEW',   // In Review
+        4: 'DONE',        // Done
+        5: 'BLOCKED'      // On Hold/Blocked mapped to BLOCKED
+      };
+      return statusMap[statusId] || 'TODO';
   }
 
   /**
