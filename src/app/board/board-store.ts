@@ -238,13 +238,29 @@ export class BoardStore {
     if (f.statuses?.length)  list = list.filter(i => f.statuses.includes(i.status));
     if (f.priorities?.length) list = list.filter(i => f.priorities.includes(i.priority));
 
-    // search (title + description + id)
+    // search across many issue fields (title, description, id, key, assignee, reporter, epic, labels, type, priority, status)
     if (q) {
-      list = list.filter(i =>
-        fuzzyIncludes(i.title ?? '', q) ||
-        fuzzyIncludes(i.description ?? '', q) ||
-        fuzzyIncludes(i.id ?? '', q)
-      );
+      list = list.filter(i => {
+        // quick checks across most useful textual fields
+        if (fuzzyIncludes(i.title ?? '', q)) return true;
+        if (fuzzyIncludes(i.description ?? '', q)) return true;
+        if (fuzzyIncludes(i.id ?? '', q)) return true;
+        if (fuzzyIncludes(i.key ?? '', q)) return true;
+        if (fuzzyIncludes(i.assignee ?? '', q)) return true;
+        if (fuzzyIncludes(i.assigneeName ?? '', q)) return true;
+        if (fuzzyIncludes(i.reporterName ?? '', q)) return true;
+        if (fuzzyIncludes(i.epicName ?? '', q)) return true;
+        if (fuzzyIncludes(i.statusName ?? '', q)) return true;
+        if (fuzzyIncludes(i.type ?? '', q)) return true;
+        if (fuzzyIncludes(i.priority ?? '', q)) return true;
+
+        // labels array -> search within joined labels
+        const labels = (i.labels ?? []).join(' ');
+        if (labels && fuzzyIncludes(labels, q)) return true;
+
+        // Fallback: no match
+        return false;
+      });
     }
 
   // stable ordering - sort by status first, then by createdAt, then by updatedAt as tiebreaker
