@@ -43,8 +43,16 @@ export class BoardOptionsMenu {
 
   canEditBoard = computed(() => {
     const board = this.currentBoard();
-    // Allow editing for all boards (both default and custom)
-    return board !== null;
+    // Do not allow editing of default (all-issues) boards. Only allow edit
+    // when a non-default board is present. This hides the 'Edit Board' action
+    // for the special default board as requested.
+    return !!board && !board.isDefault;
+  });
+
+  // Whether there are any visible options to show in the menu. If false,
+  // the toolbar can omit rendering the three-dots button entirely.
+  readonly hasOptions = computed(() => {
+    return this.canEditBoard() || this.canDeleteBoard();
   });
 
   toggleMenu() {
