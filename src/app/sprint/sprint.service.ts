@@ -135,6 +135,7 @@ export interface IssueCreateRequest {
   assigneeId?: string;
   projectId: string;
   labels?: string[];
+  statusId?: number;
 }
 
 export interface IssueCreateResponse {
@@ -150,6 +151,7 @@ export interface IssueCreateResponse {
     assigneeId?: string;
     projectId: string;
     labels?: string[];
+    statusId: number;
   };
 }
 
