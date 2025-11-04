@@ -5,6 +5,8 @@ import { BoardColumnDef } from '../models';
 import { TeamsService } from '../../teams/services/teams.service';
 import { BoardApiService } from './board-api.service';
 import { TeamApiService } from './team-api.service';
+import { UserContextService } from '../../shared/services/user-context.service';
+import { ProjectService } from '../../projects/services/project.service';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
@@ -14,10 +16,12 @@ export class BoardService {
   private teamsService = inject(TeamsService);
   private boardApiService = inject(BoardApiService);
   private teamApiService = inject(TeamApiService);
+  private userContextService = inject(UserContextService);
+  private projectService = inject(ProjectService);
   
   // Signal-based state
   private boardsSignal = signal<Board[]>([]);
-  private recentProjectsSignal = signal<RecentProject[]>(this.getInitialRecentProjects());
+  private recentProjectsSignal = signal<RecentProject[]>([]);
   private currentBoardIdSignal = signal<string | null>(null);
   private loadingSignal = signal<boolean>(false);
   
@@ -273,6 +277,108 @@ export class BoardService {
     return '';
   }
   
+  /**
+   * Get the default/All Issues board for a project (used for column syncing)
+   * The default board is the PROJECT-type board (isDefault=true or type=PROJECT without teamId)
+   */
+  async getProjectDefaultBoard(projectId: string): Promise<Board | null> {
+    try {
+      // Ensure boards are loaded for this project
+      const boards = this.getBoardsByProject(projectId);
+      
+      // First preference: explicitly marked as default
+      const explicitDefault = boards.find(b => b.isDefault === true && !b.teamId);
+      if (explicitDefault) {
+        console.log('[BoardService] Found explicit default board:', explicitDefault.name);
+        return explicitDefault;
+      }
+      
+      // Second: any PROJECT-type board without team association
+      const projectBoard = boards.find(b => b.type === 'PROJECT' && !b.teamId);
+      if (projectBoard) {
+        console.log('[BoardService] Found project-type board as default:', projectBoard.name);
+        return projectBoard;
+      }
+      
+      // Third: any non-team board
+      const nonTeamBoard = boards.find(b => !b.teamId);
+      if (nonTeamBoard) {
+        console.log('[BoardService] Found non-team board as default:', nonTeamBoard.name);
+        return nonTeamBoard;
+      }
+      
+      console.warn('[BoardService] No default board found for project:', projectId);
+      return null;
+    } catch (error) {
+      console.error('[BoardService] Error getting default board:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Sync unique columns from a source board to the default board
+   * This ensures the default/All Issues board has all columns from all project boards
+   */
+  async syncColumnsToDefaultBoard(projectId: string, sourceBoard: Board): Promise<void> {
+    try {
+      console.log('[BoardService] Syncing columns from board:', sourceBoard.name);
+      
+      const defaultBoard = await this.getProjectDefaultBoard(projectId);
+      if (!defaultBoard) {
+        console.warn('[BoardService] No default board found to sync columns to');
+        return;
+      }
+      
+      if (defaultBoard.id === sourceBoard.id) {
+        console.log('[BoardService] Source board is default board, no sync needed');
+        return;
+      }
+      
+      console.log('[BoardService] Default board:', defaultBoard.name, 'Columns:', defaultBoard.columns.length);
+      
+      // Find columns in source that don't exist in default (by statusId)
+      const defaultStatusIds = new Set(defaultBoard.columns.map(c => c.statusId).filter(id => id != null));
+      const newColumns = sourceBoard.columns.filter(col => 
+        col.statusId && !defaultStatusIds.has(col.statusId)
+      );
+      
+      if (newColumns.length === 0) {
+        console.log('[BoardService] No new unique columns to sync');
+        return;
+      }
+      
+      console.log('[BoardService] Syncing', newColumns.length, 'new columns to default board:', 
+        newColumns.map(c => c.title).join(', '));
+      
+      // Create each new column in the default board
+      const userId = this.userContextService?.getCurrentUserId() ?? 0;
+      let nextPosition = defaultBoard.columns.length + 1; // Start after last column in default board
+      
+      for (const col of newColumns) {
+        try {
+          await this.createColumnApi(
+            defaultBoard.id,
+            col.title,
+            col.color,
+            col.status || '',
+            nextPosition // Use calculated position for target board
+          );
+          console.log('[BoardService] Synced column:', col.title, 'at position', nextPosition);
+          nextPosition++; // Increment for next column
+        } catch (error) {
+          console.error('[BoardService] Failed to sync column:', col.title, error);
+        }
+      }
+      
+      // Reload default board to reflect new columns
+      await this.loadBoardById(parseInt(defaultBoard.id, 10));
+      console.log('[BoardService] Default board reloaded with synced columns');
+      
+    } catch (error) {
+      console.error('[BoardService] Error syncing columns to default board:', error);
+    }
+  }
+  
   // Create board
   async createBoardApi(dto: CreateBoardDto): Promise<Board | null> {
     // Validation
@@ -289,40 +395,70 @@ export class BoardService {
     try {
       this.loadingSignal.set(true);
       
-      // Get current user ID for createdBy
-      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      // Get current user ID for createdBy using UserContextService
+      const userId = this.userContextService?.getCurrentUserId() ?? 0;
       if (!userId) {
         console.error('[BoardService] No user ID found for board creation');
-        return null;
+        throw new Error('User not authenticated. Please log in again.');
       }
       
       // Map CreateBoardDto to backend API DTO
       const apiDto: any = {
         projectId: dto.projectId,
         name: dto.name.trim(),
-        description: '',
-        type: dto.type.toLowerCase(), // Backend expects lowercase
-        teamId: dto.teamId ? parseInt(dto.teamId, 10) : null,
+        description: dto.description || '',
+        type: dto.type || 'kanban', // Backend expects lowercase type
+        teamId: dto.teamId || null,
         createdBy: userId,
         metadata: null
       };
       
+      console.log('[BoardService] Creating board with DTO:', apiDto);
+      
       const response = await firstValueFrom(this.boardApiService.createBoard(apiDto));
       
+      console.log('[BoardService] Board created successfully:', response);
+      console.log('[BoardService] Response data:', response.data);
+      
       if (response.status === 200 || response.status === 201) {
-        console.log('[BoardService] Board created successfully:', response);
-        // Reload boards from API
-        await this.loadBoardsByProject(dto.projectId);
-        // Find the newly created board
-        const newBoard = this.boardsSignal().find(b => b.name === dto.name);
-        return newBoard || null;
+        console.log('[BoardService] Response data:', response.data);
+        
+        // Extract boardId from response
+        const boardId = response.data?.boardId;
+        
+        if (!boardId) {
+          console.error('[BoardService] No boardId in response:', response);
+          throw new Error('Failed to create board: No boardId returned');
+        }
+        
+        // Fetch the newly created board with all its columns
+        console.log('[BoardService] Fetching newly created board:', boardId);
+        const newBoard = await this.loadBoardById(boardId);
+        
+        if (!newBoard) {
+          console.error('[BoardService] Failed to load newly created board');
+          throw new Error('Failed to load newly created board');
+        }
+        
+        console.log('[BoardService] Newly created board loaded with columns:', newBoard);
+        
+        // Sync any unique columns from this new board to the default/All Issues board
+        // This ensures the default board always has all columns from all project boards
+        try {
+          await this.syncColumnsToDefaultBoard(dto.projectId, newBoard);
+        } catch (syncError) {
+          // Log but don't fail the board creation if sync fails
+          console.error('[BoardService] Column sync to default board failed:', syncError);
+        }
+        
+        return newBoard;
       } else {
         console.error('[BoardService] Failed to create board:', response);
-        return null;
+        throw new Error('Failed to create board: Unexpected response status');
       }
     } catch (error) {
       console.error('[BoardService] Error creating board:', error);
-      return null;
+      throw error; // Re-throw to let the caller handle it
     } finally {
       this.loadingSignal.set(false);
     }
@@ -432,7 +568,11 @@ export class BoardService {
     try {
       this.loadingSignal.set(true);
       
-      const userId = parseInt(sessionStorage.getItem('userId') || '0', 10);
+      // Prefer UserContextService which handles SSR/browser guards
+      let userId = this.userContextService?.getCurrentUserId() ?? 0;
+      if (!userId) {
+        console.warn('[BoardService] No userId available from UserContextService; falling back to 0');
+      }
       const numericBoardId = parseInt(boardId, 10);
       
       // Build the DTO according to the API spec - all fields are optional except columnId, boardId, updatedBy
@@ -518,7 +658,7 @@ export class BoardService {
     
     // Validate teamId if provided
     if (dto.teamId) {
-      const team = this.teamsService.getTeamById(dto.teamId);
+      const team = this.teamsService.getTeamById(String(dto.teamId));
       if (!team) {
         console.error(`Team with id ${dto.teamId} not found`);
         return null;
@@ -537,15 +677,21 @@ export class BoardService {
       return null;
     }
     
+    // Determine BoardType from the dto.type string or source
+    let boardType: BoardType = 'PROJECT';
+    if (dto.type === 'team' || dto.source === 'TEAM') {
+      boardType = 'TEAM';
+    }
+    
     const newBoard: Board = {
       id: `board-${Date.now()}`,
       name: dto.name.trim(),
       projectId: dto.projectId,
       projectName: this.getProjectName(dto.projectId),
-      type: dto.type,
-      source: dto.source,
-      teamId: dto.teamId,
-      teamName: dto.teamId ? this.getTeamName(dto.teamId) : undefined,
+      type: boardType,
+      source: dto.source || 'CUSTOM',
+      teamId: dto.teamId ? String(dto.teamId) : undefined,
+      teamName: dto.teamId ? this.getTeamName(String(dto.teamId)) : undefined,
       columns: dto.columns || [...DEFAULT_COLUMNS],
       includeBacklog: dto.includeBacklog ?? true,
       includeDone: dto.includeDone ?? true,
@@ -605,24 +751,151 @@ export class BoardService {
   }
   
   // Update recent projects when a project is accessed
-  accessProject(projectId: string): void {
-    const projectBoards = this.getBoardsByProject(projectId);
-    const projectName = this.getProjectName(projectId);
+  async accessProject(projectId: string): Promise<void> {
+    // Load boards for this project if not already loaded
+    await this.loadBoardsByProject(projectId);
     
+    const projectBoards = this.getBoardsByProject(projectId);
+    // Try to resolve the project name from existing recent projects or backend
+    let projectName = this.recentProjectsSignal().find(p => p.id === projectId)?.name;
+
+    if (!projectName) {
+      try {
+        const userId = this.userContextService.getCurrentUserId();
+        if (userId) {
+          // Fetch all projects for the user and try to find the matching project
+          const allProjects = await firstValueFrom(this.projectService.getProjectsByUserId(String(userId)));
+          const found = allProjects.find(p => p.id === projectId);
+          if (found) projectName = found.name;
+        }
+      } catch (err) {
+        console.warn('[BoardService] Could not fetch project name from backend for projectId', projectId, err);
+      }
+    }
+
+    // Final fallback to static mapping
+    if (!projectName) projectName = this.getProjectName(projectId);
+
     this.recentProjectsSignal.update(projects => {
       const existing = projects.find(p => p.id === projectId);
       const updated = projects.filter(p => p.id !== projectId);
-      
+
       const projectData: RecentProject = {
         id: projectId,
         name: projectName,
         boards: projectBoards,
         lastAccessed: new Date().toISOString()
       };
-      
+
       // Add to top of list
       return [projectData, ...updated].slice(0, 5); // Keep only 5 recent projects
     });
+    
+    // Save to session storage for persistence
+    this.saveRecentProjectsToSession();
+  }
+  
+  /**
+   * Load recent projects from backend API
+   */
+  async loadRecentProjects(): Promise<void> {
+    try {
+      const userId = this.userContextService.getCurrentUserId();
+      if (!userId) {
+        console.warn('[BoardService] No user ID found, cannot load recent projects');
+        return;
+      }
+      
+      console.log('[BoardService] Loading recent projects for user:', userId);
+      const projects = await firstValueFrom(this.projectService.getRecentProjects(String(userId), 5));
+      
+      // Transform to RecentProject format with boards
+      const recentProjects: RecentProject[] = await Promise.all(
+        projects.map(async (project) => {
+          // Load boards for this project
+          const boards = await firstValueFrom(this.boardApiService.getBoardsByProject(project.id));
+          return {
+            id: project.id,
+            name: project.name,
+            boards: boards,
+            lastAccessed: project.lastUpdated || new Date().toISOString()
+          };
+        })
+      );
+      
+      this.recentProjectsSignal.set(recentProjects);
+      console.log('[BoardService] Loaded recent projects:', recentProjects);
+      
+      // Save to session storage
+      this.saveRecentProjectsToSession();
+    } catch (error) {
+      console.error('[BoardService] Error loading recent projects:', error);
+      // Try to load from session storage as fallback
+      this.loadRecentProjectsFromSession();
+    }
+  }
+  
+  /**
+   * Save recent projects to session storage
+   */
+  private saveRecentProjectsToSession(): void {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const projects = this.recentProjectsSignal();
+        sessionStorage.setItem('recentProjects', JSON.stringify(projects));
+      }
+    } catch (error) {
+      console.error('[BoardService] Error saving recent projects to session:', error);
+    }
+  }
+  
+  /**
+   * Load recent projects from session storage
+   */
+  private loadRecentProjectsFromSession(): void {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const stored = sessionStorage.getItem('recentProjects');
+        if (stored) {
+          const projects = JSON.parse(stored) as RecentProject[];
+          this.recentProjectsSignal.set(projects);
+          console.log('[BoardService] Loaded recent projects from session storage');
+
+          // Try to resolve any 'Unknown Project' names by querying projects for the user
+          (async () => {
+            try {
+              const userId = this.userContextService.getCurrentUserId();
+              if (!userId) return;
+
+              // Fetch user's projects once and map by id for quick lookup
+              const allProjects = await firstValueFrom(this.projectService.getProjectsByUserId(String(userId)));
+              const projectMap = new Map(allProjects.map(p => [p.id, p.name]));
+
+              // Update any recent project entries that have an unknown/fallback name
+              let updated = false;
+              const updatedProjects = this.recentProjectsSignal().map(p => {
+                const currentName = p.name;
+                if ((currentName === 'Unknown Project' || !currentName) && projectMap.has(p.id)) {
+                  updated = true;
+                  return { ...p, name: projectMap.get(p.id) as string };
+                }
+                return p;
+              });
+
+              if (updated) {
+                this.recentProjectsSignal.set(updatedProjects);
+                this.saveRecentProjectsToSession();
+                console.log('[BoardService] Resolved unknown project names from backend and updated recent projects');
+              }
+            } catch (err) {
+              console.warn('[BoardService] Could not resolve project names from session stored recent projects', err);
+            }
+          })();
+        }
+      }
+    } catch (error) {
+      console.error('[BoardService] Error loading recent projects from session:', error);
+    }
   }
   
   // Add board to recent project
@@ -726,31 +999,5 @@ export class BoardService {
     });
     
     return boards;
-  }
-  
-  private getInitialRecentProjects(): RecentProject[] {
-    // CRITICAL: Get all boards ONCE to avoid duplication
-    const allBoards = this.boardsSignal();
-    const projects: RecentProject[] = [];
-    
-    // Filter boards for project 1
-    const project1Boards = allBoards.filter(b => b.projectId === '1');
-    projects.push({
-      id: '1',
-      name: 'Website Redesign',
-      boards: project1Boards,
-      lastAccessed: new Date().toISOString()
-    });
-    
-    // Filter boards for project 4
-    const project4Boards = allBoards.filter(b => b.projectId === '4');
-    projects.push({
-      id: '4',
-      name: 'Backend Infrastructure',
-      boards: project4Boards,
-      lastAccessed: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-    });
-    
-    return projects;
   }
 }

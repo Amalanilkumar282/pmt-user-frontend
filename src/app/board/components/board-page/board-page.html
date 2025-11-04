@@ -1,4 +1,5 @@
 <div class="flex h-screen overflow-hidden">
+  <app-toast-container></app-toast-container>
   <!-- Sidebar -->
   <app-sidebar [class.w-64]="!isSidebarCollapsed()"
                [class.w-16]="isSidebarCollapsed()"
@@ -30,6 +31,30 @@
         (updateIssue)="onUpdateIssue($event)"
         (moveIssue)="onMoveIssue($event)"
       ></app-issue-detailed-view>
+
+      <!-- Activity Panel
+      <app-activity-panel
+        [isOpen]="isActivityPanelOpen()"
+        (close)="onCloseActivityPanel()"
+      ></app-activity-panel> -->
+
+      <!-- Floating Activity Button -->
+      <!-- <button 
+        *ngIf="!isActivityPanelOpen()"
+        class="activity-fab"
+        (click)="onOpenActivityPanel()"
+        title="View Recent Activity"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path 
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+            stroke="currentColor" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button> -->
     </div>
   </div>
 </div>

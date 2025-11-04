@@ -11,6 +11,7 @@ import { ToastService } from '../../shared/services/toast.service';
 import { SprintService } from '../../sprint/sprint.service';
 import { StatusApiService, Status } from '../../board/services/status-api.service';
 import { formatDisplayDate } from '../../shared/utils/date-formatter';
+import { ProjectMembersCacheService } from '../../shared/services/project-members-cache.service';
 import { EpicService } from '../../shared/services/epic.service';
 
 export interface Comment {
@@ -32,6 +33,7 @@ export interface Comment {
 export class IssueDetailedView {
   private modalService = inject(ModalService);
   private userApiService = inject(UserApiService);
+  private membersCacheService = inject(ProjectMembersCacheService);
   private projectContextService = inject(ProjectContextService);
   private issueService = inject(IssueService);
   private toastService = inject(ToastService);
@@ -76,9 +78,9 @@ export class IssueDetailedView {
   }
   
   private loadProjectMembers(projectId: string): void {
-    this.userApiService.getUsersByProject(projectId).subscribe({
+    // Use cached service to prevent duplicate API calls
+    this.membersCacheService.getProjectMembers(projectId).subscribe({
       next: (members) => {
-        console.log('[IssueDetailedView] Loaded project members:', members);
         this.projectMembers.set(members);
       },
       error: (error) => {

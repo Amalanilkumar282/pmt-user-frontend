@@ -125,14 +125,13 @@ export class EditBoardColumns {
 
     console.log('[EditBoardColumns] Update summary:', { successCount, failCount });
 
-    // Refresh store's board/columns from the board service
+    // Refresh board from backend to get updated columns
     try {
-      const success = this.store.loadBoard(boardId);
-      if (!success) {
-        this.errorMessage.set('Failed to reload board after updates');
-      }
+      console.log('[EditBoardColumns] Reloading board from backend:', boardId);
+      await this.boardService.loadBoardById(parseInt(boardId));
+      console.log('[EditBoardColumns] Board reloaded successfully');
     } catch (err) {
-      console.warn('[EditBoardColumns] Error refreshing board after column updates:', err);
+      console.error('[EditBoardColumns] Error refreshing board after column updates:', err);
       this.errorMessage.set('Failed to reload board after updates');
     }
 

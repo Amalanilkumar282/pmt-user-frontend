@@ -67,7 +67,7 @@ describe('Filters', () => {
     expect(component.openDropdown).toBeNull();
   });
 
-  it('selectType/selectPriority/selectStatus/selectAssignee/selectSort should set values, close dropdown and emit', (done) => {
+  it('selectType/selectPriority/selectStatus/toggleAssignee/selectSort should set values, close dropdown and emit', (done) => {
     const emitted: FilterCriteria[] = [];
     component.filtersChanged.subscribe(c => emitted.push(c));
 
@@ -84,9 +84,9 @@ describe('Filters', () => {
     component.selectStatus('IN_PROGRESS');
     expect(component.selectedStatus).toBe('IN_PROGRESS');
 
-    component.openDropdown = 'assignee';
-    component.selectAssignee('John Doe');
-    expect(component.selectedAssignee).toBe('John Doe');
+  component.openDropdown = 'assignee';
+  component.toggleAssignee('John Doe');
+  expect(component.selectedAssignees).toContain('John Doe');
 
     component.openDropdown = 'sort';
     component.selectSort('Priority (High to Low)');
@@ -119,7 +119,7 @@ describe('Filters', () => {
     component.selectedType = 'BUG';
     component.selectedPriority = 'LOW';
     component.selectedStatus = 'TODO';
-    component.selectedAssignee = 'Jane Smith';
+  component.selectedAssignees = ['Jane Smith'];
     component.selectedSort = 'Story Points';
 
     component.filtersChanged.subscribe((c: FilterCriteria) => {
@@ -129,7 +129,7 @@ describe('Filters', () => {
       expect(c.type).toBeNull();
       expect(c.priority).toBeNull();
       expect(c.status).toBeNull();
-      expect(c.assignee).toBeNull();
+      expect(c.assignees).toEqual([]);
       expect(c.sort).toBe('Recently Updated');
       done();
     });

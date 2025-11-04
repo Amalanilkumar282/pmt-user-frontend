@@ -5,21 +5,19 @@ import { SidebarStateService } from '../../shared/services/sidebar-state.service
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { SprintOverview } from '../../summary/sprint-overview/sprint-overview';
 import { ProjectCard } from '../project-card/project-card';
-import { ActivityItem } from '../activity-item/activity-item';
+import { ActivityItem, ActivityModel } from '../activity-item/activity-item';
 import { TabbedIssues } from '../tabbed-issues/tabbed-issues';
 import { Header } from '../../shared/header/header';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectService, Project } from '../../projects/services/project.service';
 import { IssueService } from '../../shared/services/issue.service';
 import { Issue } from '../../shared/models/issue.model';
+import { ActivityService, ActivityLogDto } from '../../shared/services/activity.service';
 import {
   DashboardProject,
-  DashboardActivity,
   dashboardStats,
-  dashboardActivities,
   DashboardStats,
   TaskStatus,
-  dashboardTaskStatus,
 } from '../../shared/data/dummy-backlog-data';
 
 @Component({
@@ -44,12 +42,15 @@ export class MainDashboardHome implements OnInit {
   private projectContextService = inject(ProjectContextService);
   private projectService = inject(ProjectService);
   private issueService = inject(IssueService);
+  private activityService = inject(ActivityService);
 
   userName = 'User';
   isLoadingProjects = signal<boolean>(false);
   projectsError = signal<string | null>(null);
   isLoadingIssues = signal<boolean>(false);
   issuesError = signal<string | null>(null);
+  isLoadingActivities = signal<boolean>(false);
+  activitiesError = signal<string | null>(null);
   userIssues: Issue[] = [];
 
   navigateToProject() {
@@ -92,7 +93,7 @@ export class MainDashboardHome implements OnInit {
 
   projects: DashboardProject[] = [];
 
-  recentActivities: DashboardActivity[] = dashboardActivities;
+  recentActivities: ActivityModel[] = [];
 
   /**
    * Load user issues and calculate task status counts
@@ -224,6 +225,55 @@ export class MainDashboardHome implements OnInit {
     });
   }
 
+  /**
+   * Transform API ActivityLogDto to ActivityModel
+   */
+  private transformToActivityModel(dto: ActivityLogDto): ActivityModel {
+    return {
+      id: dto.id,
+      userId: dto.userId,
+      userName: dto.userName || 'Unknown User',
+      action: dto.action,
+      entityType: dto.entityType,
+      entityId: dto.entityId,
+      description: dto.description,
+      createdAt: dto.createdAt,
+    };
+  }
+
+  /**
+   * Load user activities from API
+   */
+  private loadUserActivities(): void {
+    const userIdStr = this.projectService.getUserId();
+
+    if (!userIdStr) {
+      // Silently skip if user not logged in - this is expected before login
+      return;
+    }
+
+    const userId = parseInt(userIdStr, 10);
+
+    this.isLoadingActivities.set(true);
+    this.activitiesError.set(null);
+
+    this.activityService.getUserActivities(userId, 5).subscribe({
+      next: (response) => {
+        console.log('✅ User activities loaded:', response);
+        this.recentActivities = response.data.map((dto: ActivityLogDto) =>
+          this.transformToActivityModel(dto)
+        );
+        this.isLoadingActivities.set(false);
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading user activities:', error);
+        this.activitiesError.set(error.message || 'Failed to load activities');
+        this.isLoadingActivities.set(false);
+        this.recentActivities = [];
+      },
+    });
+  }
+
   ngOnInit(): void {
     // Clear project context when viewing main dashboard
     this.projectContextService.clearCurrentProjectId();
@@ -233,5 +283,8 @@ export class MainDashboardHome implements OnInit {
 
     // Load user issues for task status
     this.loadUserIssues();
+
+    // Load user activities
+    this.loadUserActivities();
   }
 }
