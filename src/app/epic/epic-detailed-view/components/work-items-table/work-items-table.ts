@@ -99,12 +99,12 @@ export class WorkItemsTable {
 
   getTypeIcon(type: IssueType): string {
     const iconMap: { [key: string]: string } = {
-      'TASK': '📋',
-      'STORY': '📖',
-      'BUG': '🐛',
-      'EPIC': '⚡',
-      'SUBTASK': '📌'
+      'TASK': 'fa-solid fa-check-square',
+      'STORY': 'fa-solid fa-book',
+      'BUG': 'fa-solid fa-bug',
+      'EPIC': 'fa-solid fa-bolt',
+      'SUBTASK': 'fa-solid fa-circle-check'
     };
-    return iconMap[type] || '📋';
+    return iconMap[type] || 'fa-solid fa-check-square';
   }
 }

@@ -1,10 +1,7 @@
 <div class="epic-header">
   <div class="epic-header-left">
     <div class="epic-icon-wrapper">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <rect width="20" height="20" rx="2" fill="#8B5CF6"/>
-        <rect x="4" y="4" width="12" height="12" rx="1" fill="white"/>
-      </svg>
+      <i class="fa-solid fa-bolt text-purple-600 text-xl"></i>
     </div>
     <div class="epic-title-section">
       <div class="epic-id">{{ epic.name }}</div>
@@ -12,28 +9,16 @@
   </div>
   <div class="epic-header-actions">
     <button class="action-btn" title="Share">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M15 6.5C16.3807 6.5 17.5 5.38071 17.5 4C17.5 2.61929 16.3807 1.5 15 1.5C13.6193 1.5 12.5 2.61929 12.5 4C12.5 5.38071 13.6193 6.5 15 6.5Z" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M5 12.5C6.38071 12.5 7.5 11.3807 7.5 10C7.5 8.61929 6.38071 7.5 5 7.5C3.61929 7.5 2.5 8.61929 2.5 10C2.5 11.3807 3.61929 12.5 5 12.5Z" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M15 18.5C16.3807 18.5 17.5 17.3807 17.5 16C17.5 14.6193 16.3807 13.5 15 13.5C13.6193 13.5 12.5 14.6193 12.5 16C12.5 17.3807 13.6193 18.5 15 18.5Z" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M7.08 11.18L12.92 14.82M12.92 5.18L7.08 8.82" stroke="currentColor" stroke-width="1.5"/>
-      </svg>
+      <i class="fa-solid fa-share-nodes"></i>
     </button>
     <button class="action-btn" title="Copy link">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M10 5H7C5.34315 5 4 6.34315 4 8V13C4 14.6569 5.34315 16 7 16H12C13.6569 16 15 14.6569 15 13V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M10 10L16 4M16 4H12M16 4V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <i class="fa-solid fa-link"></i>
     </button>
     <button class="action-btn delete-btn" title="Delete epic" (click)="confirmDelete()" [disabled]="isDeleting">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M2.5 5H17.5M8.33333 8.33333V13.3333M11.6667 8.33333V13.3333M3.33333 5L4.16667 15.8333C4.16667 16.2754 4.34226 16.6993 4.65482 17.0118C4.96738 17.3244 5.39131 17.5 5.83333 17.5H14.1667C14.6087 17.5 15.0326 17.3244 15.3452 17.0118C15.6577 16.6993 15.8333 16.2754 15.8333 15.8333L16.6667 5M7.5 5V3.33333C7.5 3.11232 7.5878 2.90036 7.74408 2.74408C7.90036 2.5878 8.11232 2.5 8.33333 2.5H11.6667C11.8877 2.5 12.0996 2.5878 12.2559 2.74408C12.4122 2.90036 12.5 3.11232 12.5 3.33333V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <i class="fa-solid fa-trash"></i>
     </button>
     <button class="close-btn" (click)="onClose()">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
+      <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
 </div>

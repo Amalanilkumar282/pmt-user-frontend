@@ -1,5 +1,7 @@
 <div class="section description-section">
-  <div class="section-title">Description</div>
+  <div class="section-title">
+    <i class="fa-solid fa-align-left mr-2"></i>Description
+  </div>
   @if (!editing) {
     <div class="description-text" (click)="startEditing()">
       {{ epic.description || 'Add a description...' }}
