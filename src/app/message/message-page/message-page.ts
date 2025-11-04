@@ -63,6 +63,7 @@ export class MessagePage implements OnInit {
 
   // Loading state
   isLoadingTeams = signal<boolean>(false);
+  isLoadingMessages = signal<boolean>(false);
 
   // Available teams with channels (loaded from API)
   teams = signal<Team[]>([]);
@@ -172,12 +173,39 @@ export class MessagePage implements OnInit {
         // Auto-select first channel if available
         if (channels.length > 0) {
           this.selectedChannelId.set(channels[0].id);
+          this.loadMessagesForChannel(channels[0].id);
         } else {
           this.selectedChannelId.set(null);
         }
       },
       error: (error) => {
         console.error('Error loading channels for team:', teamId, error);
+      },
+    });
+  }
+
+  /**
+   * Load messages for a specific channel
+   */
+  private loadMessagesForChannel(channelId: string): void {
+    console.log('Loading messages for channel:', channelId);
+    this.isLoadingMessages.set(true);
+
+    this.channelService.getMessagesByChannelId(channelId).subscribe({
+      next: (messages) => {
+        console.log('Loaded messages:', messages);
+
+        // Update messages for this channel
+        this.allMessages.update((allMsgs) => ({
+          ...allMsgs,
+          [channelId]: messages,
+        }));
+
+        this.isLoadingMessages.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading messages for channel:', channelId, error);
+        this.isLoadingMessages.set(false);
       },
     });
   }
@@ -205,8 +233,9 @@ export class MessagePage implements OnInit {
     // Check if team already has channels loaded
     const team = this.teams().find((t) => t.id === teamId);
     if (team && team.channels.length > 0) {
-      // Channels already loaded, just select first one
+      // Channels already loaded, select first one and load its messages
       this.selectedChannelId.set(team.channels[0].id);
+      this.loadMessagesForChannel(team.channels[0].id);
     } else {
       // Load channels for this team
       this.loadChannelsForTeam(teamId);
@@ -215,6 +244,13 @@ export class MessagePage implements OnInit {
 
   selectChannel(channelId: string): void {
     this.selectedChannelId.set(channelId);
+
+    // Load messages for this channel if not already loaded
+    const channelMessages = this.allMessages()[channelId];
+    if (!channelMessages) {
+      this.loadMessagesForChannel(channelId);
+    }
+
     // Mark channel as read
     const teamId = this.selectedTeamId();
     this.teams.update((teams) =>
@@ -264,37 +300,6 @@ export class MessagePage implements OnInit {
     this.sendMessage();
   }
 
-  formatTime(date: Date): string {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
-
-  formatTimestamp(date: Date): string {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-  }
-
-  onKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      this.sendMessage();
-    }
-  }
-
   // Search functionality
   toggleSearch(): void {
     this.showSearch.update((v) => !v);
@@ -313,35 +318,37 @@ export class MessagePage implements OnInit {
 
   addChannel(channelName: string): void {
     const teamId = this.selectedTeamId();
-    const newChannelId = 'channel-' + Date.now();
+    if (!teamId) return;
 
-    // Add the new channel to the selected team
-    this.teams.update((teams) =>
-      teams.map((team) => {
-        if (team.id !== teamId) return team;
-        return {
-          ...team,
-          channels: [
-            ...team.channels,
-            {
-              id: newChannelId,
-              name: channelName,
-              type: 'channel' as const,
-              unreadCount: 0,
-              isPrivate: false,
-            },
-          ],
-        };
-      })
-    );
+    // Call API to create channel
+    this.channelService.createChannel(parseInt(teamId), channelName).subscribe({
+      next: (newChannel) => {
+        console.log('Channel created:', newChannel);
 
-    // Initialize empty messages array for the new channel
-    this.allMessages.update((messages) => ({
-      ...messages,
-      [newChannelId]: [],
-    }));
+        // Add the new channel to the selected team
+        this.teams.update((teams) =>
+          teams.map((team) => {
+            if (team.id !== teamId) return team;
+            return {
+              ...team,
+              channels: [...team.channels, newChannel],
+            };
+          })
+        );
 
-    // Select the newly created channel
-    this.selectedChannelId.set(newChannelId);
+        // Initialize empty messages array for the new channel
+        this.allMessages.update((messages) => ({
+          ...messages,
+          [newChannel.id]: [],
+        }));
+
+        // Select the newly created channel
+        this.selectedChannelId.set(newChannel.id);
+      },
+      error: (error) => {
+        console.error('Error creating channel:', error);
+        // You can add toast notification here
+      },
+    });
   }
 }
