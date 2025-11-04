@@ -467,8 +467,9 @@ export class BacklogPage implements OnInit {
       forkJoin(updateRequests).subscribe({
         next: (responses) => {
           console.log('✅ All issues assigned to sprint. Responses:', responses);
-          this.toastService.success(`${issues.length} issue(s) have been added to the Sprint`);
+          this.toastService.success('Issue(s) successfully added to the sprint');
           this.loadSprints(projectId);
+          this.loadProjectIssues(projectId);
         },
         error: (error) => {
           console.error('❌ Error assigning issues:', error);
@@ -480,12 +481,14 @@ export class BacklogPage implements OnInit {
           });
           this.toastService.error('Failed to add issues to the sprint');
           this.loadSprints(projectId);
+          this.loadProjectIssues(projectId);
         }
       });
     } else {
       console.warn('⚠️ No issues were selected');
       this.toastService.info('No issues were selected');
       this.loadSprints(projectId);
+      this.loadProjectIssues(projectId);
     }
   }
 
