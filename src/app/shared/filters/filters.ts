@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Output, Input, signal } from '@angular/core';
+import { Component, EventEmitter, Output, Input, signal, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../auth/auth.service';
 
 export interface FilterCriteria {
   searchText: string;
@@ -15,6 +16,9 @@ export interface FilterCriteria {
   epicId: string | null;
   showCompletedSprints: boolean;
   showEpicPanel: boolean;
+  // Current user info for filtering
+  currentUserId?: string | null;
+  currentUserName?: string | null;
 }
 
 @Component({
@@ -26,6 +30,8 @@ export interface FilterCriteria {
 })
 export class Filters {
   @Output() filtersChanged = new EventEmitter<FilterCriteria>();
+
+  private authService = inject(AuthService);
 
   // Collapse state
   isCollapsed = signal(false);
@@ -54,6 +60,28 @@ export class Filters {
 
   // Epic options - will be passed from parent
   @Input() epicOptions: Array<{ id: string, name: string }> = [];
+  
+  // Project members options - will be passed from parent
+  @Input() projectMembers: Array<{ id: number | string, name: string }> = [];
+
+  // Get current user info
+  get currentUserId(): string | null {
+    return this.authService.currentUserValue?.userId || null;
+  }
+
+  get currentUserName(): string | null {
+    return this.authService.currentUserValue?.name || null;
+  }
+
+  // Close dropdown when clicking outside
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    // Check if click is outside all dropdowns
+    if (!target.closest('.filter-dropdown')) {
+      this.openDropdown = null;
+    }
+  }
 
   onSearchChange(): void {
     this.emitFilters();
@@ -198,8 +226,11 @@ export class Filters {
       view: this.currentView,
       epicId: this.selectedEpicId,
       showCompletedSprints: this.showCompletedSprints(),
-      showEpicPanel: this.showEpicPanel()
+      showEpicPanel: this.showEpicPanel(),
+      currentUserId: this.currentUserId,
+      currentUserName: this.currentUserName
     };
     this.filtersChanged.emit(criteria);
   }
 }
+

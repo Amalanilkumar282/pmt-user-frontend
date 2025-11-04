@@ -52,13 +52,13 @@
         class="view-toggle-btn"
         [class.active]="currentView === 'sprints'"
         (click)="toggleView('sprints')">
-        📋 Sprints
+        <i class="fa-solid fa-list-check"></i> Sprints
       </button>
       <button 
         class="view-toggle-btn"
         [class.active]="currentView === 'all-issues'"
         (click)="toggleView('all-issues')">
-        📝 All Issues
+        <i class="fa-solid fa-tasks"></i> All Issues
       </button>
     </div>
 
@@ -230,13 +230,12 @@
       @if (openDropdown === 'assignee') {
         <div class="dropdown-menu">
           <div class="dropdown-item" (click)="toggleAssignee(null)">All Assignees</div>
-          <div class="dropdown-item" (click)="toggleAssignee('John Doe')" [class.selected]="selectedAssignees.includes('John Doe')">John Doe</div>
-          <div class="dropdown-item" (click)="toggleAssignee('Jane Smith')" [class.selected]="selectedAssignees.includes('Jane Smith')">Jane Smith</div>
-          <div class="dropdown-item" (click)="toggleAssignee('Alex Johnson')" [class.selected]="selectedAssignees.includes('Alex Johnson')">Alex Johnson</div>
-          <div class="dropdown-item" (click)="toggleAssignee('Sarah Lee')" [class.selected]="selectedAssignees.includes('Sarah Lee')">Sarah Lee</div>
-          <div class="dropdown-item" (click)="toggleAssignee('Mike Brown')" [class.selected]="selectedAssignees.includes('Mike Brown')">Mike Brown</div>
-          <div class="dropdown-item" (click)="toggleAssignee('Emma Wilson')" [class.selected]="selectedAssignees.includes('Emma Wilson')">Emma Wilson</div>
-          <div class="dropdown-item" (click)="toggleAssignee('Oliver Davis')" [class.selected]="selectedAssignees.includes('Oliver Davis')">Oliver Davis</div>
+          @if (projectMembers.length === 0) {
+            <div class="dropdown-item" style="color: #9ca3af;">Loading members...</div>
+          }
+          @for (member of projectMembers; track member.id) {
+            <div class="dropdown-item" (click)="toggleAssignee(member.name)" [class.selected]="selectedAssignees.includes(member.name)">{{ member.name }}</div>
+          }
         </div>
       }
     </div>
