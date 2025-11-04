@@ -370,36 +370,7 @@ export class BoardStore {
       });
     }
     
-    // Group by Subtask - within each column, group issues by parent
-    if (groupByType === 'SUBTASK') {
-      return cols.map(c => {
-        const columnIssues = issues.filter(i => i.statusId === c.statusId);
-
-        // Group issues by parent
-        const grouped = new Map<string, Issue[]>();
-        columnIssues.forEach(issue => {
-          const parent = issue.parentId || 'No Parent';
-          if (!grouped.has(parent)) {
-            grouped.set(parent, []);
-          }
-          grouped.get(parent)!.push(issue);
-        });
-
-        // Sort each group by priority and flatten
-        const sortedIssues: Issue[] = [];
-        Array.from(grouped.entries())
-          .sort(([a], [b]) => a.localeCompare(b)) // Sort parent IDs alphabetically
-          .forEach(([_, groupIssues]) => {
-            sortedIssues.push(...sortByPriority(groupIssues));
-          });
-
-        return {
-          def: c,
-          items: sortedIssues,
-          groupedBy: 'SUBTASK' as const
-        };
-      });
-    }
+    // SUBTASK grouping removed. If new grouping is needed later, re-introduce here.
     
       return cols.map(c => ({
         def: c,

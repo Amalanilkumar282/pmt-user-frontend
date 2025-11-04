@@ -7,9 +7,8 @@ class StoreMock {
   search = signal('');
   selectedSprintId = signal<'BACKLOG'|string>('BACKLOG');
   sprints = signal([{ id:'s1', name:'S1'}]);
-  groupBy = signal<'NONE'|'ASSIGNEE'|'EPIC'|'SUBTASK'>('NONE');
+  groupBy = signal<'NONE'|'ASSIGNEE'|'EPIC'>('NONE');
 }
-
 describe('BoardToolbar', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -53,14 +52,12 @@ describe('BoardToolbar', () => {
     const cmp = fixture.componentInstance;
     const store = TestBed.inject(BoardStore) as any as StoreMock;
 
-    store.groupBy.set('ASSIGNEE');
-    expect(cmp.getGroupByLabel()).toBe('Assignee');
-    store.groupBy.set('EPIC');
-    expect(cmp.getGroupByLabel()).toBe('Epic');
-    store.groupBy.set('SUBTASK');
-    expect(cmp.getGroupByLabel()).toBe('Sub Task');
-    store.groupBy.set('NONE');
-    expect(cmp.getGroupByLabel()).toBe('None');
+  store.groupBy.set('ASSIGNEE');
+  expect(cmp.getGroupByLabel()).toBe('Assignee');
+  store.groupBy.set('EPIC');
+  expect(cmp.getGroupByLabel()).toBe('Epic');
+  store.groupBy.set('NONE');
+  expect(cmp.getGroupByLabel()).toBe('None');
   });
 
   it('should initialize with store signals', () => {
