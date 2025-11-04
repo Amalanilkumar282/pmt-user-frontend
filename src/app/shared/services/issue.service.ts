@@ -230,4 +230,25 @@ export class IssueService {
       })
     );
   }
+
+  /**
+   * Delete an issue
+   * DELETE /api/Issue/{issueId}
+   */
+  deleteIssue(issueId: string): Observable<any> {
+    const url = `${this.baseUrl}/${issueId}`;
+    const headers = this.getAuthHeaders();
+    
+    console.log('🗑️ [IssueService] Deleting issue:', {
+      issueId,
+      url
+    });
+    
+    return this.http.delete(url, { headers }).pipe(
+      map((response) => {
+        console.log('✅ [IssueService] Delete successful:', response);
+        return response;
+      })
+    );
+  }
 }
