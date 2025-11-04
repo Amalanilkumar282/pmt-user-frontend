@@ -17,8 +17,6 @@
       <button 
         class="edit-btn" 
         (click)="onEdit()"
-        [disabled]="sprint.status === 'COMPLETED'"
-        [class.disabled]="sprint.status === 'COMPLETED'"
         aria-label="Edit sprint"
         *hasPermission="'canManageTeams'">
         Edit Sprint
