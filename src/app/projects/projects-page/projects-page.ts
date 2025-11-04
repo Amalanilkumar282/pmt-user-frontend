@@ -60,8 +60,7 @@ export class ProjectsPage implements OnInit {
     const userId = this.projectService.getUserId();
 
     if (!userId) {
-      console.error('No user ID found in session storage');
-      this.errorMessage.set('User not logged in. Please login again.');
+      console.log('⏭️ No user ID found - redirecting to login');
       this.isLoading.set(false);
       this.router.navigate(['/login']);
       return;

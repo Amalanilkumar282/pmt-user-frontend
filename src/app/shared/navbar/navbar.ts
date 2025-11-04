@@ -551,12 +551,12 @@ export class Navbar implements OnInit {
     // Get user ID from sessionStorage or your auth service
     const userId = this.getUserIdFromSession();
     
-    console.log('Loading user activities for userId:', userId);
-    
     if (!userId) {
-      console.warn('No user ID found in session');
+      // Silently skip if user not logged in - this is expected before login
       return;
     }
+    
+    console.log('Loading user activities for userId:', userId);
 
     this.activityService.getUserActivities(userId, 20).subscribe({
       next: (response) => {
