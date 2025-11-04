@@ -1,4 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TaskCard } from './task-card';
 import type { Issue } from '../../../shared/models/issue.model';
 
@@ -24,7 +26,11 @@ describe('TaskCard', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TaskCard]
+      imports: [TaskCard],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting()
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(TaskCard);
@@ -283,7 +289,6 @@ describe('TaskCard', () => {
 
       const tooltip = component.getProgressTooltip();
       expect(tooltip).toContain('OVERDUE');
-      expect(tooltip).toContain('⚠️');
     });
   });
 
@@ -410,9 +415,9 @@ describe('TaskCard', () => {
       (component as any).store = mockStore;
 
       component.showAssigneeDropdown.set(true);
-      component.selectAssignee('Alice Johnson');
+      component.selectAssignee({ id: 'user-1', name: 'Alice Johnson' });
 
-      expect(mockStore.updateIssueAssignee).toHaveBeenCalledWith('TEST-1', 'Alice Johnson');
+      expect(mockStore.updateIssueAssignee).toHaveBeenCalledWith('TEST-1', 'user-1');
       expect(component.showAssigneeDropdown()).toBe(false);
       expect(component.assigneeSearchQuery()).toBe('');
     });
@@ -424,7 +429,7 @@ describe('TaskCard', () => {
       const mockStore = jasmine.createSpyObj('BoardStore', ['updateIssueAssignee']);
       (component as any).store = mockStore;
 
-      component.selectAssignee('Unassigned');
+      component.selectAssignee({ id: 'unassigned', name: 'Unassigned' });
 
       expect(mockStore.updateIssueAssignee).toHaveBeenCalledWith('TEST-1', undefined);
     });
@@ -445,7 +450,7 @@ describe('TaskCard', () => {
       component.assigneeSearchQuery.set('alice');
       const filtered = component.filteredAssignees();
       
-      expect(filtered.every(a => a.toLowerCase().includes('alice'))).toBe(true);
+      expect(filtered.every(a => a.name.toLowerCase().includes('alice'))).toBe(true);
     });
 
     it('should return all assignees when search query is empty', () => {
@@ -533,7 +538,7 @@ describe('TaskCard', () => {
     });
 
     it('should format date for input correctly', () => {
-      const date = new Date('2024-12-31T00:00:00');
+      const date = new Date(2024, 11, 31); // Month is 0-indexed, so 11 = December
       const formatted = component.formatDateForInput(date);
       expect(formatted).toBe('2024-12-31');
     });

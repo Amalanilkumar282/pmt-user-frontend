@@ -322,5 +322,20 @@ tr.mat-mdc-row:hover {
   color: #333 !important;
 }
 
+/* Ensure the burnup Date column fits on a single line */
+/* Angular Material adds `mat-column-<name>` classes to header and cells */
+.mat-column-date, th.mat-column-date, td.mat-column-date {
+  width: 120px; /* fixed width suitable for '1 nov 2025' */
+  max-width: 120px;
+  white-space: nowrap; /* prevent wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis; /* in case content is longer */
+}
+
+/* Make the date header and cell content vertically centered */
+th.mat-column-date.mat-mdc-header-cell, td.mat-column-date.mat-mdc-cell {
+  vertical-align: middle;
+}
+
 
 

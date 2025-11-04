@@ -84,6 +84,7 @@
   justify-content: flex-end;
   align-items: center;
   margin-bottom: 24px;
+  gap: 12px;
 }
 
 .page-title {
@@ -153,6 +154,8 @@
 
   .page-header {
     justify-content: center;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .create-sprint-btn {

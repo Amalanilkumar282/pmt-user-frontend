@@ -1,4 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Navbar } from '../../shared/navbar/navbar';
 import { Sidebar } from '../../shared/sidebar/sidebar';
@@ -26,49 +27,114 @@ export class BurnupChart implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
   private issueSummaryService = inject(IssueSummaryService);
+  private cdr = inject(ChangeDetectorRef);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
 
   // Sprint filter data
   sprints: Sprint[] = [];
   selectedSprintId: string | null = 'all';
+  currentProjectId: string | null = null;
+  selectedSprintData: { name: string; startDate: Date; endDate: Date } | null = null;
 
   issues: Issue[] = [];
 
   constructor(private router: Router,private location: Location ) {}
 
   ngOnInit(): void {
-    // Set project context from route params
-    const projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId');
-    if (projectId) {
-      this.projectContextService.setCurrentProjectId(projectId);
+    // Always get project ID from sessionStorage first (only in browser)
+    let projectId: string | null = null;
+    
+    if (this.isBrowser) {
+      projectId = sessionStorage.getItem('projectId');
+      console.log('BurnupChart - Project ID from sessionStorage:', projectId);
     }
     
-    // Load all sprints from the service
-    // this.sprints = this.issueSummaryService.getAllSprints();
-     // Load all sprints
-  const allSprints = this.issueSummaryService.getAllSprints();
+    // Fallback to route params if not in sessionStorage
+    if (!projectId) {
+      projectId = this.route.parent?.parent?.snapshot.paramMap.get('projectId') || null;
+      console.log('BurnupChart - Fallback to route.parent.parent:', projectId);
+      
+      if (!projectId) {
+        projectId = this.route.parent?.snapshot.paramMap.get('projectId') || null;
+        console.log('BurnupChart - Fallback to route.parent:', projectId);
+      }
+    }
+    
+    // Validate that we have a proper GUID
+    if (projectId && !this.isValidGuid(projectId)) {
+      console.warn('BurnupChart - Invalid project ID format:', projectId);
+      projectId = null;
+    }
+    
+    console.log('BurnupChart - Final Project ID:', projectId);
+    
+    if (projectId) {
+      this.currentProjectId = projectId;
+      this.projectContextService.setCurrentProjectId(projectId);
+      
+      // Load sprints from API
+      this.issueSummaryService.getSprintsByProjectId(projectId).subscribe({
+        next: (allSprints) => {
+          console.log('BurnupChart - Loaded sprints from API:', allSprints);
+          
+          // Find active sprint
+          const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
 
-  
+          // Reorder: active sprint first, exclude 'all' placeholder if any exists
+          this.sprints = [
+            ...(activeSprint ? [activeSprint] : []),
+            ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
+          ];
 
-    // Find active sprint
-  const activeSprint = allSprints.find(s => s.status === 'ACTIVE');
+          this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || null;
 
-  // Reorder: active sprint first, exclude 'all' placeholder if any exists
-  this.sprints = [
-    ...(activeSprint ? [activeSprint] : []),
-    ...allSprints.filter(s => s.id !== activeSprint?.id && s.id !== 'all')
-  ];
-
-  this.selectedSprintId = activeSprint ? activeSprint.id : allSprints[0]?.id || 'all';
-    // Load initial chart data
-    this.updatechartData();
+          // Set initial sprint data
+          const initialSprint = activeSprint || allSprints[0];
+          if (initialSprint) {
+            this.selectedSprintData = {
+              name: initialSprint.name,
+              startDate: initialSprint.startDate,
+              endDate: initialSprint.endDate
+            };
+          }
+          
+          // Defer change detection to avoid ExpressionChangedAfterItHasBeenCheckedError
+          Promise.resolve().then(() => {
+            this.cdr.detectChanges();
+            this.updatechartData();
+          });
+        },
+        error: (error) => {
+          console.error('BurnupChart - Error loading sprints from API:', error);
+          console.error('API Error Details:', {
+            status: error.status,
+            statusText: error.statusText,
+            url: error.url
+          });
+          // No fallback - leave sprints empty
+          this.sprints = [];
+          this.selectedSprintId = null;
+          this.cdr.detectChanges();
+        }
+      });
+    } else {
+      console.warn('BurnupChart - No project ID found');
+      this.sprints = [];
+      this.selectedSprintId = null;
+    }
   }
 
   onToggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
 
+  private isValidGuid(value: string): boolean {
+    const guidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return guidPattern.test(value);
+  }
 
   navigateBack(): void {
     
@@ -76,16 +142,50 @@ export class BurnupChart implements OnInit {
 
   }
 
-  onSprintFilterChange(sprintId: string): void {
+  onSprintFilterChange(sprintId: string | null): void {
     this.selectedSprintId = sprintId;
+    
+    // Update sprint data for the chart
+    const selectedSprint = sprintId ? this.sprints.find(s => s.id === sprintId) : undefined;
+    if (selectedSprint) {
+      this.selectedSprintData = {
+        name: selectedSprint.name,
+        startDate: selectedSprint.startDate,
+        endDate: selectedSprint.endDate
+      };
+    } else {
+      this.selectedSprintData = null;
+    }
+    
     this.updatechartData();
   }
 
   private updatechartData(): void {
-    // Get issues for the selected sprint
-    this.issues = this.issueSummaryService.getIssuesBySprintId(this.selectedSprintId);
+    if (!this.currentProjectId || !this.selectedSprintId || this.selectedSprintId === 'all') {
+      // Fallback to dummy data if no valid sprint selected
+      this.issues = this.issueSummaryService.getIssuesBySprintId(this.selectedSprintId);
+      return;
+    }
 
-    // You can add more chart-specific data updates here
-    // For example, pass the filtered data to your MetricsChart component
+    // Load issues from API for selected sprint
+    console.log(`BurnupChart - Loading issues for project ${this.currentProjectId}, sprint ${this.selectedSprintId}`);
+    this.issueSummaryService.getIssuesByProjectAndSprint(this.currentProjectId, this.selectedSprintId).subscribe({
+      next: (issues) => {
+        console.log('BurnupChart - Loaded issues from API:', issues);
+        this.issues = issues;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('BurnupChart - Error loading issues from API:', error);
+        console.error('API Error Details:', {
+          status: error.status,
+          statusText: error.statusText,
+          url: error.url
+        });
+        // Fallback to empty array
+        this.issues = [];
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

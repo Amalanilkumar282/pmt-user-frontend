@@ -1,17 +1,18 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TimelineHeaderComponent, FilterState } from '../timeline-header/timeline-header';
-import { sprints as sharedSprints, epics as sharedEpics } from '../../shared/data/dummy-backlog-data';
+import { ActivatedRoute } from '@angular/router';
+import { TimelineHeaderComponent, FilterState, StatusOption } from '../timeline-header/timeline-header';
 import { Issue } from '../../shared/models/issue.model';
 import { Epic } from '../../shared/models/epic.model';
 import { EpicDetailedView } from '../../epic/epic-detailed-view/epic-detailed-view';
 import { IssueDetailedView } from '../../backlog/issue-detailed-view/issue-detailed-view';
+import { TimelineService, SprintDto, EpicDto, IssueDto, StatusDto } from '../services/timeline.service';
 
 interface Sprint {
   id: string;
   name: string;
-  startDate: Date;
-  endDate: Date;
+  startDate?: Date;
+  endDate?: Date;
   status: 'COMPLETED' | 'ACTIVE' | 'PLANNED';
   issues?: Issue[];
 }
@@ -25,6 +26,7 @@ interface TimelineRow {
   endDate?: Date;
   progress?: number;
   issueType?: string;
+  key?: string; // For displaying issue key like "PMT-101"
   expanded?: boolean;
   level?: number;
   visible?: boolean;
@@ -77,11 +79,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     status: []
   };
   
-  projectData: Sprint[] = sharedSprints;
-  epicsData: Epic[] = sharedEpics;
+  // Data from API
+  projectData: Sprint[] = [];
+  epicsData: Epic[] = [];
+  allIssues: Issue[] = [];
+  
+  // State
   displayMode: 'epics' | 'issues' = 'epics';
   selectedEpic: string | null = null;
   availableEpics: string[] = [];
+  availableStatuses: StatusOption[] = [];
+  statusIdToNameMap: Map<number, string> = new Map(); // Map status ID to status name
+  isLoading: boolean = false;
+  errorMessage: string | null = null;
+  projectId: string | null = null;
 
   // Timeline properties
   timelineRows: TimelineRow[] = [];
@@ -109,25 +120,307 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   private isScrollingHeader = false;
   private isScrollingFixedBar = false;
 
-  // Mouse drag scrolling properties
-  private isDraggingScroll = false;
-  private dragStartX = 0;
-  private dragStartY = 0;
-  private scrollStartX = 0;
-  private scrollStartY = 0;
-
   // Bar resize properties
   resizingBar: { id: string; side: 'left' | 'right'; startX: number; originalStart: Date; originalEnd: Date } | null = null;
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  // Bound function references for proper event listener cleanup
+  private boundBarResizeMove = this.onBarResizeMove.bind(this);
+  private boundBarResizeEnd = this.onBarResizeEnd.bind(this);
+
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute,
+    private timelineService: TimelineService
+  ) {}
 
   ngOnInit() {
-    this.initializeFilters();
-    this.availableEpics = this.getUniqueEpics();
+    // Get projectId from route parameters
+    this.route.parent?.paramMap.subscribe(params => {
+      this.projectId = params.get('projectId');
+      
+      if (this.projectId) {
+        this.loadTimelineData(this.projectId);
+      } else {
+        this.errorMessage = 'No project ID found in route';
+      }
+    });
+  }
+
+  /**
+   * Load all timeline data from backend APIs
+   */
+  loadTimelineData(projectId: string): void {
+    this.isLoading = true;
+    this.errorMessage = null;
     
-    // No need to expand sprints anymore
+    // First, load statuses for the project to build ID -> Name mapping
+    this.timelineService.getStatusesByProject(projectId).subscribe({
+      next: (statuses) => {
+        // Build the status ID to name mapping
+        this.statusIdToNameMap.clear();
+        statuses.forEach(status => {
+          this.statusIdToNameMap.set(status.id, status.statusName);
+        });
+        
+        // Transform API statuses to StatusOption format for the filter dropdown
+        this.availableStatuses = statuses.map(status => ({
+          id: status.id,
+          statusName: status.statusName,
+          displayName: this.formatStatusName(status.statusName),
+          value: this.getStatusValue(status.statusName)
+        }));
+        
+        // Now load the timeline data with the status mapping ready
+        this.loadTimelineDataInternal(projectId);
+      },
+      error: (error) => {
+        // Continue loading timeline data even if statuses fail
+        // Use default hardcoded mapping as fallback
+        console.warn('Failed to load statuses, using default mapping', error);
+        this.availableStatuses = [];
+        this.statusIdToNameMap.clear();
+        this.loadTimelineDataInternal(projectId);
+      }
+    });
+  }
+
+  /**
+   * Internal method to load timeline data after statuses are loaded
+   */
+  private loadTimelineDataInternal(projectId: string): void {
+    this.timelineService.getTimelineData(projectId).subscribe({
+      next: (data) => {
+        // Transform sprints
+        this.projectData = this.transformSprints(data.sprints, data.issues);
+        
+        // Transform epics
+        this.epicsData = this.transformEpics(data.epics);
+        
+        // Store all issues
+        this.allIssues = this.transformIssues(data.issues);
+        
+        // Initialize filters and prepare timeline
+        this.initializeFilters();
+        this.availableEpics = this.getUniqueEpics();
+        
+        this.prepareTimelineData();
+        
+        this.isLoading = false;
+        
+        // Scroll to today after data is loaded and rendered
+        setTimeout(() => {
+          this.updateDateHeaders();
+          this.scrollToTodayCenter();
+          this.cdr.detectChanges();
+        }, 300);
+        
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        // Don't show error message - just initialize with empty data
+        this.projectData = [];
+        this.epicsData = [];
+        this.allIssues = [];
+        
+        this.initializeFilters();
+        this.availableEpics = [];
+        this.prepareTimelineData();
+        
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * Transform Sprint DTOs to Sprint interface
+   */
+  private transformSprints(sprintDtos: SprintDto[], issueDtos: IssueDto[]): Sprint[] {
+    return sprintDtos.map(dto => {
+      // Find issues belonging to this sprint
+      const sprintIssues = this.transformIssues(
+        issueDtos.filter(issue => 
+          (issue.sprint_id || issue.sprintId) === dto.id
+        )
+      );
+      
+      // Handle both snake_case and camelCase
+      const name = dto.name || dto.sprintName || 'Unnamed Sprint';
+      const startDate = dto.start_date || dto.startDate;
+      const endDate = dto.due_date || dto.dueDate;
+      
+      return {
+        id: dto.id,
+        name: name,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        status: this.mapSprintStatus(dto.status),
+        issues: sprintIssues
+      };
+    });
+  }
+
+  /**
+   * Map backend sprint status to frontend status
+   */
+  private mapSprintStatus(status: string): 'COMPLETED' | 'ACTIVE' | 'PLANNED' {
+    const upperStatus = (status || '').toUpperCase();
+    const statusMap: { [key: string]: 'COMPLETED' | 'ACTIVE' | 'PLANNED' } = {
+      'COMPLETED': 'COMPLETED',
+      'ACTIVE': 'ACTIVE',
+      'PLANNED': 'PLANNED',
+      'INPROGRESS': 'ACTIVE',
+      'IN_PROGRESS': 'ACTIVE',
+      'NOTSTARTED': 'PLANNED',
+      'NOT_STARTED': 'PLANNED',
+      'CLOSED': 'COMPLETED',
+      'DONE': 'COMPLETED'
+    };
+    return statusMap[upperStatus] || 'PLANNED';
+  }
+
+  /**
+   * Transform Epic DTOs to Epic interface
+   */
+  private transformEpics(epicDtos: EpicDto[]): Epic[] {
+    return epicDtos.map(dto => {
+      // Handle both snake_case and camelCase, and title vs name
+      const name = dto.title || dto.name || 'Unnamed Epic';
+      const description = dto.description || '';
+      const startDate = dto.start_date || dto.startDate;
+      const dueDate = dto.due_date || dto.dueDate;
+      const createdAt = dto.created_at || dto.createdAt;
+      const updatedAt = dto.updated_at || dto.updatedAt;
+      const projectId = dto.project_id || dto.projectId;
+      
+      return {
+        id: dto.id,
+        name: name,
+        description: description,
+        status: dto.status as any || 'TODO',
+        priority: dto.priority as any || 'MEDIUM',
+        projectId: projectId || '',
+        startDate: startDate ? new Date(startDate) : null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        createdAt: createdAt ? new Date(createdAt) : new Date(),
+        updatedAt: updatedAt ? new Date(updatedAt) : new Date(),
+        progress: 0, // Will be calculated based on issues
+        issueCount: 0 // Will be calculated based on issues
+      };
+    });
+  }
+
+  /**
+   * Transform Issue DTOs to Issue interface
+   */
+  private transformIssues(issueDtos: IssueDto[]): Issue[] {
+    return issueDtos.map(dto => {
+      // Handle both snake_case and camelCase
+      const key = dto.key || dto.issue_key || dto.issueKey || 'N/A';
+      const issueType = dto.type || dto.issue_type || dto.issueType || 'TASK';
+      const assigneeName = dto.assignee_name || dto.assigneeName || 'Unassigned';
+      const assigneeId = dto.assignee_id || dto.assigneeId || 0;
+      const reporterId = dto.reporter_id || dto.reporterId || 0;
+      const reporterName = dto.reporter_name || dto.reporterName;
+      const storyPoints = dto.story_points || dto.storyPoints || 0;
+      const projectId = dto.project_id || dto.projectId || '';
+      const sprintId = dto.sprint_id || dto.sprintId;
+      const epicId = dto.epic_id || dto.epicId;
+      const createdAt = dto.created_at || dto.createdAt;
+      const updatedAt = dto.updated_at || dto.updatedAt;
+      const dueDate = dto.due_date || dto.dueDate;
+      const startDate = dto.start_date || dto.startDate;
+      
+      // Get status - try multiple possible fields
+      const rawStatus = dto.status ?? dto.status_id ?? dto.statusId ?? dto.status_name ?? dto.statusName ?? 1;
+      
+      // Map numeric or string status to string
+      const status = this.mapNumericStatus(rawStatus);
+      
+      return {
+        id: dto.id,
+        key: key,
+        title: dto.title,
+        description: dto.description || '',
+        type: this.mapIssueType(issueType),
+        priority: dto.priority as any,
+        status: status,
+        assignee: assigneeName,
+        assigneeId: assigneeId,
+        reporterId: reporterId,
+        reporterName: reporterName,
+        storyPoints: storyPoints,
+        projectId: projectId,
+        sprintId: sprintId || undefined,
+        epicId: epicId || undefined,
+        createdAt: createdAt ? new Date(createdAt) : new Date(),
+        updatedAt: updatedAt ? new Date(updatedAt) : new Date(),
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        startDate: startDate ? new Date(startDate) : undefined
+      };
+    });
+  }
+
+  /**
+   * Map numeric status (1,2,3,4) to string status
+   * Uses dynamic mapping from status API if available, falls back to defaults
+   */
+  private mapNumericStatus(status: string | number): string {
+    // If it's already a string, return it normalized
+    if (typeof status === 'string') {
+      const upperStatus = status.toUpperCase();
+      
+      // Map common variations to standard names
+      const statusMap: { [key: string]: string } = {
+        'TODO': 'TODO',
+        'TO_DO': 'TODO',
+        'IN_PROGRESS': 'IN_PROGRESS',
+        'INPROGRESS': 'IN_PROGRESS',
+        'IN_REVIEW': 'IN_REVIEW',
+        'INREVIEW': 'IN_REVIEW',
+        'DONE': 'DONE',
+        'COMPLETED': 'DONE',
+        'BLOCKED': 'BLOCKED'
+      };
+      
+      // If status is in the map, use the mapped value
+      // Otherwise, return the original status (for dynamic statuses from API)
+      return statusMap[upperStatus] || status.toUpperCase();
+    }
     
-    this.prepareTimelineData();
+    // For numeric status, first check if we have a mapping from the status API
+    if (this.statusIdToNameMap.has(status as number)) {
+      const statusName = this.statusIdToNameMap.get(status as number)!;
+      return statusName.toUpperCase();
+    }
+    
+    // Fallback to default mapping if status API didn't load
+    const defaultNumericStatusMap: { [key: number]: string } = {
+      1: 'TODO',
+      2: 'IN_PROGRESS',
+      3: 'IN_REVIEW',
+      4: 'DONE',
+      5: 'BLOCKED'
+    };
+    
+    return defaultNumericStatusMap[status as number] || 'TODO';
+  }
+
+  /**
+   * Map backend issue type to frontend IssueType
+   */
+  private mapIssueType(type: string): 'STORY' | 'TASK' | 'BUG' | 'EPIC' | 'SUBTASK' {
+    const upperType = (type || 'TASK').toUpperCase();
+    const typeMap: { [key: string]: 'STORY' | 'TASK' | 'BUG' | 'EPIC' | 'SUBTASK' } = {
+      'STORY': 'STORY',
+      'TASK': 'TASK',
+      'BUG': 'BUG',
+      'EPIC': 'EPIC',
+      'SUBTASK': 'SUBTASK',
+      'SUB_TASK': 'SUBTASK',
+      'USER_STORY': 'STORY'
+    };
+    return typeMap[upperType] || 'TASK';
   }
 
   ngAfterViewInit() {
@@ -138,26 +431,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     }, 100);
 
     // Add mouse move and up listeners for bar resize
-    document.addEventListener('mousemove', this.onBarResizeMove.bind(this));
-    document.addEventListener('mouseup', this.onBarResizeEnd.bind(this));
-    
-    // Add drag scrolling listeners
-    if (this.chartContent && this.chartContent.nativeElement) {
-      const chartEl = this.chartContent.nativeElement;
-      chartEl.addEventListener('mousedown', this.onDragScrollStart.bind(this));
-      document.addEventListener('mousemove', this.onDragScrollMove.bind(this));
-      document.addEventListener('mouseup', this.onDragScrollEnd.bind(this));
-    }
+    document.addEventListener('mousemove', this.boundBarResizeMove);
+    document.addEventListener('mouseup', this.boundBarResizeEnd);
   }
 
   ngOnDestroy() {
     // Cleanup bar resize listeners
-    document.removeEventListener('mousemove', this.onBarResizeMove.bind(this));
-    document.removeEventListener('mouseup', this.onBarResizeEnd.bind(this));
-    
-    // Cleanup drag scroll listeners
-    document.removeEventListener('mousemove', this.onDragScrollMove.bind(this));
-    document.removeEventListener('mouseup', this.onDragScrollEnd.bind(this));
+    document.removeEventListener('mousemove', this.boundBarResizeMove);
+    document.removeEventListener('mouseup', this.boundBarResizeEnd);
   }
 
   // Bar resize functionality
@@ -177,45 +458,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // Drag scrolling functionality
-  private onDragScrollStart(event: MouseEvent): void {
-    // Don't start drag scroll if clicking on a bar or resize handle
-    const target = event.target as HTMLElement;
-    if (target.classList.contains('timeline-bar') || 
-        target.classList.contains('bar-resize-handle') ||
-        target.closest('.timeline-bar')) {
-      return;
-    }
-    
-    this.isDraggingScroll = true;
-    this.dragStartX = event.clientX;
-    this.dragStartY = event.clientY;
-    
-    if (this.chartContent && this.chartContent.nativeElement) {
-      this.scrollStartX = this.chartContent.nativeElement.scrollLeft;
-      this.scrollStartY = this.chartContent.nativeElement.scrollTop;
-      this.chartContent.nativeElement.style.cursor = 'grabbing';
-    }
-  }
-
-  private onDragScrollMove(event: MouseEvent): void {
-    if (!this.isDraggingScroll || !this.chartContent || !this.chartContent.nativeElement) return;
-    
-    event.preventDefault();
-    
-    const deltaX = this.dragStartX - event.clientX;
-    const deltaY = this.dragStartY - event.clientY;
-    
-    this.chartContent.nativeElement.scrollLeft = this.scrollStartX + deltaX;
-    this.chartContent.nativeElement.scrollTop = this.scrollStartY + deltaY;
-  }
-
-  private onDragScrollEnd(event: MouseEvent): void {
-    if (this.isDraggingScroll && this.chartContent && this.chartContent.nativeElement) {
-      this.chartContent.nativeElement.style.cursor = 'grab';
-    }
-    this.isDraggingScroll = false;
-  }
-
   private onBarResizeMove(event: MouseEvent): void {
     if (!this.resizingBar) return;
     
@@ -232,8 +474,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       // Ensure start doesn't go beyond end
       if (newStart < row.endDate) {
         row.startDate = newStart;
-        // Update the underlying data
-        this.updateUnderlyingData(row.id, newStart, row.endDate);
+        // Don't update underlying data during move, only on resize end
       }
     } else {
       const newEnd = new Date(this.resizingBar.originalEnd);
@@ -242,16 +483,23 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       // Ensure end doesn't go before start
       if (newEnd > row.startDate) {
         row.endDate = newEnd;
-        // Update the underlying data
-        this.updateUnderlyingData(row.id, row.startDate, newEnd);
+        // Don't update underlying data during move, only on resize end
       }
     }
     
-    this.cdr.detectChanges();
+    // Remove detectChanges to prevent NG0100 errors
+    // this.cdr.detectChanges();
   }
 
   private onBarResizeEnd(event: MouseEvent): void {
     if (!this.resizingBar) return;
+    
+    // Find the row and update the underlying data now that resize is complete
+    const row = this.timelineRows.find(r => r.id === this.resizingBar!.id);
+    if (row && row.startDate && row.endDate) {
+      this.updateUnderlyingData(row.id, row.startDate, row.endDate);
+    }
+    
     this.resizingBar = null;
     this.cdr.detectChanges();
   }
@@ -262,27 +510,71 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     // Check if it's an epic
     const epic = this.epicsData.find(e => e.id === rowId);
     if (epic) {
-      // Note: Epic model might not have startDate/endDate properties
-      // This is a placeholder for future database update
-      console.log(`Epic ${epic.name} dates updated:`, { startDate, endDate });
-      // TODO: Call API service to update epic dates in database
-      // this.epicService.updateEpicDates(epic.id, startDate, endDate).subscribe();
+      // Store original dates in case we need to revert
+      const originalStartDate = epic.startDate;
+      const originalDueDate = epic.dueDate;
+      
+      // Update local data optimistically
+      epic.startDate = startDate;
+      epic.dueDate = endDate;
+      
+      // Call API to persist changes
+      this.timelineService.updateEpicDates(epic.id, startDate, endDate).subscribe({
+        next: (response) => {
+          console.log('Epic dates updated successfully', response);
+          // Optionally show success notification
+          // this.showSuccessToast('Epic dates updated successfully');
+        },
+        error: (error) => {
+          console.error('Failed to update epic dates:', error);
+          
+          // Revert changes on error
+          epic.startDate = originalStartDate;
+          epic.dueDate = originalDueDate;
+          
+          // Refresh the timeline to ensure consistency
+          this.prepareTimelineData();
+          this.cdr.detectChanges();
+          
+          // Optionally show error notification
+          // this.showErrorToast('Failed to update epic dates. Please try again.');
+        }
+      });
       return;
     }
     
     // Check if it's an issue
-    for (const sprint of this.projectData) {
-      if (sprint.issues) {
-        const issue = sprint.issues.find(i => i.id === rowId);
-        if (issue) {
-          issue.createdAt = startDate;
-          issue.updatedAt = endDate;
-          console.log(`Issue ${issue.title} dates updated:`, { startDate, endDate });
-          // TODO: Call API service to update issue dates in database
-          // this.issueService.updateIssueDates(issue.id, startDate, endDate).subscribe();
-          return;
+    const issue = this.allIssues.find(i => i.id === rowId);
+    if (issue) {
+      // Store original dates in case we need to revert
+      const originalStartDate = issue.startDate;
+      const originalDueDate = issue.dueDate;
+      
+      // Update local data optimistically
+      issue.startDate = startDate;
+      issue.dueDate = endDate;
+      
+      // Call API to persist changes
+      this.timelineService.updateIssueDates(issue.id, startDate, endDate).subscribe({
+        next: (response) => {
+          console.log('Issue dates updated successfully', response);
+          // Optionally show success notification
+        },
+        error: (error) => {
+          console.error('Failed to update issue dates:', error);
+          
+          // Revert changes on error
+          issue.startDate = originalStartDate;
+          issue.dueDate = originalDueDate;
+          
+          // Refresh the timeline to ensure consistency
+          this.prepareTimelineData();
+          this.cdr.detectChanges();
+          
+          // Optionally show error notification
         }
-      }
+      });
+      return;
     }
     
     // Check if it's a sprint
@@ -290,9 +582,9 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     if (sprint) {
       sprint.startDate = startDate;
       sprint.endDate = endDate;
-      console.log(`Sprint ${sprint.name} dates updated:`, { startDate, endDate });
-      // TODO: Call API service to update sprint dates in database
+      // TODO: Implement sprint dates update API when available
       // this.sprintService.updateSprintDates(sprint.id, startDate, endDate).subscribe();
+      console.log('Sprint dates updated (API not yet implemented):', sprint.id, startDate, endDate);
       return;
     }
   }
@@ -306,99 +598,169 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   private prepareTimelineData(): void {
     this.timelineRows = [];
     
-    // Calculate date range based on all data
-    this.calculateDynamicDateRange(this.projectData);
+    // Check if we have any data at all
+    const hasData = this.projectData.length > 0 || this.epicsData.length > 0 || this.allIssues.length > 0;
+    
+    if (!hasData) {
+      // Still calculate date range and show empty timeline with today line
+      this.calculateDynamicDateRange([]);
+      return;
+    }
+    
+    // If we have no sprints but have epics/issues, continue anyway
+    if (this.projectData.length === 0) {
+      // Continue with epics/issues
+    }
 
-    // 1. Add single "Sprints" overview row showing all sprints
+    // 1. Add single "Sprints" overview row showing all sprints (HTML will filter out those without dates)
+    // No filtering - show ALL sprints regardless of age or completion status
+    const allSprints = this.projectData;
+    
+    // Calculate date range based on ALL sprints and epics
+    this.calculateDynamicDateRange(allSprints);
+    
     this.timelineRows.push({
       id: 'sprints-overview',
       type: 'sprints-overview',
       name: 'Sprints',
       status: '',
-      sprints: this.projectData, // Pass all sprints to display multiple bars
+      sprints: allSprints, // Show all sprints
       level: 0,
       visible: true
     });
 
-    // 2. Add all epics directly (not grouped under sprints)
-    const allIssues: Issue[] = [];
-    this.projectData.forEach(sprint => {
-      if (sprint.issues) {
-        allIssues.push(...sprint.issues);
-      }
-    });
+    // 2. Add all epics directly
+    if (this.epicsData.length > 0) {
+      this.epicsData.forEach(epic => {
+        // Apply epic filter if any
+        if (this.selectedFilters.epics.length > 0 && 
+            !this.selectedFilters.epics.includes(epic.name)) {
+          return;
+        }
 
-    // Group issues by epic
-    const epicGroups = this.groupIssuesByEpicId(allIssues);
-    
-    Object.entries(epicGroups).forEach(([epicId, issues]) => {
-      const epic = this.epicsData.find(e => e.id === epicId);
-      if (!epic) return;
-      
-      // Apply epic filter if any
-      if (this.selectedFilters.epics.length > 0 && 
-          !this.selectedFilters.epics.includes(epic.name)) {
-        return;
-      }
-
-      const epicStart = this.getEarliestDate(issues.map(i => i.createdAt));
-      const epicEnd = this.getLatestDate(issues.map(i => i.updatedAt));
-      
-      // Calculate epic progress
-      const epicProgress = this.calculateEpicProgress(issues);
-      
-      // Filter completed epics based on display options
-      const isEpicCompleted = epicProgress === 100 || epic.status === 'DONE';
-      if (!this.showCompleted && isEpicCompleted) {
-        return;
-      }
-      
-      // Filter epics by display range (only for completed epics)
-      if (isEpicCompleted && !this.isEpicInDisplayRange(epic, epicEnd)) {
-        return;
-      }
-      
-      // Add epic row
-      this.timelineRows.push({
-        id: epic.id,
-        type: 'epic',
-        name: epic.name,
-        status: epic.status || 'TODO',
-        startDate: epicStart,
-        endDate: epicEnd,
-        progress: epicProgress,
-        expanded: this.isRowExpanded(epic.id),
-        level: 0, // Epics are now at root level, not nested
-        visible: this.isItemInDateRange(epicStart, epicEnd)
-      });
-
-      // Add issue rows if epic is expanded
-      if (this.isRowExpanded(epic.id)) {
-        issues.forEach(issue => {
-          if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
-            this.timelineRows.push({
-              id: issue.id,
-              type: 'issue',
-              name: issue.title,
-              status: issue.status,
-              startDate: issue.createdAt,
-              endDate: issue.updatedAt,
-              progress: this.getIssueProgress(issue),
-              issueType: issue.type,
-              level: 1, // Issues are one level below epics
-              visible: this.isItemInDateRange(issue.createdAt, issue.updatedAt)
-            });
-          }
+        // Find issues for this epic with exact ID match
+        const epicIssues = this.allIssues.filter(issue => issue.epicId === epic.id);
+        
+        // Determine epic dates - ONLY use explicit startDate/dueDate, never createdAt/updatedAt
+        let epicStart: Date | undefined = undefined;
+        let epicEnd: Date | undefined = undefined;
+        
+        // Priority 1: Use epic's own dates if available
+        if (epic.startDate && epic.dueDate) {
+          epicStart = epic.startDate;
+          epicEnd = epic.dueDate;
+        } 
+        // Priority 2: Calculate from issues ONLY if they have explicit startDate/dueDate
+        else if (epicIssues.length > 0) {
+          const issueStarts = epicIssues.map(i => i.startDate).filter((d): d is Date => d !== undefined);
+          const issueEnds = epicIssues.map(i => i.dueDate).filter((d): d is Date => d !== undefined);
+          
+          if (issueStarts.length > 0) epicStart = this.getEarliestDate(issueStarts);
+          if (issueEnds.length > 0) epicEnd = this.getLatestDate(issueEnds);
+        }
+        // If no valid dates exist, leave as undefined (epic won't be shown in side panel)
+        
+        // Calculate epic progress
+        const epicProgress = epicIssues.length > 0 ? this.calculateEpicProgress(epicIssues) : 0;
+        
+        // Filter completed epics based on display options
+        const isEpicCompleted = epicProgress === 100 || epic.status === 'DONE';
+        if (!this.showCompleted && isEpicCompleted) {
+          return;
+        }
+        
+        // Filter epics by display range (only for completed epics)
+        if (isEpicCompleted && epicEnd && !this.isEpicInDisplayRange(epic, epicEnd)) {
+          return;
+        }
+        
+        // Only add epic to side panel if it has valid start and end dates
+        if (!epicStart || !epicEnd) {
+          return;
+        }
+        
+        // Add epic row
+        this.timelineRows.push({
+          id: epic.id,
+          type: 'epic',
+          name: epic.name,
+          status: epic.status || 'TODO',
+          startDate: epicStart,
+          endDate: epicEnd,
+          progress: epicProgress,
+          expanded: this.isRowExpanded(epic.id),
+          level: 0,
+          visible: this.isItemInDateRange(epicStart, epicEnd)
         });
-      }
-    });
+
+        // Add issue rows if epic is expanded
+        if (this.isRowExpanded(epic.id)) {
+          epicIssues.forEach(issue => {
+            const isTypeVisible = this.isIssueTypeVisible(issue.type);
+            const isStatusVisible = this.isIssueStatusVisible(issue.status);
+            
+            if (isTypeVisible && isStatusVisible) {
+              // ONLY use explicit startDate/dueDate - never use createdAt/updatedAt
+              const issueStart = issue.startDate;
+              const issueEnd = issue.dueDate;
+              
+              // Skip issues without valid dates
+              if (!issueStart || !issueEnd) {
+                return;
+              }
+              
+              this.timelineRows.push({
+                id: issue.id,
+                type: 'issue',
+                name: issue.title,
+                status: issue.status,
+                startDate: issueStart,
+                endDate: issueEnd,
+                progress: this.getIssueProgress(issue),
+                issueType: issue.type,
+                key: issue.key, // Add issue key for display
+                level: 1,
+                visible: this.isItemInDateRange(issueStart, issueEnd)
+              });
+            }
+          });
+        }
+      });
+    }
 
     this.updateDateHeaders();
     this.cdr.detectChanges();
   }
 
   private calculateDynamicDateRange(sprints: Sprint[]): void {
-    if (sprints.length === 0) {
+    const allDates: Date[] = [];
+    
+    // Include sprint dates
+    sprints.forEach(sprint => {
+      if (sprint.startDate) allDates.push(sprint.startDate);
+      if (sprint.endDate) allDates.push(sprint.endDate);
+    });
+    
+    // Include epic dates (epics with valid dates that will be shown)
+    this.epicsData.forEach(epic => {
+      if (epic.startDate) allDates.push(epic.startDate);
+      if (epic.dueDate) allDates.push(epic.dueDate);
+    });
+
+    // Only include issues with valid dates (no longer using createdAt/updatedAt)
+    sprints.forEach(sprint => {
+      if (sprint.issues && this.isRowExpanded(`sprint-${sprint.id}`)) {
+        sprint.issues.forEach(issue => {
+          if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
+            if (issue.startDate) allDates.push(issue.startDate);
+            if (issue.dueDate) allDates.push(issue.dueDate);
+          }
+        });
+      }
+    });
+    
+    // If no dates found, use default range around today
+    if (allDates.length === 0) {
       const now = new Date();
       switch (this.currentView) {
         case 'day':
@@ -416,24 +778,6 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       }
       return;
     }
-
-    const allDates: Date[] = [];
-    
-    sprints.forEach(sprint => {
-      allDates.push(sprint.startDate);
-      allDates.push(sprint.endDate);
-    });
-
-    sprints.forEach(sprint => {
-      if (sprint.issues && this.isRowExpanded(`sprint-${sprint.id}`)) {
-        sprint.issues.forEach(issue => {
-          if (this.isIssueTypeVisible(issue.type) && this.isIssueStatusVisible(issue.status)) {
-            allDates.push(issue.createdAt);
-            allDates.push(issue.updatedAt);
-          }
-        });
-      }
-    });
 
     const earliestDate = this.getEarliestDate(allDates);
     const latestDate = this.getLatestDate(allDates);
@@ -473,18 +817,28 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private isIssueTypeVisible(issueType: string): boolean {
     if (this.selectedFilters.types.length === 0) return true;
-    return this.selectedFilters.types.includes(issueType.toLowerCase());
+    // Convert both to lowercase for comparison
+    const lowerType = issueType.toLowerCase();
+    return this.selectedFilters.types.some(filterType => 
+      filterType.toLowerCase() === lowerType
+    );
   }
 
   private isIssueStatusVisible(issueStatus: string): boolean {
     if (this.selectedFilters.status.length === 0) return true;
-    const statusMap: { [key: string]: string } = {
+    
+    // Map issue status to filter value using the same logic as getStatusValue
+    const upperName = issueStatus.toUpperCase().replace(/_/g, '');
+    
+    const mappings: { [key: string]: string } = {
       'TODO': 'todo',
-      'IN_PROGRESS': 'progress',
+      'INPROGRESS': 'progress',
       'DONE': 'done',
-      'IN_REVIEW': 'progress'
+      'INREVIEW': 'review',
+      'BLOCKED': 'blocked'
     };
-    const filterStatus = statusMap[issueStatus] || issueStatus.toLowerCase();
+    
+    const filterStatus = mappings[upperName] || issueStatus.toLowerCase().replace(/_/g, '');
     return this.selectedFilters.status.includes(filterStatus);
   }
 
@@ -572,6 +926,7 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
     
     let current = new Date(start.getFullYear(), start.getMonth(), 1);
     
+    // Show ALL months consecutively without gaps
     while (current <= end) {
       const monthName = this.currentView === 'year' 
         ? current.toLocaleDateString('en-US', { month: 'short' })
@@ -586,13 +941,12 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       const left = this.getDatePositionInPixels(monthStart);
       const width = this.getDatePositionInPixels(monthEnd) - left;
       
-      if (width > 30) {
-        this.monthHeaders.push({
-          name: monthName,
-          left: left,
-          width: width
-        });
-      }
+      // Always show month header, no minimum width check
+      this.monthHeaders.push({
+        name: monthName,
+        left: left,
+        width: width
+      });
       
       current.setMonth(current.getMonth() + 1);
     }
@@ -702,12 +1056,16 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   onIssueClick(event: Event, issueId: string): void {
     event.stopPropagation(); // Prevent any parent clicks
     
-    // Find the issue from all sprints
-    let foundIssue: Issue | null = null;
-    for (const sprint of this.projectData) {
-      if (sprint.issues) {
-        foundIssue = sprint.issues.find(i => i.id === issueId) || null;
-        if (foundIssue) break;
+    // First try to find in allIssues (main source of truth)
+    let foundIssue = this.allIssues.find(i => i.id === issueId);
+    
+    // If not found, search in sprint issues as fallback
+    if (!foundIssue) {
+      for (const sprint of this.projectData) {
+        if (sprint.issues) {
+          foundIssue = sprint.issues.find(i => i.id === issueId);
+          if (foundIssue) break;
+        }
       }
     }
     
@@ -776,6 +1134,8 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getStatusLabel(status: string): string {
+    if (!status) return 'To Do';
+    
     const statusLabelMap: { [key: string]: string } = {
       'COMPLETED': 'Done',
       'ACTIVE': 'In Progress',
@@ -783,9 +1143,20 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
       'DONE': 'Done',
       'IN_PROGRESS': 'In Progress',
       'TODO': 'To Do',
-      'IN_REVIEW': 'In Progress'
+      'TO_DO': 'To Do',
+      'IN_REVIEW': 'In Review',
+      'BLOCKED': 'Blocked'
     };
-    return statusLabelMap[status] || 'To Do';
+    
+    const upperStatus = status.toUpperCase();
+    
+    // If we have a mapped label, use it
+    if (statusLabelMap[upperStatus]) {
+      return statusLabelMap[upperStatus];
+    }
+    
+    // Otherwise, format the status name nicely
+    return this.formatStatusName(status);
   }
 
   getTypeIcon(issueType?: string): string {
@@ -1063,22 +1434,14 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private getUniqueEpics(): string[] {
-    const epicSet = new Set<string>();
+    // Only show epics that have valid dates (startDate AND dueDate)
+    // This matches what's displayed on the timeline
+    const epicNames = this.epicsData
+      .filter(epic => epic.startDate && epic.dueDate)
+      .map(epic => epic.name)
+      .filter(name => name && name.trim() !== '');
     
-    // Get epics from all sprints (no filtering)
-    this.projectData.forEach(sprint => {
-      if (sprint.issues && sprint.issues.length > 0) {
-        sprint.issues.forEach((issue: Issue) => {
-          if (issue.epicId) {
-            const epic = this.epicsData.find(e => e.id === issue.epicId);
-            if (epic) {
-              epicSet.add(epic.name);
-            }
-          }
-        });
-      }
-    });
-    return Array.from(epicSet);
+    return epicNames;
   }
 
   private groupIssuesByEpicId(issues: Issue[]): Record<string, Issue[]> {
@@ -1128,5 +1491,59 @@ export class TimelineChart implements OnInit, AfterViewInit, OnDestroy {
 
   private applyFilters() {
     this.prepareTimelineData();
+  }
+
+  /**
+   * Format status name for display (e.g., "IN_PROGRESS" -> "In Progress")
+   */
+  private formatStatusName(statusName: string): string {
+    if (!statusName) return '';
+    
+    // Handle common status mappings
+    const mappings: { [key: string]: string } = {
+      'TODO': 'To Do',
+      'TO_DO': 'To Do',
+      'IN_PROGRESS': 'In Progress',
+      'INPROGRESS': 'In Progress',
+      'DONE': 'Done',
+      'IN_REVIEW': 'In Review',
+      'BLOCKED': 'Blocked'
+    };
+
+    const upperName = statusName.toUpperCase();
+    if (mappings[upperName]) {
+      return mappings[upperName];
+    }
+
+    // Convert snake_case to Title Case
+    return statusName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  /**
+   * Get filter value for status (used in filtering logic)
+   */
+  private getStatusValue(statusName: string): string {
+    if (!statusName) return '';
+    
+    const upperName = statusName.toUpperCase().replace(/_/g, '');
+    
+    // Map to filter values
+    const mappings: { [key: string]: string } = {
+      'TODO': 'todo',
+      'INPROGRESS': 'progress',
+      'DONE': 'done',
+      'INREVIEW': 'review',
+      'BLOCKED': 'blocked'
+    };
+
+    if (mappings[upperName]) {
+      return mappings[upperName];
+    }
+
+    // Default: lowercase with underscores removed
+    return statusName.toLowerCase().replace(/_/g, '');
   }
 }

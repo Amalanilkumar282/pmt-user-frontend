@@ -1,5 +1,30 @@
 <div class="bg-gray-100 min-h-screen">
-  <div class="mt-5 bg-white rounded-lg shadow-md w-full max-w-[1800px] mx-auto">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="flex items-center justify-center min-h-[500px]">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+      <p class="text-gray-600 text-lg font-medium">Loading timeline data...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="flex items-center justify-center min-h-[500px]">
+    <div class="text-center bg-red-50 border-2 border-red-300 rounded-lg p-8 max-w-md mx-auto">
+      <svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <h3 class="text-xl font-semibold text-red-800 mb-2">Error Loading Timeline</h3>
+      <p class="text-red-600">{{ errorMessage }}</p>
+      <button 
+        (click)="projectId && loadTimelineData(projectId)" 
+        class="mt-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+        Retry
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading && !errorMessage" class="mt-5 bg-white rounded-lg shadow-md w-full max-w-[1800px] mx-auto">
     
     <!-- Timeline Header Component -->
     <app-timeline-header
@@ -8,6 +33,7 @@
       [selectedFilters]="selectedFilters"
       [availableEpics]="availableEpics"
       [selectedEpic]="selectedEpic"
+      [statusOptions]="availableStatuses"
       (viewChanged)="onViewChanged($event)"
       (filterToggled)="onFilterToggled($event)"
       (filtersCleared)="onFiltersCleared()"
@@ -97,7 +123,7 @@
                        class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <circle cx="8" cy="8" r="5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
                   </svg>
-                  <span class="text-xs text-gray-600 truncate max-w-[70px]">{{ row.id }}</span>
+                  <span class="text-xs font-semibold text-indigo-600 truncate max-w-[70px]">{{ row.key || 'N/A' }}</span>
                   <span class="text-sm text-gray-800 flex-1 truncate">{{ row.name }}</span>
                   <span class="px-1.5 py-0.5 text-xs rounded text-white"
                         [ngClass]="getStatusBadgeClass(row.status)">
@@ -156,7 +182,9 @@
         </div>
 
         <!-- Chart Content Area (Scrollable) -->
-        <div class="chart-content" #chartContent (scroll)="onChartScroll($event)">
+        <div class="chart-content" 
+             #chartContent 
+             (scroll)="onChartScroll($event)">
           <!-- Chart Canvas -->
           <div class="chart-canvas" [style.min-width.px]="chartWidth" [style.width.px]="chartWidth">
             <!-- Grid Lines (Behind content) -->
@@ -177,13 +205,14 @@
                      [class.epic-row]="row.type === 'epic'"
                      [class.issue-row]="row.type === 'issue'">
                   
-                  <!-- Sprints Overview Row - Multiple Sprint Bars -->
+                  <!-- Sprints Overview Row - Multiple Sprint Bars (only show sprints with valid dates) -->
                   <ng-container *ngIf="row.type === 'sprints-overview' && row.sprints">
                     <div *ngFor="let sprint of row.sprints" 
                          class="timeline-bar sprint-bar"
-                         [style.left.px]="getBarPosition(sprint.startDate)"
-                         [style.width.px]="getBarWidth(sprint.startDate, sprint.endDate)"
-                         [title]="getTooltipText(sprint.name, sprint.startDate, sprint.endDate)">
+                         [style.left.px]="sprint.startDate && sprint.endDate ? getBarPosition(sprint.startDate) : 0"
+                         [style.width.px]="sprint.startDate && sprint.endDate ? getBarWidth(sprint.startDate, sprint.endDate) : 0"
+                         [style.display]="sprint.startDate && sprint.endDate ? 'block' : 'none'"
+                         [title]="sprint.startDate && sprint.endDate ? getTooltipText(sprint.name, sprint.startDate, sprint.endDate) : ''">
                       <div class="bar-label">
                         {{ sprint.name }}
                       </div>
@@ -235,25 +264,26 @@
       </div>
     </div>
   </div>
-</div>
 
-<!-- Epic Detailed View Side Panel -->
-@if (isEpicModalOpen && selectedEpicForModal) {
-  <div class="epic-detail-overlay" (click)="closeEpicModal()">
-    <div class="epic-detail-side-panel" (click)="$event.stopPropagation()">
-      <app-epic-detailed-view 
-        [epic]="selectedEpicForModal" 
-        (close)="closeEpicModal()" 
-        (epicUpdated)="onEpicUpdated($event)">
-      </app-epic-detailed-view>
+  <!-- Epic Detailed View Side Panel -->
+  @if (isEpicModalOpen && selectedEpicForModal) {
+    <div class="epic-detail-overlay" (click)="closeEpicModal()">
+      <div class="epic-detail-side-panel" (click)="$event.stopPropagation()">
+        <app-epic-detailed-view 
+          [epic]="selectedEpicForModal" 
+          (close)="closeEpicModal()" 
+          (epicUpdated)="onEpicUpdated($event)">
+        </app-epic-detailed-view>
+      </div>
     </div>
-  </div>
-}
+  }
 
-<!-- Issue Detailed View Modal -->
-<app-issue-detailed-view 
-  [issue]="selectedIssueForModal"
-  [isOpen]="isIssueModalOpen"
-  (close)="closeIssueModal()" 
-  (deleteIssue)="onIssueDeleted($event)">
-</app-issue-detailed-view>
+  <!-- Issue Detailed View Modal -->
+  <app-issue-detailed-view 
+    [issue]="selectedIssueForModal"
+    [isOpen]="isIssueModalOpen"
+    (close)="closeIssueModal()" 
+    (deleteIssue)="onIssueDeleted($event)">
+  </app-issue-detailed-view>
+
+</div> <!-- End of bg-gray-100 wrapper -->

@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Output, Input, signal } from '@angular/core';
+import { Component, EventEmitter, Output, Input, signal, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../auth/auth.service';
 
 export interface FilterCriteria {
   searchText: string;
@@ -8,13 +9,16 @@ export interface FilterCriteria {
   type: string | null;
   priority: string | null;
   status: string | null;
-  assignee: string | null;
+  assignees: string[];
   sort: string;
   // New fields
   view: 'sprints' | 'all-issues';
   epicId: string | null;
   showCompletedSprints: boolean;
   showEpicPanel: boolean;
+  // Current user info for filtering
+  currentUserId?: string | null;
+  currentUserName?: string | null;
 }
 
 @Component({
@@ -26,6 +30,8 @@ export interface FilterCriteria {
 })
 export class Filters {
   @Output() filtersChanged = new EventEmitter<FilterCriteria>();
+
+  private authService = inject(AuthService);
 
   // Collapse state
   isCollapsed = signal(false);
@@ -40,7 +46,7 @@ export class Filters {
   selectedType: string | null = null;
   selectedPriority: string | null = null;
   selectedStatus: string | null = null;
-  selectedAssignee: string | null = null;
+  selectedAssignees: string[] = [];
   selectedSort: string = 'Recently Updated';
 
   // Dropdown state
@@ -54,6 +60,28 @@ export class Filters {
 
   // Epic options - will be passed from parent
   @Input() epicOptions: Array<{ id: string, name: string }> = [];
+  
+  // Project members options - will be passed from parent
+  @Input() projectMembers: Array<{ id: number | string, name: string }> = [];
+
+  // Get current user info
+  get currentUserId(): string | null {
+    return this.authService.currentUserValue?.userId || null;
+  }
+
+  get currentUserName(): string | null {
+    return this.authService.currentUserValue?.name || null;
+  }
+
+  // Close dropdown when clicking outside
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    // Check if click is outside all dropdowns
+    if (!target.closest('.filter-dropdown')) {
+      this.openDropdown = null;
+    }
+  }
 
   onSearchChange(): void {
     this.emitFilters();
@@ -95,9 +123,19 @@ export class Filters {
     this.emitFilters();
   }
 
-  selectAssignee(assignee: string | null): void {
-    this.selectedAssignee = assignee;
-    this.openDropdown = null;
+  toggleAssignee(assignee: string | null): void {
+    // null means 'All' -> clear selection
+    if (assignee === null) {
+      this.selectedAssignees = [];
+      this.openDropdown = null;
+      this.emitFilters();
+      return;
+    }
+
+    const idx = this.selectedAssignees.indexOf(assignee);
+    if (idx === -1) this.selectedAssignees = [...this.selectedAssignees, assignee];
+    else this.selectedAssignees = this.selectedAssignees.filter(a => a !== assignee);
+
     this.emitFilters();
   }
 
@@ -114,7 +152,7 @@ export class Filters {
       this.selectedType ||
       this.selectedPriority ||
       this.selectedStatus ||
-      this.selectedAssignee ||
+      (this.selectedAssignees && this.selectedAssignees.length > 0) ||
       this.selectedEpicId ||
       this.selectedSort !== 'Recently Updated');
   }
@@ -126,7 +164,7 @@ export class Filters {
     if (this.selectedType) count++;
     if (this.selectedPriority) count++;
     if (this.selectedStatus) count++;
-    if (this.selectedAssignee) count++;
+    if (this.selectedAssignees && this.selectedAssignees.length > 0) count++;
     if (this.selectedEpicId) count++;
     if (this.selectedSort !== 'Recently Updated') count++;
     return count;
@@ -138,7 +176,7 @@ export class Filters {
     this.selectedType = null;
     this.selectedPriority = null;
     this.selectedStatus = null;
-    this.selectedAssignee = null;
+    this.selectedAssignees = [];
     this.selectedEpicId = null;
     this.selectedSort = 'Recently Updated';
     // Keep view and toggle states when clearing filters
@@ -183,13 +221,16 @@ export class Filters {
       type: this.selectedType,
       priority: this.selectedPriority,
       status: this.selectedStatus,
-      assignee: this.selectedAssignee,
+      assignees: this.selectedAssignees,
       sort: this.selectedSort,
       view: this.currentView,
       epicId: this.selectedEpicId,
       showCompletedSprints: this.showCompletedSprints(),
-      showEpicPanel: this.showEpicPanel()
+      showEpicPanel: this.showEpicPanel(),
+      currentUserId: this.currentUserId,
+      currentUserName: this.currentUserName
     };
     this.filtersChanged.emit(criteria);
   }
 }
+

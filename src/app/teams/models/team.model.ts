@@ -5,6 +5,7 @@ export interface TeamMember {
   role: 'Team Lead' | 'Developer' | 'Designer' | 'Tester' | 'Product Owner' | 'Scrum Master';
   avatar?: string;
   joinedDate: string;
+  projectMemberId?: number;
 }
 
 export interface Team {
@@ -16,6 +17,8 @@ export interface Team {
   lead: TeamMember;
   members: TeamMember[];
   activeSprints: string[];
+  activeSprintsCount?: number;
+  completedSprintsCount?: number;
   createdAt: string;
   updatedAt: string;
   status: 'Active' | 'Inactive';
@@ -35,16 +38,18 @@ export interface CreateTeamDto {
   name: string;
   description: string;
   projectId: string;
-  leadId: string;
-  memberIds: string[];
-  tags?: string[];
+  leadId: number;
+  memberIds: number[];
+  label?: string[];
+  createdBy?: number;
 }
 
 export interface UpdateTeamDto {
-  name?: string;
-  description?: string;
-  leadId?: string;
-  memberIds?: string[];
-  status?: 'Active' | 'Inactive';
-  tags?: string[];
+  name: string;
+  description: string;
+  leadId: number;
+  memberIds: number[];
+  label: string[];
+  isActive: boolean;
+  updatedBy: number;
 }

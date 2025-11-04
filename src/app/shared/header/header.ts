@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarStateService } from '../services/sidebar-state.service';
 import { ModalService } from '../../modal/modal-service';
@@ -6,6 +6,7 @@ import { Searchbar } from '../searchbar/searchbar';
 import { SummaryModal } from '../summary-modal/summary-modal';
 import { Notification } from '../notification/notification';
 import { ProfileButton } from '../profile-button/profile-button';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -14,9 +15,10 @@ import { ProfileButton } from '../profile-button/profile-button';
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
-export class Header {
+export class Header implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private modalService = inject(ModalService);
+  private authService = inject(AuthService);
 
   // Summary modal state
   showSummaryModal: boolean = false;
@@ -55,6 +57,16 @@ export class Header {
   userName: string = 'Harrel Alex';
   userEmail: string = 'harrel.alex@example.com';
 
+  ngOnInit(): void {
+    // Get user info from auth service
+    this.authService.currentUser.subscribe(user => {
+      if (user) {
+        this.userName = user.name;
+        this.userEmail = user.email;
+      }
+    });
+  }
+
   toggleSidebar(): void {
     this.sidebarStateService.toggleCollapse();
   }
@@ -68,9 +80,13 @@ export class Header {
 
     // Map the fields to the modal configuration
     const issueType = fields.issueType || 'Task';
+    const title = fields.title || '';
     const summary = fields.summary || '';
     const description = fields.description || '';
     const priority = fields.priority || 'Medium';
+    const storyPoint = fields.storyPoint || '';
+
+    const userOptions = ['Unassigned', 'John Doe', 'Jane Smith', 'Bob Johnson'];
 
     // Open the create issue modal with pre-filled data
     this.modalService.open({
@@ -114,38 +130,68 @@ export class Header {
           label: 'Assignee',
           type: 'select',
           model: 'assignee',
-          options: ['Unassigned', 'John Doe', 'Jane Smith', 'Bob Johnson'],
-          colSpan: 1,
+          options: userOptions,
+          colSpan: 1
         },
         {
-          label: 'Sprint',
-          type: 'select',
-          model: 'sprint',
-          options: ['Backlog', 'Sprint 1', 'Sprint 2', 'Sprint 3'],
-          colSpan: 1,
-        },
-        {
-          label: 'Story Points',
-          type: 'number',
-          model: 'storyPoints',
-          colSpan: 1,
+          label: 'Start Date',
+          type: 'date',
+          model: 'startDate',
+          colSpan: 1
         },
         {
           label: 'Due Date',
           type: 'date',
           model: 'dueDate',
-          colSpan: 1,
+          colSpan: 1
         },
+        {
+          label: 'Sprint',
+          type: 'select',
+          model: 'sprint',
+          options: ['Sprint 1', 'Sprint 2', 'Sprint 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Story Point',
+          type: 'number',
+          model: 'storyPoint',
+          colSpan: 1
+        },
+        {
+          label: 'Parent Epic',
+          type: 'select',
+          model: 'parentEpic',
+          options: ['Epic 1', 'Epic 2', 'Epic 3'],
+          colSpan: 1
+        },
+        {
+          label: 'Reporter',
+          type: 'select',
+          model: 'reporter',
+          options: userOptions,
+          required: true,
+          colSpan: 1
+        },
+        {
+          label: 'Attachments',
+          type: 'file',
+          model: 'attachments',
+          colSpan: 2
+        }
       ],
       data: {
         issueType: issueType,
-        summary: summary,
+        summary: title || summary,
         description: description,
         priority: priority,
         assignee: 'Unassigned',
-        sprint: 'Backlog',
-        storyPoints: '',
+        startDate: '',
         dueDate: '',
+        sprint: 'Sprint 1',
+        storyPoint: storyPoint,
+        parentEpic: '',
+        reporter: userOptions[0] || 'Unassigned',
         labels: [],
         attachments: [],
       },

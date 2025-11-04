@@ -7,6 +7,8 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 import { Header } from '../../shared/header/header';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
+import { ProjectService } from '../services/project.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-projects-page',
@@ -18,6 +20,9 @@ import { ProjectContextService } from '../../shared/services/project-context.ser
 export class ProjectsPage implements OnInit {
   private sidebarStateService = inject(SidebarStateService);
   private projectContextService = inject(ProjectContextService);
+  private projectService = inject(ProjectService);
+  private router = inject(Router);
+
   isCollapsed = this.sidebarStateService.isCollapsed;
 
   searchQuery = '';
@@ -25,73 +30,69 @@ export class ProjectsPage implements OnInit {
   showStarredOnly = false;
   selectedStatus = 'all';
   selectedDU = 'all';
+  isLoading = signal<boolean>(true);
+  errorMessage = signal<string | null>(null);
 
-  private _projects = signal<Project[]>([
-    {
-      id: '1',
-      name: 'Website Redesign',
-      status: 'active',
-      du: 'ATC',
-      lastUpdated: '2025-10-07T10:30:00Z',
-      teamMembers: ['JD', 'SM', 'AK'],
-      starred: true,
-    },
-    {
-      id: '2',
-      name: 'Mobile App Development',
-      status: 'active',
-      du: 'DES',
-      lastUpdated: '2025-10-06T15:20:00Z',
-      teamMembers: ['SM', 'RK'],
-      starred: false,
-    },
-    {
-      id: '3',
-      name: 'Marketing Campaign',
-      status: 'inactive',
-      du: 'RWA',
-      lastUpdated: '2025-10-05T09:45:00Z',
-      teamMembers: ['AK', 'LM'],
-      starred: false,
-    },
-    {
-      id: '4',
-      name: 'Backend Infrastructure',
-      status: 'active',
-      du: 'DTS',
-      lastUpdated: '2025-10-07T08:15:00Z',
-      teamMembers: ['RK', 'JD'],
-      starred: true,
-    },
-    {
-      id: '5',
-      name: 'Customer Portal',
-      status: 'active',
-      du: 'ATC',
-      lastUpdated: '2025-10-06T11:00:00Z',
-      teamMembers: ['LM', 'SM'],
-      starred: false,
-    },
-  ]);
-
+  private _projects = signal<Project[]>([]);
   readonly projects = this._projects.asReadonly();
 
   private _filteredProjects = signal<Project[]>([]);
   readonly filteredProjects = this._filteredProjects.asReadonly();
 
-  constructor() {
-    this._filteredProjects.set(this._projects());
-  }
+  constructor() {}
 
   ngOnInit(): void {
     // Clear project context when viewing all projects
     this.projectContextService.clearCurrentProjectId();
+
+    // Load projects from backend
+    this.loadProjects();
+  }
+
+  /**
+   * Load projects for the current user from backend API
+   */
+  private loadProjects(): void {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    // Get user ID from session storage
+    const userId = this.projectService.getUserId();
+
+    if (!userId) {
+      console.log('⏭️ No user ID found - redirecting to login');
+      this.isLoading.set(false);
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    console.log('Loading projects for user ID:', userId);
+
+    // Fetch projects from backend
+    this.projectService.getProjectsByUserId(userId).subscribe({
+      next: (projects) => {
+        console.log('✅ Projects loaded successfully:', projects);
+        this._projects.set(projects);
+        this.filterProjects();
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('❌ Error loading projects:', error);
+        this.errorMessage.set(error.message || 'Failed to load projects. Please try again.');
+        this.isLoading.set(false);
+        // Auth interceptor will handle 401 errors and redirect to login
+      },
+    });
   }
 
   toggleProjectStar(projectId: string) {
+    // Toggle starred status in service (which updates session storage)
+    const newStarredStatus = this.projectService.toggleStarredStatus(projectId);
+
+    // Update local state
     const projects = this._projects();
     this._projects.set(
-      projects.map((p) => (p.id === projectId ? { ...p, starred: !p.starred } : p))
+      projects.map((p) => (p.id === projectId ? { ...p, starred: newStarredStatus } : p))
     );
     this.filterProjects();
   }

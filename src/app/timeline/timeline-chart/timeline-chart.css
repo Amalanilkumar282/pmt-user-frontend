@@ -260,12 +260,7 @@
   overflow-y: auto;
   position: relative;
   scroll-behavior: auto;
-  cursor: grab;
   user-select: none;
-}
-
-.chart-content:active {
-  cursor: grabbing;
 }
 
 .chart-canvas {

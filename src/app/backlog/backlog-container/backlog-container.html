@@ -21,7 +21,9 @@
       (cdkDropListDropped)="onDrop($event)">
       <app-issue-list 
         [issues]="paginatedIssues()"
-        (issueClick)="onIssueClick($event)">
+        (issueClick)="onIssueClick($event)"
+        (issueUpdated)="onIssueUpdatedInline($event)"
+        (issueDeleted)="onIssueDeletedInline($event)">
       </app-issue-list>
     </div>
 
@@ -102,6 +104,7 @@
   [isOpen]="isModalOpen()"
   [availableSprints]="availableSprints"
   (close)="onCloseModal()"
+  (updateIssue)="onUpdateIssue($event)"
   (deleteIssue)="onDeleteIssue($event)"
   (moveIssue)="onMoveIssue($event)">
 </app-issue-detailed-view>

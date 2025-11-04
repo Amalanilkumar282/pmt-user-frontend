@@ -28,6 +28,8 @@ export class BacklogContainer {
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
   @Input() connectedDropLists: string[] = [];
   @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
+  @Output() issueUpdated = new EventEmitter<Issue>();
+  @Output() issueDeleted = new EventEmitter<string>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -90,6 +92,24 @@ export class BacklogContainer {
   onDeleteIssue(issueId: string): void {
     console.log('Delete issue from backlog:', issueId);
     this.issues = this.issues.filter(i => i.id !== issueId);
+    this.issueDeleted.emit(issueId);
+    // Adjust current page if needed
+    if (this.paginatedIssues().length === 0 && this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+  
+  onIssueUpdatedInline(updatedIssue: Issue): void {
+    // Update local state
+    this.issues = this.issues.map(i => i.id === updatedIssue.id ? updatedIssue : i);
+    // Emit to parent
+    this.issueUpdated.emit(updatedIssue);
+  }
+  
+  onIssueDeletedInline(issueId: string): void {
+    // Update local state
+    this.issues = this.issues.filter(i => i.id !== issueId);
+    this.issueDeleted.emit(issueId);
     // Adjust current page if needed
     if (this.paginatedIssues().length === 0 && this.currentPage > 1) {
       this.currentPage--;
@@ -123,6 +143,23 @@ export class BacklogContainer {
 
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
+  }
+
+  onUpdateIssue(updates: Partial<Issue>): void {
+    console.log('[BacklogContainer] onUpdateIssue - updating local state with:', updates);
+    
+    const issue = this.selectedIssue();
+    if (!issue) {
+      console.error('[BacklogContainer] No selected issue found!');
+      return;
+    }
+
+    // Update the local issue in the list
+    const updatedIssue: Issue = { ...issue, ...updates };
+    this.issues = this.issues.map(i => i.id === issue.id ? updatedIssue : i);
+    this.selectedIssue.set(updatedIssue);
+    
+    console.log('[BacklogContainer] Local state updated successfully');
   }
 
   onDrop(event: CdkDragDrop<Issue[]>): void {

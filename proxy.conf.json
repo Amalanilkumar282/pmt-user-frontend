@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "target": "https://pmt-backend.runasp.net",
+    "secure": false,
+    "changeOrigin": true
+  }
+}

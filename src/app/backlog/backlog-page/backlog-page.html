@@ -11,6 +11,7 @@
   <!-- Epic Panel -->
   @if (isEpicPanelOpen) {
     <app-epic-container 
+      [projectId]="currentProjectId"
       [class.sidebar-collapsed]="isSidebarCollapsed()"
       (closeEpicPanel)="closeEpicPanel()"
       (viewDetails)="openEpicDetailView($event)"
@@ -26,7 +27,8 @@
       <app-epic-detailed-view 
         [epic]="selectedEpic"
         (close)="closeEpicDetailView()"
-        (epicUpdated)="onEpicUpdated($event)">
+        (epicUpdated)="onEpicUpdated($event)"
+        (epicDeleted)="onEpicDeleted($event)">
       </app-epic-detailed-view>
     </div>
   }
@@ -40,11 +42,12 @@
     <!-- Filters Section - Now includes view toggle, epic controls, and sprint visibility -->
     <app-filters 
       [epicOptions]="epicFilterOptions"
+      [projectMembers]="projectMembers"
       (filtersChanged)="onFiltersChanged($event)">
     </app-filters>
 
     <!-- Page Header - Simplified -->
-    <div class="page-header">
+    <div class="page-header" *hasPermission="'canManageTeams'">
       <button 
         class="create-sprint-btn"
         (click)="handleCreateSprint()">
@@ -140,12 +143,37 @@
   <!-- All Issues View -->
   @if (currentView === 'all-issues') {
     <section>
-      <app-all-issues-list 
-        [issues]="allIssues"
-        [availableSprints]="availableSprintsForMove"
-        (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
-      </app-all-issues-list>
+      @if (isLoadingIssues) {
+        <div class="flex items-center justify-center py-12">
+          <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600 mb-4"></div>
+            <p class="text-gray-600">Loading issues...</p>
+          </div>
+        </div>
+      } @else {
+        <app-all-issues-list 
+          [issues]="allIssues"
+          [availableSprints]="availableSprintsForMove"
+          (moveIssue)="handleMoveIssue($event.issueId, $event.destinationSprintId)">
+        </app-all-issues-list>
+      }
     </section>
   }
   </div>
 </div>
+
+
+<!-- Create Sprint Modal - Now using ModalService, no separate component needed -->
+
+<!-- AI Sprint Planning Modal -->
+@if (isAIModalOpen) {
+  <app-ai-sprint-modal
+    [isOpen]="isAIModalOpen"
+    [suggestions]="aiSuggestions"
+    [isLoading]="isLoadingAISuggestions"
+    [sprintId]="currentSprintData?.createdSprintId || null"
+    (close)="closeAIModal()"
+    (commit)="handleCommitAISuggestions($event)">
+  </app-ai-sprint-modal>
+}
+

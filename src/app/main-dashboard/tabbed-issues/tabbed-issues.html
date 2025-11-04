@@ -34,8 +34,14 @@
 
   <!-- Tab Content -->
   <div class="p-6 content">
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+      <p class="text-gray-500 text-sm">Loading issues...</p>
+    </div>
+
     <!-- Worked On Tab -->
-    <div *ngIf="activeTab === 'workedOn'">
+    <div *ngIf="!isLoading && activeTab === 'workedOn'">
       <div *ngIf="workedOnIssues.length === 0" class="text-center py-12">
         <div class="text-gray-400 mb-2">
           <i class="fa-solid fa-clipboard-check text-6xl"></i>
@@ -81,7 +87,7 @@
     </div>
 
     <!-- Assigned to Me Tab -->
-    <div *ngIf="activeTab === 'assigned'">
+    <div *ngIf="!isLoading && activeTab === 'assigned'">
       <div *ngIf="assignedIssues.length === 0" class="text-center py-12">
         <div class="text-gray-400 mb-2">
           <i class="fa-solid fa-user-check text-6xl"></i>

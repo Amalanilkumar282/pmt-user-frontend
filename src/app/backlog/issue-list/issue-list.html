@@ -8,10 +8,10 @@
     @for (issue of issues$(); track issue.id) {
       <div 
         cdkDrag
-        [cdkDragDisabled]="isReadOnly"
+        [cdkDragDisabled]="isReadOnly || editingField() !== null"
         [cdkDragData]="issue"
         [class]="'issue-card ' + (issue.status === 'DONE' ? 'completed-issue' : '') + (isReadOnly ? ' read-only' : '')"
-        (click)="onIssueClick(issue)"
+        (click)="!editingField() && onIssueClick(issue)"
         (cdkDragStarted)="onDragStarted()"
         (cdkDragEnded)="onDragEnded()">
         
@@ -19,10 +19,29 @@
           <!-- Left side: Icon, ID, Title -->
           <div class="flex items-center gap-2 flex-1 min-w-0">
             <i [class]="getTypeIcon(issue.type)" class="flex-shrink-0"></i>
-            <span [class]="'text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'text-green-600' : 'text-gray-500')">{{ issue.id }}</span>
-            <h4 [class]="'font-medium text-sm truncate ' + (issue.status === 'DONE' ? 'text-green-700 line-through' : 'text-gray-900')">
-              {{ issue.title }}
-            </h4>
+            <span [class]="'text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'text-green-600' : 'text-gray-500')">{{ issue.key || issue.id }}</span>
+            
+            <!-- Editable Title -->
+            @if (!isEditing(issue.id, 'title')) {
+              <h4 
+                [class]="'font-medium text-sm truncate cursor-pointer hover:bg-gray-100 px-1 rounded ' + (issue.status === 'DONE' ? 'text-green-700 line-through' : 'text-gray-900')"
+                (click)="startEdit(issue, 'title', $event)"
+                [title]="'Click to edit: ' + issue.title">
+                {{ issue.title }}
+              </h4>
+            } @else {
+              <input
+                type="text"
+                [(ngModel)]="tempValues()[issue.id].title"
+                (click)="$event.stopPropagation()"
+                (keyup.enter)="saveTitle(issue, $event)"
+                (keyup.escape)="cancelEdit()"
+                (blur)="saveTitle(issue)"
+                class="font-medium text-sm border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                style="min-width: 200px;"
+                autofocus />
+            }
+            
             @if (issue.status === 'DONE') {
               <i class="fa-solid fa-circle-check text-green-600 completed-badge-inline"></i>
             }
@@ -30,9 +49,27 @@
           
           <!-- Right side: Metadata -->
           <div class="flex items-center gap-2 flex-shrink-0">
-            <span [class]="'px-2 py-0.5 rounded text-xs font-medium ' + getPriorityClass(issue.priority)">
-              {{ issue.priority }}
-            </span>
+            <!-- Editable Priority -->
+            @if (!isEditing(issue.id, 'priority')) {
+              <span 
+                [class]="'px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:ring-2 hover:ring-blue-300 ' + getPriorityClass(issue.priority)"
+                (click)="startEdit(issue, 'priority', $event)"
+                title="Click to edit priority">
+                {{ issue.priority }}
+              </span>
+            } @else {
+              <select
+                [(ngModel)]="tempValues()[issue.id].priority"
+                (click)="$event.stopPropagation()"
+                (change)="savePriority(issue, tempValues()[issue.id].priority)"
+                (blur)="cancelEdit()"
+                class="px-2 py-0.5 rounded text-xs font-medium border border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                autofocus>
+                @for (priority of priorities; track priority) {
+                  <option [value]="priority">{{ priority }}</option>
+                }
+              </select>
+            }
             
             @if (issue.storyPoints) {
               <span [class]="'text-xs font-semibold px-2 py-0.5 rounded ' + (issue.status === 'DONE' ? 'text-green-700 bg-green-100' : 'text-gray-600 bg-gray-100')">
@@ -40,15 +77,61 @@
               </span>
             }
             
-            @if (issue.assignee) {
-              <span [class]="'w-6 h-6 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ' + (issue.status === 'DONE' ? 'bg-green-500' : 'bg-blue-500')">
-                {{ issue.assignee.charAt(0).toUpperCase() }}
+            <!-- Editable Assignee -->
+            @if (!isEditing(issue.id, 'assignee')) {
+              <span 
+                [class]="'w-6 h-6 text-white rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-300 ' + (issue.status === 'DONE' ? 'bg-green-500' : 'bg-blue-500')"
+                (click)="startEdit(issue, 'assignee', $event)"
+                [title]="'Click to edit assignee: ' + (issue.assigneeName || issue.assignee || 'Unassigned')">
+                {{ (issue.assigneeName || issue.assignee || 'U').charAt(0).toUpperCase() }}
               </span>
+            } @else {
+              <select
+                [(ngModel)]="tempValues()[issue.id].assignee"
+                (click)="$event.stopPropagation()"
+                (change)="saveAssignee(issue, tempValues()[issue.id].assignee)"
+                (blur)="cancelEdit()"
+                class="px-2 py-1 text-xs border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+                style="min-width: 120px;"
+                autofocus>
+                <option value="Unassigned">Unassigned</option>
+                @for (member of projectMembers(); track member.id) {
+                  <option [value]="member.name">{{ member.name }}</option>
+                }
+              </select>
             }
             
-            <span [class]="'px-2 py-0.5 rounded text-xs font-medium ' + (issue.status === 'DONE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600')">
-              {{ issue.status.replace('_', ' ') }}
-            </span>
+            <!-- Editable Status -->
+            @if (!isEditing(issue.id, 'status')) {
+              <span 
+                [class]="'px-2 py-0.5 rounded text-xs font-medium cursor-pointer hover:ring-2 hover:ring-blue-300 ' + (issue.status === 'DONE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600')"
+                (click)="startEdit(issue, 'status', $event)"
+                title="Click to edit status">
+                {{ getStatusDisplayName(issue.status) }}
+              </span>
+            } @else {
+              <select
+                [(ngModel)]="tempValues()[issue.id].status"
+                (click)="$event.stopPropagation()"
+                (change)="saveStatus(issue, tempValues()[issue.id].status)"
+                (blur)="cancelEdit()"
+                class="px-2 py-0.5 rounded text-xs font-medium border border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                autofocus>
+                @for (status of projectStatuses(); track status.id) {
+                  <option [value]="status.name">{{ getStatusDisplayName(status.name) }}</option>
+                }
+              </select>
+            }
+            
+            <!-- Delete Button -->
+            @if (!isReadOnly) {
+              <button
+                (click)="deleteIssue(issue, $event)"
+                class="w-6 h-6 flex items-center justify-center text-red-500 hover:bg-red-50 rounded transition-colors"
+                title="Delete issue">
+                <i class="fa-solid fa-trash text-xs"></i>
+              </button>
+            }
           </div>
         </div>
       </div>

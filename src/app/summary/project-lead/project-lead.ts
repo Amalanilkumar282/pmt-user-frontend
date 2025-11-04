@@ -16,5 +16,12 @@ const EMPTY_LEAD: Lead = { initials: '?', name: 'N/A', role: 'N/A', bgColor: '' 
   styleUrl: './project-lead.css',
 })
 export class ProjectLead {
-  @Input() leadData: Lead = EMPTY_LEAD;
+  private _leadData: Lead = EMPTY_LEAD;
+  @Input() set leadData(value: Lead | undefined) {
+    // Defensive: always use a valid Lead object
+    this._leadData = value && value.initials && value.name && value.role && value.bgColor !== undefined ? value : EMPTY_LEAD;
+  }
+  get leadData(): Lead {
+    return this._leadData;
+  }
 }

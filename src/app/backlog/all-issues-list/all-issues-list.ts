@@ -2,13 +2,14 @@ import { Component, Input, Output, EventEmitter, signal, computed } from '@angul
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { IssueDetailedView } from '../issue-detailed-view/issue-detailed-view';
 import { IssueList } from '../issue-list/issue-list';
 import { Issue } from '../../shared/models/issue.model';
 
 @Component({
   selector: 'app-all-issues-list',
-  imports: [CommonModule, FormsModule, DragDropModule, IssueDetailedView, IssueList],
+  imports: [CommonModule, FormsModule, DragDropModule, ScrollingModule, IssueDetailedView, IssueList],
   templateUrl: './all-issues-list.html',
   styleUrl: './all-issues-list.css'
 })
@@ -25,6 +26,8 @@ export class AllIssuesList {
   
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
   @Output() moveIssue = new EventEmitter<{ issueId: string, destinationSprintId: string | null }>();
+  @Output() issueUpdated = new EventEmitter<Issue>();
+  @Output() issueDeleted = new EventEmitter<string>();
 
   // Modal state
   protected selectedIssue = signal<Issue | null>(null);
@@ -72,11 +75,17 @@ export class AllIssuesList {
 
   // Separate completed and active issues
   protected completedIssues = computed(() => {
-    return this.paginatedIssues().filter(issue => issue.status === 'DONE');
+    return this.paginatedIssues().filter(issue => {
+      // Check both status and statusId for DONE/completed state
+      return issue.status === 'DONE' || issue.statusId === 4;
+    });
   });
 
   protected activeIssues = computed(() => {
-    return this.paginatedIssues().filter(issue => issue.status !== 'DONE');
+    return this.paginatedIssues().filter(issue => {
+      // Check both status and statusId for active state
+      return issue.status !== 'DONE' && issue.statusId !== 4;
+    });
   });
 
   toggleCollapse(): void {
@@ -129,6 +138,36 @@ export class AllIssuesList {
 
   onMoveIssue(event: { issueId: string, destinationSprintId: string | null }): void {
     this.moveIssue.emit(event);
+  }
+
+  onUpdateIssue(updates: Partial<Issue>): void {
+    console.log('[AllIssuesList] onUpdateIssue - updating local state with:', updates);
+    
+    const issue = this.selectedIssue();
+    if (!issue) {
+      console.error('[AllIssuesList] No selected issue found!');
+      return;
+    }
+
+    // Update the local issue in the list
+    const updatedIssue: Issue = { ...issue, ...updates };
+    this.issues = this.issues.map(i => i.id === issue.id ? updatedIssue : i);
+    this.selectedIssue.set(updatedIssue);
+    
+    console.log('[AllIssuesList] Local state updated successfully');
+  }
+  
+  onIssueUpdatedInline(updatedIssue: Issue): void {
+    // Update local state
+    this.issues = this.issues.map(i => i.id === updatedIssue.id ? updatedIssue : i);
+    // Emit to parent
+    this.issueUpdated.emit(updatedIssue);
+  }
+
+  onIssueDeletedInline(issueId: string): void {
+    // Update local state
+    this.issues = this.issues.filter(i => i.id !== issueId);
+    this.issueDeleted.emit(issueId);
   }
   
   onDropActiveIssues(event: CdkDragDrop<Issue[]>): void {

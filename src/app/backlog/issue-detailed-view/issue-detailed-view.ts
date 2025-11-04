@@ -1,18 +1,30 @@
-import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, inject, effect, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Issue } from '../../shared/models/issue.model';
 import { FormField, ModalService } from '../../modal/modal-service';
-import { users } from '../../shared/data/dummy-backlog-data';
+import { UserApiService, User } from '../../shared/services/user-api.service';
+import { ProjectContextService } from '../../shared/services/project-context.service';
+import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
+import { ToastService } from '../../shared/services/toast.service';
+import { SprintService } from '../../sprint/sprint.service';
+import { StatusApiService, Status } from '../../board/services/status-api.service';
+import { formatDisplayDate } from '../../shared/utils/date-formatter';
+import { ProjectMembersCacheService } from '../../shared/services/project-members-cache.service';
+import { EpicService } from '../../shared/services/epic.service';
+import { IssueCommentService, IssueComment, CommentMention } from '../../shared/services/issue-comment.service';
+import { UserContextService } from '../../shared/services/user-context.service';
 
 export interface Comment {
   id: string;
   author: string;
-  authorId: string;
+  authorId: number;
   content: string;
-  mentions: string[];
+  mentions: CommentMention[];
   createdAt: Date;
   updatedAt: Date;
+  isEditing?: boolean;
+  editText?: string;
 }
 
 @Component({
@@ -22,7 +34,18 @@ export interface Comment {
   styleUrl: './issue-detailed-view.css'
 })
 export class IssueDetailedView {
-  constructor(private modalService: ModalService) {} 
+  private modalService = inject(ModalService);
+  private userApiService = inject(UserApiService);
+  private membersCacheService = inject(ProjectMembersCacheService);
+  private projectContextService = inject(ProjectContextService);
+  private issueService = inject(IssueService);
+  private toastService = inject(ToastService);
+  private sprintService = inject(SprintService);
+  private statusApiService = inject(StatusApiService);
+  private epicService = inject(EpicService);
+  private commentService = inject(IssueCommentService);
+  private userContextService = inject(UserContextService);
+  private cdr = inject(ChangeDetectorRef);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -33,6 +56,7 @@ export class IssueDetailedView {
   }
   
   @Input() isReadOnly: boolean = false;
+  @Input() showMove: boolean = true; // allow parent to hide move controls (e.g., board view)
   
   @Output() close = new EventEmitter<void>();
   @Output() updateIssue = new EventEmitter<Partial<Issue>>();
@@ -42,9 +66,83 @@ export class IssueDetailedView {
   protected _issue = signal<Issue | null>(null);
   protected _isOpen = signal(false);
   protected showMoveDropdown = signal(false);
+  
+  // Project members for assignee dropdown
+  protected projectMembers = signal<User[]>([]);
 
   // Available sprints for moving (will be passed as input)
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
+
+  constructor() {
+    // Load project members when component initializes or project changes
+    effect(() => {
+      const projectId = this.projectContextService.currentProjectId();
+      if (projectId) {
+        this.loadProjectMembers(projectId);
+      }
+    });
+
+    // Load comments when issue changes
+    effect(() => {
+      const issue = this._issue();
+      if (issue && issue.id) {
+        this.loadComments(issue.id);
+      }
+    });
+  }
+
+  /**
+   * Load comments from backend when issue changes
+   */
+  private loadComments(issueId: string): void {
+    console.log('[IssueDetailedView] Loading comments for issue:', issueId);
+    this.isLoadingComments.set(true);
+    
+    this.commentService.getCommentsByIssue(issueId).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] ✅ Comments loaded successfully:', response);
+        
+        // Convert backend comments to local Comment interface
+        const convertedComments: Comment[] = response.data.map(c => ({
+          id: c.id,
+          author: c.authorName,
+          authorId: c.authorId,
+          content: c.body,
+          mentions: c.mentions,
+          createdAt: new Date(c.createdAt),
+          updatedAt: new Date(c.updatedAt)
+        }));
+        
+        console.log('[IssueDetailedView] Converted comments:', convertedComments);
+        this.comments.set(convertedComments);
+        this.isLoadingComments.set(false);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] ❌ Error loading comments:', error);
+        console.error('[IssueDetailedView] Error details:', {
+          message: error.message,
+          status: error.status,
+          issueId
+        });
+        this.comments.set([]);
+        this.isLoadingComments.set(false);
+        // Don't show error toast for loading comments - it's not critical
+      }
+    });
+  }
+  
+  private loadProjectMembers(projectId: string): void {
+    // Use cached service to prevent duplicate API calls
+    this.membersCacheService.getProjectMembers(projectId).subscribe({
+      next: (members) => {
+        this.projectMembers.set(members);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error loading project members:', error);
+        this.projectMembers.set([]);
+      }
+    });
+  }
 
   // Comment functionality
   protected comments = signal<Comment[]>([]);
@@ -52,12 +150,14 @@ export class IssueDetailedView {
   protected showMentionDropdown = signal(false);
   protected mentionSearchQuery = signal('');
   protected cursorPosition = signal(0);
+  protected isLoadingComments = signal(false);
   
-  protected availableUsers = signal(users);
+  // Use project members for mentions instead of dummy users
   protected filteredUsers = computed(() => {
     const query = this.mentionSearchQuery().toLowerCase();
-    if (!query) return this.availableUsers();
-    return this.availableUsers().filter(user => 
+    const members = this.projectMembers();
+    if (!query) return members;
+    return members.filter(user => 
       user.name.toLowerCase().includes(query) || 
       user.email.toLowerCase().includes(query)
     );
@@ -68,20 +168,103 @@ export class IssueDetailedView {
     const issue = this._issue();
     if (!issue) return;
 
-    const userOptions = users.map(u => u.name);
+    // Get project ID to fetch sprints, statuses, and epics
+    const projectId = issue.projectId || this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
+    if (!projectId) {
+      console.error('No project ID found for fetching sprints, statuses, and epics');
+      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], [], [], [], []); // Fallback
+      return;
+    }
+
+    // Fetch sprints, statuses, and epics in parallel
+    Promise.all([
+      this.sprintService.getSprintsByProject(projectId).toPromise(),
+      this.statusApiService.getStatusesByProject(projectId).toPromise().catch(() => null),
+      this.epicService.getAllEpicsByProject(projectId).toPromise().catch(() => [])
+    ]).then(([sprintResponse, statuses, epics]) => {
+      const allSprints = sprintResponse?.data || [];
+      // Filter out completed sprints
+      const sprints = allSprints.filter(sprint => sprint.status !== 'COMPLETED');
+      const sprintOptions = sprints.length > 0
+        ? sprints.map(sprint => sprint.name)
+        : ['No sprints available'];
+      
+      const statusesData = statuses || [
+        { id: 1, statusName: 'TODO' },
+        { id: 2, statusName: 'IN_PROGRESS' },
+        { id: 3, statusName: 'IN_REVIEW' },
+        { id: 4, statusName: 'DONE' },
+        { id: 5, statusName: 'BLOCKED' }
+      ];
+
+      const epicsData = epics || [];
+      const epicOptions = epicsData.length > 0
+        ? epicsData.map(epic => epic.title || epic.name)
+        : ['No epics available'];
+      
+      console.log('Fetched sprint options for edit:', sprintOptions);
+      console.log('Fetched status options for edit:', statusesData);
+      console.log('Fetched epic options for edit:', epicOptions);
+      
+      this.openEditModal(issue, sprintOptions, sprints, statusesData, statusesData, epicOptions, epicsData);
+    }).catch((err) => {
+      console.error('Failed to fetch data for edit modal:', err);
+      // Use default options
+      const defaultStatuses: Status[] = [
+        { id: 1, statusName: 'TODO' },
+        { id: 2, statusName: 'IN_PROGRESS' },
+        { id: 3, statusName: 'IN_REVIEW' },
+        { id: 4, statusName: 'DONE' },
+        { id: 5, statusName: 'BLOCKED' }
+      ];
+      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], defaultStatuses, defaultStatuses, ['Epic 1', 'Epic 2', 'Epic 3'], []);
+    });
+  }
+
+  private openEditModal(issue: Issue, sprintOptions: string[], sprintsData: any[], statusOptions: Status[], statusesData: Status[], epicOptions: string[], epicsData: any[]): void {
+
+    // Use project members loaded from API
+    const members = this.projectMembers();
+    let userOptions = members.length > 0 
+      ? members.map(m => ({ id: m.id.toString(), name: m.name }))
+      : []; // No fallback - members should be loaded from API
+
+    // If the issue has an assignee that's not in the project members, add them to the options
+    if (issue.assigneeName && !userOptions.find(u => u.name === issue.assigneeName)) {
+      console.log(`[Edit Issue] Adding missing assignee to options: ${issue.assigneeName} (ID: ${issue.assigneeId})`);
+      userOptions = [
+        { id: issue.assigneeId?.toString() || '', name: issue.assigneeName },
+        ...userOptions
+      ];
+    }
+
+    // Prepare status dropdown options
+    const statusDropdownOptions = statusOptions.length > 0
+      ? statusOptions.map(s => s.statusName)
+      : ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'BLOCKED'];
+
     const fields: FormField[] = [
       { label: 'Issue Type', type: 'select', model: 'issueType', options: ['Epic','Task','Story','Bug'], colSpan: 2, required: true },
       { label: 'Title', type: 'text', model: 'title', colSpan: 2, required: true },
       { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
       { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
-      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions, colSpan: 1 },
+      { label: 'Status', type: 'select', model: 'status', options: statusDropdownOptions, colSpan: 1 },
+      { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions.map(u => u.name), colSpan: 1 },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
-      { label: 'Sprint', type: 'select', model: 'sprint', options: ['Sprint 1','Sprint 2','Sprint 3'], colSpan: 1 },
+      { label: 'Sprint', type: 'select', model: 'sprint', options: sprintOptions, colSpan: 1 },
       { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 2 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: epicOptions, colSpan: 1 },
       { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
     ];
+
+    console.log('🔍 [Edit Issue] Field options:', {
+      assigneeOptions: userOptions.map(u => u.name),
+      sprintOptions,
+      statusOptions: statusDropdownOptions,
+      epicOptions,
+      members
+    });
 
     // Map priority to modal field options
     let priority = '';
@@ -91,6 +274,21 @@ export class IssueDetailedView {
       case 'MEDIUM': priority = 'Medium'; break;
       case 'LOW': priority = 'Low'; break;
       default: priority = ''; break;
+    }
+
+    // Find assignee name from ID
+    let assigneeName = '';
+    if (issue.assigneeName) {
+      // Use assigneeName from backend if available
+      assigneeName = issue.assigneeName;
+    } else if (issue.assigneeId) {
+      // Fallback: find by assigneeId
+      const assigneeUser = members.find(m => m.id === issue.assigneeId);
+      assigneeName = assigneeUser?.name || '';
+    } else if (issue.assignee) {
+      // Fallback: find by assignee string
+      const assigneeUser = members.find(m => m.id.toString() === issue.assignee);
+      assigneeName = assigneeUser?.name || '';
     }
 
     // Helper function to convert Date to YYYY-MM-DD format for date inputs
@@ -104,30 +302,246 @@ export class IssueDetailedView {
       return `${year}-${month}-${day}`;
     };
 
+    // Find sprint name from sprintId
+    let sprintName = '';
+    if (issue.sprintName) {
+      sprintName = issue.sprintName;
+    } else if (issue.sprintId && sprintsData.length > 0) {
+      const sprint = sprintsData.find(s => s.id === issue.sprintId);
+      sprintName = sprint?.name || '';
+    }
+
+    // Find status name from statusId
+    let statusName = '';
+    if (issue.statusName) {
+      statusName = issue.statusName;
+    } else if (issue.statusId && statusesData.length > 0) {
+      const status = statusesData.find(s => s.id === issue.statusId);
+      statusName = status?.statusName || '';
+    } else if (issue.status) {
+      // Fallback to status string
+      statusName = issue.status;
+    }
+
+    // Find epic name from epicId
+    let epicName = '';
+    if (issue.epicName) {
+      epicName = issue.epicName;
+    } else if (issue.epicId && epicsData.length > 0) {
+      const epic = epicsData.find(e => e.id === issue.epicId);
+      epicName = epic?.title || epic?.name || '';
+    }
+
+    // Prepare the data object
+    const modalData = {
+      issueType: issue.type || '',
+      title: issue.title || '',
+      description: issue.description || '',
+      priority,
+      status: statusName,
+      assignee: assigneeName,
+      startDate: formatDateForInput(issue.startDate),
+      dueDate: formatDateForInput(issue.dueDate),
+      sprint: sprintName,
+      storyPoint: issue.storyPoints || '',
+      parentEpic: epicName,
+      attachments: issue.attachmentUrl || '',
+      labels: issue.labels || []
+    };
+
+    console.log('🔍 [Edit Issue] Issue data:', {
+      issue,
+      assigneeName,
+      sprintName: issue.sprintName,
+      sprintId: issue.sprintId,
+      foundSprintName: sprintName,
+      statusName: issue.statusName,
+      statusId: issue.statusId,
+      foundStatusName: statusName,
+      epicName: issue.epicName,
+      epicId: issue.epicId,
+      foundEpicName: epicName,
+      attachmentUrl: issue.attachmentUrl,
+      modalData
+    });
+
     this.modalService.open({
       id: 'editIssueModal',
       title: `Edit Issue`,
       projectName: 'Project Alpha',
       modalDesc: 'Edit an existing issue in your project',
       fields,
-      data: {
-        issueType: issue.type || '',
-        title: issue.title || '',
-        description: issue.description || '',
-        priority,
-        assignee: issue.assignee || '',
-        startDate: formatDateForInput(issue.startDate),
-        dueDate: formatDateForInput(issue.dueDate),
-        sprint: issue.sprintId || '',
-        storyPoint: issue.storyPoints || '',
-        parentEpic: issue.epicId || '',
-        attachments: issue.attachments || [],
-        labels: issue.labels || []
-      },
+      data: modalData,
       showLabels: true,
-      submitText: 'Save Changes'
+      submitText: 'Save Changes',
+      onSubmit: (formData: any) => {
+        console.log('[IssueDetailedView] onSubmit called with formData:', formData);
+        console.log('[IssueDetailedView] Current issue:', issue);
+        console.log('[IssueDetailedView] statusesData:', statusesData);
+        
+        // Convert form data back to Issue partial updates
+        const updates: Partial<Issue> = {};
+        
+        if (formData.issueType) {
+          updates.type = formData.issueType.toUpperCase();
+        }
+        if (formData.title) {
+          updates.title = formData.title;
+        }
+        if (formData.description !== undefined) {
+          updates.description = formData.description;
+        }
+        if (formData.priority) {
+          updates.priority = formData.priority.toUpperCase();
+        }
+        
+        // Always process status if provided in formData
+        if (formData.status !== undefined && formData.status !== null && formData.status !== '') {
+          console.log('[IssueDetailedView] Processing status:', formData.status);
+          // Convert status name back to statusId
+          const selectedStatus = statusesData.find(s => s.statusName === formData.status);
+          console.log('[IssueDetailedView] Found status:', selectedStatus);
+          if (selectedStatus) {
+            updates.statusId = selectedStatus.id;
+            updates.status = formData.status.toUpperCase().replace(/ /g, '_');
+            console.log('[IssueDetailedView] Set statusId:', updates.statusId, 'status:', updates.status);
+          } else {
+            console.warn('[IssueDetailedView] Could not find status in statusesData:', formData.status);
+          }
+        }
+        
+        if (formData.assignee) {
+          // Convert assignee name back to ID
+          const assigneeUser = members.find(m => m.name === formData.assignee);
+          updates.assignee = assigneeUser ? assigneeUser.id.toString() : undefined;
+        }
+        if (formData.startDate) {
+          updates.startDate = new Date(formData.startDate);
+        }
+        if (formData.dueDate) {
+          updates.dueDate = new Date(formData.dueDate);
+        }
+        if (formData.sprint) {
+          // Convert sprint name back to ID
+          const selectedSprint = sprintsData.find(s => s.name === formData.sprint);
+          updates.sprintId = selectedSprint ? selectedSprint.id : formData.sprint;
+        }
+        if (formData.storyPoint) {
+          updates.storyPoints = Number(formData.storyPoint);
+        }
+        if (formData.parentEpic) {
+          // Convert epic name back to ID
+          const selectedEpic = epicsData.find(e => (e.title || e.name) === formData.parentEpic);
+          console.log('[IssueDetailedView] Found epic:', selectedEpic);
+          updates.epicId = selectedEpic ? selectedEpic.id : formData.parentEpic;
+          console.log('[IssueDetailedView] Set epicId:', updates.epicId);
+        }
+        if (formData.labels) {
+          updates.labels = formData.labels;
+        }
+        
+        console.log('[IssueDetailedView] Emitting issue updates:', updates);
+        
+        // Call the API to update the issue
+        this.updateIssueApi(issue, updates, statusesData);
+      }
     });
-}
+    
+    // Force change detection to ensure modal appears immediately
+    this.cdr.detectChanges();
+  }
+
+  private updateIssueApi(issue: Issue, updates: Partial<Issue>, statusesData: Status[] = []): void {
+    console.log('🚀 [IssueDetailedView] updateIssueApi CALLED!');
+    console.log('[IssueDetailedView] Updating issue:', issue.id, updates);
+    console.log('[IssueDetailedView] Current issue statusId:', issue.statusId);
+    console.log('[IssueDetailedView] Updates statusId:', updates.statusId);
+
+    // Helper to format dates to UTC ISO string
+    const formatDateToUTC = (date: Date | string | undefined): string | null => {
+      if (!date) return null;
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString();
+    };
+
+    // Determine the statusId to send to the backend
+    let statusId = issue.statusId || 1;
+    if (updates.statusId !== undefined) {
+      statusId = updates.statusId;
+      console.log('[IssueDetailedView] Using updated statusId:', statusId);
+    } else {
+      console.log('[IssueDetailedView] Using current statusId:', statusId);
+    }
+
+    // Build the update request matching the backend API format
+    const updateReq: UpdateIssueRequest = {
+      projectId: issue.projectId || '',
+      issueType: (updates.type || issue.type || 'TASK').toUpperCase(),
+      title: updates.title || issue.title,
+      description: updates.description !== undefined ? updates.description : (issue.description || ''),
+      priority: (updates.priority || issue.priority || 'MEDIUM').toUpperCase(),
+      assigneeId: updates.assignee ? parseInt(updates.assignee) : (issue.assigneeId || null),
+      startDate: formatDateToUTC(updates.startDate !== undefined ? updates.startDate : issue.startDate),
+      dueDate: formatDateToUTC(updates.dueDate !== undefined ? updates.dueDate : issue.dueDate),
+      sprintId: updates.sprintId !== undefined ? (updates.sprintId || null) : (issue.sprintId || null),
+      storyPoints: updates.storyPoints !== undefined ? updates.storyPoints : (issue.storyPoints || 0),
+      epicId: updates.epicId !== undefined ? (updates.epicId || null) : (issue.epicId || null),
+      reporterId: issue.reporterId || null,
+      attachmentUrl: updates.attachmentUrl !== undefined ? (updates.attachmentUrl || null) : (issue.attachmentUrl || null),
+      statusId: statusId,
+      labels: updates.labels ? JSON.stringify(updates.labels) : (issue.labels ? JSON.stringify(issue.labels) : null)
+    };
+
+    console.log('[IssueDetailedView] Sending update request:', updateReq);
+    console.log('[IssueDetailedView] Request JSON:', JSON.stringify(updateReq, null, 2));
+
+    // Call the API
+    this.issueService.updateIssue(issue.id, updateReq).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Issue updated successfully:', response);
+        
+        // Emit the update event for parent components to update their local state
+        this.updateIssue.emit(updates);
+        
+        // Update the local issue signal
+        const updatedIssue: Issue = { ...issue, ...updates };
+        this._issue.set(updatedIssue);
+        
+        this.toastService.success('Issue updated successfully!');
+        this.modalService.close();
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Failed to update issue:', error);
+        
+        // Access the original error from the interceptor wrapper
+        const originalError = error.originalError || error;
+        
+        console.error('[IssueDetailedView] Error details:', {
+          status: error.status,
+          statusText: originalError.statusText,
+          error: originalError.error,
+          validationErrors: originalError.error?.errors
+        });
+        
+        // Handle validation errors from the original error
+        if (originalError.error && originalError.error.errors) {
+          const errorMessages = Object.entries(originalError.error.errors)
+            .map(([field, messages]: [string, any]) => {
+              const msgArray = Array.isArray(messages) ? messages : [messages];
+              return `${field}: ${msgArray.join(', ')}`;
+            })
+            .join('; ');
+          console.error('[IssueDetailedView] Validation errors:', errorMessages);
+          this.toastService.error(`Validation failed: ${errorMessages}`);
+        } else if (error.message) {
+          this.toastService.error(`Failed to update issue: ${error.message}`);
+        } else {
+          this.toastService.error('Failed to update issue. Please try again.');
+        }
+      }
+    });
+  }
 
 
 
@@ -162,21 +576,20 @@ export class IssueDetailedView {
   }
 
   protected formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDisplayDate(date);
   }
 
   protected formatShortDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDisplayDate(date);
+  }
+
+  protected getProjectKey(): string | null {
+    const issue = this._issue();
+    if (!issue || !issue.key) return null;
+    
+    // Extract project key from issue key (e.g., "PROJ001-1" -> "PROJ001")
+    const parts = issue.key.split('-');
+    return parts.length > 1 ? parts[0] : null;
   }
 
   protected onClose(): void {
@@ -192,19 +605,51 @@ export class IssueDetailedView {
   protected onDelete(): void {
     if (this.isReadOnly) return;
     const issue = this._issue();
-    if (issue && confirm(`Are you sure you want to delete issue ${issue.id}?`)) {
-      this.deleteIssue.emit(issue.id);
-      this.onClose();
-    }
+    if (!issue) return;
+
+    // Show custom confirmation modal
+    this.modalService.open({
+      id: 'confirmDeleteIssue',
+      title: 'Delete Issue',
+      modalDesc: `Are you sure you want to delete issue "${issue.title}"? This action cannot be undone.`,
+      fields: [],
+      submitText: 'Delete',
+      showLabels: false,
+      onSubmit: () => {
+        console.log('[IssueDetailedView] Deleting issue:', issue.id);
+        this.toastService.info('Deleting issue...');
+
+        this.issueService.deleteIssue(issue.id).subscribe({
+          next: (response) => {
+            console.log('[IssueDetailedView] Issue deleted successfully:', response);
+            this.toastService.success('Issue deleted successfully!');
+            this.modalService.close();
+            
+            // Emit delete event for parent components to update their local state
+            this.deleteIssue.emit(issue.id);
+            
+            // Close the detailed view
+            this.onClose();
+          },
+          error: (error) => {
+            console.error('[IssueDetailedView] Failed to delete issue:', error);
+            this.toastService.error(error.message || 'Failed to delete issue. Please try again.');
+          }
+        });
+      }
+    });
+    
+    // Force change detection to ensure modal appears immediately
+    this.cdr.detectChanges();
   }
 
   protected toggleMoveDropdown(): void {
-    if (this.isReadOnly) return;
+    if (this.isReadOnly || !this.showMove) return;
     this.showMoveDropdown.set(!this.showMoveDropdown());
   }
 
   protected onMove(destinationSprintId: string | null, destinationName: string): void {
-    if (this.isReadOnly) return;
+    if (this.isReadOnly || !this.showMove) return;
     const issue = this._issue();
     if (issue) {
       if (confirm(`Move issue ${issue.id} to ${destinationName}?`)) {
@@ -266,15 +711,21 @@ export class IssueDetailedView {
     }
   }
 
-  protected extractMentions(text: string): string[] {
+  /**
+   * Extract mentioned user IDs from comment text
+   * Returns array of user IDs (numbers)
+   */
+  protected extractMentions(text: string): number[] {
     const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
-    const mentions: string[] = [];
+    const mentions: number[] = [];
     let match;
+    
+    const members = this.projectMembers();
     
     while ((match = mentionPattern.exec(text)) !== null) {
       const mentionedName = match[1];
-      // Verify it's a valid user
-      const user = this.availableUsers().find(u => u.name === mentionedName);
+      // Verify it's a valid user from project members
+      const user = members.find(u => u.name === mentionedName);
       if (user) {
         mentions.push(user.id);
       }
@@ -284,41 +735,216 @@ export class IssueDetailedView {
   }
 
   protected addComment(): void {
-    if (this.isReadOnly) return;
+    if (this.isReadOnly) {
+      console.warn('[IssueDetailedView] Cannot add comment - component is read-only');
+      return;
+    }
+    
     const text = this.newCommentText().trim();
-    if (!text) return;
+    if (!text) {
+      console.warn('[IssueDetailedView] Cannot add comment - text is empty');
+      this.toastService.error('Please enter a comment');
+      return;
+    }
     
-    const mentions = this.extractMentions(text);
-    const currentUser = users[0]; // Assuming first user is the current user
+    const issue = this._issue();
+    if (!issue) {
+      console.error('[IssueDetailedView] Cannot add comment - no issue loaded');
+      this.toastService.error('No issue selected');
+      return;
+    }
     
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      author: currentUser.name,
-      authorId: currentUser.id,
-      content: text,
-      mentions: mentions,
-      createdAt: new Date(),
-      updatedAt: new Date()
+    console.log('[IssueDetailedView] Current issue:', {
+      id: issue.id,
+      title: issue.title,
+      projectId: issue.projectId
+    });
+    
+    // Get current user ID from session
+    const currentUserId = this.userContextService.getCurrentUserId();
+    console.log('[IssueDetailedView] Current user ID from context:', currentUserId);
+    
+    if (!currentUserId) {
+      console.error('[IssueDetailedView] User not authenticated - no userId in session');
+      this.toastService.error('User not authenticated. Please log in.');
+      return;
+    }
+    
+    // Extract mentioned user IDs
+    const mentionedUserIds = this.extractMentions(text);
+    
+    const requestPayload = {
+      issueId: issue.id,
+      body: text,
+      authorId: currentUserId,
+      mentionedUserIds
     };
     
-    this.comments.update(comments => [...comments, newComment]);
-    this.newCommentText.set('');
-    this.showMentionDropdown.set(false);
+    console.log('[IssueDetailedView] Creating comment with payload:', requestPayload);
+    console.log('[IssueDetailedView] Request JSON:', JSON.stringify(requestPayload, null, 2));
     
-    // Notify mentioned users (you can emit an event here for parent component to handle)
-    if (mentions.length > 0) {
-      console.log('Mentioned users:', mentions);
-      // this.mentionNotification.emit({ issueId: this._issue()!.id, mentions });
-    }
+    // Call the API to create comment
+    this.commentService.createComment(requestPayload).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] ✅ Comment created successfully:', response);
+        this.toastService.success('Comment added successfully!');
+        
+        // Reload comments to get the full comment with author details
+        this.loadComments(issue.id);
+        
+        // Clear input
+        this.newCommentText.set('');
+        this.showMentionDropdown.set(false);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] ❌ Error creating comment:', error);
+        console.error('[IssueDetailedView] Error details:', {
+          message: error.message,
+          status: error.status,
+          originalError: error.originalError
+        });
+        
+        // Provide more specific error messages
+        let errorMsg = 'Failed to add comment. ';
+        if (error.status === 0) {
+          errorMsg += 'Cannot connect to server. Please check if the backend is running.';
+        } else if (error.status === 400) {
+          errorMsg += 'Invalid request. Please check the comment data.';
+        } else if (error.status === 401) {
+          errorMsg += 'You are not authorized. Please log in again.';
+        } else if (error.status === 404) {
+          errorMsg += 'Issue not found.';
+        } else {
+          errorMsg += error.message || 'Please try again.';
+        }
+        
+        this.toastService.error(errorMsg);
+      }
+    });
   }
 
   protected deleteComment(commentId: string): void {
     if (this.isReadOnly) return;
+    
+    const issue = this._issue();
+    if (!issue) return;
+    
     if (confirm('Are you sure you want to delete this comment?')) {
-      this.comments.update(comments => 
-        comments.filter(c => c.id !== commentId)
-      );
+      console.log('[IssueDetailedView] Deleting comment:', commentId);
+      
+      this.commentService.deleteComment(commentId).subscribe({
+        next: (response) => {
+          console.log('[IssueDetailedView] Comment deleted successfully:', response);
+          this.toastService.success('Comment deleted successfully!');
+          
+          // Remove comment from local state
+          this.comments.update(comments => 
+            comments.filter(c => c.id !== commentId)
+          );
+        },
+        error: (error) => {
+          console.error('[IssueDetailedView] Error deleting comment:', error);
+          this.toastService.error(error.message || 'Failed to delete comment. Please try again.');
+        }
+      });
     }
+  }
+
+  /**
+   * Enable edit mode for a comment
+   */
+  protected editComment(comment: Comment): void {
+    if (this.isReadOnly) return;
+    
+    // Set edit mode and populate edit text
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        isEditing: c.id === comment.id,
+        editText: c.id === comment.id ? c.content : c.editText
+      }))
+    );
+  }
+
+  /**
+   * Cancel editing a comment
+   */
+  protected cancelEditComment(commentId: string): void {
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        isEditing: c.id === commentId ? false : c.isEditing,
+        editText: c.id === commentId ? undefined : c.editText
+      }))
+    );
+  }
+
+  /**
+   * Save edited comment
+   */
+  protected saveEditComment(comment: Comment): void {
+    if (this.isReadOnly) return;
+    
+    const editText = comment.editText?.trim();
+    if (!editText) {
+      this.toastService.error('Comment cannot be empty');
+      return;
+    }
+    
+    const issue = this._issue();
+    if (!issue) return;
+    
+    // Get current user ID for updatedBy field
+    const currentUserId = this.userContextService.getCurrentUserId();
+    if (!currentUserId) {
+      this.toastService.error('User not authenticated. Please log in.');
+      return;
+    }
+    
+    // Extract mentioned user IDs from edited text
+    const mentionedUserIds = this.extractMentions(editText);
+    
+    console.log('[IssueDetailedView] Updating comment:', {
+      commentId: comment.id,
+      body: editText,
+      updatedBy: currentUserId,
+      mentionedUserIds
+    });
+    
+    // Call the API to update comment
+    this.commentService.updateComment(comment.id, {
+      id: comment.id,
+      body: editText,
+      updatedBy: currentUserId,
+      mentionedUserIds
+    }).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Comment updated successfully:', response);
+        this.toastService.success('Comment updated successfully!');
+        
+        // Reload comments to get updated data
+        this.loadComments(issue.id);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error updating comment:', error);
+        this.toastService.error(error.message || 'Failed to update comment. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Handle edit textarea input
+   */
+  protected onEditCommentInput(event: Event, commentId: string): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const text = textarea.value;
+    
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        editText: c.id === commentId ? text : c.editText
+      }))
+    );
   }
 
   protected formatCommentDate(date: Date): string {

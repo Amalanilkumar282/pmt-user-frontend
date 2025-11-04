@@ -52,13 +52,13 @@
         class="view-toggle-btn"
         [class.active]="currentView === 'sprints'"
         (click)="toggleView('sprints')">
-        📋 Sprints
+        <i class="fa-solid fa-list-check"></i> Sprints
       </button>
       <button 
         class="view-toggle-btn"
         [class.active]="currentView === 'all-issues'"
         (click)="toggleView('all-issues')">
-        📝 All Issues
+        <i class="fa-solid fa-tasks"></i> All Issues
       </button>
     </div>
 
@@ -90,10 +90,7 @@
         (change)="toggleEpicPanel()">
       <span class="toggle-slider"></span>
       <span class="toggle-label">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <rect width="16" height="16" rx="2" fill="#8B5CF6"/>
-          <rect x="3" y="3" width="10" height="10" rx="1" fill="white"/>
-        </svg>
+        <i class="fa-solid fa-bolt text-purple-600"></i>
         Epic Panel
       </span>
     </label>
@@ -225,21 +222,20 @@
     <div class="filter-dropdown">
       <button class="dropdown-toggle" (click)="toggleDropdown('assignee')">
         <span class="dropdown-label">Assignee:</span>
-        <span class="dropdown-value">{{ selectedAssignee || 'All' }}</span>
+        <span class="dropdown-value">{{ (selectedAssignees && selectedAssignees.length) ? (selectedAssignees.length > 2 ? (selectedAssignees[0] + ' +' + (selectedAssignees.length - 1)) : selectedAssignees.join(', ')) : 'All' }}</span>
         <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       @if (openDropdown === 'assignee') {
         <div class="dropdown-menu">
-          <div class="dropdown-item" (click)="selectAssignee(null)">All Assignees</div>
-          <div class="dropdown-item" (click)="selectAssignee('John Doe')">John Doe</div>
-          <div class="dropdown-item" (click)="selectAssignee('Jane Smith')">Jane Smith</div>
-          <div class="dropdown-item" (click)="selectAssignee('Alex Johnson')">Alex Johnson</div>
-          <div class="dropdown-item" (click)="selectAssignee('Sarah Lee')">Sarah Lee</div>
-          <div class="dropdown-item" (click)="selectAssignee('Mike Brown')">Mike Brown</div>
-          <div class="dropdown-item" (click)="selectAssignee('Emma Wilson')">Emma Wilson</div>
-          <div class="dropdown-item" (click)="selectAssignee('Oliver Davis')">Oliver Davis</div>
+          <div class="dropdown-item" (click)="toggleAssignee(null)">All Assignees</div>
+          @if (projectMembers.length === 0) {
+            <div class="dropdown-item" style="color: #9ca3af;">Loading members...</div>
+          }
+          @for (member of projectMembers; track member.id) {
+            <div class="dropdown-item" (click)="toggleAssignee(member.name)" [class.selected]="selectedAssignees.includes(member.name)">{{ member.name }}</div>
+          }
         </div>
       }
     </div>

@@ -1,15 +1,19 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IssueStatus, IssueType, IssuePriority } from '../../../shared/models/issue.model';
 import { ClickOutsideDirective } from '../../../shared/directives/click-outside.directive';
+import { UserApiService, User } from '../../../shared/services/user-api.service';
+import { ProjectContextService } from '../../../shared/services/project-context.service';
+import { ProjectMembersCacheService } from '../../../shared/services/project-members-cache.service';
 
 export interface QuickCreateIssueData {
   title: string;
   status: IssueStatus;
   type: IssueType;
   priority: IssuePriority;
-  assignee?: string;
+  assigneeId?: number;
+  assigneeName?: string;
   dueDate?: Date;
 }
 
@@ -24,11 +28,17 @@ export class QuickCreateIssue {
   @Input() status!: IssueStatus;
   @Output() issueCreated = new EventEmitter<QuickCreateIssueData>();
   
+  private membersCacheService = inject(ProjectMembersCacheService);
+  private projectContextService = inject(ProjectContextService);
+  // Keep UserApiService for utility methods (getInitials, getAvatarColor)
+  private userApiService = inject(UserApiService);
+  
   isCreating = signal(false);
   issueTitle = signal('');
   issueType = signal<IssueType>('TASK');
   issuePriority = signal<IssuePriority>('MEDIUM');
-  issueAssignee = signal<string | undefined>(undefined);
+  issueAssigneeId = signal<number | undefined>(undefined);
+  issueAssigneeName = signal<string | undefined>(undefined);
   issueDueDate = signal<Date | undefined>(undefined);
   
   // Dropdown states
@@ -39,7 +49,30 @@ export class QuickCreateIssue {
   // Options
   issueTypes: IssueType[] = ['TASK', 'BUG', 'STORY', 'EPIC'];
   priorities: IssuePriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-  assignees = ['Amal A', 'Kiran Paulson', 'Kavya S', 'Harrel Alex', 'Sharath Shony', 'Unassigned'];
+  projectMembers = signal<User[]>([]);
+  
+  constructor() {
+    // Load project members when project context changes - using cache to prevent duplicate API calls
+    effect(() => {
+      const projectId = this.projectContextService.currentProjectId();
+      if (projectId) {
+        this.loadProjectMembers(projectId);
+      }
+    });
+  }
+  
+  private loadProjectMembers(projectId: string): void {
+    // Use cached service - multiple components will share the same HTTP request
+    this.membersCacheService.getProjectMembers(projectId).subscribe({
+      next: (members) => {
+        this.projectMembers.set(members);
+      },
+      error: (error) => {
+        console.error('[QuickCreateIssue] Error loading project members:', error);
+        this.projectMembers.set([]);
+      }
+    });
+  }
   
   startCreating(): void {
     this.isCreating.set(true);
@@ -57,7 +90,8 @@ export class QuickCreateIssue {
         status: this.status,
         type: this.issueType(),
         priority: this.issuePriority(),
-        assignee: this.issueAssignee(),
+        assigneeId: this.issueAssigneeId(),
+        assigneeName: this.issueAssigneeName(),
         dueDate: this.issueDueDate()
       });
       this.resetForm();
@@ -69,7 +103,8 @@ export class QuickCreateIssue {
     this.issueTitle.set('');
     this.issueType.set('TASK');
     this.issuePriority.set('MEDIUM');
-    this.issueAssignee.set(undefined);
+    this.issueAssigneeId.set(undefined);
+    this.issueAssigneeName.set(undefined);
     this.issueDueDate.set(undefined);
     this.showTypeDropdown.set(false);
     this.showPriorityDropdown.set(false);
@@ -96,8 +131,14 @@ export class QuickCreateIssue {
     this.showPriorityDropdown.set(false);
   }
   
-  selectAssignee(assignee: string): void {
-    this.issueAssignee.set(assignee === 'Unassigned' ? undefined : assignee);
+  selectAssignee(member: User | null): void {
+    if (member) {
+      this.issueAssigneeId.set(member.id);
+      this.issueAssigneeName.set(member.name);
+    } else {
+      this.issueAssigneeId.set(undefined);
+      this.issueAssigneeName.set(undefined);
+    }
     this.showAssigneeDropdown.set(false);
   }
   
@@ -123,13 +164,36 @@ export class QuickCreateIssue {
   }
   
   getAssigneeInitials(name?: string): string {
-    if (!name || name === 'Unassigned') return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    if (!name) return '?';
+    return this.userApiService.getInitials(name);
+  }
+  
+  getAssigneeColor(userId?: number): string {
+    if (!userId) return '#9CA3AF';
+    return this.userApiService.getAvatarColor(userId);
   }
   
   closeAllDropdowns(): void {
     this.showTypeDropdown.set(false);
     this.showPriorityDropdown.set(false);
     this.showAssigneeDropdown.set(false);
+  }
+
+  toggleTypeDropdown(): void {
+    const wasOpen = this.showTypeDropdown();
+    this.closeAllDropdowns();
+    this.showTypeDropdown.set(!wasOpen);
+  }
+
+  togglePriorityDropdown(): void {
+    const wasOpen = this.showPriorityDropdown();
+    this.closeAllDropdowns();
+    this.showPriorityDropdown.set(!wasOpen);
+  }
+
+  toggleAssigneeDropdown(): void {
+    const wasOpen = this.showAssigneeDropdown();
+    this.closeAllDropdowns();
+    this.showAssigneeDropdown.set(!wasOpen);
   }
 }
