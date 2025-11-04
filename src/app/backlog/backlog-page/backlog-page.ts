@@ -22,10 +22,12 @@ import { InlineEditService } from '../../shared/services/inline-edit.service';
 import { forkJoin } from 'rxjs';
 import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
 import { AISprintPlanRequest, AISprintPlanResponse } from '../../sprint/sprint.service';
+import { PermissionService } from '../../auth/permission.service';
+import { HasPermissionDirective } from '../../auth/has-permission.directive';
 
 @Component({
   selector: 'app-backlog-page',
-  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal],
+  imports: [CommonModule, SprintContainer, BacklogContainer, AllIssuesList, Sidebar, Navbar, Filters, EpicContainer, EpicDetailedView, AiSprintModal, HasPermissionDirective],
   templateUrl: './backlog-page.html',
   styleUrl: './backlog-page.css'
 })
@@ -53,6 +55,9 @@ export class BacklogPage implements OnInit {
   
   private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
+  
+  // Inject permission service
+  permissionService = inject(PermissionService);
   
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
@@ -101,22 +106,40 @@ export class BacklogPage implements OnInit {
   showCompletedSprints = false;
   selectedEpicFilter: string | null = null;
 
-  // Helper to get sprints by status
+  // Helper to get sprints by status (with private issue filtering)
   get activeSprints(): Sprint[] {
-    return this.sprints.filter(s => s.status === 'ACTIVE');
+    return this.sprints
+      .filter(s => s.status === 'ACTIVE')
+      .map(sprint => ({
+        ...sprint,
+        issues: this.filterPrivateIssues(sprint.issues || [])
+      }));
   }
 
   get plannedSprints(): Sprint[] {
-    return this.sprints.filter(s => s.status === 'PLANNED');
+    return this.sprints
+      .filter(s => s.status === 'PLANNED')
+      .map(sprint => ({
+        ...sprint,
+        issues: this.filterPrivateIssues(sprint.issues || [])
+      }));
   }
 
   get completedSprints(): Sprint[] {
-    return this.sprints.filter(s => s.status === 'COMPLETED');
+    return this.sprints
+      .filter(s => s.status === 'COMPLETED')
+      .map(sprint => ({
+        ...sprint,
+        issues: this.filterPrivateIssues(sprint.issues || [])
+      }));
   }
 
   // Get backlog issues excluding completed ones (with filters applied)
   get filteredBacklogIssues(): Issue[] {
     let issues = this.backlogIssues.filter(issue => issue.status !== 'DONE');
+    
+    // Filter private issues for customer users
+    issues = this.filterPrivateIssues(issues);
     
     // Apply current filters if they exist
     if (this.currentFilterCriteria) {
@@ -135,6 +158,9 @@ export class BacklogPage implements OnInit {
     if (this.allIssuesFromBackend.length > 0) {
       issues = this.allIssuesFromBackend;
     }
+    
+    // Filter private issues for customer users
+    issues = this.filterPrivateIssues(issues);
     
     // Apply current filters if they exist
     if (this.currentFilterCriteria) {
@@ -934,6 +960,37 @@ export class BacklogPage implements OnInit {
     this.cdr.detectChanges();
   }
   
+  /**
+   * Filter private issues for customer users
+   * Private issues are those with a 'private' label and should be hidden from customers
+   */
+  private filterPrivateIssues(issues: Issue[]): Issue[] {
+    // If user is not a customer, return all issues
+    if (!this.permissionService.isCustomer()) {
+      return issues;
+    }
+
+    // Filter out issues with 'private' label for customer users
+    return issues.filter(issue => {
+      // Get labels array (could be string array or Label objects)
+      const labels = issue.labels || [];
+      
+      // Check if issue has 'private' label
+      const hasPrivateLabel = labels.some(label => {
+        if (typeof label === 'string') {
+          return label.toLowerCase() === 'private';
+        } else if (label && typeof label === 'object' && 'name' in label) {
+          // Label object with name property
+          return (label as any).name?.toLowerCase() === 'private';
+        }
+        return false;
+      });
+
+      // Return true (include issue) if it doesn't have private label
+      return !hasPrivateLabel;
+    });
+  }
+
   /**
    * Filter issues based on filter criteria
    */

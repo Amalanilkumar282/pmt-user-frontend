@@ -8,13 +8,15 @@ import { AddMemberForm } from '../add-member-form/add-member-form';
 import { ProjectMember } from '../../models/project-member.model';
 import { RoleService, Role } from '../../../shared/services/role.service';
 import { UserService } from '../../../shared/services/user.service';
+import { PermissionService } from '../../../auth/permission.service';
+import { HasPermissionDirective } from '../../../auth/has-permission.directive';
 
 type ViewMode = 'list' | 'add';
 
 @Component({
   selector: 'app-members-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MemberCard, AddMemberForm],
+  imports: [CommonModule, ReactiveFormsModule, MemberCard, AddMemberForm, HasPermissionDirective],
   templateUrl: './members-management.html',
   styleUrls: ['./members-management.css'],
 })
@@ -24,6 +26,9 @@ export class MembersManagement implements OnInit {
   private roleService = inject(RoleService);
   private userService = inject(UserService);
   private fb = inject(FormBuilder);
+  
+  // Inject permission service
+  permissionService = inject(PermissionService);
 
   currentProjectId = this.projectContextService.currentProjectId;
   viewMode = signal<ViewMode>('list');

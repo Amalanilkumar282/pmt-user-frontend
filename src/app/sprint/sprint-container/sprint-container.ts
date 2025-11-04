@@ -1,10 +1,12 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IssueList } from '../../backlog/issue-list/issue-list';
 import { IssueDetailedView } from '../../backlog/issue-detailed-view/issue-detailed-view';
 import { Issue } from '../../shared/models/issue.model';
 import { formatDisplayDate } from '../../shared/utils/date-formatter';
+import { PermissionService } from '../../auth/permission.service';
+import { HasPermissionDirective } from '../../auth/has-permission.directive';
 
 export interface Sprint {
   id: string;
@@ -24,7 +26,7 @@ export interface Sprint {
 
 @Component({
   selector: 'app-sprint-container',
-  imports: [CommonModule, DragDropModule, IssueList, IssueDetailedView],
+  imports: [CommonModule, DragDropModule, IssueList, IssueDetailedView, HasPermissionDirective],
   templateUrl: './sprint-container.html',
   styleUrl: './sprint-container.css'
 })
@@ -39,6 +41,9 @@ export class SprintContainer {
   };
   @Input() availableSprints: Array<{ id: string, name: string, status: string }> = [];
   @Input() connectedDropLists: string[] = [];
+  
+  // Inject permission service
+  permissionService = inject(PermissionService);
 
   @Output() completeSprint = new EventEmitter<string>();
   @Output() deleteSprint = new EventEmitter<string>();

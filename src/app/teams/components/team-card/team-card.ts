@@ -1,11 +1,13 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Team } from '../../models/team.model';
+import { PermissionService } from '../../../auth/permission.service';
+import { HasPermissionDirective } from '../../../auth/has-permission.directive';
 
 @Component({
   selector: 'app-team-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, HasPermissionDirective],
   templateUrl: './team-card.html',
   styleUrls: ['./team-card.css'],
 })
@@ -14,6 +16,8 @@ export class TeamCard {
   @Output() viewDetails = new EventEmitter<string>();
   @Output() editTeam = new EventEmitter<string>();
   @Output() deleteTeam = new EventEmitter<string>();
+
+  permissionService = inject(PermissionService);
 
   getInitials(name: string): string {
     return name
