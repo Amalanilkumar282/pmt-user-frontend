@@ -83,6 +83,22 @@ button:active {
     background: #555;
 }
 
+/* Search bar in dropdown */
+.filter-dropdown input[type="text"] {
+    transition: all 0.2s ease;
+}
+
+.filter-dropdown input[type="text"]:focus {
+    border-color: #6366f1;
+}
+
+/* Sticky search bar */
+.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
     .flex.gap-3 {

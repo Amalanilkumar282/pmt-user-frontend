@@ -26,8 +26,8 @@ interface Team {
 })
 export class ChannelList {
   teams = input.required<Team[]>();
-  selectedTeamId = input.required<string>();
-  selectedChannelId = input.required<string>();
+  selectedTeamId = input.required<string | null>();
+  selectedChannelId = input.required<string | null>();
   showTeamDropdown = input.required<boolean>();
 
   teamSelected = output<string>();
@@ -40,7 +40,8 @@ export class ChannelList {
   newChannelName = '';
 
   get selectedTeam(): Team | undefined {
-    return this.teams().find((t) => t.id === this.selectedTeamId());
+    const teamId = this.selectedTeamId();
+    return teamId ? this.teams().find((t) => t.id === teamId) : undefined;
   }
 
   get channels(): Channel[] {
@@ -48,7 +49,8 @@ export class ChannelList {
   }
 
   get selectedChannel(): Channel | undefined {
-    return this.channels.find((c) => c.id === this.selectedChannelId());
+    const channelId = this.selectedChannelId();
+    return channelId ? this.channels.find((c) => c.id === channelId) : undefined;
   }
 
   onSelectTeam(teamId: string): void {
