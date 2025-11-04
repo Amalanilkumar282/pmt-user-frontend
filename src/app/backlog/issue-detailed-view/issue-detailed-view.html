@@ -66,14 +66,14 @@
           </div>
 
           <!-- Reporter -->
-          @if (_issue()!.reporterId) {
+          @if (_issue()!.reporterName || _issue()!.reporterId) {
             <div class="detail-section">
               <h3 class="detail-label">Reporter</h3>
               <div class="flex items-center gap-2">
                 <span class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                  R
+                  {{ (_issue()!.reporterName || 'R').charAt(0).toUpperCase() }}
                 </span>
-                <span class="text-gray-900 font-medium">User {{ _issue()!.reporterId }}</span>
+                <span class="text-gray-900 font-medium">{{ _issue()!.reporterName || 'User ' + _issue()!.reporterId }}</span>
               </div>
             </div>
           }
@@ -130,11 +130,11 @@
             </div>
           }
 
-          <!-- Project ID -->
-          @if (_issue()!.projectId) {
+          <!-- Project Key -->
+          @if (getProjectKey()) {
             <div class="detail-section">
-              <h3 class="detail-label">Project ID</h3>
-              <span class="text-gray-600 text-sm font-mono">{{ _issue()!.projectId }}</span>
+              <h3 class="detail-label">Project Key</h3>
+              <span class="text-gray-600 text-sm font-mono">{{ getProjectKey() }}</span>
             </div>
           }
 

@@ -89,7 +89,7 @@ export class SummaryPage implements OnInit {
   projectDetails = [
     { label: 'Name', value: 'Mobile App Alpha' },
     { label: 'Type', value: 'Software Development' },
-    { label: 'Created', value: 'Sep 15, 2024' },
+    { label: 'Created', value: '15 Sep 2024' },
   ];
 
   ngOnInit(): void {
