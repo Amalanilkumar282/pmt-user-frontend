@@ -133,6 +133,7 @@ export interface IssueCreateRequest {
   assigneeId?: string;
   projectId: string;
   labels?: string[];
+  statusId?: number;
 }
 
 export interface IssueCreateResponse {
@@ -148,6 +149,7 @@ export interface IssueCreateResponse {
     assigneeId?: string;
     projectId: string;
     labels?: string[];
+    statusId: number;
   };
 }
 
@@ -193,6 +195,43 @@ export class SprintService {
     return this.http.put<SprintResponse>(`${this.baseUrl}/${sprintId}`, sprint, {
       headers: this.getAuthHeaders()
     });
+  }
+
+  /**
+   * Get sprint by ID
+   * GET /api/sprints/{sprintId}
+   */
+  getSprintById(sprintId: string): Observable<SprintResponse> {
+    const url = `${this.baseUrl}/${sprintId}`;
+    const headers = this.getAuthHeaders();
+    
+    console.log('🔍 [SprintService] Fetching sprint by ID:', {
+      sprintId,
+      url
+    });
+    
+    return this.http.get<SprintResponse>(url, { headers });
+  }
+
+  /**
+   * Delete a sprint
+   * DELETE /api/sprints/{sprintId}
+   */
+  deleteSprint(sprintId: string): Observable<any> {
+    const url = `${this.baseUrl}/${sprintId}`;
+    const headers = this.getAuthHeaders();
+    
+    console.log('🗑️ [SprintService] Deleting sprint:', {
+      sprintId,
+      url
+    });
+    
+    return this.http.delete(url, { headers }).pipe(
+      map((response) => {
+        console.log('✅ [SprintService] Delete successful:', response);
+        return response;
+      })
+    );
   }
 
   /**

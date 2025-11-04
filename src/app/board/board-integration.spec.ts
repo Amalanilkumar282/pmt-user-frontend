@@ -427,23 +427,7 @@ describe('Board Integration Tests', () => {
       expect(buckets.length).toBeGreaterThan(0);
     });
 
-    it('should group issues by subtask', async () => {
-      const issuesWithParents = mockIssues.map((issue, idx) => ({
-        ...issue,
-        parentId: idx % 2 === 0 ? 'ISS-PARENT-1' : 'ISS-PARENT-2'
-      }));
-
-      await store.loadIssuesByProject('project-1');
-
-      const issuesReq = httpMock.expectOne(`${environment.apiUrl}/api/Issue/project/project-1`);
-      issuesReq.flush(issuesWithParents);
-
-      store.groupBy.set('SUBTASK');
-      const buckets = store.columnBuckets();
-
-      // Should have buckets
-      expect(buckets.length).toBeGreaterThan(0);
-    });
+    // SUBTASK grouping removed - integration test for subtask grouping eliminated
   });
 
   describe('Real-time Updates Simulation', () => {

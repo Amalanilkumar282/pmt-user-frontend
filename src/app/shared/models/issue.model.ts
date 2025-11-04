@@ -1,6 +1,6 @@
 export type IssueType = 'STORY' | 'TASK' | 'BUG' | 'EPIC' | 'SUBTASK';
 export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED';
+export type IssueStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' | string; // Allow dynamic statuses
 
 export interface Issue {
   id: string;
@@ -18,6 +18,7 @@ export interface Issue {
   assigneeId?: number | null; // Backend assignee ID
   assigneeName?: string; // Backend assignee name
   reporterId?: number | null; // Reporter ID
+  reporterName?: string; // Reporter name from backend
   storyPoints?: number;
   sprintId?: string | null;
   sprintName?: string | null; // Sprint name from backend
@@ -59,6 +60,7 @@ export interface IssueApiResponse {
   epicId: string | null;
   epicName: string | null; // Epic name from backend
   reporterId: number | null;
+  reporterName: string | null; // Reporter name from backend
   labels: string;
   attachmentUrl: string | null;
   createdAt: string | null;

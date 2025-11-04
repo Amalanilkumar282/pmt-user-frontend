@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TimelineHeaderComponent, FilterState } from './timeline-header';
+import { TimelineHeaderComponent, FilterState, StatusOption } from './timeline-header';
 
 describe('TimelineHeaderComponent', () => {
   let component: TimelineHeaderComponent;
@@ -203,5 +203,72 @@ describe('TimelineHeaderComponent', () => {
     expect(component.filterToggled.emit).toBeDefined();
     expect(component.filtersCleared.emit).toBeDefined();
     expect(component.backToEpics.emit).toBeDefined();
+  });
+
+  it('should filter epics based on search query', () => {
+    component.availableEpics = ['Epic Alpha', 'Epic Beta', 'Gamma Epic', 'Delta Project'];
+    
+    // Test with no search query
+    component.epicSearchQuery = '';
+    expect(component.getFilteredEpics()).toEqual(['Epic Alpha', 'Epic Beta', 'Gamma Epic', 'Delta Project']);
+    
+    // Test with search query
+    component.epicSearchQuery = 'epic';
+    expect(component.getFilteredEpics()).toEqual(['Epic Alpha', 'Epic Beta', 'Gamma Epic']);
+    
+    // Test case-insensitive search
+    component.epicSearchQuery = 'BETA';
+    expect(component.getFilteredEpics()).toEqual(['Epic Beta']);
+    
+    // Test with no matches
+    component.epicSearchQuery = 'xyz';
+    expect(component.getFilteredEpics()).toEqual([]);
+  });
+
+  it('should update epic search query on input change', () => {
+    const mockEvent = {
+      target: { value: 'test query' }
+    } as any;
+    
+    component.onEpicSearchChange(mockEvent);
+    expect(component.epicSearchQuery).toBe('test query');
+  });
+
+  it('should clear epic search query', () => {
+    component.epicSearchQuery = 'some search';
+    component.clearEpicSearch();
+    expect(component.epicSearchQuery).toBe('');
+  });
+
+  it('should return all status options with defaults first', () => {
+    component.statusOptions = [
+      { id: 1, statusName: 'IN_PROGRESS', displayName: '', value: '' },
+      { id: 2, statusName: 'CUSTOM_STATUS', displayName: '', value: '' }
+    ];
+    
+    const allStatuses = component.getAllStatusOptions();
+    
+    // Should have 3 defaults + 1 custom (IN_PROGRESS is duplicate)
+    expect(allStatuses.length).toBe(4);
+    expect(allStatuses[0].statusName).toBe('TODO');
+    expect(allStatuses[1].statusName).toBe('IN_PROGRESS');
+    expect(allStatuses[2].statusName).toBe('DONE');
+    expect(allStatuses[3].statusName).toBe('CUSTOM_STATUS');
+  });
+
+  it('should format status names correctly', () => {
+    expect(component.formatStatusName('IN_PROGRESS')).toBe('In Progress');
+    expect(component.formatStatusName('TODO')).toBe('To Do');
+    expect(component.formatStatusName('DONE')).toBe('Done');
+    expect(component.formatStatusName('CUSTOM_STATUS')).toBe('Custom Status');
+  });
+
+  it('should get correct status values for filtering', () => {
+    expect(component.getStatusValue('TODO')).toBe('todo');
+    expect(component.getStatusValue('IN_PROGRESS')).toBe('progress');
+    expect(component.getStatusValue('DONE')).toBe('done');
+    expect(component.getStatusValue('IN_REVIEW')).toBe('review');
+    expect(component.getStatusValue('BLOCKED')).toBe('blocked');
+    expect(component.getStatusValue('CUSTOM_STATUS')).toBe('customstatus');
   });
 });

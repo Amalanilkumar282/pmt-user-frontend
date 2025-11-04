@@ -24,7 +24,7 @@ export interface BoardColumnDef {
   statusId?: number; // Backend status ID
 }
 
-export type GroupBy = 'NONE' | 'ASSIGNEE' | 'EPIC' | 'SUBTASK';
+export type GroupBy = 'NONE' | 'ASSIGNEE' | 'EPIC';
 
 export interface FilterState {
   assignees: string[];

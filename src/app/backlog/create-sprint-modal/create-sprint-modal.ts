@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, OnChanges, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { 
@@ -39,7 +39,7 @@ interface SprintFormData {
   templateUrl: './create-sprint-modal.html',
   styleUrls: ['./create-sprint-modal.css']
 })
-export class CreateSprintModal implements OnInit {
+export class CreateSprintModal implements OnInit, OnChanges {
   @Input() isOpen = false;
   
   /**
@@ -111,6 +111,8 @@ export class CreateSprintModal implements OnInit {
     if (this.isOpen && this.teams.length === 0) {
       this.loadTeams();
     }
+    // Force change detection when modal opens
+    this.cdr.detectChanges();
   }
 
   /**

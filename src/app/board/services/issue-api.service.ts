@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, IssueApi } from '../models/api-interfaces';
 import { Issue } from '../../shared/models/issue.model';
 import { AuthTokenService } from './auth-token.service';
+import { UserContextService } from '../../shared/services/user-context.service';
 
 export interface CreateIssueDto {
   projectId: string;
@@ -12,6 +13,7 @@ export interface CreateIssueDto {
   title: string;
   description: string;
   priority: string;
+  statusId?: number;
   assigneeId: number;
   startDate?: string;
   dueDate?: string;
@@ -20,6 +22,7 @@ export interface CreateIssueDto {
   epicId?: string;
   reporterId: number;
   attachmentUrl?: string;
+  labels?: string;
 }
 
 export interface UpdateIssueDto {
@@ -45,6 +48,7 @@ export interface UpdateIssueDto {
 export class IssueApiService {
   private http = inject(HttpClient);
   private authTokenService = inject(AuthTokenService);
+  private userContextService = inject(UserContextService);
   private baseUrl = `${environment.apiUrl}/api/Issue`;
 
   /**
@@ -77,8 +81,33 @@ export class IssueApiService {
    * POST /api/Issue
    */
   createIssue(dto: CreateIssueDto): Observable<ApiResponse<IssueApi>> {
-    const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain' });
-    return this.http.post<ApiResponse<IssueApi>>(this.baseUrl, dto, { headers });
+    const headers = this.authTokenService.getAuthHeaders({ 'accept': 'text/plain', 'Content-Type': 'application/json' });
+    // Build a clean DTO with no undefined/null values - some backends reject undefined fields
+    const cleanDto: Record<string, any> = Object.entries(dto || {}).reduce((acc, [k, v]) => {
+      if (v !== undefined && v !== null) {
+        acc[k] = v;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Log outgoing DTO as JSON for clear console output
+    try {
+      console.log('[IssueApiService] Creating issue - DTO (stringified):', JSON.stringify(cleanDto));
+    } catch { /* ignore logging failures */ }
+
+    return this.http.post<ApiResponse<IssueApi>>(this.baseUrl, cleanDto, { headers })
+      .pipe(
+        map((resp) => {
+          try { console.log('[IssueApiService] Create response (stringified):', JSON.stringify(resp)); } catch { console.log('[IssueApiService] Create response:', resp); }
+          return resp;
+        }),
+        catchError((err) => {
+          // Log full error to console to help diagnose 500 from backend
+          try { console.error('[IssueApiService] Create error (body):', JSON.stringify(err?.error || err)); } catch { console.error('[IssueApiService] Create error:', err); }
+          // Rethrow so callers (store/component) can handle and show toasts
+          return throwError(() => err);
+        })
+      );
   }
 
   /**
@@ -123,8 +152,9 @@ export class IssueApiService {
       storyPoints: apiIssue.storyPoints,
       startDate: apiIssue.startDate ? new Date(apiIssue.startDate) : undefined,
       dueDate: apiIssue.dueDate ? new Date(apiIssue.dueDate) : undefined,
-      createdAt: new Date(), // API doesn't provide, using current time
-      updatedAt: new Date(), // API doesn't provide, using current time
+    // Backend does not always return createdAt/updatedAt in Issue API; use current time when missing
+    createdAt: new Date(),
+    updatedAt: new Date(),
       teamId: undefined // Not provided in API response
     };
   }
@@ -136,15 +166,14 @@ export class IssueApiService {
   private mapStatusIdToStatus(statusId: number): 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED' {
     // Map statusId to the actual column names used by the board
     // These should match the column names returned from the board API
-    const statusMap: Record<number, any> = {
-      1: 'To Do',        // Match board column name
-      2: 'In Progress',  // Match board column name
-      3: 'In Review',    // Match board column name
-      4: 'Done',         // Match board column name
-      5: 'On Hold',      // Match board column name
-      6: 'BLOCKED'       // Fallback
-    };
-    return statusMap[statusId] || 'To Do';
+      const statusMap: Record<number, 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED'> = {
+        1: 'TODO',        // To Do
+        2: 'IN_PROGRESS', // In Progress
+        3: 'IN_REVIEW',   // In Review
+        4: 'DONE',        // Done
+        5: 'BLOCKED'      // On Hold/Blocked mapped to BLOCKED
+      };
+      return statusMap[statusId] || 'TODO';
   }
 
   /**
@@ -177,20 +206,53 @@ export class IssueApiService {
    * Map frontend Issue to CreateIssueDto
    */
   mapIssueToCreateDto(issue: Partial<Issue>, projectId: string): CreateIssueDto {
+    // Handle assigneeId from multiple sources (quick-create passes number, legacy uses string)
+    let assigneeId = 1;
+    if ((issue as any).assigneeId !== undefined) {
+      assigneeId = (issue as any).assigneeId;
+    } else if (issue.assignee) {
+      assigneeId = parseInt(issue.assignee);
+    }
+
+    // Handle dates - HTML date inputs return strings, not Date objects
+    let startDateString: string | undefined = undefined;
+    let dueDateString: string | undefined = undefined;
+
+    if (issue.startDate) {
+      if (issue.startDate instanceof Date) {
+        startDateString = issue.startDate.toISOString();
+      } else if (typeof issue.startDate === 'string') {
+        startDateString = new Date(issue.startDate).toISOString();
+      }
+    }
+
+    if (issue.dueDate) {
+      if (issue.dueDate instanceof Date) {
+        dueDateString = issue.dueDate.toISOString();
+      } else if (typeof issue.dueDate === 'string') {
+        dueDateString = new Date(issue.dueDate).toISOString();
+      }
+    }
+
+    // Get reporter from auth context
+    const reporterId = this.userContextService?.getCurrentUserId() ?? 1;
+
     return {
       projectId: projectId,
       issueType: issue.type || 'TASK',
       title: issue.title || '',
       description: issue.description || '',
       priority: issue.priority || 'MEDIUM',
-      assigneeId: issue.assignee ? parseInt(issue.assignee) : 1,
-      startDate: issue.startDate?.toISOString(),
-      dueDate: issue.dueDate?.toISOString(),
+      assigneeId: assigneeId,
+      startDate: startDateString,
+      dueDate: dueDateString,
       sprintId: issue.sprintId || undefined,
       storyPoints: issue.storyPoints || 0,
       epicId: issue.epicId || undefined,
-      reporterId: 1, // TODO: Get from auth service
-      attachmentUrl: undefined
+      reporterId: reporterId,
+        statusId: (issue as any).statusId ?? undefined,
+      attachmentUrl: undefined,
+      labels: JSON.stringify(issue.labels || [])
     };
   }
 

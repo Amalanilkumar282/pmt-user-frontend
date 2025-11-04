@@ -6,6 +6,7 @@ import { DEFAULT_COLUMNS, fuzzyIncludes, statusOrder, priorityOrder } from './ut
 import { BoardService } from './services/board.service';
 import { IssueApiService } from './services/issue-api.service';
 import { SprintApiService } from './services/sprint-api.service';
+import { ToastService } from '../shared/services/toast.service';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -13,6 +14,7 @@ export class BoardStore {
   private boardService = inject(BoardService);
   private issueApiService = inject(IssueApiService);
   private sprintApiService = inject(SprintApiService);
+  private toastService = inject(ToastService);
   
   // raw data
   private _issues = signal<Issue[]>([]);
@@ -40,31 +42,14 @@ export class BoardStore {
   availableSprints = computed(() => {
     const board = this.currentBoard();
     const allSprints = this._sprints();
-    console.log('[BoardStore.availableSprints] Computing available sprints');
-    console.log('[BoardStore.availableSprints] Current board:', board);
-    console.log('[BoardStore.availableSprints] All sprints:', allSprints.length, allSprints);
     
     if (!board || !board.teamId) {
-      console.log('[BoardStore.availableSprints] No team board, returning empty array');
       return [] as Sprint[];
     }
     
-    // Check if any sprints have teamId set
-    const sprintsWithTeamId = allSprints.filter(s => s.teamId !== undefined && s.teamId !== null);
-    console.log('[BoardStore.availableSprints] Sprints with teamId:', sprintsWithTeamId.length, sprintsWithTeamId);
-    
     // Convert both to strings for comparison (handle type mismatch: board.teamId is string, sprint.teamId is number)
     const boardTeamId = String(board.teamId);
-    console.log('[BoardStore.availableSprints] Board teamId (as string):', boardTeamId);
-    
     const filtered = allSprints.filter(s => String(s.teamId) === boardTeamId);
-    console.log('[BoardStore.availableSprints] Filtered team sprints (teamId=' + boardTeamId + '):', filtered.length, filtered);
-    
-    // If no sprints match the team, log warning
-    if (filtered.length === 0 && allSprints.length > 0) {
-      console.warn('[BoardStore.availableSprints] No sprints found for teamId:', boardTeamId);
-      console.warn('[BoardStore.availableSprints] Available sprint teamIds:', allSprints.map(s => ({ id: s.id, name: s.name, teamId: s.teamId })));
-    }
     
     return filtered;
   });
@@ -77,7 +62,6 @@ export class BoardStore {
     if (available.length > 0 && !currentSelection) {
       const active = available.find(s => s.status === 'ACTIVE');
       const pick = active ? active.id : available[0].id;
-      console.log('[BoardStore._autoSelectSprint] Auto-selecting sprint:', pick);
       this.selectedSprintId.set(pick);
     }
   });
@@ -87,7 +71,6 @@ export class BoardStore {
   private _onBoardChange = effect(() => {
     const board = this.currentBoard();
     const allSprints = this._sprints();
-    console.log('[BoardStore._onBoardChange] Detected board change:', board?.id);
 
     if (!board) {
       // No board context -> clear selection
@@ -106,13 +89,10 @@ export class BoardStore {
     const active = teamSprints.find(s => s.status === 'ACTIVE');
 
     if (active) {
-      console.log('[BoardStore._onBoardChange] Selecting active sprint for board:', active.id);
       this.selectedSprintId.set(active.id);
     } else if (teamSprints.length > 0) {
-      console.log('[BoardStore._onBoardChange] No active sprint - defaulting to first team sprint:', teamSprints[0].id);
       this.selectedSprintId.set(teamSprints[0].id);
     } else {
-      console.log('[BoardStore._onBoardChange] No team sprints available for board - clearing selection');
       this.selectedSprintId.set(null);
     }
   });
@@ -126,27 +106,13 @@ export class BoardStore {
   async loadIssuesByProject(projectId: string): Promise<void> {
     // Skip if already loaded for this project and not loading
     if (projectId === this._loadedProjectId && this._issues().length > 0) {
-      console.log('[BoardStore] Issues already cached for project:', projectId);
       return;
     }
     
     try {
-      console.log('[BoardStore] Loading issues for project:', projectId);
       this._loadingIssues.set(true);
       const issues = await firstValueFrom(this.issueApiService.getIssuesByProject(projectId));
       this._issues.set(issues);
-      console.log('[BoardStore] Loaded issues from API:', issues.length, issues);
-      
-      // Log issue distribution by status
-      if (issues.length > 0) {
-        const statusCounts = issues.reduce((acc, issue) => {
-          acc[issue.status] = (acc[issue.status] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        console.log('[BoardStore] Issue distribution by status:', statusCounts);
-      } else {
-        console.warn('[BoardStore] No issues returned from API');
-      }
     } catch (error) {
       console.error('[BoardStore] Error loading issues:', error);
       this._issues.set([]);
@@ -161,42 +127,31 @@ export class BoardStore {
   async loadSprintsByProject(projectId: string): Promise<void> {
     // Skip if already loaded for this project and not loading
     if (projectId === this._loadedProjectId && this._sprints().length > 0) {
-      console.log('[BoardStore] Sprints already cached for project:', projectId);
       return;
     }
     
     try {
-      console.log('[BoardStore] Loading sprints for project:', projectId);
       this._loadingSprints.set(true);
       const sprints = await firstValueFrom(this.sprintApiService.getSprintsByProject(projectId));
       this._sprints.set(sprints);
-      console.log('[BoardStore] Loaded sprints from API:', sprints.length, sprints);
       
       // If current board is a team board, default selected sprint to that team's active sprint
       const board = this.currentBoard();
-      console.log('[BoardStore] Current board:', board);
       
       if (board && board.teamId) {
-        console.log('[BoardStore] Team board detected, teamId:', board.teamId);
         // Convert both to strings for comparison (handle type mismatch)
         const boardTeamId = String(board.teamId);
         const teamSprints = sprints.filter(s => String(s.teamId) === boardTeamId);
-        console.log('[BoardStore] Team sprints filtered:', teamSprints.length, teamSprints);
         
         const active = teamSprints.find(s => s.status === 'ACTIVE');
         if (active) {
-          console.log('[BoardStore] Setting selectedSprintId to active team sprint:', active.id, active.name);
           this.selectedSprintId.set(active.id);
         } else if (teamSprints.length > 0) {
           // No active sprint, default to first available team sprint
-          console.log('[BoardStore] No active sprint for team, defaulting to first team sprint:', teamSprints[0].id);
           this.selectedSprintId.set(teamSprints[0].id);
         } else {
-          console.log('[BoardStore] No team sprints available, leaving sprint selection empty');
           this.selectedSprintId.set(null);
         }
-      } else {
-        console.log('[BoardStore] Not a team board or no board set, keeping current selection');
       }
     } catch (error) {
       console.error('[BoardStore] Error loading sprints:', error);
@@ -226,10 +181,10 @@ export class BoardStore {
     const f = this.filters();
     const q = this.search().trim();
 
-    let list = this.issues();
+  let list = this.issues();
 
-    // Board-based filtering with null safety
-    if (board) {
+  // Board-based filtering with null safety
+  if (board) {
       // If board is team-based, filter issues by team.
       // Note: the Issue API does not always include a teamId on the issue object,
       // so we consider an issue to belong to the team when either:
@@ -243,8 +198,7 @@ export class BoardStore {
           .filter(s => String(s.teamId) === boardTeamId)
           .map(s => s.id);
 
-        console.log('[BoardStore.visibleIssues] Board is team board, teamSprintIds:', teamSprintIds);
-
+        // Filter issues by team membership: prefer explicit teamId, otherwise check sprint ownership
         list = list.filter(i => {
           // If issue explicitly has teamId, use it
           if (i.teamId) return String(i.teamId) === boardTeamId;
@@ -258,7 +212,7 @@ export class BoardStore {
       // (no additional filtering needed as issues are already project-scoped)
     }
 
-    // Sprint filter - Only apply if board is present and is a team board (has teamId)
+  // Sprint filter - Only apply if board is present and is a team board (has teamId)
     if (board && board.teamId) {
       // For team boards, apply sprint filtering: if selectedSprintId is null -> show all team issues
       if (!sprintId) {
@@ -277,23 +231,39 @@ export class BoardStore {
       }
     }
 
-    // filters with null safety
+  // filters with null safety
     if (f.assignees?.length) list = list.filter(i => i.assignee && f.assignees.includes(i.assignee));
     if (f.workTypes?.length) list = list.filter(i => f.workTypes.includes(i.type));
     if (f.labels?.length)    list = list.filter(i => (i.labels ?? []).some(l => f.labels.includes(l)));
     if (f.statuses?.length)  list = list.filter(i => f.statuses.includes(i.status));
     if (f.priorities?.length) list = list.filter(i => f.priorities.includes(i.priority));
 
-    // search (title + description + id)
+    // search across many issue fields (title, description, id, key, assignee, reporter, epic, labels, type, priority, status)
     if (q) {
-      list = list.filter(i =>
-        fuzzyIncludes(i.title ?? '', q) ||
-        fuzzyIncludes(i.description ?? '', q) ||
-        fuzzyIncludes(i.id ?? '', q)
-      );
+      list = list.filter(i => {
+        // quick checks across most useful textual fields
+        if (fuzzyIncludes(i.title ?? '', q)) return true;
+        if (fuzzyIncludes(i.description ?? '', q)) return true;
+        if (fuzzyIncludes(i.id ?? '', q)) return true;
+        if (fuzzyIncludes(i.key ?? '', q)) return true;
+        if (fuzzyIncludes(i.assignee ?? '', q)) return true;
+        if (fuzzyIncludes(i.assigneeName ?? '', q)) return true;
+        if (fuzzyIncludes(i.reporterName ?? '', q)) return true;
+        if (fuzzyIncludes(i.epicName ?? '', q)) return true;
+        if (fuzzyIncludes(i.statusName ?? '', q)) return true;
+        if (fuzzyIncludes(i.type ?? '', q)) return true;
+        if (fuzzyIncludes(i.priority ?? '', q)) return true;
+
+        // labels array -> search within joined labels
+        const labels = (i.labels ?? []).join(' ');
+        if (labels && fuzzyIncludes(labels, q)) return true;
+
+        // Fallback: no match
+        return false;
+      });
     }
 
-    // stable ordering - sort by status first, then by createdAt, then by updatedAt as tiebreaker
+  // stable ordering - sort by status first, then by createdAt, then by updatedAt as tiebreaker
     // This prevents card jumping when titles are updated while maintaining predictable order
     return list.sort((a,b) => {
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
@@ -312,14 +282,7 @@ export class BoardStore {
     const cols = this.columns();
     const issues = this.visibleIssues();
     const groupByType = this.groupBy();
-    
-    console.log('[BoardStore] Computing columnBuckets:', {
-      columnsCount: cols.length,
-      columns: cols.map(c => c.id),
-      issuesCount: issues.length,
-      issues: issues.map(i => ({ id: i.id, title: i.title, status: i.status }))
-    });
-    
+
     // Helper function to sort issues by priority
     const sortByPriority = (issueList: Issue[]): Issue[] => {
       return issueList.sort((a, b) => {
@@ -335,33 +298,13 @@ export class BoardStore {
     
     // If no grouping, return regular columns with priority-sorted issues
     if (groupByType === 'NONE') {
-      const buckets = cols.map(c => {
-        // CRITICAL: Match by statusId, not status name
+      return cols.map(c => {
         const columnIssues = issues.filter(i => i.statusId === c.statusId);
-        console.log(`[BoardStore] Column "${c.title}" (statusId=${c.statusId}): ${columnIssues.length} issues`);
-        if (columnIssues.length > 0) {
-          console.log(`[BoardStore] Column "${c.title}" matched issues:`, columnIssues.map(i => ({ 
-            key: i.key, 
-            title: i.title, 
-            statusId: i.statusId 
-          })));
-        }
         return {
           def: c,
           items: sortByPriority(columnIssues)
         };
       });
-      console.log('[BoardStore] Final buckets:', buckets.map(b => ({ 
-        column: b.def.title, 
-        statusId: b.def.statusId,
-        count: b.items.length 
-      })));
-      console.log('[BoardStore] All issues with statusId:', issues.map(i => ({ 
-        key: i.key, 
-        statusId: i.statusId,
-        title: i.title 
-      })));
-      return buckets;
     }
     
     // Group by Assignee - within each column, group issues by assignee
@@ -427,41 +370,12 @@ export class BoardStore {
       });
     }
     
-    // Group by Subtask - within each column, group issues by parent
-    if (groupByType === 'SUBTASK') {
-      return cols.map(c => {
-        const columnIssues = issues.filter(i => i.statusId === c.statusId);
-
-        // Group issues by parent
-        const grouped = new Map<string, Issue[]>();
-        columnIssues.forEach(issue => {
-          const parent = issue.parentId || 'No Parent';
-          if (!grouped.has(parent)) {
-            grouped.set(parent, []);
-          }
-          grouped.get(parent)!.push(issue);
-        });
-
-        // Sort each group by priority and flatten
-        const sortedIssues: Issue[] = [];
-        Array.from(grouped.entries())
-          .sort(([a], [b]) => a.localeCompare(b)) // Sort parent IDs alphabetically
-          .forEach(([_, groupIssues]) => {
-            sortedIssues.push(...sortByPriority(groupIssues));
-          });
-
-        return {
-          def: c,
-          items: sortedIssues,
-          groupedBy: 'SUBTASK' as const
-        };
-      });
-    }
+    // SUBTASK grouping removed. If new grouping is needed later, re-introduce here.
     
-    return cols.map(c => ({
-      def: c,
-      items: sortByPriority(issues.filter(i => i.statusId === c.statusId))
-    }));
+      return cols.map(c => ({
+        def: c,
+        items: sortByPriority(issues.filter(i => i.statusId === c.statusId))
+      }));
   });
 
   // actions
@@ -588,15 +502,37 @@ export class BoardStore {
   /**
    * Create new issue (API-backed)
    */
-  async createIssueApi(issueData: Partial<Issue>, projectId: string): Promise<void> {
+  async createIssueApi(issueData: Partial<Issue>, projectId: string): Promise<Issue | null> {
     try {
       const dto = this.issueApiService.mapIssueToCreateDto(issueData, projectId);
-      await firstValueFrom(this.issueApiService.createIssue(dto));
-      // Reload issues after creation
+      const issueCountBefore = this._issues().length;
+      // Call API
+      const response = await firstValueFrom(this.issueApiService.createIssue(dto));
+
+      // If backend returned the created issue (with id/key/statusId), map and insert it optimistically
+      const createdApi = response?.data;
+      if (createdApi && (createdApi as any).id) {
+        const created = this.issueApiService['mapIssueApiToIssue'](createdApi as any);
+        // Ensure we have a statusId coming from either the created data or the DTO
+        const finalStatusId = (created.statusId ?? (dto as any).statusId) as number | undefined;
+        const issueToInsert: Issue = { ...created, statusId: finalStatusId ?? created.statusId, createdAt: new Date(), updatedAt: new Date() };
+        // Insert into issues store
+        this._issues.update(list => [...list, issueToInsert]);
+        // Return created issue to caller so they can show UI feedback/toast reliably
+        return issueToInsert;
+      }
+
+      // If backend did not return a persisted entity with id, fallback to reload to ensure consistency
+      this._loadedProjectId = null;
       await this.loadIssuesByProject(projectId);
-      console.log('[BoardStore] Issue created');
+      // Try to find newly created issue by matching title + createdAt window (best-effort)
+      const afterReload = this._issues();
+      // No reliable created id available, return null so caller can decide how to notify
+      return null;
     } catch (error) {
       console.error('[BoardStore] Error creating issue:', error);
+      const message = (error as any)?.error?.message || (error as any)?.message || 'Failed to create issue';
+      try { this.toastService.error(message); } catch { /* ignore */ }
       throw error;
     }
   }

@@ -9,6 +9,7 @@ import { TaskCard } from '../task-card/task-card';
 import { QuickCreateIssue, QuickCreateIssueData } from '../quick-create-issue/quick-create-issue';
 import { ConfirmationModal } from '../../../shared/components/confirmation-modal/confirmation-modal';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
+import { ToastService } from '../../../shared/services/toast.service';
 
 interface GroupedIssues {
   groupName: string;
@@ -27,6 +28,7 @@ export class BoardColumn {
   private store = inject(BoardStore);
   private boardService = inject(BoardService);
   private projectContextService = inject(ProjectContextService);
+  private toastService = inject(ToastService);
   
   @Output() openIssue = new EventEmitter<Issue>();
   @Output() openIssueComments = new EventEmitter<Issue>();
@@ -67,8 +69,6 @@ export class BoardColumn {
       return issue.assignee || 'Unassigned';
     } else if (this.groupBy === 'EPIC') {
       return issue.epicId || 'No Epic';
-    } else if (this.groupBy === 'SUBTASK') {
-      return issue.parentId || 'No Parent';
     }
     return '';
   }
@@ -238,16 +238,57 @@ export class BoardColumn {
     return colorMap[this.def.color] || 'bg-gray-400';
   }
   
-  onQuickCreate(issueData: QuickCreateIssueData): void {
-    // Create issue directly in BoardStore
+  async onQuickCreate(issueData: QuickCreateIssueData): Promise<void> {
+    const projectId = this.projectContextService.currentProjectId();
+    if (!projectId) {
+      console.error('[BoardColumn] Cannot create issue: No project context');
+      this.toastService.error('Cannot create issue: No project selected');
+      return;
+    }
+
     const currentBoard = this.store.currentBoard();
-    this.store.createIssue({
-      title: issueData.title,
-      status: issueData.status,
-      type: issueData.type,
-      priority: issueData.priority,
-      assignee: issueData.assignee === 'Unassigned' ? undefined : issueData.assignee,
-      teamId: currentBoard?.type === 'TEAM' ? currentBoard.teamId : undefined
-    });
+    const selectedSprintId = this.store.selectedSprintId();
+    
+    try {
+      // Ensure we provide a concrete statusId to the API. Prefer column.statusId, otherwise try to resolve
+      // from the store's column definitions for the current column id. This prevents created issues from
+      // being persisted with a null status_id in the database.
+      let resolvedStatusId = this.def.statusId;
+      if (resolvedStatusId === undefined || resolvedStatusId === null) {
+        const cols = this.store.columns();
+        const matching = cols.find(c => c.id === this.def.id);
+        resolvedStatusId = matching?.statusId;
+      }
+
+      // Create issue via API (include resolvedStatusId)
+      if (resolvedStatusId === undefined || resolvedStatusId === null) {
+        console.error('[BoardColumn] Cannot create issue: column has no statusId mapping', { columnDef: this.def });
+        this.toastService.error('Cannot create issue: this column has no status mapping');
+        return;
+      }
+
+      const created = await this.store.createIssueApi({
+        title: issueData.title,
+        statusId: resolvedStatusId,
+        type: issueData.type,
+        priority: issueData.priority,
+        assigneeId: issueData.assigneeId,
+        dueDate: issueData.dueDate,
+        teamId: currentBoard?.type === 'TEAM' ? currentBoard.teamId : undefined,
+        sprintId: selectedSprintId || undefined
+      }, projectId);
+
+      if (created) {
+        // Show quick feedback to the user via toast
+        try { this.toastService.success('Issue created successfully'); } catch { /* ignore */ }
+      } else {
+        // Backend did not return created entity; fallback to generic message
+        try { this.toastService.success('Issue created (reloaded)'); } catch { /* ignore */ }
+      }
+    } catch (error) {
+      console.error('[BoardColumn] Error creating issue:', error);
+      const message = (error as any)?.error?.message || (error as any)?.message || 'Failed to create issue';
+      try { this.toastService.error(`Failed to create issue: ${message}`); } catch { /* ignore */ }
+    }
   }
 }

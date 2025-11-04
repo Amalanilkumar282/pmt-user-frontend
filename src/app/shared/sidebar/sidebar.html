@@ -63,23 +63,40 @@
     <!-- Show project navigation if we're in a project context -->
     @if (currentProjectId()) {
 
-      <a [routerLink]="['/projects', currentProjectId(), 'teams']" routerLinkActive="active" class="nav-item" [title]="isCollapsed() ? 'Teams' : ''">
-        <svg
-          class="nav-icon"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span *ngIf="!isCollapsed()">Teams</span>
-      </a>
-      
-      <div class="nav-divider"></div>
+    <a
+      [routerLink]="['/projects', currentProjectId(), 'teams']"
+      routerLinkActive="active"
+      class="nav-item"
+      [title]="isCollapsed() ? 'Teams' : ''"
+    >
+      <svg
+        class="nav-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span *ngIf="!isCollapsed()">Teams</span>
+    </a>
+
+    <div class="nav-divider"></div>
     }
 
     <!-- General navigation -->
@@ -138,8 +155,28 @@
 
   <!-- Recent Projects Section -->
   <div *ngIf="!isCollapsed()" class="recent-projects">
-    <div class="section-title">Recent Projects</div>
-    <div class="project-list">
+    <div class="section-title">
+      <span>Recent Projects</span>
+      <span *ngIf="recentProjects().length > 0" class="text-xs text-slate-400 ml-1"
+        >({{ recentProjects().length }})</span
+      >
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoadingRecentProjects()" class="flex items-center justify-center py-4">
+      <div
+        class="animate-spin rounded-full h-5 w-5 border-2 border-slate-300 border-t-[#3D62A8]"
+      ></div>
+    </div>
+
+    <!-- Projects List -->
+    <div *ngIf="!isLoadingRecentProjects()" class="project-list">
+      <!-- Empty State -->
+      <div *ngIf="recentProjects().length === 0" class="px-3 py-4 text-center">
+        <p class="text-xs text-slate-500">No recent projects</p>
+      </div>
+
+      <!-- Show 1-2 Recent Projects -->
       <div *ngFor="let project of recentProjects()" class="project-wrapper">
         <!-- Project Header -->
         <div class="project-item" (click)="navigateToProject(project.id)">
@@ -154,7 +191,13 @@
               xmlns="http://www.w3.org/2000/svg"
               (click)="toggleProjectExpanded(project.id); $event.stopPropagation()"
             >
-              <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path
+                d="M9 18l6-6-6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
             <span class="project-dot"></span>
             <span class="project-name">{{ project.name }}</span>
@@ -170,30 +213,55 @@
             (click)="openAddBoardModal(project.id); $event.stopPropagation()"
           >
             <svg class="board-icon add-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
             </svg>
             <span class="board-name">Add Board</span>
           </button>
 
           <!-- Boards List -->
           <div class="boards-list">
-            <a 
-              *ngFor="let board of project.boards" 
+            <a
+              *ngFor="let board of project.boards"
               [routerLink]="['/projects', project.id, 'board']"
-              [queryParams]="{boardId: board.id}"
+              [queryParams]="{ boardId: board.id }"
               class="board-item"
               [class.active]="boardService.currentBoardId() === board.id"
               (click)="navigateToBoard(project.id, board.id); $event.stopPropagation()"
             >
               <svg class="board-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="3" width="7" height="16" rx="1" stroke="currentColor" stroke-width="2"/>
-                <rect x="14" y="3" width="7" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+                <rect
+                  x="3"
+                  y="3"
+                  width="7"
+                  height="16"
+                  rx="1"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <rect
+                  x="14"
+                  y="3"
+                  width="7"
+                  height="10"
+                  rx="1"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
               </svg>
               <div class="board-info">
                 <span class="board-name" [title]="board.name">
                   {{ board.type === 'TEAM' && board.teamName ? board.teamName : board.name }}
                 </span>
-                <span class="board-type-badge" [class.team-badge]="board.type === 'TEAM'" [class.project-badge]="board.type === 'PROJECT'">
+                <span
+                  class="board-type-badge"
+                  [class.team-badge]="board.type === 'TEAM'"
+                  [class.project-badge]="board.type === 'PROJECT'"
+                >
                   {{ board.type === 'TEAM' ? 'Team' : 'Project' }}
                 </span>
               </div>
@@ -207,7 +275,4 @@
 }
 
 <!-- Add Board Modal -->
-<app-add-board-modal 
-  #addBoardModal
-  (boardCreated)="onBoardCreated($event)"
-></app-add-board-modal>
+<app-add-board-modal #addBoardModal (boardCreated)="onBoardCreated($event)"></app-add-board-modal>

@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Epic } from '../../shared/models/epic.model';
+import { formatDisplayDate } from '../../shared/utils/date-formatter';
 
 @Component({
   selector: 'app-epic-list',
@@ -41,8 +42,6 @@ export class EpicList {
   }
 
   formatDate(date: Date | null): string {
-    if (!date) return '';
-    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-    return date.toLocaleDateString('en-GB', options);
+    return formatDisplayDate(date);
   }
 }

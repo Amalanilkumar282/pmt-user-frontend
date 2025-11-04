@@ -5,6 +5,7 @@ import { BoardStore } from '../../board-store';
 import { IssueStatus } from '../../../shared/models/issue.model';
 import { BoardService } from '../../services/board.service';
 import { StatusApiService, Status } from '../../services/status-api.service';
+import { ToastService } from '../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-add-column-button',
@@ -17,6 +18,7 @@ export class AddColumnButton {
   private store = inject(BoardStore);
   private boardService = inject(BoardService);
   private statusApiService = inject(StatusApiService);
+  private toastService = inject(ToastService);
   
   isOpen = false;
   name = '';
@@ -266,9 +268,12 @@ export class AddColumnButton {
     
     // Determine final statusName to send to backend
     let finalStatusCode = '';
+    let finalStatusId: number | null = null;
+    
     if (this.selectedStatusId) {
-      // User selected an existing status; use its canonical name
+      // User selected an existing status; use its canonical name and id
       finalStatusCode = this.selectedStatusName;
+      finalStatusId = this.selectedStatusId;
     } else if (this.selectedStatusName) {
       // User selected/entered a status name (new or normalized)
       finalStatusCode = this.selectedStatusName;
@@ -278,6 +283,7 @@ export class AddColumnButton {
       if (matchedStatus) {
         console.log('[AddColumnButton] Matched existing status:', matchedStatus.statusName);
         finalStatusCode = matchedStatus.statusName;
+        finalStatusId = matchedStatus.id;
       } else {
         // No match found - normalize it to create new status
         finalStatusCode = this.codeFromInput(this.statusSearchQuery.trim());
@@ -289,6 +295,16 @@ export class AddColumnButton {
     const normalizedName = this.name.trim();
 
     const board = this.store.currentBoard();
+    
+    // Check for duplicate statusId in current board columns
+    if (finalStatusId && board) {
+      const existingColumn = board.columns.find(col => col.statusId === finalStatusId);
+      if (existingColumn) {
+        this.toastService.error(`A column with this status already exists: "${existingColumn.title}"`);
+        this.error = `A column with this status already exists: "${existingColumn.title}"`;
+        return;
+      }
+    }
 
     // If we have a board context, call backend API to create column for that board
     if (board && board.id) {
@@ -303,7 +319,21 @@ export class AddColumnButton {
         );
         if (success) {
           // Refresh local board columns in the store
-          this.store.loadBoard(String(board.id));
+          await this.store.loadBoard(String(board.id));
+          
+          // If this is not the default board, sync the new column to default board
+          if (board.projectId && !board.isDefault) {
+            try {
+              const updatedBoard = this.store.currentBoard();
+              if (updatedBoard) {
+                await this.boardService.syncColumnsToDefaultBoard(board.projectId, updatedBoard);
+              }
+            } catch (syncError) {
+              console.error('[AddColumnButton] Failed to sync column to default board:', syncError);
+              // Don't block the UI - column was created successfully
+            }
+          }
+          
           this.close();
         } else {
           this.error = 'Failed to create column on server';

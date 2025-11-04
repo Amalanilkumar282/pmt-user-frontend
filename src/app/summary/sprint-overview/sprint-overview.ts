@@ -44,13 +44,48 @@ export class SprintOverview implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(): void {
-    if (this.chart) {
-      this.updateChart();
+    console.log('📊 [SprintOverview] ngOnChanges called with statuses:', this.statuses);
+    console.log('📊 [SprintOverview] Chart exists:', !!this.chart);
+    console.log('📊 [SprintOverview] ApexCharts loaded:', !!this.ApexCharts);
+    console.log('📊 [SprintOverview] Chart container:', !!this.chartContainer);
+    
+    if (isPlatformBrowser(this.platformId)) {
+      if (this.chart) {
+        console.log('📊 [SprintOverview] Updating existing chart');
+        this.updateChart();
+      } else if (this.ApexCharts && this.chartContainer && this.statuses.length > 0) {
+        // If chart doesn't exist yet but we have data and ApexCharts is loaded, render it
+        console.log('📊 [SprintOverview] Rendering new chart with data');
+        this.renderChart();
+      } else {
+        console.log('📊 [SprintOverview] Cannot render chart yet:', {
+          hasApexCharts: !!this.ApexCharts,
+          hasContainer: !!this.chartContainer,
+          statusesLength: this.statuses.length
+        });
+      }
     }
   }
 
   private renderChart(): void {
-    if (!this.chartContainer || this.statuses.length === 0 || !this.ApexCharts) return;
+    console.log('📊 [SprintOverview] renderChart called');
+    console.log('📊 [SprintOverview] Container:', !!this.chartContainer);
+    console.log('📊 [SprintOverview] Statuses length:', this.statuses.length);
+    console.log('📊 [SprintOverview] ApexCharts:', !!this.ApexCharts);
+    
+    if (!this.chartContainer || this.statuses.length === 0 || !this.ApexCharts) {
+      console.warn('⚠️ [SprintOverview] Cannot render chart - missing requirements');
+      return;
+    }
+
+    // Destroy existing chart if it exists
+    if (this.chart) {
+      console.log('📊 [SprintOverview] Destroying existing chart');
+      this.chart.destroy();
+      this.chart = null;
+    }
+
+    console.log('📊 [SprintOverview] Creating chart with statuses:', this.statuses);
 
     const options: any = {
       series: this.statuses.map((s) => s.count),
@@ -98,6 +133,7 @@ export class SprintOverview implements AfterViewInit, OnChanges, OnDestroy {
 
     this.chart = new this.ApexCharts(this.chartContainer.nativeElement, options);
     this.chart.render();
+    console.log('✅ [SprintOverview] Chart rendered successfully');
   }
 
   private updateChart(): void {

@@ -5,6 +5,7 @@ import { Epic, EpicStatus, UpdateEpicRequest } from '../../../../shared/models/e
 import { users, User, sprints, epics as allEpics } from '../../../../shared/data/dummy-backlog-data';
 import { EpicService } from '../../../../shared/services/epic.service';
 import { ToastService } from '../../../../shared/services/toast.service';
+import { formatDisplayDate } from '../../../../shared/utils/date-formatter';
 
 @Component({
   selector: 'app-epic-details',
@@ -122,9 +123,7 @@ export class EpicDetails implements OnInit {
   }
 
   formatDate(date: Date | null): string {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatDisplayDate(date);
   }
 
   formatDateForInput(date: Date): string {

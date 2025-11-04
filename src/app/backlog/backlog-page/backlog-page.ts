@@ -774,10 +774,42 @@ export class BacklogPage implements OnInit {
 
   handleDelete(sprintId: string): void {
     console.log('Delete sprint:', sprintId);
-    // Add your deletion logic here
-    if (confirm(`Are you sure you want to delete this sprint?`)) {
-      console.log('Sprint deleted');
-    }
+    
+    // Find the sprint to show its name in the confirmation
+    const sprint = [...this.sprints, ...this.completedSprints].find(s => s.id === sprintId);
+    const sprintName = sprint ? sprint.name : 'this sprint';
+    
+    // Show custom confirmation modal
+    this.modalService.open({
+      id: 'confirmDeleteSprint',
+      title: 'Delete Sprint',
+      modalDesc: `Are you sure you want to delete sprint "${sprintName}"? This action cannot be undone.`,
+      fields: [],
+      submitText: 'Delete',
+      showLabels: false,
+      onSubmit: () => {
+        console.log('[BacklogPage] Deleting sprint:', sprintId);
+        this.toastService.info('Deleting sprint...');
+
+        this.sprintService.deleteSprint(sprintId).subscribe({
+          next: (response) => {
+            console.log('[BacklogPage] Sprint deleted successfully:', response);
+            this.toastService.success('Sprint deleted successfully!');
+            this.modalService.close();
+            
+            // Remove sprint from local state (completedSprints getter will auto-update)
+            this.sprints = this.sprints.filter(s => s.id !== sprintId);
+            
+            // Trigger change detection
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('[BacklogPage] Failed to delete sprint:', error);
+            this.toastService.error(error.error?.message || 'Failed to delete sprint. Please try again.');
+          }
+        });
+      }
+    });
   }
 
   onFiltersChanged(criteria: FilterCriteria): void {
@@ -1020,7 +1052,6 @@ export class BacklogPage implements OnInit {
             updatedAt: sprintData.updatedAt ? new Date(sprintData.updatedAt) : null
           }));
           
-          this.toastService.success(`Loaded ${this.sprints.length} sprints successfully`);
           console.log('Transformed sprints:', this.sprints);
           
           // Reorganize issues into sprints after loading
@@ -1053,7 +1084,6 @@ export class BacklogPage implements OnInit {
         console.log('Loaded issues from backend:', issues);
         this.allIssuesFromBackend = issues;
         this.organizeSprints(issues);
-        this.toastService.success(`Loaded ${issues.length} issues successfully`);
         this.isLoadingIssues = false;
       },
       error: (error) => {
@@ -1077,7 +1107,6 @@ export class BacklogPage implements OnInit {
           ...epic,
           isExpanded: false
         }));
-        this.toastService.success(`Loaded ${epics.length} epics successfully`);
         this.isLoadingEpics = false;
       },
       error: (error) => {

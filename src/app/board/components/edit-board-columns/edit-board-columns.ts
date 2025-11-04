@@ -23,8 +23,20 @@ export class EditBoardColumns {
   errorMessage = signal<string | null>(null);
 
   open() {
-    // Clone current columns for editing
-    this.editableColumns.set([...this.store.columns()]);
+    // Deep clone current columns for editing (to avoid mutating originals)
+    const originalColumns = this.store.columns();
+    const clonedColumns = originalColumns.map(col => ({
+      ...col,
+      // Create new object with all properties copied
+      id: col.id,
+      columnId: col.columnId,
+      title: col.title,
+      color: col.color,
+      position: col.position,
+      status: col.status,
+      statusId: col.statusId
+    }));
+    this.editableColumns.set(clonedColumns);
     this.errorMessage.set(null);
     this.isOpen.set(true);
   }
@@ -38,7 +50,15 @@ export class EditBoardColumns {
   drop(event: CdkDragDrop<BoardColumnDef[]>) {
     const cols = [...this.editableColumns()];
     moveItemInArray(cols, event.previousIndex, event.currentIndex);
+    
+    // CRITICAL: Update position property for all columns after reordering
+    // This ensures the save() method can detect position changes
+    for (let i = 0; i < cols.length; i++) {
+      cols[i].position = i + 1; // 1-based position
+    }
+    
     this.editableColumns.set(cols);
+    console.log('[EditBoardColumns] Columns reordered:', cols.map(c => ({ title: c.title, position: c.position })));
   }
 
   updateTitle(col: BoardColumnDef, newTitle: string) {
@@ -59,6 +79,9 @@ export class EditBoardColumns {
     const originalCols = this.store.columns();
     const editedCols = [...this.editableColumns()];
 
+    console.log('[EditBoardColumns] Original columns:', originalCols.map(c => ({ title: c.title, position: c.position, columnId: c.columnId })));
+    console.log('[EditBoardColumns] Edited columns:', editedCols.map(c => ({ title: c.title, position: c.position, columnId: c.columnId })));
+
     const board = this.store.currentBoard();
     const boardId = board?.id;
 
@@ -70,7 +93,7 @@ export class EditBoardColumns {
       return;
     }
 
-    // Ensure positions are sequential (1-based)
+    // Ensure positions are sequential (1-based) - redundant if drop() already did this, but safe
     for (let i = 0; i < editedCols.length; i++) {
       editedCols[i].position = i + 1;
     }
@@ -94,6 +117,12 @@ export class EditBoardColumns {
           console.log('[EditBoardColumns] No changes for column:', col.title);
           continue; // nothing to update
         }
+
+        console.log('[EditBoardColumns] Changes detected for column:', col.title, {
+          original: orig ? { title: orig.title, position: orig.position, color: orig.color } : 'not found',
+          new: { title: col.title, position: col.position, color: col.color },
+          updates
+        });
 
         if (!col.columnId) {
           // If there's no backend column id, we cannot update — log and skip
@@ -125,14 +154,13 @@ export class EditBoardColumns {
 
     console.log('[EditBoardColumns] Update summary:', { successCount, failCount });
 
-    // Refresh store's board/columns from the board service
+    // Refresh board from backend to get updated columns
     try {
-      const success = this.store.loadBoard(boardId);
-      if (!success) {
-        this.errorMessage.set('Failed to reload board after updates');
-      }
+      console.log('[EditBoardColumns] Reloading board from backend:', boardId);
+      await this.boardService.loadBoardById(parseInt(boardId));
+      console.log('[EditBoardColumns] Board reloaded successfully');
     } catch (err) {
-      console.warn('[EditBoardColumns] Error refreshing board after column updates:', err);
+      console.error('[EditBoardColumns] Error refreshing board after column updates:', err);
       this.errorMessage.set('Failed to reload board after updates');
     }
 

@@ -267,13 +267,13 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
       .slice(0, 2);
   }
 
-  // Format burnup dates as 'D mon YYYY' (e.g., '1 nov 2025') — lowercase month short name
+  // Format burnup dates as 'D Mon YYYY' (e.g., '1 Nov 2025') — capitalized month short name
   private formatBurnupDate(input?: Date | string | null): string {
     if (!input) return '';
     const d = new Date(input as any);
     if (isNaN(d.getTime())) return '';
     const day = String(d.getDate());
-    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const mon = months[d.getMonth()] || '';
     const yyyy = d.getFullYear();
     return `${day} ${mon} ${yyyy}`;

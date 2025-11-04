@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed, inject, effect } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, inject, effect, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Issue } from '../../shared/models/issue.model';
@@ -10,15 +10,22 @@ import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.se
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService } from '../../sprint/sprint.service';
 import { StatusApiService, Status } from '../../board/services/status-api.service';
+import { formatDisplayDate } from '../../shared/utils/date-formatter';
+import { ProjectMembersCacheService } from '../../shared/services/project-members-cache.service';
+import { EpicService } from '../../shared/services/epic.service';
+import { IssueCommentService, IssueComment, CommentMention } from '../../shared/services/issue-comment.service';
+import { UserContextService } from '../../shared/services/user-context.service';
 
 export interface Comment {
   id: string;
   author: string;
-  authorId: string;
+  authorId: number;
   content: string;
-  mentions: string[];
+  mentions: CommentMention[];
   createdAt: Date;
   updatedAt: Date;
+  isEditing?: boolean;
+  editText?: string;
 }
 
 @Component({
@@ -30,11 +37,16 @@ export interface Comment {
 export class IssueDetailedView {
   private modalService = inject(ModalService);
   private userApiService = inject(UserApiService);
+  private membersCacheService = inject(ProjectMembersCacheService);
   private projectContextService = inject(ProjectContextService);
   private issueService = inject(IssueService);
   private toastService = inject(ToastService);
   private sprintService = inject(SprintService);
   private statusApiService = inject(StatusApiService);
+  private epicService = inject(EpicService);
+  private commentService = inject(IssueCommentService);
+  private userContextService = inject(UserContextService);
+  private cdr = inject(ChangeDetectorRef);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -70,12 +82,48 @@ export class IssueDetailedView {
         this.loadProjectMembers(projectId);
       }
     });
+
+    // Load comments when issue changes
+    effect(() => {
+      const issue = this._issue();
+      if (issue && issue.id) {
+        this.loadComments(issue.id);
+      }
+    });
+  }
+
+  /**
+   * Load comments from backend when issue changes
+   */
+  private loadComments(issueId: string): void {
+    this.commentService.getCommentsByIssue(issueId).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Comments loaded successfully:', response);
+        
+        // Convert backend comments to local Comment interface
+        const convertedComments: Comment[] = response.data.map(c => ({
+          id: c.id,
+          author: c.authorName,
+          authorId: c.authorId,
+          content: c.body,
+          mentions: c.mentions,
+          createdAt: new Date(c.createdAt),
+          updatedAt: new Date(c.updatedAt)
+        }));
+        
+        this.comments.set(convertedComments);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error loading comments:', error);
+        this.comments.set([]);
+      }
+    });
   }
   
   private loadProjectMembers(projectId: string): void {
-    this.userApiService.getUsersByProject(projectId).subscribe({
+    // Use cached service to prevent duplicate API calls
+    this.membersCacheService.getProjectMembers(projectId).subscribe({
       next: (members) => {
-        console.log('[IssueDetailedView] Loaded project members:', members);
         this.projectMembers.set(members);
       },
       error: (error) => {
@@ -91,12 +139,14 @@ export class IssueDetailedView {
   protected showMentionDropdown = signal(false);
   protected mentionSearchQuery = signal('');
   protected cursorPosition = signal(0);
+  protected isLoadingComments = signal(false);
   
-  protected availableUsers = signal(users);
+  // Use project members for mentions instead of dummy users
   protected filteredUsers = computed(() => {
     const query = this.mentionSearchQuery().toLowerCase();
-    if (!query) return this.availableUsers();
-    return this.availableUsers().filter(user => 
+    const members = this.projectMembers();
+    if (!query) return members;
+    return members.filter(user => 
       user.name.toLowerCase().includes(query) || 
       user.email.toLowerCase().includes(query)
     );
@@ -107,60 +157,60 @@ export class IssueDetailedView {
     const issue = this._issue();
     if (!issue) return;
 
-    // Get project ID to fetch sprints and statuses
+    // Get project ID to fetch sprints, statuses, and epics
     const projectId = issue.projectId || this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId');
     if (!projectId) {
-      console.error('No project ID found for fetching sprints and statuses');
-      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], [], []); // Fallback
+      console.error('No project ID found for fetching sprints, statuses, and epics');
+      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], [], [], [], []); // Fallback
       return;
     }
 
-    // Fetch sprints and try to fetch statuses (fallback to defaults if API fails)
-    this.sprintService.getSprintsByProject(projectId).subscribe({
-      next: (sprintResponse) => {
-        const sprints = sprintResponse?.data || [];
-        const sprintOptions = sprints.length > 0
-          ? sprints.map(sprint => sprint.name)
-          : ['No sprints available'];
-        
-        // Try to fetch statuses, but use defaults if API doesn't exist
-        this.statusApiService.getAllStatuses().subscribe({
-          next: (statuses) => {
-            const statusesData = statuses || [];
-            console.log('Fetched sprint options for edit:', sprintOptions);
-            console.log('Fetched status options for edit:', statusesData);
-            this.openEditModal(issue, sprintOptions, sprints, statusesData, statusesData);
-          },
-          error: (statusErr) => {
-            console.warn('Status API not available, using default statuses:', statusErr);
-            // Use default hardcoded statuses
-            const defaultStatuses: Status[] = [
-              { id: 1, statusName: 'TODO' },
-              { id: 2, statusName: 'IN_PROGRESS' },
-              { id: 3, statusName: 'IN_REVIEW' },
-              { id: 4, statusName: 'DONE' },
-              { id: 5, statusName: 'BLOCKED' }
-            ];
-            this.openEditModal(issue, sprintOptions, sprints, defaultStatuses, defaultStatuses);
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Failed to fetch sprints for edit modal:', err);
-        // Use default statuses as fallback
-        const defaultStatuses: Status[] = [
-          { id: 1, statusName: 'TODO' },
-          { id: 2, statusName: 'IN_PROGRESS' },
-          { id: 3, statusName: 'IN_REVIEW' },
-          { id: 4, statusName: 'DONE' },
-          { id: 5, statusName: 'BLOCKED' }
-        ];
-        this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], defaultStatuses, defaultStatuses);
-      }
+    // Fetch sprints, statuses, and epics in parallel
+    Promise.all([
+      this.sprintService.getSprintsByProject(projectId).toPromise(),
+      this.statusApiService.getStatusesByProject(projectId).toPromise().catch(() => null),
+      this.epicService.getAllEpicsByProject(projectId).toPromise().catch(() => [])
+    ]).then(([sprintResponse, statuses, epics]) => {
+      const allSprints = sprintResponse?.data || [];
+      // Filter out completed sprints
+      const sprints = allSprints.filter(sprint => sprint.status !== 'COMPLETED');
+      const sprintOptions = sprints.length > 0
+        ? sprints.map(sprint => sprint.name)
+        : ['No sprints available'];
+      
+      const statusesData = statuses || [
+        { id: 1, statusName: 'TODO' },
+        { id: 2, statusName: 'IN_PROGRESS' },
+        { id: 3, statusName: 'IN_REVIEW' },
+        { id: 4, statusName: 'DONE' },
+        { id: 5, statusName: 'BLOCKED' }
+      ];
+
+      const epicsData = epics || [];
+      const epicOptions = epicsData.length > 0
+        ? epicsData.map(epic => epic.title || epic.name)
+        : ['No epics available'];
+      
+      console.log('Fetched sprint options for edit:', sprintOptions);
+      console.log('Fetched status options for edit:', statusesData);
+      console.log('Fetched epic options for edit:', epicOptions);
+      
+      this.openEditModal(issue, sprintOptions, sprints, statusesData, statusesData, epicOptions, epicsData);
+    }).catch((err) => {
+      console.error('Failed to fetch data for edit modal:', err);
+      // Use default options
+      const defaultStatuses: Status[] = [
+        { id: 1, statusName: 'TODO' },
+        { id: 2, statusName: 'IN_PROGRESS' },
+        { id: 3, statusName: 'IN_REVIEW' },
+        { id: 4, statusName: 'DONE' },
+        { id: 5, statusName: 'BLOCKED' }
+      ];
+      this.openEditModal(issue, ['Sprint 1', 'Sprint 2', 'Sprint 3'], [], defaultStatuses, defaultStatuses, ['Epic 1', 'Epic 2', 'Epic 3'], []);
     });
   }
 
-  private openEditModal(issue: Issue, sprintOptions: string[], sprintsData: any[], statusOptions: Status[], statusesData: Status[]): void {
+  private openEditModal(issue: Issue, sprintOptions: string[], sprintsData: any[], statusOptions: Status[], statusesData: Status[], epicOptions: string[], epicsData: any[]): void {
 
     // Use project members loaded from API
     const members = this.projectMembers();
@@ -193,7 +243,7 @@ export class IssueDetailedView {
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
       { label: 'Sprint', type: 'select', model: 'sprint', options: sprintOptions, colSpan: 1 },
       { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 2 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: epicOptions, colSpan: 1 },
       { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
     ];
 
@@ -201,6 +251,7 @@ export class IssueDetailedView {
       assigneeOptions: userOptions.map(u => u.name),
       sprintOptions,
       statusOptions: statusDropdownOptions,
+      epicOptions,
       members
     });
 
@@ -261,6 +312,15 @@ export class IssueDetailedView {
       statusName = issue.status;
     }
 
+    // Find epic name from epicId
+    let epicName = '';
+    if (issue.epicName) {
+      epicName = issue.epicName;
+    } else if (issue.epicId && epicsData.length > 0) {
+      const epic = epicsData.find(e => e.id === issue.epicId);
+      epicName = epic?.title || epic?.name || '';
+    }
+
     // Prepare the data object
     const modalData = {
       issueType: issue.type || '',
@@ -273,7 +333,7 @@ export class IssueDetailedView {
       dueDate: formatDateForInput(issue.dueDate),
       sprint: sprintName,
       storyPoint: issue.storyPoints || '',
-      parentEpic: issue.epicName || issue.epicId || '',
+      parentEpic: epicName,
       attachments: issue.attachmentUrl || '',
       labels: issue.labels || []
     };
@@ -289,6 +349,7 @@ export class IssueDetailedView {
       foundStatusName: statusName,
       epicName: issue.epicName,
       epicId: issue.epicId,
+      foundEpicName: epicName,
       attachmentUrl: issue.attachmentUrl,
       modalData
     });
@@ -358,7 +419,11 @@ export class IssueDetailedView {
           updates.storyPoints = Number(formData.storyPoint);
         }
         if (formData.parentEpic) {
-          updates.epicId = formData.parentEpic;
+          // Convert epic name back to ID
+          const selectedEpic = epicsData.find(e => (e.title || e.name) === formData.parentEpic);
+          console.log('[IssueDetailedView] Found epic:', selectedEpic);
+          updates.epicId = selectedEpic ? selectedEpic.id : formData.parentEpic;
+          console.log('[IssueDetailedView] Set epicId:', updates.epicId);
         }
         if (formData.labels) {
           updates.labels = formData.labels;
@@ -370,6 +435,9 @@ export class IssueDetailedView {
         this.updateIssueApi(issue, updates, statusesData);
       }
     });
+    
+    // Force change detection to ensure modal appears immediately
+    this.cdr.detectChanges();
   }
 
   private updateIssueApi(issue: Issue, updates: Partial<Issue>, statusesData: Status[] = []): void {
@@ -497,21 +565,20 @@ export class IssueDetailedView {
   }
 
   protected formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDisplayDate(date);
   }
 
   protected formatShortDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDisplayDate(date);
+  }
+
+  protected getProjectKey(): string | null {
+    const issue = this._issue();
+    if (!issue || !issue.key) return null;
+    
+    // Extract project key from issue key (e.g., "PROJ001-1" -> "PROJ001")
+    const parts = issue.key.split('-');
+    return parts.length > 1 ? parts[0] : null;
   }
 
   protected onClose(): void {
@@ -527,10 +594,42 @@ export class IssueDetailedView {
   protected onDelete(): void {
     if (this.isReadOnly) return;
     const issue = this._issue();
-    if (issue && confirm(`Are you sure you want to delete issue ${issue.id}?`)) {
-      this.deleteIssue.emit(issue.id);
-      this.onClose();
-    }
+    if (!issue) return;
+
+    // Show custom confirmation modal
+    this.modalService.open({
+      id: 'confirmDeleteIssue',
+      title: 'Delete Issue',
+      modalDesc: `Are you sure you want to delete issue "${issue.title}"? This action cannot be undone.`,
+      fields: [],
+      submitText: 'Delete',
+      showLabels: false,
+      onSubmit: () => {
+        console.log('[IssueDetailedView] Deleting issue:', issue.id);
+        this.toastService.info('Deleting issue...');
+
+        this.issueService.deleteIssue(issue.id).subscribe({
+          next: (response) => {
+            console.log('[IssueDetailedView] Issue deleted successfully:', response);
+            this.toastService.success('Issue deleted successfully!');
+            this.modalService.close();
+            
+            // Emit delete event for parent components to update their local state
+            this.deleteIssue.emit(issue.id);
+            
+            // Close the detailed view
+            this.onClose();
+          },
+          error: (error) => {
+            console.error('[IssueDetailedView] Failed to delete issue:', error);
+            this.toastService.error(error.message || 'Failed to delete issue. Please try again.');
+          }
+        });
+      }
+    });
+    
+    // Force change detection to ensure modal appears immediately
+    this.cdr.detectChanges();
   }
 
   protected toggleMoveDropdown(): void {
@@ -601,15 +700,21 @@ export class IssueDetailedView {
     }
   }
 
-  protected extractMentions(text: string): string[] {
+  /**
+   * Extract mentioned user IDs from comment text
+   * Returns array of user IDs (numbers)
+   */
+  protected extractMentions(text: string): number[] {
     const mentionPattern = /@(\w+(?:\s+\w+)*)/g;
-    const mentions: string[] = [];
+    const mentions: number[] = [];
     let match;
+    
+    const members = this.projectMembers();
     
     while ((match = mentionPattern.exec(text)) !== null) {
       const mentionedName = match[1];
-      // Verify it's a valid user
-      const user = this.availableUsers().find(u => u.name === mentionedName);
+      // Verify it's a valid user from project members
+      const user = members.find(u => u.name === mentionedName);
       if (user) {
         mentions.push(user.id);
       }
@@ -623,37 +728,173 @@ export class IssueDetailedView {
     const text = this.newCommentText().trim();
     if (!text) return;
     
-    const mentions = this.extractMentions(text);
-    const currentUser = users[0]; // Assuming first user is the current user
+    const issue = this._issue();
+    if (!issue) return;
     
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      author: currentUser.name,
-      authorId: currentUser.id,
-      content: text,
-      mentions: mentions,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    this.comments.update(comments => [...comments, newComment]);
-    this.newCommentText.set('');
-    this.showMentionDropdown.set(false);
-    
-    // Notify mentioned users (you can emit an event here for parent component to handle)
-    if (mentions.length > 0) {
-      console.log('Mentioned users:', mentions);
-      // this.mentionNotification.emit({ issueId: this._issue()!.id, mentions });
+    // Get current user ID from session
+    const currentUserId = this.userContextService.getCurrentUserId();
+    if (!currentUserId) {
+      this.toastService.error('User not authenticated. Please log in.');
+      return;
     }
+    
+    // Extract mentioned user IDs
+    const mentionedUserIds = this.extractMentions(text);
+    
+    console.log('[IssueDetailedView] Adding comment:', {
+      issueId: issue.id,
+      body: text,
+      authorId: currentUserId,
+      mentionedUserIds
+    });
+    
+    // Call the API to create comment
+    this.commentService.createComment({
+      issueId: issue.id,
+      body: text,
+      authorId: currentUserId,
+      mentionedUserIds
+    }).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Comment created successfully:', response);
+        this.toastService.success('Comment added successfully!');
+        
+        // Reload comments to get the full comment with author details
+        this.loadComments(issue.id);
+        
+        // Clear input
+        this.newCommentText.set('');
+        this.showMentionDropdown.set(false);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error creating comment:', error);
+        this.toastService.error(error.message || 'Failed to add comment. Please try again.');
+      }
+    });
   }
 
   protected deleteComment(commentId: string): void {
     if (this.isReadOnly) return;
+    
+    const issue = this._issue();
+    if (!issue) return;
+    
     if (confirm('Are you sure you want to delete this comment?')) {
-      this.comments.update(comments => 
-        comments.filter(c => c.id !== commentId)
-      );
+      console.log('[IssueDetailedView] Deleting comment:', commentId);
+      
+      this.commentService.deleteComment(commentId).subscribe({
+        next: (response) => {
+          console.log('[IssueDetailedView] Comment deleted successfully:', response);
+          this.toastService.success('Comment deleted successfully!');
+          
+          // Remove comment from local state
+          this.comments.update(comments => 
+            comments.filter(c => c.id !== commentId)
+          );
+        },
+        error: (error) => {
+          console.error('[IssueDetailedView] Error deleting comment:', error);
+          this.toastService.error(error.message || 'Failed to delete comment. Please try again.');
+        }
+      });
     }
+  }
+
+  /**
+   * Enable edit mode for a comment
+   */
+  protected editComment(comment: Comment): void {
+    if (this.isReadOnly) return;
+    
+    // Set edit mode and populate edit text
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        isEditing: c.id === comment.id,
+        editText: c.id === comment.id ? c.content : c.editText
+      }))
+    );
+  }
+
+  /**
+   * Cancel editing a comment
+   */
+  protected cancelEditComment(commentId: string): void {
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        isEditing: c.id === commentId ? false : c.isEditing,
+        editText: c.id === commentId ? undefined : c.editText
+      }))
+    );
+  }
+
+  /**
+   * Save edited comment
+   */
+  protected saveEditComment(comment: Comment): void {
+    if (this.isReadOnly) return;
+    
+    const editText = comment.editText?.trim();
+    if (!editText) {
+      this.toastService.error('Comment cannot be empty');
+      return;
+    }
+    
+    const issue = this._issue();
+    if (!issue) return;
+    
+    // Get current user ID for updatedBy field
+    const currentUserId = this.userContextService.getCurrentUserId();
+    if (!currentUserId) {
+      this.toastService.error('User not authenticated. Please log in.');
+      return;
+    }
+    
+    // Extract mentioned user IDs from edited text
+    const mentionedUserIds = this.extractMentions(editText);
+    
+    console.log('[IssueDetailedView] Updating comment:', {
+      commentId: comment.id,
+      body: editText,
+      updatedBy: currentUserId,
+      mentionedUserIds
+    });
+    
+    // Call the API to update comment
+    this.commentService.updateComment(comment.id, {
+      id: comment.id,
+      body: editText,
+      updatedBy: currentUserId,
+      mentionedUserIds
+    }).subscribe({
+      next: (response) => {
+        console.log('[IssueDetailedView] Comment updated successfully:', response);
+        this.toastService.success('Comment updated successfully!');
+        
+        // Reload comments to get updated data
+        this.loadComments(issue.id);
+      },
+      error: (error) => {
+        console.error('[IssueDetailedView] Error updating comment:', error);
+        this.toastService.error(error.message || 'Failed to update comment. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Handle edit textarea input
+   */
+  protected onEditCommentInput(event: Event, commentId: string): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const text = textarea.value;
+    
+    this.comments.update(comments => 
+      comments.map(c => ({
+        ...c,
+        editText: c.id === commentId ? text : c.editText
+      }))
+    );
   }
 
   protected formatCommentDate(date: Date): string {
