@@ -34,10 +34,11 @@ export interface Board {
 
 export interface CreateBoardDto {
   name: string;
+  description?: string;
   projectId: string;
-  type: BoardType;
-  source: BoardSource;
-  teamId?: string;
+  type: string; // 'kanban', 'team', 'custom' - backend accepts lowercase strings
+  source?: BoardSource;
+  teamId?: number; // Backend expects number
   columns?: BoardColumnDef[];
   includeBacklog?: boolean;
   includeDone?: boolean;

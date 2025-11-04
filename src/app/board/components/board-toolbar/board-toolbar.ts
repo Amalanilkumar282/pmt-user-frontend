@@ -63,9 +63,12 @@ export class BoardToolbar {
   
   readonly assignees = computed(() => {
     const set = new Set<string>();
-    // Use visibleIssues (respecting current board, sprint selection and filters)
-    // so avatars represent only assignees who are assigned to issues currently shown on the board
-    for (const i of this.store.visibleIssues()) {
+    // Use all loaded issues (store.issues) to derive the full list of project assignees.
+    // Using visibleIssues here caused avatars to disappear when filters were applied
+    // because the visible set shrank to only filtered assignees. We want the avatar
+    // list to be stable so users can toggle multiple assignees without the list
+    // removing other options.
+    for (const i of this.store.issues()) {
       if (!i.assignee) continue;
 
       // If assignee looks like a numeric user id (API may return numeric ids as strings),
@@ -127,21 +130,25 @@ export class BoardToolbar {
 
   toggleAssigneeFilter(assignee: string): void {
     const current = this.filters();
-    const assignees = current.assignees || [];
-    
+    const assignees = (current && current.assignees) || [];
+
+    console.log('[BoardToolbar.toggleAssigneeFilter] current assignees:', assignees, 'toggling:', assignee);
+
+    let newAssignees: string[];
     if (assignees.includes(assignee)) {
       // Remove filter
-      this.store.filters.set({
-        ...current,
-        assignees: assignees.filter(a => a !== assignee)
-      });
+      newAssignees = assignees.filter(a => a !== assignee);
     } else {
       // Add filter
-      this.store.filters.set({
-        ...current,
-        assignees: [...assignees, assignee]
-      });
+      newAssignees = [...assignees, assignee];
     }
+
+    console.log('[BoardToolbar.toggleAssigneeFilter] new assignees:', newAssignees);
+
+    this.store.filters.set({
+      ...current,
+      assignees: newAssignees
+    });
   }
 
   isAssigneeFiltered(assignee: string): boolean {
