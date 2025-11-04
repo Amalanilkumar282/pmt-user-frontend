@@ -95,8 +95,8 @@ export class IssueSummaryService {
   }
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
-  // Use direct API URL instead of proxy
-  private readonly API_BASE_URL = 'https://localhost:7117/api';
+  // Use environment API URL for consistency
+  private readonly API_BASE_URL = `${environment.apiUrl}/api`;
   private readonly CURRENT_DATE = new Date();
   private readonly MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -164,20 +164,36 @@ export class IssueSummaryService {
    */
   getSprintsByProjectId(projectId: string): Observable<Sprint[]> {
     const headers = this.getAuthHeaders();
+    const url = `${this.API_BASE_URL}/sprints/project/${projectId}`;
     
-    return this.http.get<any>(`${this.API_BASE_URL}/sprints/project/${projectId}`, { headers }).pipe(
+    console.log('🔄 Fetching sprints from:', url);
+    console.log('🔍 Project ID:', projectId);
+    
+    return this.http.get<any>(url, { headers }).pipe(
       map((response) => {
+        console.log('📥 Sprints API response:', response);
+        
         if (response.status === 200 && response.data) {
-          return response.data.map((sprint: any) => ({
+          console.log('📊 Total sprints returned:', response.data.length);
+          
+          const sprints = response.data.map((sprint: any) => ({
             id: sprint.id,
             name: sprint.name,
-            startDate: new Date(sprint.startDate),
-            endDate: new Date(sprint.dueDate), // Map dueDate to endDate
-            status: sprint.status as 'ACTIVE' | 'COMPLETED' | 'PLANNED',
+            // Handle both snake_case and camelCase field names
+            startDate: sprint.start_date ? new Date(sprint.start_date) : (sprint.startDate ? new Date(sprint.startDate) : undefined),
+            endDate: sprint.due_date ? new Date(sprint.due_date) : (sprint.dueDate ? new Date(sprint.dueDate) : undefined),
+            status: (sprint.status?.toUpperCase() || 'PLANNED') as 'ACTIVE' | 'COMPLETED' | 'PLANNED',
             issues: [],
-            teamAssigned: sprint.teamId ? `Team ${sprint.teamId}` : undefined,
+            teamAssigned: sprint.team_id ? `Team ${sprint.team_id}` : (sprint.teamId ? `Team ${sprint.teamId}` : undefined),
           }));
+          
+          console.log('✅ Mapped', sprints.length, 'sprints');
+          console.log('📋 Sprint names:', sprints.map((s: Sprint) => `${s.name} (${s.status})`).join(', '));
+          
+          return sprints;
         }
+        
+        console.warn('⚠️ No sprint data in response');
         return [];
       })
     );
@@ -306,73 +322,266 @@ export class IssueSummaryService {
     ).length;
   }
 
-  getIssueSummaryCards(sprintId: string | null = null): SummaryCardData[] {
+  /**
+   * Get issue summary cards with real API data
+   * Fetches from multiple endpoints and calculates metrics
+   */
+  getIssueSummaryCards(projectId: string, sprintId: string | null = null): Observable<SummaryCardData[]> {
+    const headers = this.getAuthHeaders();
     const days = 7;
-    return [
-      {
-        type: 'completed',
-        count: this.getCompletedIssuesCount(sprintId, days),
-        label: 'COMPLETED',
-        timePeriod: 'in the last 7 days',
-      },
-      {
-        type: 'updated',
-        count: this.getUpdatedIssuesCount(sprintId, days),
-        label: 'UPDATED',
-        timePeriod: 'in the last 7 days',
-      },
-      {
-        type: 'created',
-        count: this.getCreatedIssuesCount(sprintId, days),
-        label: 'CREATED',
-        timePeriod: 'in the last 7 days',
-      },
-      {
-        type: 'due-soon',
-        count: this.getDueSoonCount(sprintId, days),
-        label: 'DUE SOON',
-        timePeriod: 'in the next 7 days',
-      },
-    ];
-  }
-
-  /**
-   * Get sprint status breakdown based on filtered sprint
-   */
-  getSprintStatuses(sprintId: string | null = null): SprintStatus[] {
-    const issues = this.getIssuesBySprintId(sprintId);
-    const counts = issues.reduce(
-      (acc, issue) => {
-        if (issue.status === 'TODO') acc.todo++;
-        else if (issue.status === 'IN_PROGRESS' || issue.status === 'IN_REVIEW') acc.inProgress++;
-        else if (issue.status === 'DONE') acc.done++;
-        return acc;
-      },
-      { todo: 0, inProgress: 0, done: 0 }
+    
+    console.log('📊 [getIssueSummaryCards] Called with:', { projectId, sprintId });
+    
+    // If no sprint selected or 'all', use project-level metrics
+    if (!sprintId || sprintId === 'all') {
+      console.log('📊 Fetching issue summary for all sprints in project:', projectId);
+      const url = `${this.API_BASE_URL}/Issue/project/${projectId}/recent`;
+      console.log('📊 API URL:', url);
+      
+      // Fetch all issues for the project and calculate metrics
+      return this.http.get<any>(url, { headers }).pipe(
+        map((response) => {
+          console.log('📥 [getIssueSummaryCards] API response:', response);
+          if (response.status === 200 && Array.isArray(response.data)) {
+            const issues = response.data;
+            console.log('📊 Total issues received:', issues.length);
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - days * this.MS_PER_DAY);
+            const sevenDaysLater = new Date(now.getTime() + days * this.MS_PER_DAY);
+            
+            const completed = issues.filter((issue: any) => 
+              issue.status === 4 && issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
+            ).length;
+            
+            const updated = issues.filter((issue: any) => 
+              issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
+            ).length;
+            
+            const created = issues.filter((issue: any) => 
+              issue.createdAt && new Date(issue.createdAt) >= sevenDaysAgo
+            ).length;
+            
+            const dueSoon = issues.filter((issue: any) => 
+              issue.status !== 4 && issue.dueDate && 
+              new Date(issue.dueDate) <= sevenDaysLater && new Date(issue.dueDate) >= now
+            ).length;
+            
+            console.log('✅ Summary cards calculated:', { completed, updated, created, dueSoon });
+            
+            return [
+              { type: 'completed' as const, count: completed, label: 'COMPLETED', timePeriod: 'in the last 7 days' },
+              { type: 'updated' as const, count: updated, label: 'UPDATED', timePeriod: 'in the last 7 days' },
+              { type: 'created' as const, count: created, label: 'CREATED', timePeriod: 'in the last 7 days' },
+              { type: 'due-soon' as const, count: dueSoon, label: 'DUE SOON', timePeriod: 'in the next 7 days' },
+            ];
+          }
+          console.warn('⚠️ [getIssueSummaryCards] Invalid response format');
+          return this.getEmptySummaryCards();
+        })
+      );
+    }
+    
+    // Sprint-specific metrics - use project endpoint and filter by sprint
+    console.log('📊 Fetching issue summary for sprint:', sprintId);
+    const url = `${this.API_BASE_URL}/Issue/project/${projectId}/recent`;
+    console.log('📊 API URL:', url);
+    
+    return this.http.get<any>(url, { headers }).pipe(
+      map((response) => {
+        console.log('📥 [getIssueSummaryCards] API response for sprint:', response);
+        if (response.status === 200 && Array.isArray(response.data)) {
+          // Filter issues by sprint ID
+          const allIssues = response.data;
+          const issues = allIssues.filter((issue: any) => issue.sprintId === sprintId);
+          console.log('📊 Issues in sprint', sprintId, ':', issues.length, 'out of', allIssues.length);
+          
+          const now = new Date();
+          const sevenDaysAgo = new Date(now.getTime() - days * this.MS_PER_DAY);
+          const sevenDaysLater = new Date(now.getTime() + days * this.MS_PER_DAY);
+          
+          const completed = issues.filter((issue: any) => 
+            issue.status === 4 && issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
+          ).length;
+          
+          const updated = issues.filter((issue: any) => 
+            issue.updatedAt && new Date(issue.updatedAt) >= sevenDaysAgo
+          ).length;
+          
+          const created = issues.filter((issue: any) => 
+            issue.createdAt && new Date(issue.createdAt) >= sevenDaysAgo
+          ).length;
+          
+          const dueSoon = issues.filter((issue: any) => 
+            issue.status !== 4 && issue.dueDate && 
+            new Date(issue.dueDate) <= sevenDaysLater && new Date(issue.dueDate) >= now
+          ).length;
+          
+          console.log('✅ Summary cards calculated for sprint:', { completed, updated, created, dueSoon });
+          
+          return [
+            { type: 'completed' as const, count: completed, label: 'COMPLETED', timePeriod: 'in the last 7 days' },
+            { type: 'updated' as const, count: updated, label: 'UPDATED', timePeriod: 'in the last 7 days' },
+            { type: 'created' as const, count: created, label: 'CREATED', timePeriod: 'in the last 7 days' },
+            { type: 'due-soon' as const, count: dueSoon, label: 'DUE SOON', timePeriod: 'in the next 7 days' },
+          ];
+        }
+        console.warn('⚠️ [getIssueSummaryCards] Invalid response format for sprint');
+        return this.getEmptySummaryCards();
+      })
     );
+  }
 
+  private getEmptySummaryCards(): SummaryCardData[] {
     return [
-      { label: 'To Do', count: counts.todo, colorClass: 'bg-blue-500' },
-      { label: 'In Progress', count: counts.inProgress, colorClass: 'bg-yellow-500' },
-      { label: 'Done', count: counts.done, colorClass: 'bg-green-500' },
+      { type: 'completed' as const, count: 0, label: 'COMPLETED', timePeriod: 'in the last 7 days' },
+      { type: 'updated' as const, count: 0, label: 'UPDATED', timePeriod: 'in the last 7 days' },
+      { type: 'created' as const, count: 0, label: 'CREATED', timePeriod: 'in the last 7 days' },
+      { type: 'due-soon' as const, count: 0, label: 'DUE SOON', timePeriod: 'in the next 7 days' },
     ];
   }
 
   /**
-   * Get issue type breakdown based on filtered sprint
+   * Get sprint status breakdown from API
+   * Fetches issue status counts for the selected sprint
+   * For 'all' sprints: uses project-level API endpoint
    */
-  getIssueTypeCounts(sprintId: string | null = null): { name: string; count: number }[] {
-    const issues = this.getIssuesBySprintId(sprintId);
-    const counts = issues.reduce((acc, issue) => {
-      acc[issue.type] = (acc[issue.type] || 0) + 1;
-      return acc;
-    }, {} as { [key: string]: number });
+  getSprintStatuses(sprintId: string | null = null, projectId?: string): Observable<SprintStatus[]> {
+    const headers = this.getAuthHeaders();
+    
+    // Handle "All Sprints" case with project-level API
+    if (!sprintId || sprintId === 'all') {
+      if (!projectId) {
+        console.warn('⚠️ Project ID required for "All Sprints" view');
+        return new Observable((observer) => {
+          observer.next(this.getEmptyStatusBreakdown());
+          observer.complete();
+        });
+      }
+      
+      console.log('📊 Fetching status breakdown for ALL sprints in project:', projectId);
+      const url = `${this.API_BASE_URL}/Issue/project/${projectId}/status-count`;
+      
+      return this.http.get<any>(url, { headers }).pipe(
+        map((response) => {
+          console.log('📥 Project status API response:', response);
+          
+          if (response.status === 200 && response.data) {
+            return this.mapStatusBreakdown(response.data);
+          }
+          
+          console.warn('⚠️ Invalid response format, returning empty status breakdown');
+          return this.getEmptyStatusBreakdown();
+        })
+      );
+    }
+    
+    // Sprint-specific status counts
+    console.log('📊 Fetching sprint status breakdown for sprint:', sprintId);
+    const url = `${this.API_BASE_URL}/Issue/sprint/${sprintId}/status-count`;
+    
+    return this.http.get<any>(url, { headers }).pipe(
+      map((response) => {
+        console.log('📥 Sprint status API response:', response);
+        
+        if (response.status === 200 && response.data) {
+          return this.mapStatusBreakdown(response.data);
+        }
+        
+        console.warn('⚠️ Invalid response format, returning empty status breakdown');
+        return this.getEmptyStatusBreakdown();
+      })
+    );
+  }
 
+  private mapStatusBreakdown(data: any): SprintStatus[] {
+    // Map API response to our status structure
+    const todo = data.todo || data.TODO || data['To Do'] || 0;
+    const inProgress = (data.inProgress || data.IN_PROGRESS || data['In Progress'] || 0) + 
+                     (data.inReview || data.IN_REVIEW || data['In Review'] || 0);
+    const done = data.done || data.DONE || data.Done || data.completed || 0;
+    
+    console.log('✅ Status breakdown:', { todo, inProgress, done });
+    
     return [
-      { name: 'Story', count: counts['STORY'] || 0 },
-      { name: 'Task', count: counts['TASK'] || 0 },
-      { name: 'Bug', count: counts['BUG'] || 0 },
-      { name: 'Epic', count: counts['EPIC'] || 0 },
+      { label: 'To Do', count: todo, colorClass: 'bg-blue-500' },
+      { label: 'In Progress', count: inProgress, colorClass: 'bg-yellow-500' },
+      { label: 'Done', count: done, colorClass: 'bg-green-500' },
+    ];
+  }
+
+  private getEmptyStatusBreakdown(): SprintStatus[] {
+    return [
+      { label: 'To Do', count: 0, colorClass: 'bg-blue-500' },
+      { label: 'In Progress', count: 0, colorClass: 'bg-yellow-500' },
+      { label: 'Done', count: 0, colorClass: 'bg-green-500' },
+    ];
+  }
+
+  /**
+   * Get issue type counts from API
+   * Fetches breakdown of Story/Task/Bug/Epic counts for the selected sprint
+   */
+  getIssueTypeCounts(projectId: string, sprintId: string | null = null): Observable<{ name: string; count: number }[]> {
+    const headers = this.getAuthHeaders();
+    
+    if (!sprintId || sprintId === 'all') {
+      console.log('📊 Fetching issue type counts for entire project:', projectId);
+      const url = `${this.API_BASE_URL}/Issue/project/${projectId}/type-count`;
+      
+      return this.http.get<any>(url, { headers }).pipe(
+        map((response) => {
+          console.log('📥 Issue type count API response (project):', response);
+          
+          if (response.status === 200 && response.data) {
+            return this.mapIssueTypeCounts(response.data);
+          }
+          
+          console.warn('⚠️ Invalid response format, returning empty type counts');
+          return this.getEmptyTypeCounts();
+        })
+      );
+    }
+    
+    console.log('📊 Fetching issue type counts for sprint:', sprintId);
+    const url = `${this.API_BASE_URL}/Issue/project/${projectId}/sprint/${sprintId}/type-count`;
+    
+    return this.http.get<any>(url, { headers }).pipe(
+      map((response) => {
+        console.log('📥 Issue type count API response (sprint):', response);
+        
+        if (response.status === 200 && response.data) {
+          return this.mapIssueTypeCounts(response.data);
+        }
+        
+        console.warn('⚠️ Invalid response format, returning empty type counts');
+        return this.getEmptyTypeCounts();
+      })
+    );
+  }
+
+  private mapIssueTypeCounts(data: any): { name: string; count: number }[] {
+    // Handle various response formats from API
+    const story = data.story || data.STORY || data.Story || 0;
+    const task = data.task || data.TASK || data.Task || 0;
+    const bug = data.bug || data.BUG || data.Bug || 0;
+    const epic = data.epic || data.EPIC || data.Epic || 0;
+    
+    console.log('✅ Type counts:', { story, task, bug, epic });
+    
+    return [
+      { name: 'Story', count: story },
+      { name: 'Task', count: task },
+      { name: 'Bug', count: bug },
+      { name: 'Epic', count: epic },
+    ];
+  }
+
+  private getEmptyTypeCounts(): { name: string; count: number }[] {
+    return [
+      { name: 'Story', count: 0 },
+      { name: 'Task', count: 0 },
+      { name: 'Bug', count: 0 },
+      { name: 'Epic', count: 0 },
     ];
   }
 
