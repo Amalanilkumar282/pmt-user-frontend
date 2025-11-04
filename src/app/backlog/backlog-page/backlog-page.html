@@ -171,6 +171,7 @@
     [isOpen]="isAIModalOpen"
     [suggestions]="aiSuggestions"
     [isLoading]="isLoadingAISuggestions"
+    [sprintId]="currentSprintData?.createdSprintId || null"
     (close)="closeAIModal()"
     (commit)="handleCommitAISuggestions($event)">
   </app-ai-sprint-modal>

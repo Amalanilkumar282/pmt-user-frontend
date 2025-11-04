@@ -282,19 +282,20 @@ export class BacklogPage implements OnInit {
           return dateObj.toISOString();
         };
         
-        // Store sprint data for later use
+        // Store sprint data for later use - matching API field names
         this.currentSprintData = {
           projectId: projectId,
           sprintName: formData.sprintName,
           sprintGoal: formData.sprintGoal || null,
-          teamId: actualTeamId || null,
+          teamAssigned: actualTeamId ? parseInt(actualTeamId) : null, // Changed from teamId to teamAssigned (integer)
           startDate: formatDateToUTC(formData.startDate),
-          endDate: formatDateToUTC(formData.endDate),
-          status: formData.status || 'PLANNED',
-          targetStoryPoints: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40
+          dueDate: formatDateToUTC(formData.endDate), // Changed from endDate to dueDate
+          status: formData.status || 'Planned', // Changed from PLANNED to Planned
+          storyPoint: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40 // Changed from targetStoryPoints to storyPoint
         };
 
         console.log('Sprint request payload:', this.currentSprintData);
+        console.log('Sprint request JSON:', JSON.stringify(this.currentSprintData, null, 2));
 
         // Close the create sprint modal
         this.modalService.close();
@@ -307,10 +308,13 @@ export class BacklogPage implements OnInit {
         this.sprintService.createSprint(this.currentSprintData).subscribe({
           next: (sprintResponse) => {
             console.log('✅ Sprint created:', sprintResponse);
+            console.log('✅ Sprint response structure:', JSON.stringify(sprintResponse, null, 2));
             const createdSprintId = sprintResponse.data.id;
+            console.log('✅ Extracted Sprint ID:', createdSprintId);
             
             // Store the created sprint ID for later use
             this.currentSprintData.createdSprintId = createdSprintId;
+            console.log('✅ Stored in currentSprintData:', this.currentSprintData);
             
             // Now call AI Planning API
             const aiRequest: AISprintPlanRequest = {
@@ -414,46 +418,81 @@ export class BacklogPage implements OnInit {
   closeAIModal() {
     this.isAIModalOpen = false;
     this.aiSuggestions = null;
-    this.currentSprintData = null;
+    // Delay clearing currentSprintData to allow commit event to process
+    setTimeout(() => {
+      this.currentSprintData = null;
+    }, 100);
     this.cdr.detectChanges();
   }
 
   /**
    * Handle committing AI suggestions - assigns issues to the already-created sprint
    */
-  handleCommitAISuggestions(selectedIssueIds: string[]) {
-    console.log('💾 Committing AI suggestions with issues:', selectedIssueIds);
+  handleCommitAISuggestions(commitData: { 
+    sprintId: string; 
+    issues: Array<{ issueId: string; assigneeId: number }> 
+  }) {
+    console.log('💾 Committing AI suggestions:', commitData);
+    console.log('💾 currentSprintData:', this.currentSprintData);
     
-    if (!this.currentSprintData || !this.currentSprintData.createdSprintId) {
+    const { sprintId, issues } = commitData;
+    
+    if (!sprintId) {
+      console.error('❌ Sprint ID not found in commit data');
       this.toastService.error('Sprint ID not found');
       return;
     }
 
-    const createdSprintId = this.currentSprintData.createdSprintId;
     const projectId = this.currentProjectId;
     
-    // Update selected issues to assign them to the sprint in background
-    if (selectedIssueIds.length > 0) {
-      // Use V2 endpoint to update only sprintId field
-      const updateRequests = selectedIssueIds.map(issueId => 
-        this.issueService.updateIssueV2(issueId, { sprintId: createdSprintId })
-      );
+    console.log('💾 Using Sprint ID:', sprintId);
+    console.log('💾 Project ID:', projectId);
+    console.log('💾 Number of issues to update:', issues.length);
+    
+    // Update selected issues to assign them to the sprint and update assignee in background
+    if (issues.length > 0) {
+      // Use V2 endpoint to update sprintId and assigneeId fields
+      const updateRequests = issues.map(issue => {
+        const updatePayload: any = { 
+          sprintId: sprintId
+        };
+        
+        // Only add assigneeId if it's a valid number
+        if (issue.assigneeId && issue.assigneeId > 0) {
+          updatePayload.assigneeId = issue.assigneeId;
+        }
+        
+        console.log(`📝 Creating update request for issue ${issue.issueId}:`, updatePayload);
+        return this.issueService.updateIssueV2(issue.issueId, updatePayload);
+      });
+      
+      console.log('📤 Sending', updateRequests.length, 'update requests...');
       
       forkJoin(updateRequests).subscribe({
-        next: () => {
-          console.log('✅ Issues assigned to sprint');
-          this.toastService.success(`${selectedIssueIds.length} issue(s) have been added to the Sprint`);
+        next: (responses) => {
+          console.log('✅ All issues assigned to sprint. Responses:', responses);
+          this.toastService.success('Issue(s) successfully added to the sprint');
           this.loadSprints(projectId);
+          this.loadProjectIssues(projectId);
         },
         error: (error) => {
           console.error('❌ Error assigning issues:', error);
+          console.error('❌ Error details:', {
+            message: error.message,
+            status: error.status,
+            statusText: error.statusText,
+            error: error.error
+          });
           this.toastService.error('Failed to add issues to the sprint');
           this.loadSprints(projectId);
+          this.loadProjectIssues(projectId);
         }
       });
     } else {
+      console.warn('⚠️ No issues were selected');
       this.toastService.info('No issues were selected');
       this.loadSprints(projectId);
+      this.loadProjectIssues(projectId);
     }
   }
 
@@ -509,11 +548,11 @@ export class BacklogPage implements OnInit {
           projectId: projectId,
           sprintName: sprint.name,
           sprintGoal: sprint.sprintGoal || null,
-          teamId: sprint.teamId ? String(sprint.teamId) : undefined,
+          teamAssigned: sprint.teamId ? parseInt(String(sprint.teamId)) : null,
           startDate: formatDateToUTC(sprint.startDate),
-          endDate: formatDateToUTC(sprint.endDate),
-          status: 'ACTIVE', // Set status to ACTIVE
-          targetStoryPoints: sprint.storyPoint || 0
+          dueDate: formatDateToUTC(sprint.endDate),
+          status: 'Active', // Set status to Active
+          storyPoint: sprint.storyPoint || 0
         };
 
         console.log('Starting sprint:', sprintId, sprintRequest);
@@ -631,11 +670,11 @@ export class BacklogPage implements OnInit {
       projectId: projectId,
       sprintName: sprint.name,
       sprintGoal: sprint.sprintGoal || null,
-      teamId: sprint.teamId ? String(sprint.teamId) : undefined,
+      teamAssigned: sprint.teamId ? parseInt(String(sprint.teamId)) : null,
       startDate: formatDateToUTC(sprint.startDate),
-      endDate: formatDateToUTC(sprint.endDate),
-      status: 'COMPLETED', // Set status to COMPLETED
-      targetStoryPoints: sprint.storyPoint || 0
+      dueDate: formatDateToUTC(sprint.endDate),
+      status: 'Completed', // Set status to Completed
+      storyPoint: sprint.storyPoint || 0
     };
 
     console.log('Completing sprint:', sprintId, sprintRequest);
@@ -757,11 +796,11 @@ export class BacklogPage implements OnInit {
       projectId: projectId,
       sprintName: formData.sprintName,
       sprintGoal: formData.sprintGoal || null,
-      teamId: formData.teamAssigned ? String(formData.teamAssigned) : undefined,
+      teamAssigned: formData.teamAssigned ? parseInt(String(formData.teamAssigned)) : null,
       startDate: formData.startDate ? formatDateToUTC(formData.startDate) : undefined,
-      endDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
-      status: formData.status || 'PLANNED',
-      targetStoryPoints: formData.storyPoint || 0
+      dueDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
+      status: formData.status || 'Planned',
+      storyPoint: formData.storyPoint || 0
     };
 
     console.log('🔧 Update Sprint Request Details:', {
