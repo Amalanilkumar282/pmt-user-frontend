@@ -277,6 +277,108 @@ export class BoardService {
     return '';
   }
   
+  /**
+   * Get the default/All Issues board for a project (used for column syncing)
+   * The default board is the PROJECT-type board (isDefault=true or type=PROJECT without teamId)
+   */
+  async getProjectDefaultBoard(projectId: string): Promise<Board | null> {
+    try {
+      // Ensure boards are loaded for this project
+      const boards = this.getBoardsByProject(projectId);
+      
+      // First preference: explicitly marked as default
+      const explicitDefault = boards.find(b => b.isDefault === true && !b.teamId);
+      if (explicitDefault) {
+        console.log('[BoardService] Found explicit default board:', explicitDefault.name);
+        return explicitDefault;
+      }
+      
+      // Second: any PROJECT-type board without team association
+      const projectBoard = boards.find(b => b.type === 'PROJECT' && !b.teamId);
+      if (projectBoard) {
+        console.log('[BoardService] Found project-type board as default:', projectBoard.name);
+        return projectBoard;
+      }
+      
+      // Third: any non-team board
+      const nonTeamBoard = boards.find(b => !b.teamId);
+      if (nonTeamBoard) {
+        console.log('[BoardService] Found non-team board as default:', nonTeamBoard.name);
+        return nonTeamBoard;
+      }
+      
+      console.warn('[BoardService] No default board found for project:', projectId);
+      return null;
+    } catch (error) {
+      console.error('[BoardService] Error getting default board:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Sync unique columns from a source board to the default board
+   * This ensures the default/All Issues board has all columns from all project boards
+   */
+  async syncColumnsToDefaultBoard(projectId: string, sourceBoard: Board): Promise<void> {
+    try {
+      console.log('[BoardService] Syncing columns from board:', sourceBoard.name);
+      
+      const defaultBoard = await this.getProjectDefaultBoard(projectId);
+      if (!defaultBoard) {
+        console.warn('[BoardService] No default board found to sync columns to');
+        return;
+      }
+      
+      if (defaultBoard.id === sourceBoard.id) {
+        console.log('[BoardService] Source board is default board, no sync needed');
+        return;
+      }
+      
+      console.log('[BoardService] Default board:', defaultBoard.name, 'Columns:', defaultBoard.columns.length);
+      
+      // Find columns in source that don't exist in default (by statusId)
+      const defaultStatusIds = new Set(defaultBoard.columns.map(c => c.statusId).filter(id => id != null));
+      const newColumns = sourceBoard.columns.filter(col => 
+        col.statusId && !defaultStatusIds.has(col.statusId)
+      );
+      
+      if (newColumns.length === 0) {
+        console.log('[BoardService] No new unique columns to sync');
+        return;
+      }
+      
+      console.log('[BoardService] Syncing', newColumns.length, 'new columns to default board:', 
+        newColumns.map(c => c.title).join(', '));
+      
+      // Create each new column in the default board
+      const userId = this.userContextService?.getCurrentUserId() ?? 0;
+      let nextPosition = defaultBoard.columns.length + 1; // Start after last column in default board
+      
+      for (const col of newColumns) {
+        try {
+          await this.createColumnApi(
+            defaultBoard.id,
+            col.title,
+            col.color,
+            col.status || '',
+            nextPosition // Use calculated position for target board
+          );
+          console.log('[BoardService] Synced column:', col.title, 'at position', nextPosition);
+          nextPosition++; // Increment for next column
+        } catch (error) {
+          console.error('[BoardService] Failed to sync column:', col.title, error);
+        }
+      }
+      
+      // Reload default board to reflect new columns
+      await this.loadBoardById(parseInt(defaultBoard.id, 10));
+      console.log('[BoardService] Default board reloaded with synced columns');
+      
+    } catch (error) {
+      console.error('[BoardService] Error syncing columns to default board:', error);
+    }
+  }
+  
   // Create board
   async createBoardApi(dto: CreateBoardDto): Promise<Board | null> {
     // Validation
@@ -339,6 +441,16 @@ export class BoardService {
         }
         
         console.log('[BoardService] Newly created board loaded with columns:', newBoard);
+        
+        // Sync any unique columns from this new board to the default/All Issues board
+        // This ensures the default board always has all columns from all project boards
+        try {
+          await this.syncColumnsToDefaultBoard(dto.projectId, newBoard);
+        } catch (syncError) {
+          // Log but don't fail the board creation if sync fails
+          console.error('[BoardService] Column sync to default board failed:', syncError);
+        }
+        
         return newBoard;
       } else {
         console.error('[BoardService] Failed to create board:', response);

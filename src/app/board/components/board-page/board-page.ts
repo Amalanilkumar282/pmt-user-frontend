@@ -13,6 +13,7 @@ import { BoardColumnsContainer } from '../board-columns-container/board-columns-
 import { IssueDetailedView } from '../../../backlog/issue-detailed-view/issue-detailed-view';
 // import { ActivityPanel } from '../../../shared/activity-panel/activity-panel';
 import { BoardService } from '../../services/board.service';
+import { ToastContainer } from '../../../shared/components/toast-container/toast-container';
 import { signal } from '@angular/core';
 import { DEFAULT_COLUMNS } from '../../utils';
 import { Issue } from '../../../shared/models/issue.model';
@@ -30,6 +31,7 @@ import { firstValueFrom } from 'rxjs';
     BoardToolbar,
     BoardColumnsContainer,
   IssueDetailedView,
+  ToastContainer,
   // ActivityPanel,
   ],
   templateUrl: './board-page.html',
