@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed, inject, effect } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, inject, effect, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Issue } from '../../shared/models/issue.model';
@@ -40,6 +40,7 @@ export class IssueDetailedView {
   private sprintService = inject(SprintService);
   private statusApiService = inject(StatusApiService);
   private epicService = inject(EpicService);
+  private cdr = inject(ChangeDetectorRef);
   
   @Input() set issue(value: Issue | null) {
     this._issue.set(value);
@@ -123,10 +124,12 @@ export class IssueDetailedView {
     // Fetch sprints, statuses, and epics in parallel
     Promise.all([
       this.sprintService.getSprintsByProject(projectId).toPromise(),
-      this.statusApiService.getAllStatuses().toPromise().catch(() => null),
+      this.statusApiService.getStatusesByProject(projectId).toPromise().catch(() => null),
       this.epicService.getAllEpicsByProject(projectId).toPromise().catch(() => [])
     ]).then(([sprintResponse, statuses, epics]) => {
-      const sprints = sprintResponse?.data || [];
+      const allSprints = sprintResponse?.data || [];
+      // Filter out completed sprints
+      const sprints = allSprints.filter(sprint => sprint.status !== 'COMPLETED');
       const sprintOptions = sprints.length > 0
         ? sprints.map(sprint => sprint.name)
         : ['No sprints available'];
@@ -388,6 +391,9 @@ export class IssueDetailedView {
         this.updateIssueApi(issue, updates, statusesData);
       }
     });
+    
+    // Force change detection to ensure modal appears immediately
+    this.cdr.detectChanges();
   }
 
   private updateIssueApi(issue: Issue, updates: Partial<Issue>, statusesData: Status[] = []): void {
@@ -577,6 +583,9 @@ export class IssueDetailedView {
         });
       }
     });
+    
+    // Force change detection to ensure modal appears immediately
+    this.cdr.detectChanges();
   }
 
   protected toggleMoveDropdown(): void {
