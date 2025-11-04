@@ -11,7 +11,7 @@
   </div>
   <div class="task-btn-wrapper">
     <button class="task-btn" (click)="toggleTypeDropdown()">
-      <span class="task-icon">{{ getTypeIcon(type) }}</span>
+      <i [class]="getTypeIcon(type)" class="task-icon"></i>
       <span>{{ type }}</span>
       <i class="fa-solid fa-chevron-down"></i>
     </button>
@@ -19,7 +19,7 @@
       <div class="type-dropdown">
         @for (issueType of issueTypes; track issueType) {
           <div class="type-option" (click)="selectType(issueType)">
-            <span>{{ getTypeIcon(issueType) }}</span>
+            <i [class]="getTypeIcon(issueType)"></i>
             <span>{{ issueType }}</span>
           </div>
         }
