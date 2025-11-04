@@ -65,7 +65,7 @@
             <div class="issues-list">
               @for (issue of displayedIssues; track issue.issueId; let i = $index) {
                 <div class="issue-card" [class.selected]="isIssueSelected(issue.issueId)">
-                  <button class="delete-btn" (click)="removeIssue(issue.issueId)" title="Remove this issue">🗑️</button>
+                  <button class="delete-btn" (click)="removeIssue(issue.issueId)" title="Remove this issue">❌</button>
                   <div class="issue-header">
                     <div>
                       <div class="issue-key">{{ issue.issueKey }}</div>

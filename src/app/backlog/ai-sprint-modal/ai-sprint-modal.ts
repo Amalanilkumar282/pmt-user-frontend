@@ -15,8 +15,15 @@ export class AiSprintModal implements OnChanges {
   @Input() isOpen = false;
   @Input() suggestions: any | null = null; // AI Sprint Plan response (from parent)
   @Input() isLoading = false; // Loading state controlled by parent
+  @Input() sprintId: string | null = null; // Sprint ID from parent
   @Output() close = new EventEmitter<void>();
-  @Output() commit = new EventEmitter<string[]>(); // Emit selected issue IDs
+  @Output() commit = new EventEmitter<{
+    sprintId: string;
+    issues: Array<{
+      issueId: string;
+      assigneeId: number;
+    }>;
+  }>(); // Emit sprint ID and issue data with assignee IDs
   @Output() loadingComplete = new EventEmitter<void>(); // Notify parent when user names are loaded
 
   private userApiService = inject(UserApiService);
@@ -107,13 +114,31 @@ export class AiSprintModal implements OnChanges {
   }
 
   onCommit(): void {
-    // Close modal immediately
-    this.close.emit();
+    // Validate that we have a sprint ID
+    if (!this.sprintId) {
+      console.error('❌ Cannot commit: Sprint ID is missing');
+      return;
+    }
     
-    // Then emit the issue IDs for background processing
-    const displayedIds = this.displayedIssues.map(issue => issue.issueId);
-    console.log('Committing with displayed issues:', displayedIds);
-    this.commit.emit(displayedIds);
+    // Prepare the commit data with sprint ID and issue details
+    const commitData = {
+      sprintId: this.sprintId,
+      issues: this.displayedIssues.map(issue => ({
+        issueId: issue.issueId,
+        assigneeId: issue.suggestedAssigneeId
+      }))
+    };
+    
+    console.log('Committing AI suggestions:', commitData);
+    
+    // Emit commit FIRST, then close
+    // This ensures the parent processes the commit before cleanup happens
+    this.commit.emit(commitData);
+    
+    // Close modal after a brief delay to ensure commit event is processed
+    setTimeout(() => {
+      this.close.emit();
+    }, 0);
   }
 
   onBackdropClick(event: MouseEvent): void {

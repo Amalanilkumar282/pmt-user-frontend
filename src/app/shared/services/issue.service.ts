@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import {
   GetIssuesResponse,
   IssueApiResponse,
@@ -267,11 +267,22 @@ export class IssueService {
       url,
       payload: updateData
     });
+    console.log('🔄 [IssueService] V2 Request JSON:', JSON.stringify(updateData, null, 2));
     
     return this.http.put<UpdateIssueResponse>(url, updateData, { headers }).pipe(
       map((response) => {
         console.log('✅ [IssueService] V2 Update successful:', response);
         return response;
+      }),
+      catchError((error) => {
+        console.error('❌ [IssueService] V2 Update failed:', error);
+        console.error('❌ [IssueService] Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error
+        });
+        throw error;
       })
     );
   }
