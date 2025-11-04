@@ -123,7 +123,7 @@ export class IssueDetailedView {
     // Fetch sprints, statuses, and epics in parallel
     Promise.all([
       this.sprintService.getSprintsByProject(projectId).toPromise(),
-      this.statusApiService.getAllStatuses().toPromise().catch(() => null),
+      this.statusApiService.getStatusesByProject(projectId).toPromise().catch(() => null),
       this.epicService.getAllEpicsByProject(projectId).toPromise().catch(() => [])
     ]).then(([sprintResponse, statuses, epics]) => {
       const sprints = sprintResponse?.data || [];
