@@ -39,9 +39,13 @@ export class ProjectList {
   @Output() starFilterToggle = new EventEmitter<void>();
 
   navigateToProject(projectId: string) {
-    // Set the current project ID in session storage
-    this.projectContextService.setCurrentProjectId(projectId);
-    console.log('✅ Navigating to project:', projectId);
+    // Find the project to get its name
+    const project = this.projects.find(p => p.id === projectId);
+    const projectName = project?.name || 'Unknown Project';
+    
+    // Set the current project ID and name in session storage
+    this.projectContextService.setCurrentProjectId(projectId, projectName);
+    console.log('✅ Navigating to project:', projectId, projectName);
     
     // Navigate to the project board
     this.router.navigate(['/projects', projectId, 'board']);

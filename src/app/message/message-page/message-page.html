@@ -54,13 +54,39 @@
                   />
                 </svg>
               </button>
-              <button class="header-btn" title="More">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <circle cx="9" cy="3" r="1.5" fill="currentColor" />
-                  <circle cx="9" cy="9" r="1.5" fill="currentColor" />
-                  <circle cx="9" cy="15" r="1.5" fill="currentColor" />
-                </svg>
-              </button>
+              <div style="position: relative">
+                <button
+                  class="header-btn"
+                  [class.active]="showMoreMenu()"
+                  title="More"
+                  (click)="toggleMoreMenu()"
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="3" r="1.5" fill="currentColor" />
+                    <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+                    <circle cx="9" cy="15" r="1.5" fill="currentColor" />
+                  </svg>
+                </button>
+
+                <!-- More Menu Dropdown -->
+                @if (showMoreMenu()) {
+                <div class="more-menu-overlay" (click)="closeMoreMenu()"></div>
+                <div class="more-menu-dropdown">
+                  <button class="more-menu-item delete-item" (click)="deleteChannel()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    <span>Delete Channel</span>
+                  </button>
+                </div>
+                }
+              </div>
             </div>
           </header>
 

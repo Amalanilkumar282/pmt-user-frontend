@@ -127,6 +127,7 @@ export class IssueService {
       assignee: apiIssue.assigneeId ? `User ${apiIssue.assigneeId}` : undefined,
       assigneeName: apiIssue.assigneeName || undefined,
       reporterId: apiIssue.reporterId,
+      reporterName: apiIssue.reporterName || undefined,
       storyPoints: apiIssue.storyPoints,
       sprintId: apiIssue.sprintId || undefined,
       sprintName: apiIssue.sprintName || undefined,
@@ -226,6 +227,27 @@ export class IssueService {
     return this.http.put<UpdateIssueResponse>(url, issue, { headers }).pipe(
       map((response) => {
         console.log('✅ [IssueService] Update successful:', response);
+        return response;
+      })
+    );
+  }
+
+  /**
+   * Delete an issue
+   * DELETE /api/Issue/{issueId}
+   */
+  deleteIssue(issueId: string): Observable<any> {
+    const url = `${this.baseUrl}/${issueId}`;
+    const headers = this.getAuthHeaders();
+    
+    console.log('🗑️ [IssueService] Deleting issue:', {
+      issueId,
+      url
+    });
+    
+    return this.http.delete(url, { headers }).pipe(
+      map((response) => {
+        console.log('✅ [IssueService] Delete successful:', response);
         return response;
       })
     );

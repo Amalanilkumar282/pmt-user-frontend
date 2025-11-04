@@ -10,6 +10,7 @@ import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.se
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService } from '../../sprint/sprint.service';
 import { StatusApiService, Status } from '../../board/services/status-api.service';
+import { formatDisplayDate } from '../../shared/utils/date-formatter';
 import { ProjectMembersCacheService } from '../../shared/services/project-members-cache.service';
 
 export interface Comment {
@@ -189,13 +190,13 @@ export class IssueDetailedView {
       { label: 'Title', type: 'text', model: 'title', colSpan: 2, required: true },
       { label: 'Description', type: 'textarea', model: 'description', colSpan: 2 },
       { label: 'Priority', type: 'select', model: 'priority', options: ['Critical','High','Medium','Low'], colSpan: 1 },
-      { label: 'Status', type: 'select', model: 'status', options: statusDropdownOptions, colSpan: 1 },
       { label: 'Assignee', type: 'select', model: 'assignee', options: userOptions.map(u => u.name), colSpan: 1 },
       { label: 'Start Date', type: 'date', model: 'startDate', colSpan: 1 },
       { label: 'Due Date', type: 'date', model: 'dueDate', colSpan: 1 },
       { label: 'Sprint', type: 'select', model: 'sprint', options: sprintOptions, colSpan: 1 },
       { label: 'Story Point', type: 'number', model: 'storyPoint', colSpan: 1 },
-      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 2 },
+      { label: 'Parent Epic', type: 'select', model: 'parentEpic', options: ['Epic 1','Epic 2','Epic 3'], colSpan: 1 },
+      { label: 'Status', type: 'select', model: 'status', options: statusDropdownOptions, colSpan: 1 },
       { label: 'Attachments', type: 'file', model: 'attachments', colSpan: 2 }
     ];
 
@@ -499,21 +500,20 @@ export class IssueDetailedView {
   }
 
   protected formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDisplayDate(date);
   }
 
   protected formatShortDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDisplayDate(date);
+  }
+
+  protected getProjectKey(): string | null {
+    const issue = this._issue();
+    if (!issue || !issue.key) return null;
+    
+    // Extract project key from issue key (e.g., "PROJ001-1" -> "PROJ001")
+    const parts = issue.key.split('-');
+    return parts.length > 1 ? parts[0] : null;
   }
 
   protected onClose(): void {
@@ -529,10 +529,39 @@ export class IssueDetailedView {
   protected onDelete(): void {
     if (this.isReadOnly) return;
     const issue = this._issue();
-    if (issue && confirm(`Are you sure you want to delete issue ${issue.id}?`)) {
-      this.deleteIssue.emit(issue.id);
-      this.onClose();
-    }
+    if (!issue) return;
+
+    // Show custom confirmation modal
+    this.modalService.open({
+      id: 'confirmDeleteIssue',
+      title: 'Delete Issue',
+      modalDesc: `Are you sure you want to delete issue "${issue.title}"? This action cannot be undone.`,
+      fields: [],
+      submitText: 'Delete',
+      showLabels: false,
+      onSubmit: () => {
+        console.log('[IssueDetailedView] Deleting issue:', issue.id);
+        this.toastService.info('Deleting issue...');
+
+        this.issueService.deleteIssue(issue.id).subscribe({
+          next: (response) => {
+            console.log('[IssueDetailedView] Issue deleted successfully:', response);
+            this.toastService.success('Issue deleted successfully!');
+            this.modalService.close();
+            
+            // Emit delete event for parent components to update their local state
+            this.deleteIssue.emit(issue.id);
+            
+            // Close the detailed view
+            this.onClose();
+          },
+          error: (error) => {
+            console.error('[IssueDetailedView] Failed to delete issue:', error);
+            this.toastService.error(error.message || 'Failed to delete issue. Please try again.');
+          }
+        });
+      }
+    });
   }
 
   protected toggleMoveDropdown(): void {
