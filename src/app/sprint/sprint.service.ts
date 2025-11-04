@@ -54,7 +54,7 @@ export interface GetSprintsResponse {
 export interface TeamMember {
   id: string;
   name: string;
-  email: string;
+  email: string | null; // ⚠️ Can be null - V2 API handles nullable emails
   role: string;
 }
 
@@ -244,21 +244,19 @@ export class SprintService {
   }
 
   /**
-   * Fetch teams for a specific project
-   * GET /api/Team/project/{projectId}
+   * Fetch teams for a specific project using V2 API
+   * GET /api/Team/project/{projectId}/v2
    * 
-   * Note: Backend returns array directly, not wrapped in {succeeded, data} format
-   * Returns: [{teamId, teamName, projectName, description, isActive, ...}, ...]
+   * V2 API properly handles nullable emails and returns wrapped response:
+   * Response: {succeeded: true, statusCode: 200, data: [{id, name, members: [...]}]}
    * 
-   * TODO: Currently using hardcoded projectId: f3a2b1c4-9f6d-4e1a-9b89-7b2f3c8d9a01
-   * Update to fetch projectId from URL parameters once routing is implemented
-   * Example route: /projects/:projectId/backlog
+   * Each team member may have null email if not set in database.
    */
   getTeamsByProject(projectId: string): Observable<any> {
-    const url = `${this.teamsBaseUrl}/project/${projectId}`;
+    const url = `${this.teamsBaseUrl}/project/${projectId}/v2`;
     const headers = this.getAuthHeaders();
     
-    console.log('🔍 [SprintService] Fetching teams for project:', {
+    console.log('🔍 [SprintService] Fetching teams for project (V2 API):', {
       projectId,
       url,
       hasToken: !!sessionStorage.getItem('accessToken'),

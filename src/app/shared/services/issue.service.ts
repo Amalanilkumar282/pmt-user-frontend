@@ -230,4 +230,26 @@ export class IssueService {
       })
     );
   }
+
+  /**
+   * Update an existing issue using V2 endpoint (supports null sprintId)
+   * PUT /api/Issue/{id}/v2
+   */
+  updateIssueV2(issueId: string, updateData: Partial<UpdateIssueRequest>): Observable<UpdateIssueResponse> {
+    const url = `${this.baseUrl}/${issueId}/v2`;
+    const headers = this.getAuthHeaders();
+    
+    console.log('🔄 [IssueService] Updating issue V2:', {
+      issueId,
+      url,
+      payload: updateData
+    });
+    
+    return this.http.put<UpdateIssueResponse>(url, updateData, { headers }).pipe(
+      map((response) => {
+        console.log('✅ [IssueService] V2 Update successful:', response);
+        return response;
+      })
+    );
+  }
 }

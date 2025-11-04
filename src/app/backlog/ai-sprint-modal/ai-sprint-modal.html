@@ -1,110 +1,184 @@
+@if (isOpen) {
 <div class="modal-backdrop" 
-     *ngIf="isOpen"
      (click)="onBackdropClick($event)">
-  <div class="modal-container">
+  <div class="modal-container ai-sprint-modal">
     <!-- Modal Header -->
     <div class="modal-header">
-      <div class="modal-title-section">
-        <svg class="ai-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-        <h2 class="modal-title">AI Sprint Suggestions</h2>
+      <div class="modal-title">
+        @if (isStillLoading) {
+          <span class="check-icon">🤖</span>
+          <h2>Planning...</h2>
+        } @else {
+          <span class="check-icon">✅</span>
+          <h2>AI Sprint Plan Ready</h2>
+        }
       </div>
-      <button class="close-btn" (click)="onClose()" [disabled]="isLoading">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      @if (!isStillLoading) {
+        <p class="subtitle">Review and add suggested issues to your sprint</p>
+      }
+      <button class="close-btn" (click)="onClose()" [disabled]="isStillLoading">✕</button>
     </div>
 
     <!-- Modal Body -->
     <div class="modal-body">
       <!-- Loading State -->
-      <div *ngIf="isLoading" class="loading-container">
-        <div class="spinner"></div>
-        <p class="loading-text">Analyzing Sprint Context...</p>
-        <p class="loading-subtext">Our AI is evaluating your backlog and team capacity</p>
-      </div>
+      @if (isStillLoading) {
+        <div class="loading-container">
+          <div class="ai-loader">
+            <div class="spinner"></div>
+            <div class="ai-thinking-icon">🤖</div>
+          </div>
+          <h3 class="loading-title">AI is Thinking...</h3>
+          <p class="loading-text">Analyzing your backlog and team capacity</p>
+          <p class="loading-subtext">This may take a few seconds</p>
+          <button class="btn-skip" (click)="onClose()">Skip Suggestion</button>
+        </div>
+      }
 
       <!-- Content State -->
-      <div *ngIf="!isLoading && suggestions" class="content-container">
-        <!-- AI Summary Section -->
-        <div class="summary-section">
-          <div class="section-header">
-            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 class="section-title">AI Summary</h3>
-          </div>
-          <p class="summary-text">{{ suggestions.summary }}</p>
-        </div>
-
-        <!-- Recommended Issues Section -->
-        <div class="issues-section">
-          <div class="section-header">
-            <svg class="section-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
-            <h3 class="section-title">Recommended Issues ({{ suggestions.recommended_issues.length }})</h3>
+      @if (!isStillLoading && suggestions) {
+        <div class="content-container">
+          
+          <!-- AI Summary Section -->
+          <div class="ai-section">
+            <div class="section-header">
+              <span class="icon">📄</span>
+              <h3>AI Summary</h3>
+            </div>
+            <div class="summary-box">
+              <p>{{ suggestions.summary }}</p>
+            </div>
           </div>
 
-          <div class="issues-table-container">
-            <table class="issues-table">
-              <thead>
-                <tr>
-                  <th class="th-key">Key</th>
-                  <th class="th-summary">Summary</th>
-                  <th class="th-points">Story Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let issue of suggestions.recommended_issues; let i = index" 
-                    class="issue-row"
-                    [class.even]="i % 2 === 0">
-                  <td class="td-key">
-                    <span class="issue-key-badge">{{ issue.key }}</span>
-                  </td>
-                  <td class="td-summary">{{ issue.summary }}</td>
-                  <td class="td-points">
-                    <span class="story-points-badge">{{ issue.story_points }}</span>
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr class="total-row">
-                  <td colspan="2" class="total-label">Total Story Points</td>
-                  <td class="total-value">
-                    <span class="total-points-badge">
-                      {{ getTotalStoryPoints() }}
-                    </span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+          <!-- Suggested Issues Section -->
+          <div class="ai-section">
+            <div class="section-header between">
+              <div class="left">
+                <span class="icon">📋</span>
+                <h3>Suggested Issues ({{ getDisplayedIssuesCount() }})</h3>
+              </div>
+              <div class="total-points">
+                Total Story Points: <span>{{ getTotalStoryPoints() }}</span>
+              </div>
+            </div>
+
+            <div class="issues-list">
+              @for (issue of displayedIssues; track issue.issueId; let i = $index) {
+                <div class="issue-card" [class.selected]="isIssueSelected(issue.issueId)">
+                  <button class="delete-btn" (click)="removeIssue(issue.issueId)" title="Remove this issue">🗑️</button>
+                  <div class="issue-header">
+                    <div>
+                      <div class="issue-key">{{ issue.issueKey }}</div>
+                      <div class="issue-title">{{ issue.title }}</div>
+                    </div>
+                    <div class="story-points">{{ issue.storyPoints }} pts</div>
+                  </div>
+                  <p class="issue-desc">{{ issue.rationale }}</p>
+                  @if (issue.suggestedAssigneeId) {
+                    <p class="issue-assignee">
+                      <span class="assignee-label">Suggested Assignee:</span> 
+                      <span class="assignee-name">{{ getAssigneeName(issue.suggestedAssigneeId) }}</span>
+                    </p>
+                  }
+                </div>
+              }
+            </div>
           </div>
+
+          <!-- AI Recommendations Section -->
+          @if (suggestions.recommendations && suggestions.recommendations.length > 0) {
+            <div class="ai-section">
+              <div class="section-header">
+                <span class="icon">💡</span>
+                <h3>AI Recommendations</h3>
+              </div>
+
+              @for (rec of suggestions.recommendations; track $index) {
+                <div class="recommend-card" [ngClass]="rec.severity?.toLowerCase()">
+                  <div class="recommend-header">
+                    <h4>{{ rec.type | uppercase }}</h4>
+                    <span class="badge">{{ rec.severity | uppercase }}</span>
+                  </div>
+                  <p>{{ rec.message }}</p>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Capacity Analysis Section -->
+          @if (suggestions.capacityAnalysis) {
+            <div class="ai-section capacity-section">
+              <div class="section-header">
+                <span class="icon">📊</span>
+                <h3>Capacity Analysis</h3>
+              </div>
+
+              <div class="capacity-grid">
+                <div>
+                  <p class="label">Team Capacity Utilization</p>
+                  <p class="value">{{ suggestions.capacityAnalysis.teamCapacityUtilization }}%</p>
+                  <div class="progress-bar">
+                    <div class="progress-fill" 
+                         [style.width.%]="suggestions.capacityAnalysis.teamCapacityUtilization"
+                         [class.high]="suggestions.capacityAnalysis.teamCapacityUtilization > 80"
+                         [class.medium]="suggestions.capacityAnalysis.teamCapacityUtilization >= 50 && suggestions.capacityAnalysis.teamCapacityUtilization <= 80"
+                         [class.low]="suggestions.capacityAnalysis.teamCapacityUtilization < 50"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <p class="label">Estimated Completion Probability</p>
+                  <p class="value">{{ suggestions.capacityAnalysis.estimatedCompletionProbability }}%</p>
+                  <div class="progress-bar">
+                    <div class="progress-fill" 
+                         [style.width.%]="suggestions.capacityAnalysis.estimatedCompletionProbability"
+                         [class.high]="suggestions.capacityAnalysis.estimatedCompletionProbability > 70"
+                         [class.medium]="suggestions.capacityAnalysis.estimatedCompletionProbability >= 40 && suggestions.capacityAnalysis.estimatedCompletionProbability <= 70"
+                         [class.low]="suggestions.capacityAnalysis.estimatedCompletionProbability < 40"></div>
+                  </div>
+                </div>
+              </div>
+
+              @if (suggestions.capacityAnalysis.riskFactors && suggestions.capacityAnalysis.riskFactors.length > 0) {
+                <div class="risk-box">
+                  <h4>⚠️ Risk Factors</h4>
+                  <ul>
+                    @for (risk of suggestions.capacityAnalysis.riskFactors; track $index) {
+                      <li>{{ risk }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          }
         </div>
-      </div>
+      }
 
       <!-- Error State -->
-      <div *ngIf="!isLoading && !suggestions" class="error-container">
-        <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-        <p class="error-text">Unable to generate suggestions</p>
-      </div>
+      @if (!isStillLoading && !suggestions) {
+        <div class="error-container">
+          <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p class="error-text">Unable to generate suggestions</p>
+        </div>
+      }
     </div>
 
     <!-- Modal Footer -->
-    <div class="modal-footer">
-      <button class="btn-secondary" (click)="onClose()" [disabled]="isLoading">
-        Close
-      </button>
-      <button class="btn-primary" 
-              (click)="onCommit()" 
-              [disabled]="isLoading || !suggestions"
-              title="Feature coming soon">
-        Commit Changes
-      </button>
-    </div>
+    @if (!isStillLoading) {
+      <div class="modal-footer">
+        <button class="btn-secondary btn-outline" (click)="onClose()">
+          Discard Suggestions
+        </button>
+        <button class="btn-primary" 
+                (click)="onCommit()" 
+                [disabled]="!suggestions || getDisplayedIssuesCount() === 0"
+                [title]="getDisplayedIssuesCount() === 0 ? 'No issues available' : 'Add issues to sprint'">
+          + Add {{ getDisplayedIssuesCount() }} Issues to Sprint
+        </button>
+      </div>
+    }
   </div>
 </div>
+}
