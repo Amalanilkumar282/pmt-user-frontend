@@ -233,7 +233,6 @@ showToast(message: string, duration: number = 3000) {
       this.activeModalId = id;
       if (!id) {
         this.show = false;
-        if (this.isBrowser) document.body.style.overflow = '';
         this.cdr.detectChanges();
         return;
       }
@@ -284,7 +283,6 @@ showToast(message: string, duration: number = 3000) {
       }
     }
 
-      if (this.isBrowser) document.body.style.overflow = this.show ? 'hidden' : '';
       this.cdr.detectChanges();
     });
 }
@@ -321,7 +319,6 @@ showToast(message: string, duration: number = 3000) {
     if (this.sub) {
       this.sub.unsubscribe();
     }
-    if (this.isBrowser) document.body.style.overflow = '';
   }
 
 close() { 
