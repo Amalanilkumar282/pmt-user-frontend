@@ -166,6 +166,15 @@ export class BoardApiService {
     const sortedColumns = apiBoard.columns
       .map(col => this.mapColumnApiToColumnDef(col))
       .sort((a, b) => a.position - b.position);
+    
+    // Map backend type string to frontend type
+    // Backend sends: "default", "custom", "team", "scrum", etc.
+    const backendType = (apiBoard.type || '').toLowerCase();
+    const isTeamBoard = backendType === 'team' || !!apiBoard.teamId;
+    const isDefaultBoard = backendType === 'default';
+    
+    // Determine source based on type
+    const source: 'TEAM' | 'CUSTOM' = isTeamBoard ? 'TEAM' : 'CUSTOM';
       
     return {
       id: apiBoard.id.toString(),
@@ -175,8 +184,8 @@ export class BoardApiService {
       projectName: apiBoard.projectName,
       teamId: apiBoard.teamId?.toString(),
       teamName: apiBoard.teamName || undefined,
-      type: apiBoard.teamId ? 'TEAM' : 'PROJECT',
-      source: 'CUSTOM',
+      type: isTeamBoard ? 'TEAM' : 'PROJECT',
+      source: source,
       columns: sortedColumns,  // Use sorted columns
       includeBacklog: false,
       includeDone: true,
@@ -185,7 +194,7 @@ export class BoardApiService {
       createdBy: apiBoard.createdBy.toString(),
       createdAt: apiBoard.createdAt,
       updatedAt: apiBoard.updatedAt,
-      isDefault: false
+      isDefault: isDefaultBoard  // Set based on backend type field
     };
   }
 
