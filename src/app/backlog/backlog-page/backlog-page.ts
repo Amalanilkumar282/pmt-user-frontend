@@ -1,4 +1,4 @@
-import { Component, inject, HostListener, OnInit, ChangeDetectorRef, NgZone, ViewChild } from '@angular/core';
+import { Component, inject, HostListener, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SprintContainer, Sprint } from '../../sprint/sprint-container/sprint-container';
@@ -23,13 +23,13 @@ import {
   sprints as sharedSprints
 } from '../../shared/data/dummy-backlog-data';
 import { FormField, ModalService } from '../../modal/modal-service';
-import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
-import { AiSprintPlanningService, AISuggestionResponse } from '../../shared/services/ai-sprint-planning.service';
 import { ToastService } from '../../shared/services/toast.service';
 import { SprintService, SprintRequest } from '../../sprint/sprint.service';
 import { IssueService, UpdateIssueRequest } from '../../shared/services/issue.service';
 import { EpicService } from '../../shared/services/epic.service';
 import { forkJoin } from 'rxjs';
+import { AiSprintModal } from '../ai-sprint-modal/ai-sprint-modal';
+import { AISprintPlanRequest, AISprintPlanResponse } from '../../sprint/sprint.service';
 
 @Component({
   selector: 'app-backlog-page',
@@ -40,6 +40,13 @@ import { forkJoin } from 'rxjs';
 export class BacklogPage implements OnInit {
   // Dummy team names for dropdown
   teamOptions: string[] = ['Frontend Team', 'Backend Team', 'QA Team', 'DevOps Team', 'Design Team'];
+  
+  // AI Sprint Planning state
+  isAIModalOpen = false;
+  aiSuggestions: any = null;
+  isLoadingAISuggestions = false;
+  currentSprintData: any = null; // Store sprint data for AI modal
+  
   constructor(
     private modalService: ModalService, 
     private sprintService: SprintService,
@@ -54,10 +61,8 @@ export class BacklogPage implements OnInit {
   // ViewChild to access the filters component
   @ViewChild(Filters) filtersComponent?: Filters;
   
-  private aiSprintPlanningService = inject(AiSprintPlanningService);
   private toastService = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
-  private ngZone = inject(NgZone);
   
   // Template calls isSidebarCollapsed() as a method; expose it here.
   isSidebarCollapsed(): boolean {
@@ -84,11 +89,6 @@ export class BacklogPage implements OnInit {
   get currentProjectId(): string {
     return this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
   }
-  
-  // AI Sprint Planning state
-  isAIModalOpen = false;
-  aiSuggestions: AISuggestionResponse | null = null;
-  isLoadingAISuggestions = false;
   
   // Use shared dummy data from shared/data/dummy-backlog-data.ts
   private completedSprint1Issues: Issue[] = completedSprint1Issues;
@@ -188,165 +188,211 @@ export class BacklogPage implements OnInit {
   handleCreateSprint() {
     const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
     
-    // Fetch teams for the project
+    // Prepare initial fields with loading state for teams
+    const fields: FormField[] = [
+      { 
+        label: 'Sprint Name', 
+        type: 'text', 
+        model: 'sprintName', 
+        colSpan: 2, 
+        required: true 
+      },
+      { 
+        label: 'Sprint Goal', 
+        type: 'textarea', 
+        model: 'sprintGoal', 
+        colSpan: 2 
+      },
+      { 
+        label: 'Start Date', 
+        type: 'date', 
+        model: 'startDate', 
+        colSpan: 1
+      },
+      { 
+        label: 'End Date', 
+        type: 'date', 
+        model: 'endDate', 
+        colSpan: 1
+      },
+      { 
+        label: 'Status', 
+        type: 'select', 
+        model: 'status', 
+        options: ['PLANNED', 'ACTIVE', 'COMPLETED'], 
+        colSpan: 1 
+      },
+      { 
+        label: 'Target Story Points', 
+        type: 'number', 
+        model: 'targetStoryPoints', 
+        colSpan: 1 
+      },
+      { 
+        label: 'Team', 
+        type: 'select', 
+        model: 'teamId', 
+        options: ['Loading teams...'], // Initial loading state
+        colSpan: 2
+      }
+    ];
+
+    let teamIds: string[] = [];
+
+    // Open modal immediately (don't wait for API)
+    this.modalService.open({
+      id: 'createSprint',
+      title: 'Create Sprint',
+      projectName: '',
+      modalDesc: 'Plan your next sprint with AI-powered suggestions',
+      fields,
+      data: { 
+        status: 'PLANNED',
+        targetStoryPoints: 40
+      },
+      showLabels: false,
+      submitText: 'Create Sprint & Get AI Suggestions',
+      onSubmit: (formData: any) => {
+        console.log('Create sprint formData:', formData);
+        
+        // Validate required field: Sprint Name
+        if (!formData.sprintName) {
+          this.toastService.error('Sprint Name is required');
+          return;
+        }
+
+        // Find the selected team index to get the actual teamId (optional)
+        let actualTeamId = null;
+        if (formData.teamId && formData.teamId !== 'Loading teams...' && formData.teamId !== 'No teams found') {
+          const teamField = fields.find(f => f.model === 'teamId');
+          if (teamField && teamField.options) {
+            const selectedTeamIndex = teamField.options.indexOf(formData.teamId);
+            actualTeamId = selectedTeamIndex >= 0 ? teamIds[selectedTeamIndex] : null;
+          }
+        }
+        
+        // Helper function to convert date to UTC ISO string
+        const formatDateToUTC = (date: any): string | undefined => {
+          if (!date) return undefined;
+          const dateObj = typeof date === 'string' ? new Date(date) : date;
+          return dateObj.toISOString();
+        };
+        
+        // Store sprint data for later use
+        this.currentSprintData = {
+          projectId: projectId,
+          sprintName: formData.sprintName,
+          sprintGoal: formData.sprintGoal || null,
+          teamId: actualTeamId || null,
+          startDate: formatDateToUTC(formData.startDate),
+          endDate: formatDateToUTC(formData.endDate),
+          status: formData.status || 'PLANNED',
+          targetStoryPoints: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40
+        };
+
+        console.log('Sprint request payload:', this.currentSprintData);
+
+        // Close the create sprint modal
+        this.modalService.close();
+        
+        // Open AI modal and start loading
+        this.isLoadingAISuggestions = true;
+        this.isAIModalOpen = true;
+        
+        // Create the sprint first
+        this.sprintService.createSprint(this.currentSprintData).subscribe({
+          next: (sprintResponse) => {
+            console.log('✅ Sprint created:', sprintResponse);
+            const createdSprintId = sprintResponse.data.id;
+            
+            // Store the created sprint ID for later use
+            this.currentSprintData.createdSprintId = createdSprintId;
+            
+            // Now call AI Planning API
+            const aiRequest: AISprintPlanRequest = {
+              sprintGoal: formData.sprintGoal || null,
+              startDate: formatDateToUTC(formData.startDate),
+              endDate: formatDateToUTC(formData.endDate),
+              status: formData.status || 'PLANNED',
+              targetStoryPoints: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40,
+              teamId: actualTeamId ? parseInt(actualTeamId) : null
+            };
+
+            this.sprintService.generateAISprintPlan(projectId, aiRequest).subscribe({
+              next: (response) => {
+                console.log('✅ AI Sprint Plan Response:', response);
+                this.aiSuggestions = response.data.sprintPlan;
+                this.isLoadingAISuggestions = false;
+                this.cdr.detectChanges();
+              },
+              error: (error) => {
+                console.error('❌ Error generating AI plan:', error);
+                this.isLoadingAISuggestions = false;
+                this.isAIModalOpen = false;
+                this.toastService.error('Failed to generate AI sprint suggestions');
+                this.cdr.detectChanges();
+              }
+            });
+          },
+          error: (error) => {
+            console.error('❌ Error creating sprint:', error);
+            this.isLoadingAISuggestions = false;
+            this.isAIModalOpen = false;
+            this.toastService.error('Failed to create sprint');
+            this.cdr.detectChanges();
+          }
+        });
+      }
+    });
+
+    // Fetch teams in background and update modal when ready
     this.sprintService.getTeamsByProject(projectId).subscribe({
       next: (response) => {
+        console.log('📦 Teams V2 API Response:', response);
+        
         let teamsData: any[] = [];
         
-        if (Array.isArray(response)) {
+        // V2 API returns wrapped response: {succeeded: true, statusCode: 200, data: [...]}
+        if (response && response.succeeded && Array.isArray(response.data)) {
+          teamsData = response.data;
+        } else if (Array.isArray(response)) {
+          // Fallback for direct array response (legacy)
           teamsData = response;
         } else if (response && response.data && Array.isArray(response.data)) {
+          // Alternative wrapped format
           teamsData = response.data;
         }
         
-        const teamOptions = teamsData.map((team: any) => 
-          `${team.teamName || team.name || 'Unnamed Team'}${team.members && team.members.length > 0 ? ' (' + team.members.length + ' members)' : ''}`
-        );
-        const teamIds = teamsData.map((team: any) => team.teamId || team.id || '');
+        console.log('👥 Processed teams data:', teamsData);
         
-        const fields: FormField[] = [
-          { 
-            label: 'Sprint Name', 
-            type: 'text', 
-            model: 'sprintName', 
-            colSpan: 2, 
-            required: true 
-          },
-          { 
-            label: 'Sprint Goal', 
-            type: 'textarea', 
-            model: 'sprintGoal', 
-            colSpan: 2 
-          },
-          { 
-            label: 'Start Date', 
-            type: 'date', 
-            model: 'startDate', 
-            colSpan: 1
-          },
-          { 
-            label: 'End Date', 
-            type: 'date', 
-            model: 'endDate', 
-            colSpan: 1
-          },
-          { 
-            label: 'Status', 
-            type: 'select', 
-            model: 'status', 
-            options: ['PLANNED', 'ACTIVE', 'COMPLETED'], 
-            colSpan: 1 
-          },
-          { 
-            label: 'Target Story Points', 
-            type: 'number', 
-            model: 'targetStoryPoints', 
-            colSpan: 1 
-          },
-          { 
-            label: 'Team', 
-            type: 'select', 
-            model: 'teamId', 
-            options: teamOptions, 
-            colSpan: 2
-          }
-        ];
-
-        this.modalService.open({
-          id: 'createSprint',
-          title: 'Create Sprint',
-          projectName: '',
-          modalDesc: 'Plan your next sprint with AI-powered suggestions',
-          fields,
-          data: { 
-            status: 'PLANNED',
-            targetStoryPoints: 40
-          },
-          showLabels: false,
-          submitText: 'Create Sprint & Get AI Suggestions',
-          onSubmit: (formData: any) => {
-            console.log('Create sprint formData:', formData);
-            
-            // Validate required field: Sprint Name
-            if (!formData.sprintName) {
-              this.toastService.error('Sprint Name is required');
-              return;
-            }
-
-            // Find the selected team index to get the actual teamId (optional)
-            let actualTeamId = null;
-            if (formData.teamId) {
-              const selectedTeamIndex = teamOptions.indexOf(formData.teamId);
-              actualTeamId = selectedTeamIndex >= 0 ? teamIds[selectedTeamIndex] : null;
-            }
-            
-            // Helper function to convert date to UTC ISO string
-            const formatDateToUTC = (date: any): string | undefined => {
-              if (!date) return undefined;
-              const dateObj = typeof date === 'string' ? new Date(date) : date;
-              return dateObj.toISOString();
-            };
-            
-            const sprintRequest: SprintRequest = {
-              projectId: projectId,
-              sprintName: formData.sprintName,
-              sprintGoal: formData.sprintGoal || null,
-              teamAssigned: actualTeamId ? parseInt(actualTeamId) : null,
-              startDate: formatDateToUTC(formData.startDate),
-              dueDate: formatDateToUTC(formData.endDate),
-              status: formData.status || 'PLANNED',
-              storyPoint: formData.targetStoryPoints ? parseInt(formData.targetStoryPoints) : 40
-            };
-
-            console.log('Sprint request payload:', sprintRequest);
-            console.log('Sprint request JSON:', JSON.stringify(sprintRequest, null, 2));
-
-            this.modalService.close();
-            
-            // Create sprint
-            this.sprintService.createSprint(sprintRequest).subscribe({
-              next: (response) => {
-                console.log('Sprint created:', response);
-                const createdSprintId = response.data.id;
-                
-                // Reload sprints
-                this.loadSprints(projectId);
-                
-                // Trigger AI planning if form has sufficient data
-                if (formData.sprintGoal && formData.startDate && formData.endDate && formData.teamId) {
-                  this.generateAIPlanForSprint(createdSprintId, formData, actualTeamId);
-                } else {
-                  this.toastService.success('Sprint created successfully!');
-                }
-              },
-              error: (error) => {
-                console.error('Error creating sprint:', error);
-                console.error('Error status:', error.status);
-                console.error('Error message:', error.message);
-                
-                // Log validation errors if available
-                if (error.error && error.error.errors) {
-                  console.error('Validation errors:', error.error.errors);
-                  const errorMessages = Object.entries(error.error.errors)
-                    .map(([field, messages]: [string, any]) => {
-                      const msgArray = Array.isArray(messages) ? messages : [messages];
-                      return `${field}: ${msgArray.join(', ')}`;
-                    })
-                    .join('; ');
-                  this.toastService.error(`Validation failed: ${errorMessages}`);
-                } else if (error.error && error.error.title) {
-                  this.toastService.error(`Failed to create sprint: ${error.error.title}`);
-                } else {
-                  this.toastService.error('Failed to create sprint');
-                }
-              }
-            });
-          }
-        });
+        // Handle empty teams case
+        if (teamsData.length === 0) {
+          console.warn('⚠️ No teams found for project');
+        }
+        
+        const teamOptions = teamsData.length > 0 
+          ? teamsData.map((team: any) => 
+              `${team.name || team.teamName || 'Unnamed Team'}${team.members && team.members.length > 0 ? ' (' + team.members.length + ' members)' : ''}`
+            )
+          : ['No teams found'];
+        
+        teamIds = teamsData.map((team: any) => team.id || team.teamId || '');
+        
+        // Only update field options if modal is still open
+        // Check if the modal hasn't been closed yet (sprint creation in progress)
+        const teamField = fields.find(f => f.model === 'teamId');
+        if (teamField && !this.isAIModalOpen) {
+          // Modal is still open (AI modal hasn't opened yet), update the options
+          teamField.options = teamOptions;
+        }
       },
       error: (error) => {
         console.error('Error loading teams:', error);
-        this.toastService.error('Failed to load teams');
+        // Update the team field to show error state
+        const teamField = fields.find(f => f.model === 'teamId');
+        if (teamField) {
+          teamField.options = ['Failed to load teams'];
+        }
       }
     });
   }
@@ -359,63 +405,52 @@ export class BacklogPage implements OnInit {
   }
 
   /**
-   * Generate AI Sprint Plan after sprint creation
+   * Close AI Sprint Modal
    */
-  private generateAIPlanForSprint(sprintId: string, formData: any, teamId: string): void {
-    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
-    
-    const aiRequest = {
-      sprintName: formData.sprintName,
-      sprintGoal: formData.sprintGoal,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      targetStoryPoints: formData.targetStoryPoints || 40,
-      teamId: teamId
-    };
-
-    console.log('Generating AI plan for sprint:', sprintId, aiRequest);
-
-    this.toastService.info('Generating AI suggestions for sprint...');
-
-    this.sprintService.generateAISprintPlan(projectId, aiRequest).subscribe({
-      next: (response) => {
-        console.log('AI plan response:', response);
-        
-        if (response.succeeded && response.data.sprintPlan) {
-          const suggestions = response.data.sprintPlan.selectedIssues;
-          const summary = response.data.sprintPlan.summary;
-          
-          this.toastService.success('Sprint created! AI suggestions generated.');
-          
-          // Show AI suggestions in a modal or notification
-          this.showAISuggestionsModal(sprintId, suggestions, summary);
-        } else {
-          this.toastService.warning('Sprint created, but AI suggestions unavailable');
-        }
-      },
-      error: (error) => {
-        console.error('Error generating AI plan:', error);
-        this.toastService.warning('Sprint created successfully, but AI planning failed');
-      }
-    });
+  closeAIModal() {
+    this.isAIModalOpen = false;
+    this.aiSuggestions = null;
+    this.currentSprintData = null;
+    this.cdr.detectChanges();
   }
 
   /**
-   * Show AI suggestions in a modal
+   * Handle committing AI suggestions - assigns issues to the already-created sprint
    */
-  private showAISuggestionsModal(sprintId: string, suggestions: any[], summary: string): void {
-    // Convert backend suggestions to AISuggestionResponse format
-    this.aiSuggestions = {
-      recommended_issues: suggestions.map((issue: any) => ({
-        key: issue.issueKey || issue.key || '',
-        summary: issue.rationale || issue.summary || '',
-        story_points: issue.storyPoints || 0
-      })),
-      summary: summary
-    };
+  handleCommitAISuggestions(selectedIssueIds: string[]) {
+    console.log('💾 Committing AI suggestions with issues:', selectedIssueIds);
     
-    this.isAIModalOpen = true;
-    this.cdr.detectChanges();
+    if (!this.currentSprintData || !this.currentSprintData.createdSprintId) {
+      this.toastService.error('Sprint ID not found');
+      return;
+    }
+
+    const createdSprintId = this.currentSprintData.createdSprintId;
+    const projectId = this.currentProjectId;
+    
+    // Update selected issues to assign them to the sprint in background
+    if (selectedIssueIds.length > 0) {
+      // Use V2 endpoint to update only sprintId field
+      const updateRequests = selectedIssueIds.map(issueId => 
+        this.issueService.updateIssueV2(issueId, { sprintId: createdSprintId })
+      );
+      
+      forkJoin(updateRequests).subscribe({
+        next: () => {
+          console.log('✅ Issues assigned to sprint');
+          this.toastService.success(`${selectedIssueIds.length} issue(s) have been added to the Sprint`);
+          this.loadSprints(projectId);
+        },
+        error: (error) => {
+          console.error('❌ Error assigning issues:', error);
+          this.toastService.error('Failed to add issues to the sprint');
+          this.loadSprints(projectId);
+        }
+      });
+    } else {
+      this.toastService.info('No issues were selected');
+      this.loadSprints(projectId);
+    }
   }
 
   /**
@@ -467,15 +502,14 @@ export class BacklogPage implements OnInit {
         };
 
         const sprintRequest: SprintRequest = {
-          id: sprintId,
           projectId: projectId,
           sprintName: sprint.name,
           sprintGoal: sprint.sprintGoal || null,
-          teamAssigned: sprint.teamId || null,
+          teamId: sprint.teamId ? String(sprint.teamId) : undefined,
           startDate: formatDateToUTC(sprint.startDate),
-          dueDate: formatDateToUTC(sprint.endDate),
+          endDate: formatDateToUTC(sprint.endDate),
           status: 'ACTIVE', // Set status to ACTIVE
-          storyPoint: sprint.storyPoint || 0
+          targetStoryPoints: sprint.storyPoint || 0
         };
 
         console.log('Starting sprint:', sprintId, sprintRequest);
@@ -487,13 +521,11 @@ export class BacklogPage implements OnInit {
             this.toastService.success(`Sprint "${sprint.name}" started successfully!`);
             this.modalService.close();
             // Reload sprints to get updated data from backend and reorganize
-            this.ngZone.run(() => {
-              if (projectId) {
-                this.loadSprints(projectId);
-              }
-              // Trigger change detection
-              this.cdr.detectChanges();
-            });
+            if (projectId) {
+              this.loadSprints(projectId);
+            }
+            // Trigger change detection
+            this.cdr.detectChanges();
           },
           error: (error) => {
             console.error('Error starting sprint:', error);
@@ -592,15 +624,14 @@ export class BacklogPage implements OnInit {
     };
 
     const sprintRequest: SprintRequest = {
-      id: sprintId,
       projectId: projectId,
       sprintName: sprint.name,
       sprintGoal: sprint.sprintGoal || null,
-      teamAssigned: sprint.teamId || null,
+      teamId: sprint.teamId ? String(sprint.teamId) : undefined,
       startDate: formatDateToUTC(sprint.startDate),
-      dueDate: formatDateToUTC(sprint.endDate),
+      endDate: formatDateToUTC(sprint.endDate),
       status: 'COMPLETED', // Set status to COMPLETED
-      storyPoint: sprint.storyPoint || 0
+      targetStoryPoints: sprint.storyPoint || 0
     };
 
     console.log('Completing sprint:', sprintId, sprintRequest);
@@ -613,13 +644,11 @@ export class BacklogPage implements OnInit {
         this.modalService.close();
         
         // Reload sprints to get updated data from backend and reorganize
-        this.ngZone.run(() => {
-          if (projectId) {
-            this.loadSprints(projectId);
-          }
-          // Trigger change detection
-          this.cdr.detectChanges();
-        });
+        if (projectId) {
+          this.loadSprints(projectId);
+        }
+        // Trigger change detection
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error completing sprint:', error);
@@ -691,15 +720,14 @@ export class BacklogPage implements OnInit {
     };
 
     const sprintRequest: SprintRequest = {
-      id: sprintId, // Include sprint ID in the request body
       projectId: projectId,
       sprintName: formData.sprintName,
       sprintGoal: formData.sprintGoal || null,
-      teamAssigned: formData.teamAssigned ? Number(formData.teamAssigned) : null,
+      teamId: formData.teamAssigned ? String(formData.teamAssigned) : undefined,
       startDate: formData.startDate ? formatDateToUTC(formData.startDate) : undefined,
-      dueDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
+      endDate: formData.dueDate ? formatDateToUTC(formData.dueDate) : undefined,
       status: formData.status || 'PLANNED',
-      storyPoint: formData.storyPoint || 0
+      targetStoryPoints: formData.storyPoint || 0
     };
 
     console.log('🔧 Update Sprint Request Details:', {
@@ -721,13 +749,11 @@ export class BacklogPage implements OnInit {
         this.modalService.close();
         
         // Reload sprints to get updated data from backend
-        this.ngZone.run(() => {
-          if (projectId) {
-            this.loadSprints(projectId);
-          }
-          // Trigger change detection
-          this.cdr.detectChanges();
-        });
+        if (projectId) {
+          this.loadSprints(projectId);
+        }
+        // Trigger change detection
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('❌ Error updating sprint:', {
@@ -976,73 +1002,6 @@ export class BacklogPage implements OnInit {
     if (this.isResizing) {
       this.isResizing = false;
     }
-  }
-
-  // AI Sprint Planning Methods
-  handleAISprintSuggestion(): void {
-    this.isAIModalOpen = true;
-    this.isLoadingAISuggestions = true;
-    this.aiSuggestions = null;
-
-    // Run async operation inside NgZone to ensure change detection
-    this.ngZone.run(async () => {
-      try {
-        this.aiSuggestions = await this.aiSprintPlanningService.generateSprintSuggestions();
-        this.toastService.success('AI suggestions generated successfully!');
-      } catch (error) {
-        console.error('Failed to generate AI suggestions:', error);
-        // Toast already shown by service
-      } finally {
-        this.isLoadingAISuggestions = false;
-      }
-    });
-  }
-
-  closeAIModal(): void {
-    this.isAIModalOpen = false;
-    this.aiSuggestions = null;
-  }
-
-  handleCommitAISuggestions(): void {
-    if (!this.aiSuggestions?.recommended_issues || this.aiSuggestions.recommended_issues.length === 0) {
-      this.toastService.warning('No issues to add');
-      return;
-    }
-
-    const projectId = this.projectContextService.getCurrentProjectId() || sessionStorage.getItem('projectId') || '';
-    
-    // Prepare issue creation requests from AI suggestions
-    const issueRequests = this.aiSuggestions.recommended_issues.map(issue => ({
-      title: issue.key,
-      description: issue.summary,
-      issueType: 'Story',
-      priority: 'MEDIUM',
-      storyPoints: issue.story_points,
-      assigneeId: '', // AI suggestions don't have assigneeId in this format
-      projectId: projectId,
-      labels: ['AI-Suggested']
-    }));
-
-    console.log('Creating bulk issues from AI suggestions:', issueRequests);
-    this.toastService.info('Adding AI-suggested issues to backlog...');
-
-    // Create issues in bulk
-    this.sprintService.createBulkIssues(issueRequests).subscribe({
-      next: (responses) => {
-        console.log('Issues created:', responses);
-        this.toastService.success(`${responses.length} issues added to backlog successfully!`);
-        
-        // Reload issues to show newly created ones
-        this.loadProjectIssues(projectId);
-        
-        // Close the AI modal
-        this.closeAIModal();
-      },
-      error: (error) => {
-        console.error('Error creating issues:', error);
-        this.toastService.error('Failed to add some issues. Please try again.');
-      }
-    });
   }
 
   ngOnInit(): void {

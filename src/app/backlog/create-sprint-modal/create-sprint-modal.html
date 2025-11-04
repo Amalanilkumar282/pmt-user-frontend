@@ -55,29 +55,23 @@
 
           <!-- Start Date -->
           <div class="form-group">
-            <label class="form-label">
-              Start Date <span class="required">*</span>
-            </label>
+            <label class="form-label">Start Date</label>
             <input 
               type="date" 
               class="form-input"
               [(ngModel)]="formData.startDate"
               name="startDate"
-              required
             />
           </div>
 
           <!-- End Date -->
           <div class="form-group">
-            <label class="form-label">
-              End Date <span class="required">*</span>
-            </label>
+            <label class="form-label">End Date</label>
             <input 
               type="date" 
               class="form-input"
               [(ngModel)]="formData.endDate"
               name="endDate"
-              required
             />
           </div>
 
@@ -109,25 +103,22 @@
 
           <!-- Team Selection -->
           <div class="form-group full-width">
-            <label class="form-label">
-              Team <span class="required">*</span>
-            </label>
+            <label class="form-label">Team</label>
             <select 
               class="form-select"
               [(ngModel)]="formData.teamId"
               name="teamId"
-              required
               [disabled]="isLoadingTeams"
             >
               <option value="" disabled selected>
-                {{ isLoadingTeams ? 'Loading teams...' : 'Select a team' }}
+                {{ isLoadingTeams ? 'Loading teams...' : 'Select a team (optional)' }}
               </option>
               <option *ngFor="let team of teams" [value]="team.id">
                 {{ team.name }}{{ team.members && team.members.length > 0 ? ' (' + team.members.length + ' members)' : '' }}
               </option>
             </select>
             <p class="form-hint" *ngIf="!isLoadingTeams && teams.length === 0">
-              No teams found. Please create a team first.
+              No teams found. You can still create a sprint without a team.
             </p>
           </div>
         </form>
@@ -142,7 +133,7 @@
           type="button" 
           class="btn btn-primary"
           (click)="onSubmitForm()"
-          [disabled]="isLoadingTeams || teams.length === 0"
+          [disabled]="isLoadingTeams"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -246,6 +237,7 @@
                   <span class="issue-key">{{ issue.issueKey }}</span>
                   <span class="issue-points">{{ issue.storyPoints }} pts</span>
                 </div>
+                <h4 class="issue-title">{{ issue.title }}</h4>
                 <p class="issue-rationale">{{ issue.rationale }}</p>
                 <div class="issue-footer">
                   <span class="assignee-label">
@@ -268,6 +260,85 @@
 
           <div *ngIf="aiSuggestions.length === 0" class="no-issues">
             <p>No issues to display. All suggestions have been removed.</p>
+          </div>
+        </div>
+
+        <!-- Recommendations Section -->
+        <div class="recommendations-container" *ngIf="aiRecommendations && aiRecommendations.length > 0">
+          <div class="recommendations-header">
+            <svg class="recommendations-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="recommendations-title">AI Recommendations</h3>
+          </div>
+          <div class="recommendations-list">
+            <div 
+              *ngFor="let recommendation of aiRecommendations" 
+              class="recommendation-card"
+              [class.severity-critical]="recommendation.severity === 'critical'"
+              [class.severity-warning]="recommendation.severity === 'warning'"
+              [class.severity-info]="recommendation.severity === 'info'"
+            >
+              <div class="recommendation-header">
+                <span class="recommendation-type">{{ recommendation.type | uppercase }}</span>
+                <span class="recommendation-severity" [class]="'severity-' + recommendation.severity">
+                  {{ recommendation.severity | uppercase }}
+                </span>
+              </div>
+              <p class="recommendation-message">{{ recommendation.message }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Capacity Analysis Section -->
+        <div class="capacity-container" *ngIf="aiCapacityAnalysis">
+          <div class="capacity-header">
+            <svg class="capacity-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <h3 class="capacity-title">Capacity Analysis</h3>
+          </div>
+          <div class="capacity-content">
+            <div class="capacity-metrics">
+              <div class="capacity-metric">
+                <span class="metric-label">Team Capacity Utilization</span>
+                <div class="metric-value-container">
+                  <span class="metric-value">{{ aiCapacityAnalysis.teamCapacityUtilization }}%</span>
+                  <div class="progress-bar">
+                    <div 
+                      class="progress-fill" 
+                      [style.width.%]="aiCapacityAnalysis.teamCapacityUtilization"
+                      [class.progress-high]="aiCapacityAnalysis.teamCapacityUtilization > 80"
+                      [class.progress-medium]="aiCapacityAnalysis.teamCapacityUtilization >= 50 && aiCapacityAnalysis.teamCapacityUtilization <= 80"
+                      [class.progress-low]="aiCapacityAnalysis.teamCapacityUtilization < 50"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="capacity-metric">
+                <span class="metric-label">Estimated Completion Probability</span>
+                <div class="metric-value-container">
+                  <span class="metric-value">{{ aiCapacityAnalysis.estimatedCompletionProbability }}%</span>
+                  <div class="progress-bar">
+                    <div 
+                      class="progress-fill" 
+                      [style.width.%]="aiCapacityAnalysis.estimatedCompletionProbability"
+                      [class.progress-high]="aiCapacityAnalysis.estimatedCompletionProbability > 70"
+                      [class.progress-medium]="aiCapacityAnalysis.estimatedCompletionProbability >= 40 && aiCapacityAnalysis.estimatedCompletionProbability <= 70"
+                      [class.progress-low]="aiCapacityAnalysis.estimatedCompletionProbability < 40"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="risk-factors" *ngIf="aiCapacityAnalysis.riskFactors && aiCapacityAnalysis.riskFactors.length > 0">
+              <h4 class="risk-factors-title">Risk Factors</h4>
+              <ul class="risk-factors-list">
+                <li *ngFor="let risk of aiCapacityAnalysis.riskFactors" class="risk-factor-item">
+                  {{ risk }}
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
