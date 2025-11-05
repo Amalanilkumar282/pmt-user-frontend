@@ -1,17 +1,26 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, BehaviorSubject, shareReplay, timer } from 'rxjs';
-import { tap, catchError, switchMap } from 'rxjs/operators';
+import { Observable, of, BehaviorSubject, shareReplay, timer, Subject } from 'rxjs';
+import { tap, catchError, switchMap, finalize } from 'rxjs/operators';
 
 export interface CacheEntry<T> {
   data: T;
   timestamp: number;
   expiresAt: number;
+  hits: number; // Track cache hits for LRU/LFU eviction
+  size?: number; // Approximate size in bytes
 }
 
 export interface CacheConfig {
   ttl?: number; // Time to live in milliseconds (default: 5 minutes)
-  maxSize?: number; // Maximum number of cache entries (default: 100)
+  maxSize?: number; // Maximum number of cache entries (default: 200)
   refreshInterval?: number; // Auto-refresh interval in milliseconds (optional)
+  staleWhileRevalidate?: boolean; // Return stale data while fetching fresh data
+  maxMemoryMB?: number; // Maximum memory usage in MB (default: 50MB)
+}
+
+interface RequestCoalescence {
+  observable: Observable<any>;
+  subscribers: number;
 }
 
 @Injectable({
@@ -19,14 +28,18 @@ export interface CacheConfig {
 })
 export class DataCacheService {
   private cache = new Map<string, CacheEntry<any>>();
-  private inFlightRequests = new Map<string, Observable<any>>();
+  private inFlightRequests = new Map<string, RequestCoalescence>();
   private cacheSubjects = new Map<string, BehaviorSubject<any>>();
+  private pendingInvalidations = new Set<string>();
   
   private defaultTTL = 5 * 60 * 1000; // 5 minutes
-  private defaultMaxSize = 100;
+  private defaultMaxSize = 200; // Increased from 100
+  private maxMemoryBytes = 50 * 1024 * 1024; // 50MB
+  private currentMemoryUsage = 0;
 
   /**
    * Get data from cache or execute the data fetcher
+   * OPTIMIZED with request coalescing, stale-while-revalidate, and memory management
    */
   get<T>(
     key: string,
@@ -39,33 +52,66 @@ export class DataCacheService {
     // Check if data is in cache and still valid
     const cachedEntry = this.cache.get(key);
     if (cachedEntry && cachedEntry.expiresAt > now) {
-      console.log(`✅ Cache HIT: ${key}`);
+      cachedEntry.hits++; // Increment hit counter for LFU
+      console.log(`✅ Cache HIT: ${key} (hits: ${cachedEntry.hits})`);
       return of(cachedEntry.data as T);
     }
 
-    // Check if request is already in-flight
+    // Stale-while-revalidate: Return stale data immediately while fetching fresh data
+    if (config?.staleWhileRevalidate && cachedEntry) {
+      console.log(`⚡ Stale-while-revalidate: ${key}`);
+      // Return stale data immediately
+      const staleData = of(cachedEntry.data as T);
+      
+      // Fetch fresh data in background
+      this.fetchAndCache(key, dataFetcher, ttl, config);
+      
+      return staleData;
+    }
+
+    // Check if request is already in-flight (request coalescing)
     const inFlight = this.inFlightRequests.get(key);
     if (inFlight) {
-      console.log(`🔄 Request IN-FLIGHT: ${key}`);
-      return inFlight as Observable<T>;
+      inFlight.subscribers++;
+      console.log(`🔄 Request IN-FLIGHT (coalesced): ${key} (subscribers: ${inFlight.subscribers})`);
+      return inFlight.observable as Observable<T>;
     }
 
     // Make new request
     console.log(`❌ Cache MISS: ${key} - Fetching data...`);
+    return this.fetchAndCache(key, dataFetcher, ttl, config);
+  }
+
+  /**
+   * Fetch data and store in cache
+   */
+  private fetchAndCache<T>(
+    key: string,
+    dataFetcher: () => Observable<T>,
+    ttl: number,
+    config?: CacheConfig
+  ): Observable<T> {
+    const now = Date.now();
+    
     const request$ = dataFetcher().pipe(
       tap(data => {
+        // Calculate approximate size
+        const size = this.estimateSize(data);
+        
         // Store in cache
         this.cache.set(key, {
           data,
           timestamp: now,
-          expiresAt: now + ttl
+          expiresAt: now + ttl,
+          hits: 1,
+          size
         });
+
+        this.currentMemoryUsage += size;
 
         // Clean up old entries if cache is too large
         this.enforceMaxSize(config?.maxSize);
-
-        // Remove from in-flight requests
-        this.inFlightRequests.delete(key);
+        this.enforceMemoryLimit(config?.maxMemoryMB);
 
         // Update subject if exists
         const subject = this.cacheSubjects.get(key);
@@ -75,14 +121,32 @@ export class DataCacheService {
       }),
       catchError(error => {
         console.error(`❌ Error fetching data for key: ${key}`, error);
-        this.inFlightRequests.delete(key);
         throw error;
+      }),
+      finalize(() => {
+        this.inFlightRequests.delete(key);
       }),
       shareReplay(1) // Share the result with multiple subscribers
     );
 
-    this.inFlightRequests.set(key, request$);
+    this.inFlightRequests.set(key, {
+      observable: request$,
+      subscribers: 1
+    });
+    
     return request$;
+  }
+
+  /**
+   * Estimate size of data in bytes
+   */
+  private estimateSize(data: any): number {
+    try {
+      return new Blob([JSON.stringify(data)]).size;
+    } catch {
+      // Fallback: rough estimate
+      return 1024; // 1KB default
+    }
   }
 
   /**
@@ -109,10 +173,13 @@ export class DataCacheService {
         timer(config.refreshInterval, config.refreshInterval).pipe(
           switchMap(() => dataFetcher())
         ).subscribe(data => {
+          const size = this.estimateSize(data);
           this.cache.set(key, {
             data,
             timestamp: Date.now(),
-            expiresAt: Date.now() + (config.ttl ?? this.defaultTTL)
+            expiresAt: Date.now() + (config.ttl ?? this.defaultTTL),
+            hits: 1,
+            size
           });
           subject!.next(data);
         });
@@ -177,25 +244,56 @@ export class DataCacheService {
   }
 
   /**
-   * Enforce maximum cache size by removing oldest entries
+   * Enforce maximum cache size by removing least frequently used entries (LFU)
    */
   private enforceMaxSize(maxSize?: number): void {
     const limit = maxSize ?? this.defaultMaxSize;
     
     if (this.cache.size > limit) {
+      // Use LFU (Least Frequently Used) eviction strategy
       const sortedEntries = Array.from(this.cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+        .sort((a, b) => {
+          // First by hits (ascending), then by timestamp (ascending)
+          if (a[1].hits !== b[1].hits) {
+            return a[1].hits - b[1].hits;
+          }
+          return a[1].timestamp - b[1].timestamp;
+        });
       
       const toRemove = sortedEntries.slice(0, this.cache.size - limit);
-      toRemove.forEach(([key]) => {
+      toRemove.forEach(([key, entry]) => {
+        this.currentMemoryUsage -= (entry.size || 0);
         this.cache.delete(key);
-        console.log(`🗑️ Cache entry removed (size limit): ${key}`);
+        console.log(`🗑️ Cache entry removed (LFU): ${key} (hits: ${entry.hits})`);
       });
     }
   }
 
   /**
-   * Preload data into cache
+   * Enforce memory limit by removing entries
+   */
+  private enforceMemoryLimit(maxMemoryMB?: number): void {
+    const limitBytes = (maxMemoryMB ?? 50) * 1024 * 1024;
+    
+    if (this.currentMemoryUsage > limitBytes) {
+      console.log(`⚠️ Memory limit exceeded: ${(this.currentMemoryUsage / 1024 / 1024).toFixed(2)}MB`);
+      
+      // Remove least valuable entries until under limit
+      const sortedEntries = Array.from(this.cache.entries())
+        .sort((a, b) => a[1].hits - b[1].hits);
+      
+      for (const [key, entry] of sortedEntries) {
+        if (this.currentMemoryUsage <= limitBytes) break;
+        
+        this.currentMemoryUsage -= (entry.size || 0);
+        this.cache.delete(key);
+        console.log(`🗑️ Cache entry removed (memory): ${key}`);
+      }
+    }
+  }
+
+  /**
+   * Preload data into cache (cache warming)
    */
   preload<T>(
     key: string,
@@ -203,9 +301,19 @@ export class DataCacheService {
     config?: CacheConfig
   ): void {
     this.get(key, dataFetcher, config).subscribe({
-      next: () => console.log(`✅ Preloaded: ${key}`),
-      error: (err) => console.error(`❌ Preload failed for ${key}:`, err)
+      next: () => console.log(`🔥 Cache warmed: ${key}`),
+      error: (err) => console.error(`❌ Cache warming failed for ${key}:`, err)
     });
+  }
+
+  /**
+   * Preload multiple keys in parallel (bulk cache warming)
+   */
+  preloadBulk<T>(
+    items: Array<{ key: string; dataFetcher: () => Observable<T>; config?: CacheConfig }>
+  ): void {
+    console.log(`🔥 Warming cache for ${items.length} items...`);
+    items.forEach(item => this.preload(item.key, item.dataFetcher, item.config));
   }
 
   /**

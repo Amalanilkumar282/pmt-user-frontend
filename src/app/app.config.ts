@@ -11,6 +11,7 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
+import { HTTP_PERFORMANCE_PROVIDERS } from './core/providers/http-performance.provider';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,5 +23,7 @@ export const appConfig: ApplicationConfig = {
       withFetch(),
       withInterceptors([authInterceptor, errorInterceptor, loadingInterceptor])
     ),
+    // 🚀 PERFORMANCE OPTIMIZATIONS
+    ...HTTP_PERFORMANCE_PROVIDERS,
   ],
 };
