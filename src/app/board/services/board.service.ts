@@ -36,8 +36,22 @@ export class BoardService {
     return id ? this.boardsSignal().find(b => b.id === id) : null;
   });
   
-  // Load boards from backend
-  async loadBoardsByProject(projectId: string): Promise<void> {
+  // Cache for board data to avoid redundant API calls
+  private boardsCache = new Map<string, { boards: Board[], timestamp: number }>();
+  private readonly CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+  // Load boards from backend with caching
+  async loadBoardsByProject(projectId: string, forceRefresh = false): Promise<void> {
+    // Check cache first
+    if (!forceRefresh) {
+      const cached = this.boardsCache.get(projectId);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        console.log(`[BoardService] 🚀 Using cached boards for project: ${projectId}`);
+        this.boardsSignal.set(cached.boards);
+        return;
+      }
+    }
+
     try {
       this.loadingSignal.set(true);
       const boards = await firstValueFrom(this.boardApiService.getBoardsByProject(projectId));
@@ -49,6 +63,12 @@ export class BoardService {
           return this.enrichDefaultBoardColumns(board, boards);
         }
         return board;
+      });
+      
+      // Update cache
+      this.boardsCache.set(projectId, {
+        boards: enrichedBoards,
+        timestamp: Date.now()
       });
       
       this.boardsSignal.set(enrichedBoards);
@@ -104,11 +124,29 @@ export class BoardService {
     };
   }
   
-  // Load single board from backend
-  async loadBoardById(boardId: number): Promise<Board | null> {
+  // Board cache by ID
+  private boardByIdCache = new Map<number, { board: Board, timestamp: number }>();
+
+  // Load single board from backend with caching
+  async loadBoardById(boardId: number, forceRefresh = false): Promise<Board | null> {
+    // Check cache first
+    if (!forceRefresh) {
+      const cached = this.boardByIdCache.get(boardId);
+      if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+        console.log(`[BoardService] 🚀 Using cached board: ${boardId}`);
+        return cached.board;
+      }
+    }
+
     try {
       this.loadingSignal.set(true);
       const board = await firstValueFrom(this.boardApiService.getBoardById(boardId));
+      
+      // Update cache
+      this.boardByIdCache.set(boardId, {
+        board,
+        timestamp: Date.now()
+      });
       
       // Update the board in the signal if it exists
       const currentBoards = this.boardsSignal();
@@ -130,6 +168,23 @@ export class BoardService {
     } finally {
       this.loadingSignal.set(false);
     }
+  }
+
+  /**
+   * Invalidate cache for a project
+   */
+  invalidateCache(projectId: string): void {
+    this.boardsCache.delete(projectId);
+    console.log(`[BoardService] 🗑️ Cache invalidated for project: ${projectId}`);
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearAllCaches(): void {
+    this.boardsCache.clear();
+    this.boardByIdCache.clear();
+    console.log('[BoardService] 🗑️ All caches cleared');
   }
   
   // Get boards by project (from cache)

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map, catchError, concatMap, delay } from 'rxjs/operators';
+import { Observable, of, forkJoin } from 'rxjs';
+import { map, catchError, shareReplay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface ApiResponse<T> {
@@ -241,38 +241,29 @@ export class TimelineService {
 
   /**
    * Fetch all timeline data for a project (sprints, epics, issues)
-   * Calls APIs sequentially to avoid overwhelming the server
-   * Priority: Sprints -> Epics -> Issues
+   * OPTIMIZED: Calls APIs in parallel for maximum speed
    */
   getTimelineData(projectId: string): Observable<{
     sprints: SprintDto[];
     epics: EpicDto[];
     issues: IssueDto[];
   }> {
-    // Sequential API calls with small delays to prevent overwhelming the server
-    return this.getSprintsByProject(projectId).pipe(
-      delay(50), // Small delay after sprints
-      concatMap(sprints => 
-        this.getEpicsByProject(projectId).pipe(
-          delay(50), // Small delay after epics
-          concatMap(epics =>
-            this.getIssuesByProject(projectId).pipe(
-              map(issues => ({
-                sprints,
-                epics,
-                issues
-              }))
-            )
-          )
-        )
-      )
+    // Parallel API calls for maximum performance
+    console.log(`🚀 [TimelineService] Fetching timeline data in PARALLEL for project: ${projectId}`);
+    
+    return forkJoin({
+      sprints: this.getSprintsByProject(projectId),
+      epics: this.getEpicsByProject(projectId),
+      issues: this.getIssuesByProject(projectId)
+    }).pipe(
+      shareReplay(1) // Cache the result for multiple subscribers
     );
   }
 
   /**
    * Fetch timeline data progressively for better UX
    * Returns partial data as each API call completes
-   * Useful for showing loading states per section
+   * OPTIMIZED: Parallel execution with progressive callbacks
    */
   getTimelineDataProgressive(
     projectId: string,
@@ -284,31 +275,30 @@ export class TimelineService {
     epics: EpicDto[];
     issues: IssueDto[];
   }> {
-    let sprints: SprintDto[] = [];
-    let epics: EpicDto[] = [];
+    console.log(`🚀 [TimelineService] Fetching timeline data PROGRESSIVELY for project: ${projectId}`);
     
-    return this.getSprintsByProject(projectId).pipe(
-      delay(50),
-      concatMap(sprintData => {
-        sprints = sprintData;
-        if (onSprintsLoaded) onSprintsLoaded(sprints);
-        return this.getEpicsByProject(projectId);
-      }),
-      delay(50),
-      concatMap(epicData => {
-        epics = epicData;
-        if (onEpicsLoaded) onEpicsLoaded(epics);
-        return this.getIssuesByProject(projectId);
-      }),
-      map(issues => {
-        if (onIssuesLoaded) onIssuesLoaded(issues);
-        return {
-          sprints,
-          epics,
-          issues
-        };
-      })
-    );
+    // Start all requests in parallel
+    const sprints$ = this.getSprintsByProject(projectId).pipe(shareReplay(1));
+    const epics$ = this.getEpicsByProject(projectId).pipe(shareReplay(1));
+    const issues$ = this.getIssuesByProject(projectId).pipe(shareReplay(1));
+    
+    // Trigger callbacks as data arrives
+    if (onSprintsLoaded) {
+      sprints$.subscribe(onSprintsLoaded);
+    }
+    if (onEpicsLoaded) {
+      epics$.subscribe(onEpicsLoaded);
+    }
+    if (onIssuesLoaded) {
+      issues$.subscribe(onIssuesLoaded);
+    }
+    
+    // Return combined result
+    return forkJoin({
+      sprints: sprints$,
+      epics: epics$,
+      issues: issues$
+    });
   }
 
   /**
@@ -350,32 +340,15 @@ export class TimelineService {
   }
 
   /**
-   * Fetch all timeline data for a project in parallel (legacy method)
-   * Use getTimelineData() instead for better performance
+   * Fetch all timeline data for a project in parallel
+   * Alias for getTimelineData() - both use optimized parallel calls
    */
   getTimelineDataParallel(projectId: string): Observable<{
     sprints: SprintDto[];
     epics: EpicDto[];
     issues: IssueDto[];
   }> {
-    // Parallel calls - kept for backward compatibility if needed
-    let sprints: SprintDto[] = [];
-    let epics: EpicDto[] = [];
-    
-    return this.getSprintsByProject(projectId).pipe(
-      concatMap(sprintData => {
-        sprints = sprintData;
-        return this.getEpicsByProject(projectId);
-      }),
-      concatMap(epicData => {
-        epics = epicData;
-        return this.getIssuesByProject(projectId);
-      }),
-      map(issues => ({
-        sprints,
-        epics,
-        issues
-      }))
-    );
+    // Use the optimized parallel implementation
+    return this.getTimelineData(projectId);
   }
 }
