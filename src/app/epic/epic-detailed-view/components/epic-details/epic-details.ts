@@ -2,10 +2,18 @@ import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Epic, EpicStatus, UpdateEpicRequest } from '../../../../shared/models/epic.model';
-import { users, User, sprints, epics as allEpics } from '../../../../shared/data/dummy-backlog-data';
 import { EpicService } from '../../../../shared/services/epic.service';
 import { ToastService } from '../../../../shared/services/toast.service';
 import { formatDisplayDate } from '../../../../shared/utils/date-formatter';
+import { Sprint } from '../../../../sprint/sprint-container/sprint-container';
+
+// User interface for dropdown options
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
 
 @Component({
   selector: 'app-epic-details',
@@ -18,8 +26,9 @@ export class EpicDetails implements OnInit {
   @Input() epic!: Epic;
   @Output() epicUpdated = new EventEmitter<Epic>();
 
-  availableUsers: User[] = users;
-  availableSprints = sprints;
+  // TODO: Load these from backend API instead of dummy data
+  availableUsers: User[] = [];
+  availableSprints: Sprint[] = [];
   availableEpics: Epic[] = [];
   epicStatuses: EpicStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'BLOCKED'];
 
@@ -31,7 +40,8 @@ export class EpicDetails implements OnInit {
   private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.availableEpics = allEpics.filter(e => e.id !== this.epic.id);
+    // TODO: Load available epics from API for the current project
+    this.availableEpics = [];
   }
 
   startEdit(field: string, value: any) {

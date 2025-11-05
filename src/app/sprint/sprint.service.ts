@@ -6,12 +6,12 @@ import { map } from 'rxjs/operators';
 // Request/Response interfaces for Sprint Creation
 export interface SprintRequest {
   projectId: string; // Required
-  sprintName?: string | null; // Optional - auto-generated if null
+  sprintName: string; // Required - name of the sprint
   sprintGoal?: string | null; // Optional
-  teamId?: string | null; // Optional - changed to string (GUID)
+  teamAssigned?: number | null; // Optional - Team ID (integer)
   startDate?: string | null; // Optional - ISO 8601 format
-  endDate?: string | null; // Optional - ISO 8601 format
-  targetStoryPoints?: number | null; // Optional
+  dueDate?: string | null; // Optional - ISO 8601 format (was endDate)
+  storyPoint?: number | null; // Optional - Target story points (was targetStoryPoints)
   status?: string | null; // Optional
 }
 
@@ -20,11 +20,14 @@ export interface SprintResponse {
   statusCode: number;
   data: {
     id: string;
+    projectId: string;
     sprintName: string;
+    sprintGoal?: string | null;
+    teamAssigned?: number | null;
+    startDate?: string | null;
+    dueDate?: string | null;
     status: string;
-    startDate: string;
-    dueDate: string;
-    storyPoint: number;
+    storyPoint?: number | null;
   };
   message?: string;
 }

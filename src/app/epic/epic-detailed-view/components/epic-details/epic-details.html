@@ -1,12 +1,16 @@
 <div class="section details-section">
   <div class="details-header">
-    <span class="details-title">Details</span>
+    <span class="details-title">
+      <i class="fa-solid fa-circle-info mr-2"></i>Details
+    </span>
   </div>
 
   <div class="details-grid">
     <!-- Assignee -->
     <div class="detail-row">
-      <div class="detail-label">Assignee</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-user mr-1.5"></i>Assignee
+      </div>
       <div class="detail-value">
         @if (!editing['assignee']) {
           <span (click)="startEdit('assignee', epic.assignee)" class="editable-text">
@@ -29,7 +33,9 @@
 
     <!-- Labels -->
     <div class="detail-row">
-      <div class="detail-label">Labels</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-tags mr-1.5"></i>Labels
+      </div>
       <div class="detail-value">
         <div class="labels-container">
           @if (epic.labels && epic.labels.length > 0) {
@@ -62,7 +68,9 @@
 
     <!-- Parent -->
     <div class="detail-row">
-      <div class="detail-label">Parent</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-layer-group mr-1.5"></i>Parent
+      </div>
       <div class="detail-value">
         @if (!editing['parent']) {
           <span (click)="startEdit('parent', epic.parent)" class="editable-text">
@@ -85,7 +93,9 @@
 
     <!-- Team -->
     <div class="detail-row">
-      <div class="detail-label">Team</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-users mr-1.5"></i>Team
+      </div>
       <div class="detail-value">
         @if (!editing['team']) {
           <span (click)="startEdit('team', epic.team)" class="editable-text">
@@ -109,7 +119,9 @@
 
     <!-- Due Date -->
     <div class="detail-row">
-      <div class="detail-label">Due date</div>
+      <div class="detail-label">
+        <i class="fa-regular fa-calendar-days mr-1.5"></i>Due date
+      </div>
       <div class="detail-value">
         @if (!editing['dueDate']) {
           <span (click)="startEdit('dueDate', epic.dueDate ? formatDateForInput(epic.dueDate) : '')" class="editable-text">
@@ -131,7 +143,9 @@
 
     <!-- Start Date -->
     <div class="detail-row">
-      <div class="detail-label">Start date</div>
+      <div class="detail-label">
+        <i class="fa-regular fa-calendar mr-1.5"></i>Start date
+      </div>
       <div class="detail-value">
         @if (!editing['startDate']) {
           <span (click)="startEdit('startDate', epic.startDate ? formatDateForInput(epic.startDate) : '')" class="editable-text">
@@ -153,7 +167,9 @@
 
     <!-- Sprint -->
     <div class="detail-row">
-      <div class="detail-label">Sprint</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-stopwatch mr-1.5"></i>Sprint
+      </div>
       <div class="detail-value">
         @if (!editing['sprint']) {
           <span (click)="startEdit('sprint', epic.sprint)" class="editable-text">
@@ -176,7 +192,9 @@
 
     <!-- Story Points -->
     <div class="detail-row">
-      <div class="detail-label">Story points</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-bolt mr-1.5"></i>Story points
+      </div>
       <div class="detail-value">
         @if (!editing['storyPoints']) {
           <span (click)="startEdit('storyPoints', epic.storyPoints)" class="editable-text">
@@ -200,7 +218,9 @@
 
     <!-- Reporter -->
     <div class="detail-row">
-      <div class="detail-label">Reporter</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-user-pen mr-1.5"></i>Reporter
+      </div>
       <div class="detail-value">
         @if (!editing['reporter']) {
           <span (click)="startEdit('reporter', epic.reporter)" class="editable-text">
@@ -223,7 +243,9 @@
 
     <!-- Status -->
     <div class="detail-row">
-      <div class="detail-label">Status</div>
+      <div class="detail-label">
+        <i class="fa-solid fa-flag mr-1.5"></i>Status
+      </div>
       <div class="detail-value">
         @if (!editing['status']) {
           <span (click)="startEdit('status', epic.status)" class="editable-text">

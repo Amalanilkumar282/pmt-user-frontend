@@ -220,12 +220,12 @@ export class CreateSprintModal implements OnInit, OnChanges {
   private createSprint(): void {
     const sprintRequest: SprintRequest = {
       projectId: this.projectId,
-      sprintName: this.formData.sprintName.trim() || null,
+      sprintName: this.formData.sprintName.trim(),
       sprintGoal: this.formData.sprintGoal.trim() || null,
-      teamId: this.formData.teamId || null,
+      teamAssigned: this.formData.teamId ? parseInt(String(this.formData.teamId)) : null,
       startDate: this.formData.startDate || null,
-      endDate: this.formData.endDate || null,
-      targetStoryPoints: this.formData.targetStoryPoints || null,
+      dueDate: this.formData.endDate || null,
+      storyPoint: this.formData.targetStoryPoints || null,
       status: this.formData.status || null
     };
 

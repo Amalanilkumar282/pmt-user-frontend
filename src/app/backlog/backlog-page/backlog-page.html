@@ -42,11 +42,12 @@
     <!-- Filters Section - Now includes view toggle, epic controls, and sprint visibility -->
     <app-filters 
       [epicOptions]="epicFilterOptions"
+      [projectMembers]="projectMembers"
       (filtersChanged)="onFiltersChanged($event)">
     </app-filters>
 
     <!-- Page Header - Simplified -->
-    <div class="page-header">
+    <div class="page-header" *hasPermission="'canManageTeams'">
       <button 
         class="create-sprint-btn"
         (click)="handleCreateSprint()">
@@ -170,6 +171,7 @@
     [isOpen]="isAIModalOpen"
     [suggestions]="aiSuggestions"
     [isLoading]="isLoadingAISuggestions"
+    [sprintId]="currentSprintData?.createdSprintId || null"
     (close)="closeAIModal()"
     (commit)="handleCommitAISuggestions($event)">
   </app-ai-sprint-modal>

@@ -10,6 +10,8 @@ import { MembersManagement } from '../components/members-management/members-mana
 import { TeamsService } from '../services/teams.service';
 import { ProjectContextService } from '../../shared/services/project-context.service';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { PermissionService } from '../../auth/permission.service';
+import { HasPermissionDirective } from '../../auth/has-permission.directive';
 import { Team, CreateTeamDto, UpdateTeamDto } from '../models/team.model';
 import { TeamMember } from '../models/team.model';
 
@@ -27,6 +29,7 @@ type TabMode = 'teams' | 'members';
     TeamFormComponent,
     TeamDetailsComponent,
     MembersManagement,
+    HasPermissionDirective,
   ],
   templateUrl: './teams-page.html',
   styleUrls: ['./teams-page.css'],
@@ -38,6 +41,9 @@ export class TeamsPage implements OnInit {
   private teamsService = inject(TeamsService);
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
+  
+  // Inject permission service
+  permissionService = inject(PermissionService);
 
   isSidebarCollapsed = this.sidebarStateService.isCollapsed;
   currentProjectId = this.projectContextService.currentProjectId;

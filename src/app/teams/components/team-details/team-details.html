@@ -13,16 +13,11 @@
         <span class="status-badge" [class.active]="team.status === 'Active'" [class.inactive]="team.status === 'Inactive'">
           {{ team.status }}
         </span>
-        <button class="action-btn" (click)="onEdit()" title="Edit team">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <button class="action-btn" (click)="onEdit()" title="Edit team" *hasPermission="'canManageTeams'">
+          <i class="fa-solid fa-pen-to-square"></i>
         </button>
         <button class="close-btn" (click)="onClose()" aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
     </div>
@@ -41,9 +36,7 @@
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon" style="background: #dbeafe; color: #2563eb;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <i class="fa-solid fa-users"></i>
             </div>
             <div class="stat-value">{{ stats.totalMembers }}</div>
             <div class="stat-label">Team Members</div>
@@ -51,10 +44,7 @@
 
           <div class="stat-card">
             <div class="stat-icon" style="background: #dcfce7; color: #16a34a;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
+              <i class="fa-solid fa-spinner"></i>
             </div>
               <div class="stat-value">{{ team.activeSprintsCount ?? 0 }}</div>
             <div class="stat-label">Active Sprints</div>
@@ -62,28 +52,11 @@
 
           <div class="stat-card">
             <div class="stat-icon" style="background: #fef3c7; color: #d97706;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <i class="fa-solid fa-circle-check"></i>
             </div>
               <div class="stat-value">{{ team.completedSprintsCount ?? 0 }}</div>
             <div class="stat-label">Completed Sprints</div>
           </div>
-        </div>
-      </div>
-
-      <!-- Progress -->
-      <div class="section">
-        <h3 class="section-title">Issue Progress</h3>
-        <div class="progress-container">
-          <div class="progress-header">
-            <span class="progress-label">{{ stats.completedIssues }} of {{ stats.totalIssues }} issues completed</span>
-            <span class="progress-percentage">{{ getCompletionPercentage() }}%</span>
-          </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: 50%"></div>
-            </div>
         </div>
       </div>
 

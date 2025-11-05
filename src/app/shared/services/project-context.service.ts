@@ -1,5 +1,6 @@
 import { Injectable, signal, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { PermissionService } from '../../auth/permission.service';
 
 export interface ProjectInfo {
   id: string;
@@ -12,6 +13,7 @@ export interface ProjectInfo {
 })
 export class ProjectContextService {
   private platformId = inject(PLATFORM_ID);
+  private permissionService = inject(PermissionService);
   private isBrowser: boolean;
   private _currentProjectId = signal<string | null>(null);
   private _currentProjectInfo = signal<ProjectInfo | null>(null);
@@ -56,6 +58,16 @@ export class ProjectContextService {
         console.log('✅ Current project info set:', projectInfo);
       }
     }
+
+    // Fetch user permissions for this project
+    this.permissionService.getUserPermissions(projectId).subscribe({
+      next: (permissions) => {
+        console.log('✅ Loaded permissions for project:', projectId, permissions);
+      },
+      error: (error) => {
+        console.error('❌ Error loading permissions for project:', projectId, error);
+      }
+    });
   }
 
   setCurrentProjectInfo(projectInfo: ProjectInfo) {
@@ -67,6 +79,16 @@ export class ProjectContextService {
       sessionStorage.setItem('currentProjectId', projectInfo.id);
       console.log('✅ Current project info set:', projectInfo);
     }
+
+    // Fetch user permissions for this project
+    this.permissionService.getUserPermissions(projectInfo.id).subscribe({
+      next: (permissions) => {
+        console.log('✅ Loaded permissions for project:', projectInfo.id, permissions);
+      },
+      error: (error) => {
+        console.error('❌ Error loading permissions for project:', projectInfo.id, error);
+      }
+    });
   }
 
   private generateProjectIcon(projectName: string): string {
@@ -88,6 +110,9 @@ export class ProjectContextService {
       sessionStorage.removeItem('currentProjectInfo');
       console.log('✅ Current project ID and info cleared from session storage');
     }
+
+    // Clear permissions as well
+    this.permissionService.clearPermissions();
   }
 
   getCurrentProjectId(): string | null {

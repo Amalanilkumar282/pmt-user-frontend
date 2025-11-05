@@ -10,15 +10,15 @@
         class="action-btn" 
         (click)="onSprintAction()"
         [disabled]="isActionButtonDisabled()"
-        [class.disabled]="isActionButtonDisabled()">
+        [class.disabled]="isActionButtonDisabled()"
+        *hasPermission="'canManageTeams'">
         {{ getActionButtonText() }}
       </button>
       <button 
         class="edit-btn" 
         (click)="onEdit()"
-        [disabled]="sprint.status === 'COMPLETED'"
-        [class.disabled]="sprint.status === 'COMPLETED'"
-        aria-label="Edit sprint">
+        aria-label="Edit sprint"
+        *hasPermission="'canManageTeams'">
         Edit Sprint
       </button>
       <button 
@@ -26,7 +26,8 @@
         (click)="onDelete()"
         [disabled]="sprint.status === 'COMPLETED'"
         [class.disabled]="sprint.status === 'COMPLETED'"
-        aria-label="Delete sprint">
+        aria-label="Delete sprint"
+        *hasPermission="'canManageTeams'">
         Delete Sprint
       </button>
     </div>
@@ -51,7 +52,9 @@
       <app-issue-list 
         [issues]="sprint.issues || []"
         [isReadOnly]="sprint.status === 'COMPLETED'"
-        (issueClick)="onIssueClick($event)">
+        (issueClick)="onIssueClick($event)"
+        (issueUpdated)="onIssueUpdatedInline($event)"
+        (issueDeleted)="onIssueDeletedInline($event)">
       </app-issue-list>
     </div>
   </div>
@@ -64,6 +67,7 @@
   [isReadOnly]="sprint.status === 'COMPLETED'"
   [availableSprints]="availableSprints"
   (close)="onCloseModal()"
+  (updateIssue)="onUpdateIssue($event)"
   (deleteIssue)="onDeleteIssue($event)"
   (moveIssue)="onMoveIssue($event)">
 </app-issue-detailed-view>
