@@ -216,7 +216,30 @@ export class IssueSummaryService {
               status = statusMap[issue.statusName] || issue.statusName.toUpperCase().replace(/\s+/g, '_');
             }
             
-            console.log('📦 Issue:', issue.title, '| Key:', issue.key, '| Status:', issue.statusName, '→', status, '| Updated:', issue.updatedAt);
+            console.log('📦 Issue:', issue.title, '| Key:', issue.key, '| Status:', issue.statusName, '→', status);
+            console.log('   Available dates:', {
+              updatedAt: issue.updatedAt,
+              completedAt: issue.completedAt,
+              dueDate: issue.dueDate,
+              startDate: issue.startDate
+            });
+            
+            // For DONE issues, use updatedAt as completedAt (fallback to dueDate if updatedAt not provided)
+            let completedAtDate: Date | undefined = undefined;
+            if (status === 'DONE') {
+              if (issue.completedAt) {
+                completedAtDate = new Date(issue.completedAt);
+                console.log('✅ Using completedAt:', completedAtDate.toLocaleDateString());
+              } else if (issue.updatedAt) {
+                completedAtDate = new Date(issue.updatedAt);
+                console.log('✅ Using updatedAt as completedAt:', completedAtDate.toLocaleDateString());
+              } else if (issue.dueDate) {
+                completedAtDate = new Date(issue.dueDate);
+                console.log('⚠️ Using dueDate as completedAt for', issue.title, ':', completedAtDate.toLocaleDateString());
+              } else {
+                console.warn('❌ No date available for DONE issue:', issue.title);
+              }
+            }
             
             return {
               id: issue.id || issue.issueId,
@@ -235,9 +258,9 @@ export class IssueSummaryService {
               startDate: issue.startDate ? new Date(issue.startDate) : undefined,
               dueDate: issue.dueDate ? new Date(issue.dueDate) : undefined,
               endDate: issue.endDate ? new Date(issue.endDate) : undefined,
-              createdAt: issue.createdAt ? new Date(issue.createdAt) : new Date(),
-              updatedAt: issue.updatedAt ? new Date(issue.updatedAt) : new Date(),
-              completedAt: issue.completedAt ? new Date(issue.completedAt) : (status === 'DONE' && issue.updatedAt ? new Date(issue.updatedAt) : undefined),
+              createdAt: issue.createdAt ? new Date(issue.createdAt) : (issue.startDate ? new Date(issue.startDate) : new Date()),
+              updatedAt: issue.updatedAt ? new Date(issue.updatedAt) : (issue.dueDate ? new Date(issue.dueDate) : new Date()),
+              completedAt: completedAtDate,
             } as Issue;
           });
         }
