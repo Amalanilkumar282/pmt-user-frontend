@@ -110,7 +110,9 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
     const sprintEndDate = new Date(this.sprintData.endDate);
     // Only include issues that were completed on or before the sprint end date
     const completedIssues = allIssues.filter(i => {
-      if (i.status !== 'DONE') return false;
+      // Check for both 'DONE' and 'Done' status (case-insensitive comparison)
+      const isDone = i.status?.toUpperCase() === 'DONE';
+      if (!isDone) return false;
       // Use completedAt if available, otherwise updatedAt
       const completionDate = i.completedAt || i.updatedAt;
       return completionDate && new Date(completionDate) <= sprintEndDate;
@@ -178,15 +180,17 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
 
     if (this.statusFilter === 'DONE') {
       issues = issues.filter(i => {
-        if (i.status !== 'DONE') return false;
+        const isDone = i.status?.toUpperCase() === 'DONE';
+        if (!isDone) return false;
         const completionDate = i.completedAt || i.updatedAt;
         return completionDate && new Date(completionDate) <= sprintEndDate;
       });
     } else if (this.statusFilter === 'INCOMPLETE') {
-      issues = issues.filter(i => i.status !== 'DONE');
+      issues = issues.filter(i => i.status?.toUpperCase() !== 'DONE');
     } else if (this.statusFilter === 'OUT_OF_SPRINT') {
       issues = issues.filter(i => {
-        if (i.status !== 'DONE') return false;
+        const isDone = i.status?.toUpperCase() === 'DONE';
+        if (!isDone) return false;
         const completionDate = i.completedAt || i.updatedAt;
         return completionDate && new Date(completionDate) > sprintEndDate;
       });
@@ -226,7 +230,8 @@ export class ChartTable implements OnInit, OnChanges, AfterViewInit {
     // Count only issues that were completed on or before the sprint end date
     const completedPoints = issues
       .filter(i => {
-        if (i.status !== 'DONE') return false;
+        const isDone = i.status?.toUpperCase() === 'DONE';
+        if (!isDone) return false;
         const completionDate = i.completedAt || i.updatedAt;
         return completionDate && new Date(completionDate) <= sprintEndDate;
       })

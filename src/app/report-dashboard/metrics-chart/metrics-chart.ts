@@ -116,7 +116,7 @@ export class MetricsChart implements OnInit, OnChanges, AfterViewInit {
         this.cdr.detectChanges();
       }
       
-      // Rebuild chart options
+      // Rebuild chart options with longer delay to avoid ApexCharts error
       setTimeout(() => {
         this.buildChart();
         console.log('🟡 After buildChart in ngOnChanges, chartOptions exists:', !!this.chartOptions);
@@ -130,8 +130,8 @@ export class MetricsChart implements OnInit, OnChanges, AfterViewInit {
           } else {
             console.log('❌ chartOptions is null after buildChart');
           }
-        }, 50);
-      }, 50);
+        }, 100);
+      }, 100);
     } else {
       console.log('⏳ No data yet, skipping chart build');
     }
@@ -323,7 +323,7 @@ export class MetricsChart implements OnInit, OnChanges, AfterViewInit {
 
     // Debug: Log all issues with their status and dates
     console.log('🔍 Issue details for progress tracking:');
-    const doneIssues = issues.filter(i => i.status === 'DONE');
+    const doneIssues = issues.filter(i => i.status?.toUpperCase() === 'DONE');
     console.log(`  Total issues: ${issues.length}, DONE issues: ${doneIssues.length}`);
     
     issues.forEach(issue => {
@@ -342,22 +342,30 @@ export class MetricsChart implements OnInit, OnChanges, AfterViewInit {
       currentDate.setHours(23, 59, 59, 999); // End of day
 
       issues.forEach(issue => {
-        if (issue.status === 'DONE' && !counted.has(issue.id)) {
+        const isDone = issue.status?.toUpperCase() === 'DONE';
+        if (isDone && !counted.has(issue.id)) {
           let doneDate: Date | null = null;
           
           // Priority 1: Use completedAt if available
-          if (issue.completedAt && !isNaN(issue.completedAt.getTime())) {
-            doneDate = issue.completedAt;
+          if (issue.completedAt) {
+            doneDate = issue.completedAt instanceof Date ? issue.completedAt : new Date(issue.completedAt);
+            if (isNaN(doneDate.getTime())) {
+              console.warn(`⚠️ Invalid completedAt for ${issue.title}:`, issue.completedAt);
+              doneDate = null;
+            }
           }
           // Priority 2: Use updatedAt if it's valid
-          else if (issue.updatedAt && !isNaN(issue.updatedAt.getTime())) {
-            doneDate = issue.updatedAt;
+          if (!doneDate && issue.updatedAt) {
+            doneDate = issue.updatedAt instanceof Date ? issue.updatedAt : new Date(issue.updatedAt);
+            if (isNaN(doneDate.getTime())) {
+              console.warn(`⚠️ Invalid updatedAt for ${issue.title}:`, issue.updatedAt);
+              doneDate = null;
+            }
           }
           
           if (!doneDate) {
-            // No valid date - distribute evenly or add on last day
+            // No valid date - add on the last day of sprint
             console.warn(`⚠️ Issue ${issue.title} is DONE but has no valid completion date`);
-            // Add on the last day of sprint
             if (index === dates.length - 1) {
               cumulative += issue.storyPoints || 0;
               counted.add(issue.id);
@@ -374,12 +382,16 @@ export class MetricsChart implements OnInit, OnChanges, AfterViewInit {
       });
 
       completed.push(cumulative);
-      if (index === 0 || index === dates.length - 1 || cumulative > 0) {
-        console.log(`  Day ${index + 1} (${dateLabel}): ${cumulative} points completed`);
-      }
     });
 
     const completedPoints = completed[completed.length - 1] || 0;
+    
+    // Log summary instead of every day
+    const firstNonZero = completed.findIndex(c => c > 0);
+    console.log(`📊 Progress summary: ${completedPoints}/${totalScopePoints} points completed`);
+    if (firstNonZero >= 0) {
+      console.log(`  First completion on Day ${firstNonZero + 1} (${dates[firstNonZero]})`);
+    }
 
     let series: ApexAxisChartSeries = [];
     let chartType: 'area' | 'bar' = 'area';
