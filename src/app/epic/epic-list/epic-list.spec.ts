@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EpicList } from './epic-list';
 import { Epic } from '../../shared/models/epic.model';
+import { HttpClientModule } from '@angular/common/http';
 
 describe('EpicList', () => {
   let component: EpicList;
@@ -8,7 +9,7 @@ describe('EpicList', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EpicList]
+      imports: [EpicList, HttpClientModule]
     })
     .compileComponents();
 

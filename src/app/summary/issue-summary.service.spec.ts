@@ -138,26 +138,30 @@ describe('IssueSummaryService', () => {
 
   // --- getIssueSummaryCards Test ---
   describe('getIssueSummaryCards', () => {
-    it('should return four summary card objects', () => {
-      const cards = service.getIssueSummaryCards('sprint-1-active');
-      expect(cards.length).toBe(4);
-      expect(cards.map((c) => c.type)).toEqual(['completed', 'updated', 'created', 'due-soon']);
+    it('should return four summary card objects', (done) => {
+      const cards$ = service.getIssueSummaryCards('sprint-1-active');
+      cards$.subscribe((cards) => {
+        expect(cards.length).toBe(4);
+        expect(cards.map((c) => c.type)).toEqual(['completed', 'updated', 'created', 'due-soon']);
+        done();
+      });
     });
   });
 
   // --- getSprintStatuses Test ---
   describe('getSprintStatuses', () => {
-    it('should correctly group issues by status for a given sprint', () => {
+    it('should correctly group issues by status for a given sprint', (done) => {
       // PROJ-1: TODO, PROJ-2: DONE, PROJ-3: DONE. (Active sprint issues)
-      const statuses = service.getSprintStatuses('sprint-1-active');
-
-      const todoStatus = statuses.find((s) => s.label === 'To Do');
-      const inProgressStatus = statuses.find((s) => s.label === 'In Progress');
-      const doneStatus = statuses.find((s) => s.label === 'Done');
-
-      expect(todoStatus?.count).toBe(1);
-      expect(inProgressStatus?.count).toBe(0);
-      expect(doneStatus?.count).toBe(2);
+      const statuses$ = service.getSprintStatuses('sprint-1-active');
+      statuses$.subscribe((statuses) => {
+        const todoStatus = statuses.find((s) => s.label === 'To Do');
+        const inProgressStatus = statuses.find((s) => s.label === 'In Progress');
+        const doneStatus = statuses.find((s) => s.label === 'Done');
+        expect(todoStatus?.count).toBe(1);
+        expect(inProgressStatus?.count).toBe(0);
+        expect(doneStatus?.count).toBe(2);
+        done();
+      });
     });
   });
 

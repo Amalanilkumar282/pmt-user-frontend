@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { Header } from './header';
 import { SidebarStateService } from '../services/sidebar-state.service';
 
@@ -9,7 +10,7 @@ describe('Header', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Header],
+      imports: [Header, HttpClientModule],
       providers: [SidebarStateService],
     }).compileComponents();
 

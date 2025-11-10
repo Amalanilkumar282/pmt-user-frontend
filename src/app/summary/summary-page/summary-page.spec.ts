@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 
 import { SummaryPage } from './summary-page';
@@ -59,7 +60,7 @@ describe('SummaryPage', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [SummaryPage, RouterTestingModule],
+      imports: [SummaryPage, RouterTestingModule, HttpClientModule],
       providers: [
         { provide: SidebarStateService, useValue: sidebarStateServiceMock },
         { provide: IssueSummaryService, useValue: issueSummaryServiceMock }

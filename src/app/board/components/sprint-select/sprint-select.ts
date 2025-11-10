@@ -19,9 +19,10 @@ export class SprintSelect {
   open = false;
 
   getCurrentLabel(): string {
-    if (!this.selectedId) return 'Select Sprint';
-    const sprint = this.sprints.find(s => s.id === this.selectedId);
-    return sprint ? this.label(sprint) : 'Select Sprint';
+  if (this.selectedId === 'BACKLOG') return 'Backlog';
+  if (!this.selectedId) return 'Select Sprint';
+  const sprint = this.sprints.find(s => s.id === this.selectedId);
+  return sprint ? this.label(sprint) : 'Select Sprint';
   }
 
   label(s: Sprint): string {

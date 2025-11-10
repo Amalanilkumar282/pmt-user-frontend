@@ -1,6 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { BacklogPage } from './backlog-page';
 import { ModalService } from '../../modal/modal-service';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
@@ -24,7 +25,7 @@ describe('BacklogPage', () => {
 		};
 
 		await TestBed.configureTestingModule({
-			imports: [BacklogPage, RouterTestingModule],
+			imports: [BacklogPage, RouterTestingModule, HttpClientModule],
 			providers: [
 				{ provide: ModalService, useValue: modalServiceMock },
 				{ provide: SidebarStateService, useValue: sidebarStateServiceMock }

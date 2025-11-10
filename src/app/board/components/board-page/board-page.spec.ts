@@ -7,7 +7,6 @@ import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { BoardPage } from './board-page';
 import { BoardStore } from '../../board-store';
-import { sprints, backlogIssues } from '../../../shared/data/dummy-backlog-data';
 import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
 import { BoardService } from '../../services/board.service';

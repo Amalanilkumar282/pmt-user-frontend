@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { BoardColumn } from './board-column';
 import { BoardStore } from '../../board-store';
 import type { Issue } from '../../../shared/models/issue.model';
+import { HttpClientModule } from '@angular/common/http';
 
 class StoreMock {
   updateIssueStatus = jasmine.createSpy('updateIssueStatus');
@@ -11,7 +12,7 @@ class StoreMock {
 describe('BoardColumn', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BoardColumn],
+      imports: [BoardColumn, HttpClientModule],
       providers: [{ provide: BoardStore, useClass: StoreMock }]
     }).compileComponents();
   });

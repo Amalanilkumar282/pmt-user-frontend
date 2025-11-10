@@ -1,8 +1,8 @@
- import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { ChartTable } from './chart-table';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
-import { sprints } from '../../shared/data/dummy-backlog-data';
 import { Issue } from '../../shared/models/issue.model';
 import { Sprint } from '../../sprint/sprint-container/sprint-container';
 
@@ -13,7 +13,7 @@ describe('ChartTable', () => {
   beforeEach(async () => {
     
     await TestBed.configureTestingModule({
-      imports: [ChartTable, MatTableModule, MatPaginatorModule],
+      imports: [ChartTable, MatTableModule, MatPaginatorModule, HttpClientModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ChartTable);
@@ -70,8 +70,7 @@ describe('ChartTable', () => {
         } as Issue
       ]
     };
-    (sprints as any).push(mockSprint);
-
+  component.sprintId = mockSprint.id;
     (component as any).loadBurnupData();
     expect(component.dataSource.data.length).toBeGreaterThan(0);
     expect(component.dataSource.data[0]).toEqual(
@@ -90,12 +89,11 @@ describe('ChartTable', () => {
         { id: 'ISS-2', title: 'Task 2', type: 'TASK', status: 'DONE', storyPoints: 3, assignee: 'Jane', createdAt: new Date('2024-01-01'), updatedAt: new Date('2024-01-03') } as Issue
       ]
     };
-    (sprints as any).push(mockSprint);
-
-    component.statusFilter = 'DONE';
-    (component as any).loadBurndownData();
-    expect(component.dataSource.data.length).toBe(1);
-    expect(component.dataSource.data[0].status).toBe('DONE');
+  component.sprintId = mockSprint.id;
+  component.statusFilter = 'DONE';
+  (component as any).loadBurndownData();
+  expect(component.dataSource.data.length).toBe(1);
+  expect(component.dataSource.data[0].status).toBe('DONE');
   });
 
   it('should filter non-DONE issues when statusFilter=INCOMPLETE', () => {

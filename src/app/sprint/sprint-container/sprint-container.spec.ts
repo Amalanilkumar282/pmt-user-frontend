@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
 
 import { SprintContainer, Sprint } from './sprint-container';
 import { Issue } from '../../shared/models/issue.model';
@@ -20,7 +21,7 @@ describe('SprintContainer', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SprintContainer]
+      imports: [SprintContainer, HttpClientModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(SprintContainer);

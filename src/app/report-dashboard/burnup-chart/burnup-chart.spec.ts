@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
- import { provideRouter } from '@angular/router';
+import { provideRouter } from '@angular/router';
+import { HttpClientModule } from '@angular/common/http';
+import { Location } from '@angular/common';
 import { BurnupChart } from './burnup-chart';
- import { SidebarStateService } from '../../shared/services/sidebar-state.service';
+import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Sidebar } from '../../shared/sidebar/sidebar';
@@ -16,6 +18,7 @@ describe('BurnupChart', () => {
   let fixture: ComponentFixture<BurnupChart>;
   let router: Router;
   let sidebarService: SidebarStateService;
+  let location: Location;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -26,7 +29,8 @@ describe('BurnupChart', () => {
         ChartHeader,
         MetricsChart,
         NgApexchartsModule,
-        RouterTestingModule
+        RouterTestingModule,
+        HttpClientModule
       ],
       providers: [
         SidebarStateService
@@ -38,6 +42,7 @@ describe('BurnupChart', () => {
     fixture = TestBed.createComponent(BurnupChart);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
+    location = TestBed.inject(Location);
     sidebarService = TestBed.inject(SidebarStateService);
     fixture.detectChanges();
   });
@@ -56,10 +61,10 @@ describe('BurnupChart', () => {
 });
 
 
-  it('navigateBack() should call router.navigate', () => {
-    const spy = spyOn(router, 'navigate');
+  it('navigateBack() should call location.back', () => {
+    const spy = spyOn(location, 'back');
     component.navigateBack();
-    expect(spy).toHaveBeenCalledWith(['/report-dashboard']);
+    expect(spy).toHaveBeenCalled();
   });
 
   it('issues should be initialized as empty array', () => {

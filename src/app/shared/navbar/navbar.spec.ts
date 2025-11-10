@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { By } from '@angular/platform-browser';
 
 import { Navbar } from './navbar';
@@ -20,7 +21,7 @@ describe('Navbar', () => {
   projectContextMock = { currentProjectId: () => '1' } as any;
 
     await TestBed.configureTestingModule({
-      imports: [Navbar, RouterTestingModule],
+      imports: [Navbar, RouterTestingModule, HttpClientModule],
       providers: [
         { provide: ModalService, useValue: modalSpy },
         { provide: SidebarStateService, useValue: sidebarStateMock },

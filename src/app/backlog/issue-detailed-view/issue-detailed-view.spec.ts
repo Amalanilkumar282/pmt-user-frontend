@@ -3,6 +3,7 @@ import { SimpleChange, EventEmitter } from '@angular/core';
 import { IssueDetailedView } from './issue-detailed-view';
 import { Issue } from '../../shared/models/issue.model';
 import { ModalService } from '../../modal/modal-service';
+import { HttpClientModule } from '@angular/common/http';
 
 describe('IssueDetailedView', () => {
   let component: IssueDetailedView;
@@ -29,7 +30,7 @@ describe('IssueDetailedView', () => {
     mockModalService = jasmine.createSpyObj('ModalService', ['open']);
 
     await TestBed.configureTestingModule({
-      imports: [IssueDetailedView],
+      imports: [IssueDetailedView, HttpClientModule],
       providers: [
         { provide: ModalService, useValue: mockModalService }
       ]

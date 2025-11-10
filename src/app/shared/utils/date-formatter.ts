@@ -9,15 +9,11 @@
  */
 export function formatDisplayDate(date: Date | string | null | undefined): string {
   if (!date) return '';
-  
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
   if (isNaN(dateObj.getTime())) return '';
-  
   const day = dateObj.getDate();
-  const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
+  const month = dateObj.toLocaleDateString('en-US', { month: 'long' });
   const year = dateObj.getFullYear();
-  
   return `${day} ${month} ${year}`;
 }
 

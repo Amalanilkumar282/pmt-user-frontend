@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { WorkItemForm } from './work-item-form';
 import { Issue } from '../../../../shared/models/issue.model';
+import { HttpClientModule } from '@angular/common/http';
 
 describe('WorkItemForm', () => {
   let component: WorkItemForm;
   let fixture: ComponentFixture<WorkItemForm>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [WorkItemForm] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [WorkItemForm, HttpClientModule] }).compileComponents();
     fixture = TestBed.createComponent(WorkItemForm);
     component = fixture.componentInstance;
     fixture.detectChanges();

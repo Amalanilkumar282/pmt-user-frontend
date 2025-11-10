@@ -1,5 +1,7 @@
- import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { HttpClientModule } from '@angular/common/http';
+import { Location } from '@angular/common';
 import { VelocityChart } from './velocity-chart';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { Router } from '@angular/router';
@@ -9,10 +11,11 @@ describe('VelocityChart', () => {
   let fixture: ComponentFixture<VelocityChart>;
   let sidebarStateService: SidebarStateService;
   let router: Router;
+  let location: Location;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VelocityChart],
+      imports: [VelocityChart, HttpClientModule],
       providers: [
         provideRouter([]),
         SidebarStateService
@@ -24,6 +27,7 @@ describe('VelocityChart', () => {
     component = fixture.componentInstance;
     sidebarStateService = TestBed.inject(SidebarStateService);
     router = TestBed.inject(Router);
+    location = TestBed.inject(Location);
 
     fixture.detectChanges();
   });
@@ -45,8 +49,8 @@ describe('VelocityChart', () => {
 
 
   it('should navigate back to report-dashboard', () => {
-    const navigateSpy = spyOn(router, 'navigate');
+    const spy = spyOn(location, 'back');
     component.navigateBack();
-    expect(navigateSpy).toHaveBeenCalledWith(['/report-dashboard']);
+    expect(spy).toHaveBeenCalled();
   });
 });

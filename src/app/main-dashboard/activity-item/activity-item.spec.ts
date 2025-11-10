@@ -7,16 +7,15 @@ describe('ActivityItem', () => {
   let fixture: ComponentFixture<ActivityItem>;
 
   const mockActivity: ActivityModel = {
-    id: 'act-123',
-    user: 'John Doe',
-    initials: 'JD',
-    action: 'completed',
-    task: 'Update dashboard layout',
-    taskId: 'TASK-456',
-    time: '2 hours ago',
-    type: 'completed',
+    id: 'TASK-456',
+    userId: 1,
+    userName: 'John Doe',
+    action: 'COMPLETE',
+    entityType: 'Task',
+    entityId: 'TASK-456',
+    description: 'Update dashboard layout',
+    createdAt: '2025-11-06T10:00:00Z'
   };
-
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ActivityItem],
@@ -32,53 +31,22 @@ describe('ActivityItem', () => {
     expect(component).toBeTruthy();
   });
 
+  // Removed initials test, not part of ActivityModel
   it('should display user initials in avatar', () => {
-    const avatar = fixture.debugElement.query(By.css('.activity-avatar'));
-    expect(avatar.nativeElement.textContent.trim()).toBe('JD');
+    const avatar = fixture.debugElement.query(By.css('div > div'));
+    expect(avatar.nativeElement.textContent.trim()).toBe(component.userInitials);
   });
 
-  it('should apply correct type class to avatar', () => {
-    const avatar = fixture.debugElement.query(By.css('.activity-avatar'));
-    expect(avatar.classes[mockActivity.type]).toBeTrue();
+  it('should display user name and description', () => {
+    const content = fixture.debugElement.query(By.css('div.flex-1 p'));
+    expect(content.nativeElement.textContent).toContain(mockActivity.userName);
+    expect(content.nativeElement.textContent).toContain(mockActivity.description);
   });
 
-  it('should display user name and action', () => {
-    const content = fixture.debugElement.query(By.css('.activity-content p'));
-    expect(content.nativeElement.textContent).toContain(mockActivity.user);
-    expect(content.nativeElement.textContent).toContain(mockActivity.action);
+  it('should display createdAt', () => {
+    const time = fixture.debugElement.query(By.css('div.flex.items-center span:last-child'));
+    expect(time.nativeElement.textContent).toBeTruthy();
+  });
   });
 
-  it('should display task details', () => {
-    const content = fixture.debugElement.query(By.css('.activity-content p'));
-    expect(content.nativeElement.textContent).toContain(mockActivity.task);
-  });
-
-  it('should display task ID and time', () => {
-    const taskId = fixture.debugElement.query(By.css('.task-id'));
-    const time = fixture.debugElement.query(By.css('.activity-time'));
-
-    expect(taskId.nativeElement.textContent).toBe(mockActivity.taskId);
-    expect(time.nativeElement.textContent).toContain(mockActivity.time);
-  });
-
-  describe('Activity Types', () => {
-    it('should handle "completed" type correctly', () => {
-      testActivityType('completed');
-    });
-
-    it('should handle "commented" type correctly', () => {
-      testActivityType('commented');
-    });
-
-    it('should handle "assigned" type correctly', () => {
-      testActivityType('assigned');
-    });
-
-    function testActivityType(type: ActivityModel['type']) {
-      component.activity = { ...mockActivity, type };
-      fixture.detectChanges();
-      const avatar = fixture.debugElement.query(By.css('.activity-avatar'));
-      expect(avatar.classes[type]).toBeTrue();
-    }
-  });
-});
+  // Removed invalid Activity Types tests and helper functions

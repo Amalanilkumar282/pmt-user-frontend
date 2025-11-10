@@ -1,4 +1,5 @@
- import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { BurndownChart } from './burndown-chart';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { Router } from '@angular/router';
@@ -25,7 +26,8 @@ describe('BurndownChart', () => {
         ChartHeader,
         MetricsChart,
         NgApexchartsModule,
-        RouterTestingModule
+        RouterTestingModule,
+        HttpClientModule
       ],
       providers: [
         SidebarStateService

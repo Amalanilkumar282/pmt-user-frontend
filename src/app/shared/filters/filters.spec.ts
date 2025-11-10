@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
 
 import { Filters, FilterCriteria } from './filters';
 
@@ -9,7 +10,7 @@ describe('Filters', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Filters]
+      imports: [Filters, HttpClientModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(Filters);

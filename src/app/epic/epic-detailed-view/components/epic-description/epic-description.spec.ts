@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EpicDescription } from './epic-description';
 import { Epic } from '../../../../shared/models/epic.model';
+import { HttpClientModule } from '@angular/common/http';
 
 describe('EpicDescription', () => {
   let component: EpicDescription;
@@ -9,7 +10,7 @@ describe('EpicDescription', () => {
   const epic: Epic = { id: 'e1', name: 'E1', description: 'orig', startDate: null, dueDate: null, progress: 0, issueCount: 0, isExpanded: false, assignee: 'A', labels: [], parent: 'None', team: 'None', sprint: 'None', storyPoints: 0, reporter: 'R', childWorkItems: [], status: 'TODO' } as any;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [EpicDescription] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [EpicDescription, HttpClientModule] }).compileComponents();
     fixture = TestBed.createComponent(EpicDescription);
     component = fixture.componentInstance;
     component.epic = { ...epic };

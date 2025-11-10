@@ -3,19 +3,20 @@ import { signal } from '@angular/core';
 import { BoardColumnsContainer } from './board-columns-container';
 import { BoardStore } from '../../board-store';
 import type { Issue } from '../../../shared/models/issue.model';
+import { HttpClientModule } from '@angular/common/http';
 
 class BoardStoreMock {
   columnBuckets = signal([
     { def: { id: 'TODO', title:'To Do', color:'x'}, items: [{ id:'1'} as Issue] },
     { def: { id: 'DONE', title:'Done', color:'y'}, items: [{ id:'2'} as Issue] }
   ]);
-  updateIssueStatus = jasmine.createSpy('updateIssueStatus');
+  updateIssueStatus = jasmine.createSpy('updateIssueStatus').and.returnValue({ subscribe: () => {} });
 }
 
 describe('BoardColumnsContainer', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [BoardColumnsContainer],
+      imports: [BoardColumnsContainer, HttpClientModule],
       providers: [{ provide: BoardStore, useClass: BoardStoreMock }]
     }).compileComponents();
   });

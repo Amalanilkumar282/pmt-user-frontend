@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ActivatedRoute } from '@angular/router';
 import { By } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
 
 import { MainDashboardHome } from './main-dashboard-home';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
@@ -24,6 +25,7 @@ describe('MainDashboardHome', () => {
       imports: [
         MainDashboardHome,
         RouterTestingModule,
+        HttpClientModule,
         IssueSummaryCard,
         ProjectCard,
         SprintOverview,

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
 
 import { Sidebar } from './sidebar';
 import { SidebarStateService } from '../services/sidebar-state.service';
@@ -20,7 +21,7 @@ describe('Sidebar', () => {
     } as any;
 
     await TestBed.configureTestingModule({
-      imports: [Sidebar],
+      imports: [Sidebar, HttpClientModule],
       providers: [
         { provide: SidebarStateService, useValue: sidebarStateMock }
       ]

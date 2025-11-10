@@ -7,8 +7,8 @@ describe('utils', () => {
   });
 
   it('statusOrder progresses TODO -> DONE', () => {
-    expect(statusOrder.TODO).toBeLessThan(statusOrder.DONE);
-    expect(statusOrder.IN_PROGRESS).toBeGreaterThan(statusOrder.TODO);
+  expect(statusOrder['TODO']).toBeLessThan(statusOrder['DONE']);
+  expect(statusOrder['IN_PROGRESS']).toBeGreaterThan(statusOrder['TODO']);
   });
 
   it('fuzzyIncludes is case-insensitive and trims', () => {

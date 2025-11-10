@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { SidebarStateService } from '../../shared/services/sidebar-state.service';
 import { Router } from '@angular/router';
 import { ReportDashboardHome } from './report-dashboard-home';
@@ -12,11 +13,11 @@ describe('ReportDashboardHome', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ReportDashboardHome ],
+      imports: [ReportDashboardHome, HttpClientModule],
       providers: [
         SidebarStateService,
-    provideRouter([]) // ✅ sets up router providers like ActivatedRoute
-  ]
+        provideRouter([]) // ✅ sets up router providers like ActivatedRoute
+      ]
     })
     .compileComponents();
 

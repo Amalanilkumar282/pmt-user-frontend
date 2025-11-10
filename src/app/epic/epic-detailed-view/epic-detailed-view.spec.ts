@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EpicDetailedView } from './epic-detailed-view';
 import { Epic } from '../../shared/models/epic.model';
 import { Issue } from '../../shared/models/issue.model';
+import { HttpClientModule } from '@angular/common/http';
 
 describe('EpicDetailedView', () => {
   let component: EpicDetailedView;
@@ -29,7 +30,7 @@ describe('EpicDetailedView', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EpicDetailedView]
+      imports: [EpicDetailedView, HttpClientModule]
     })
     .compileComponents();
 

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { TimelineHeaderComponent, FilterState, StatusOption } from './timeline-header';
 
 describe('TimelineHeaderComponent', () => {
@@ -7,7 +8,7 @@ describe('TimelineHeaderComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TimelineHeaderComponent]
+      imports: [TimelineHeaderComponent, HttpClientModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(TimelineHeaderComponent);
