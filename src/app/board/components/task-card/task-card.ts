@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal, inject, computed, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, signal, inject, computed, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -296,6 +296,28 @@ export class TaskCard implements OnInit, AfterViewInit {
         }
       }
     }
+    // Listen for global close-inline-edits event to close any open inline editors
+    try {
+      document.addEventListener('app:close-inline-edits', this.onGlobalClose);
+    } catch (e) {
+      // ignore in non-browser environments
+    }
+  }
+
+  ngOnDestroy(): void {
+    try {
+      document.removeEventListener('app:close-inline-edits', this.onGlobalClose);
+    } catch (e) {
+      // ignore in non-browser environments
+    }
+  }
+
+  // Handler to close all inline editors on this card when a global close event is emitted
+  private onGlobalClose = () => {
+    this.isEditingTitle.set(false);
+    this.isEditingDescription.set(false);
+    this.showAssigneeDropdown.set(false);
+    this.showDatePicker.set(false);
   }
 
   /**
@@ -345,22 +367,7 @@ export class TaskCard implements OnInit, AfterViewInit {
    * but time progress prevents stale cards from appearing healthy when
    * they're behind schedule.
    * 
-   * Step 4: Story Point Complexity Adjustment (optional)
-   * -----------------------------------------------------
-   * Formula: adjusted = combined × (1 - reduction)
-   * Where: reduction = min(0.15, storyPoints / 200)
-   * 
-   * Examples:
-   * - 1 point: 0.5% reduction (minimal)
-   * - 5 points: 2.5% reduction
-   * - 13 points: 6.5% reduction
-   * - 20+ points: 10-15% reduction (capped)
-   * 
-   * Rationale: Larger story points indicate complexity, unknowns, or scope.
-   * These items typically progress slower than simple tasks. This adjustment
-   * prevents inflated progress bars on epics while keeping small tasks realistic.
-   * 
-   * Step 5: Boundary Clamping
+   * Step 4: Boundary Clamping
    * --------------------------
    * Final result is clamped to [0, 100] range to ensure valid percentage.
    * 
@@ -378,39 +385,30 @@ export class TaskCard implements OnInit, AfterViewInit {
    * 
    * 4. Combine statusBaseline (60%) + timeProgress (40%)
    * 
-   * 5. Are storyPoints > 0?
-   *    YES → Apply complexity reduction
-   *    NO → Use combined value as-is
-   * 
-   * 6. Return clamped result [0-100]
+   * 5. Return clamped result [0-100]
    * 
    * EXAMPLES:
    * 
    * Example 1: Simple task, on schedule
    * - Status: IN_PROGRESS (55%)
    * - Start: 5 days ago, Due: 5 days from now (50% elapsed)
-   * - Story Points: 2
    * - Calculation:
    *   timeProgress = (5 / 10) × 100 = 50%
    *   combined = (55 × 0.6) + (50 × 0.4) = 33 + 20 = 53%
-   *   reduction = min(0.15, 2/200) = 0.01 (1%)
-   *   final = 53 × 0.99 = 52.47% → 52%
+   *   final = 53%
    * 
-   * Example 2: Complex story, behind schedule
+   * Example 2: Task behind schedule
    * - Status: IN_PROGRESS (55%)
    * - Start: 10 days ago, Due: 5 days ago (150% elapsed = overdue)
-   * - Story Points: 21
    * - Calculation:
    *   timeProgress = (15 / 15) × 100 = 100% (capped)
    *   combined = (55 × 0.6) + (100 × 0.4) = 33 + 40 = 73%
-   *   reduction = min(0.15, 21/200) = 0.105 (10.5%)
-   *   final = 73 × 0.895 = 65.34% → 65%
+   *   final = 73%
    *   → Also flagged as overdue (red progress bar)
    * 
    * Example 3: No dates provided
    * - Status: TODO (10%)
    * - No startDate or dueDate
-   * - Story Points: 3
    * - Calculation:
    *   → Fallback to statusBaseline
    *   final = 10%
@@ -455,16 +453,7 @@ export class TaskCard implements OnInit, AfterViewInit {
       // Step 3: Hybrid combination (status 60% + time 40%)
       const combined = Math.round(baseline * 0.6 + timeProgress * 0.4);
 
-      // Step 4: Story point complexity adjustment
-      if (this.issue.storyPoints && this.issue.storyPoints > 0) {
-        const sp = this.issue.storyPoints;
-        // Reduction formula: up to 15% for very large stories (>20 points)
-        const reduction = Math.min(0.15, sp / 200);
-        const adjusted = Math.round(combined * (1 - reduction));
-        return Math.max(0, Math.min(100, adjusted));
-      }
-
-      // Step 5: Boundary clamping
+      // Step 4: Boundary clamping
       return Math.max(0, Math.min(100, combined));
     }
 
@@ -533,6 +522,8 @@ export class TaskCard implements OnInit, AfterViewInit {
   
   // Title editing methods
   startEditingTitle(event: Event): void {
+    // First close any open inline editors across other cards/components
+    try { document.dispatchEvent(new CustomEvent('app:close-inline-edits')); } catch (e) {}
     event.stopPropagation(); // Prevent card click
     if (this.isSprintCompleted()) {
       try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
@@ -595,6 +586,8 @@ export class TaskCard implements OnInit, AfterViewInit {
   
   // Description editing
   startEditingDescription(event: Event): void {
+    // Close any other open inline editors first
+    try { document.dispatchEvent(new CustomEvent('app:close-inline-edits')); } catch (e) {}
     event.stopPropagation();
     if (this.isSprintCompleted()) {
       try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
@@ -627,6 +620,8 @@ export class TaskCard implements OnInit, AfterViewInit {
   
   // Assignee click handler
   onAssigneeClick(event: Event): void {
+    // Close other open editors before opening assignee dropdown
+    try { document.dispatchEvent(new CustomEvent('app:close-inline-edits')); } catch (e) {}
     event.stopPropagation(); // Prevent card click
     if (this.isSprintCompleted()) {
       try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}
@@ -666,6 +661,8 @@ export class TaskCard implements OnInit, AfterViewInit {
   
   // Due date handlers
   onDueDateClick(event: Event): void {
+    // Close other open editors before opening date picker
+    try { document.dispatchEvent(new CustomEvent('app:close-inline-edits')); } catch (e) {}
     event.stopPropagation();
     if (this.isSprintCompleted()) {
       try { this.toastService.info('This sprint is completed — edits are disabled'); } catch {}

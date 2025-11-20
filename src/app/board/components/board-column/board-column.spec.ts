@@ -1,18 +1,32 @@
 import { TestBed } from '@angular/core/testing';
 import { BoardColumn } from './board-column';
 import { BoardStore } from '../../board-store';
+import { BoardService } from '../../services/board.service';
 import type { Issue } from '../../../shared/models/issue.model';
 
 class StoreMock {
   updateIssueStatus = jasmine.createSpy('updateIssueStatus');
+  updateIssueStatusApi = jasmine.createSpy('updateIssueStatusApi').and.resolveTo(true);
   removeColumn = jasmine.createSpy('removeColumn');
+  loadBoard = jasmine.createSpy('loadBoard');
+  // provide a currentBoard() method used by the component
+  currentBoard = jasmine.createSpy('currentBoard').and.returnValue({ id: 'board-1', columns: [{ id: 'TODO' }], isDefault: false });
+  columns = jasmine.createSpy('columns').and.returnValue([]);
+  selectedSprintId = jasmine.createSpy('selectedSprintId').and.returnValue(undefined);
+}
+
+class BoardServiceMock {
+  deleteColumnApi = jasmine.createSpy('deleteColumnApi').and.resolveTo(true);
 }
 
 describe('BoardColumn', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [BoardColumn],
-      providers: [{ provide: BoardStore, useClass: StoreMock }]
+      providers: [
+        { provide: BoardStore, useClass: StoreMock },
+        { provide: (BoardService as any), useClass: BoardServiceMock }
+      ]
     }).compileComponents();
   });
 
@@ -103,9 +117,12 @@ describe('BoardColumn', () => {
     expect(res).toBeFalse(); // Returns false, modal is shown
     expect(cmp.showDeleteConfirmation()).toBeTrue();
     
-    // Now confirm the deletion
-    cmp.confirmDeleteColumn();
-    expect(store.removeColumn).toHaveBeenCalledWith('DONE');
+    // Now confirm the deletion (async)
+    const boardService = TestBed.inject(BoardService) as any as BoardServiceMock;
+    return cmp.confirmDeleteColumn().then(() => {
+      expect(boardService.deleteColumnApi).toHaveBeenCalled();
+      expect(store.loadBoard).toHaveBeenCalled();
+    });
   });
 
   it('onDeleteColumn confirms and deletes when user accepts', () => {
@@ -122,8 +139,11 @@ describe('BoardColumn', () => {
     expect(cmp.showDeleteConfirmation()).toBeTrue();
     
     // When user confirms but column has items, it should NOT delete
-    cmp.confirmDeleteColumn();
-    expect(store.removeColumn).not.toHaveBeenCalled(); // Still doesn't delete non-empty column
+    return cmp.confirmDeleteColumn().then(() => {
+      const boardService = TestBed.inject(BoardService) as any as BoardServiceMock;
+      expect(boardService.deleteColumnApi).not.toHaveBeenCalled();
+      expect(store.removeColumn).not.toHaveBeenCalled(); // Still doesn't delete non-empty column
+    });
   });
 
   it('cancelDeleteColumn closes the modal without deleting', () => {
@@ -152,12 +172,14 @@ describe('BoardColumn', () => {
     cmp.items = [];
     cmp.def = { id: 'REVIEW' as any, title: 'Review', color: '', position: 1 } as any;
     
-    // Show and confirm
+    // Show and confirm (async)
     cmp.onDeleteColumn();
-    cmp.confirmDeleteColumn();
-    
-    expect(store.removeColumn).toHaveBeenCalledWith('REVIEW');
-    expect(cmp.showDeleteConfirmation()).toBeFalse();
+    const boardService = TestBed.inject(BoardService) as any as BoardServiceMock;
+    return cmp.confirmDeleteColumn().then(() => {
+      expect(boardService.deleteColumnApi).toHaveBeenCalled();
+      expect(store.loadBoard).toHaveBeenCalled();
+      expect(cmp.showDeleteConfirmation()).toBeFalse();
+    });
   });
 
   it('onOpen emits openIssue event', () => {

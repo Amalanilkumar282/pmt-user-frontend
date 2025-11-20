@@ -177,7 +177,7 @@ export class BoardApiService {
     const source: 'TEAM' | 'CUSTOM' = isTeamBoard ? 'TEAM' : 'CUSTOM';
       
     return {
-      id: apiBoard.id.toString(),
+      id: apiBoard.id != null ? apiBoard.id.toString() : '',
       name: apiBoard.name,
       description: apiBoard.description || undefined,
       projectId: apiBoard.projectId,
@@ -191,7 +191,7 @@ export class BoardApiService {
       includeDone: true,
       isActive: apiBoard.isActive,
       metadata: apiBoard.metadata,
-      createdBy: apiBoard.createdBy.toString(),
+      createdBy: apiBoard.createdBy != null ? apiBoard.createdBy.toString() : '',
       createdAt: apiBoard.createdAt,
       updatedAt: apiBoard.updatedAt,
       isDefault: isDefaultBoard  // Set based on backend type field

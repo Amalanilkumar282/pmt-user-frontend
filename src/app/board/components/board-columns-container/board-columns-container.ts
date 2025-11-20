@@ -3,6 +3,7 @@ import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from 
 import { CommonModule } from '@angular/common';
 import { BoardStore } from '../../board-store';
 import { BoardColumn } from '../board-column/board-column';
+import { BoardSkeleton } from '../board-skeleton/board-skeleton';
 import { Issue, IssueStatus } from '../../../shared/models/issue.model';
 import { BoardColumnDef } from '../../models';
 import { ProjectContextService } from '../../../shared/services/project-context.service';
@@ -10,7 +11,7 @@ import { ProjectContextService } from '../../../shared/services/project-context.
 @Component({
   selector: 'app-board-columns-container',
   standalone: true,
-  imports: [CommonModule, DragDropModule, BoardColumn],
+  imports: [CommonModule, DragDropModule, BoardColumn, BoardSkeleton],
   templateUrl: './board-columns-container.html',
   styleUrls: ['./board-columns-container.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -21,6 +22,7 @@ export class BoardColumnsContainer {
   
   readonly buckets = this.store.columnBuckets;
   readonly groupBy = this.store.groupBy;
+  readonly isLoading = this.store.isLoading;
   @Output() openIssue = new EventEmitter<any>();
   @Output() openIssueComments = new EventEmitter<any>();
 

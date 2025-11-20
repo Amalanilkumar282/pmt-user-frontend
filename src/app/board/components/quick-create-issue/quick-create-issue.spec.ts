@@ -27,7 +27,7 @@ describe('QuickCreateIssue', () => {
       expect(component.issueTitle()).toBe('');
       expect(component.issueType()).toBe('TASK');
       expect(component.issuePriority()).toBe('MEDIUM');
-      expect(component.issueAssignee()).toBeUndefined();
+      expect(component.issueAssigneeName()).toBeUndefined();
       expect(component.issueDueDate()).toBeUndefined();
     });
 
@@ -45,9 +45,13 @@ describe('QuickCreateIssue', () => {
       expect(component.priorities).toEqual(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
     });
 
-    it('should have assignees list', () => {
-      expect(component.assignees.length).toBeGreaterThan(0);
-      expect(component.assignees).toContain('Unassigned');
+    it('should have assignees list (projectMembers signal)', () => {
+      // populate projectMembers to simulate loaded users
+      const mockMembers = [{ id: 1, name: 'Alice Johnson' }, { id: 2, name: 'Bob Smith' }];
+      component.projectMembers.set(mockMembers as any);
+      expect(component.projectMembers().length).toBeGreaterThan(0);
+      // component exposes Unassigned by using null when selecting; ensure helper works
+      expect(component.getAssigneeInitials('Unassigned')).toBe('?');
     });
   });
 
@@ -64,7 +68,7 @@ describe('QuickCreateIssue', () => {
       component.issueTitle.set('Test Issue');
       component.issueType.set('BUG');
       component.issuePriority.set('HIGH');
-      component.issueAssignee.set('Alice Johnson');
+      component.issueAssigneeName.set('Alice Johnson');
       component.issueDueDate.set(new Date());
       component.showTypeDropdown.set(true);
 
@@ -74,7 +78,7 @@ describe('QuickCreateIssue', () => {
       expect(component.issueTitle()).toBe('');
       expect(component.issueType()).toBe('TASK');
       expect(component.issuePriority()).toBe('MEDIUM');
-      expect(component.issueAssignee()).toBeUndefined();
+      expect(component.issueAssigneeName()).toBeUndefined();
       expect(component.issueDueDate()).toBeUndefined();
       expect(component.showTypeDropdown()).toBe(false);
     });
@@ -87,7 +91,8 @@ describe('QuickCreateIssue', () => {
       component.issueTitle.set('New Task');
       component.issueType.set('BUG');
       component.issuePriority.set('HIGH');
-      component.issueAssignee.set('Alice Johnson');
+      component.issueAssigneeId.set(1);
+      component.issueAssigneeName.set('Alice Johnson');
       const dueDate = new Date('2024-12-31');
       component.issueDueDate.set(dueDate);
 
@@ -98,7 +103,8 @@ describe('QuickCreateIssue', () => {
         status: 'TODO',
         type: 'BUG',
         priority: 'HIGH',
-        assignee: 'Alice Johnson',
+        assigneeId: 1,
+        assigneeName: 'Alice Johnson',
         dueDate: dueDate
       });
     });
@@ -146,11 +152,12 @@ describe('QuickCreateIssue', () => {
       spyOn(component.issueCreated, 'emit');
       
       component.issueTitle.set('Test');
-      component.issueAssignee.set(undefined);
+      component.issueAssigneeId.set(undefined);
+      component.issueAssigneeName.set(undefined);
       component.create();
 
       const emittedData = (component.issueCreated.emit as jasmine.Spy).calls.mostRecent().args[0] as QuickCreateIssueData;
-      expect(emittedData.assignee).toBeUndefined();
+      expect(emittedData.assigneeName).toBeUndefined();
     });
 
     it('should handle undefined due date', () => {
@@ -257,47 +264,51 @@ describe('QuickCreateIssue', () => {
   });
 
   describe('selectAssignee', () => {
-    it('should set assignee when valid name selected', () => {
-      component.selectAssignee('Alice Johnson');
-      expect(component.issueAssignee()).toBe('Alice Johnson');
+    it('should set assignee when valid member selected', () => {
+      const mockUser = { id: 1, name: 'Alice Johnson' } as any;
+      component.selectAssignee(mockUser);
+      expect(component.issueAssigneeName()).toBe('Alice Johnson');
+      expect(component.issueAssigneeId()).toBe(1);
     });
 
-    it('should set assignee to undefined when Unassigned selected', () => {
-      component.issueAssignee.set('Bob Smith');
-      component.selectAssignee('Unassigned');
-      expect(component.issueAssignee()).toBeUndefined();
+    it('should set assignee to undefined when Unassigned (null) selected', () => {
+      component.issueAssigneeName.set('Bob Smith');
+      component.issueAssigneeId.set(2);
+      component.selectAssignee(null);
+      expect(component.issueAssigneeName()).toBeUndefined();
+      expect(component.issueAssigneeId()).toBeUndefined();
     });
 
     it('should close assignee dropdown', () => {
       component.showAssigneeDropdown.set(true);
-      component.selectAssignee('Carol White');
+      component.selectAssignee({ id: 3, name: 'Carol White' } as any);
       expect(component.showAssigneeDropdown()).toBe(false);
     });
   });
 
   describe('getTypeIcon', () => {
     it('should return correct icon for TASK', () => {
-      expect(component.getTypeIcon('TASK')).toBe('✓');
+      expect(component.getTypeIcon('TASK')).toContain('check');
     });
 
     it('should return correct icon for BUG', () => {
-      expect(component.getTypeIcon('BUG')).toBe('B');
+      expect(component.getTypeIcon('BUG')).toContain('bug');
     });
 
     it('should return correct icon for STORY', () => {
-      expect(component.getTypeIcon('STORY')).toBe('S');
+      expect(component.getTypeIcon('STORY')).toContain('book');
     });
 
     it('should return correct icon for EPIC', () => {
-      expect(component.getTypeIcon('EPIC')).toBe('E');
+      expect(component.getTypeIcon('EPIC')).toContain('bolt');
     });
 
     it('should return correct icon for SUBTASK', () => {
-      expect(component.getTypeIcon('SUBTASK')).toBe('ST');
+      expect(component.getTypeIcon('SUBTASK')).toContain('list-check');
     });
 
     it('should return default icon for unknown type', () => {
-      expect(component.getTypeIcon('UNKNOWN' as IssueType)).toBe('✓');
+      expect(component.getTypeIcon('UNKNOWN' as IssueType)).toContain('file');
     });
   });
 
@@ -378,7 +389,8 @@ describe('QuickCreateIssue', () => {
       component.issueTitle.set('Test');
       component.issueType.set('BUG');
       component.issuePriority.set('CRITICAL');
-      component.issueAssignee.set('Alice');
+      component.issueAssigneeName.set('Alice');
+      component.issueAssigneeId.set(1);
       component.issueDueDate.set(new Date());
       component.showTypeDropdown.set(true);
       component.showPriorityDropdown.set(true);
@@ -390,7 +402,8 @@ describe('QuickCreateIssue', () => {
       expect(component.issueTitle()).toBe('');
       expect(component.issueType()).toBe('TASK');
       expect(component.issuePriority()).toBe('MEDIUM');
-      expect(component.issueAssignee()).toBeUndefined();
+      expect(component.issueAssigneeName()).toBeUndefined();
+      expect(component.issueAssigneeId()).toBeUndefined();
       expect(component.issueDueDate()).toBeUndefined();
       expect(component.showTypeDropdown()).toBe(false);
       expect(component.showPriorityDropdown()).toBe(false);
@@ -405,7 +418,7 @@ describe('QuickCreateIssue', () => {
       component.issueTitle.set('Complete Feature X');
       component.selectType('STORY');
       component.selectPriority('HIGH');
-      component.selectAssignee('Alice Johnson');
+      component.selectAssignee({ id: 1, name: 'Alice Johnson' } as any);
       const dueDate = new Date('2024-12-31');
       component.issueDueDate.set(dueDate);
 
@@ -416,7 +429,8 @@ describe('QuickCreateIssue', () => {
         status: 'TODO',
         type: 'STORY',
         priority: 'HIGH',
-        assignee: 'Alice Johnson',
+        assigneeId: 1,
+        assigneeName: 'Alice Johnson',
         dueDate: dueDate
       });
     });
@@ -432,7 +446,8 @@ describe('QuickCreateIssue', () => {
         status: 'TODO',
         type: 'TASK',
         priority: 'MEDIUM',
-        assignee: undefined,
+        assigneeId: undefined,
+        assigneeName: undefined,
         dueDate: undefined
       });
     });

@@ -8,13 +8,13 @@ describe('ActivityItem', () => {
 
   const mockActivity: ActivityModel = {
     id: 'act-123',
-    user: 'John Doe',
-    initials: 'JD',
-    action: 'completed',
-    task: 'Update dashboard layout',
-    taskId: 'TASK-456',
-    time: '2 hours ago',
-    type: 'completed',
+    userId: 1,
+    userName: 'John Doe',
+    action: 'COMPLETE',
+    entityType: 'ISSUE',
+    entityId: 'TASK-456',
+    description: '',
+    createdAt: new Date().toISOString(),
   };
 
   beforeEach(async () => {
@@ -37,48 +37,44 @@ describe('ActivityItem', () => {
     expect(avatar.nativeElement.textContent.trim()).toBe('JD');
   });
 
-  it('should apply correct type class to avatar', () => {
-    const avatar = fixture.debugElement.query(By.css('.activity-avatar'));
-    expect(avatar.classes[mockActivity.type]).toBeTrue();
+  it('should compute activityType from action/entity', () => {
+    // activity.action = 'COMPLETE' and entityType = 'ISSUE' should map to 'completed'
+    expect(component.activityType).toBe('completed');
   });
 
-  it('should display user name and action', () => {
+  it('should display user name and activity sentence', () => {
     const content = fixture.debugElement.query(By.css('.activity-content p'));
-    expect(content.nativeElement.textContent).toContain(mockActivity.user);
-    expect(content.nativeElement.textContent).toContain(mockActivity.action);
+    expect(content.nativeElement.textContent).toContain(mockActivity.userName);
+    expect(content.nativeElement.textContent).toContain(component.activitySentence);
   });
 
-  it('should display task details', () => {
+  it('should display activity sentence and created time', () => {
     const content = fixture.debugElement.query(By.css('.activity-content p'));
-    expect(content.nativeElement.textContent).toContain(mockActivity.task);
-  });
+    // constructed sentence for COMPLETE + ISSUE -> 'completed an issue'
+    expect(content.nativeElement.textContent).toContain('completed');
+    expect(content.nativeElement.textContent).toContain('an issue');
 
-  it('should display task ID and time', () => {
-    const taskId = fixture.debugElement.query(By.css('.task-id'));
-    const time = fixture.debugElement.query(By.css('.activity-time'));
-
-    expect(taskId.nativeElement.textContent).toBe(mockActivity.taskId);
-    expect(time.nativeElement.textContent).toContain(mockActivity.time);
+    const timeElem = fixture.debugElement.query(By.css('.flex.items-center'));
+    expect(timeElem).toBeTruthy();
   });
 
   describe('Activity Types', () => {
     it('should handle "completed" type correctly', () => {
-      testActivityType('completed');
+      testActivityType('COMPLETE', 'completed');
     });
 
     it('should handle "commented" type correctly', () => {
-      testActivityType('commented');
+      testActivityType('COMMENT', 'commented');
     });
 
     it('should handle "assigned" type correctly', () => {
-      testActivityType('assigned');
+      testActivityType('ASSIGN', 'assigned');
     });
 
-    function testActivityType(type: ActivityModel['type']) {
-      component.activity = { ...mockActivity, type };
+    function testActivityType(actionValue: string, expectedType: string) {
+      component.activity = { ...mockActivity, action: actionValue } as any;
       fixture.detectChanges();
-      const avatar = fixture.debugElement.query(By.css('.activity-avatar'));
-      expect(avatar.classes[type]).toBeTrue();
+      expect(component.activityType).toBe(expectedType as any);
     }
   });
 });

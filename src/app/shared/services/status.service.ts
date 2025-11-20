@@ -44,7 +44,7 @@ export class StatusService {
 
   /**
    * Get all statuses for a project
-   * GET /api/Status/by-project/{projectId}
+   * GET /api/Issue/project/{projectId}/statuses
    */
   getStatusesByProject(projectId: string): Observable<Status[]> {
     // Check cache first
@@ -52,7 +52,8 @@ export class StatusService {
       return this.statusCache.get(projectId)!;
     }
 
-    const url = `${this.baseUrl}/by-project/${projectId}`;
+    // Backend exposes statuses via the Issue controller for project-level statuses
+    const url = `${environment.apiUrl}/api/Issue/project/${projectId}/statuses`;
     const headers = this.getAuthHeaders();
     
     console.log('📥 [StatusService] Fetching statuses for project:', projectId);

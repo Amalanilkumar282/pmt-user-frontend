@@ -1,5 +1,9 @@
 <div class="scroll-container" #scrollContainer>
-  <div class="flex gap-4 h-full overflow-x-auto overflow-y-hidden columns-scroll">
+  <!-- Show skeleton loader while data is loading -->
+  <app-board-skeleton *ngIf="isLoading()"></app-board-skeleton>
+  
+  <!-- Show actual board columns when loaded -->
+  <div *ngIf="!isLoading()" class="flex gap-4 h-full overflow-x-auto overflow-y-hidden columns-scroll">
     <app-board-column
       *ngFor="let bucket of buckets(); trackBy: track"
       [def]="bucket.def"

@@ -53,12 +53,13 @@ export class StatusApiService {
 
   /**
    * Get all statuses for a specific project
-   * GET /api/Status/by-project/{projectId}
+   * GET /api/Issue/project/{projectId}/statuses
    */
   getStatusesByProject(projectId: string): Observable<Status[]> {
     const headers = this.getAuthHeaders();
+    const url = `${environment.apiUrl}/api/Issue/project/${projectId}/statuses`;
     return this.http
-      .get<ApiResponse<Status[]>>(`${this.baseUrl}/by-project/${projectId}`, { headers })
+      .get<ApiResponse<Status[]>>(url, { headers })
       .pipe(map(response => response.data));
   }
 }

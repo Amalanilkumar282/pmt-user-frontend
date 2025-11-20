@@ -326,10 +326,12 @@ export class SprintService {
    * POST /api/Issue
    */
   createIssue(issue: IssueCreateRequest): Observable<IssueCreateResponse> {
-    console.log('Creating issue:', issue);
+    // Ensure the statusId defaults to To Do (1) when not specified by the caller
+    const payload: IssueCreateRequest = { ...issue, statusId: issue.statusId ?? 1 };
+    console.log('Creating issue (payload):', payload);
     return this.http.post<IssueCreateResponse>(
       `${this.issuesBaseUrl}`,
-      issue,
+      payload,
       { headers: this.getAuthHeaders() }
     );
   }
