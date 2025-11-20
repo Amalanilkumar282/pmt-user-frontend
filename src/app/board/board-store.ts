@@ -21,6 +21,7 @@ export class BoardStore {
   private _sprints = signal<Sprint[]>([]);
   private _loadingIssues = signal<boolean>(false);
   private _loadingSprints = signal<boolean>(false);
+  private _loadingColumns = signal<boolean>(false);
   
   // Cache tracking
   private _loadedProjectId: string | null = null;
@@ -99,18 +100,30 @@ export class BoardStore {
   issues = computed(() => this._issues());
   loadingIssues = this._loadingIssues.asReadonly();
   loadingSprints = this._loadingSprints.asReadonly();
+  loadingColumns = this._loadingColumns.asReadonly();
+  
+  // Combined loading state - true if any data is loading OR board service is loading
+  isLoading = computed(() => 
+    this._loadingIssues() || 
+    this._loadingSprints() || 
+    this._loadingColumns() ||
+    this.boardService.loading()
+  );
   
   /**
    * Load issues from backend API
    */
   async loadIssuesByProject(projectId: string): Promise<void> {
+    // Set loading immediately before any checks
+    this._loadingIssues.set(true);
+    
     // Skip if already loaded for this project and not loading
     if (projectId === this._loadedProjectId && this._issues().length > 0) {
+      this._loadingIssues.set(false);
       return;
     }
     
     try {
-      this._loadingIssues.set(true);
       const issues = await firstValueFrom(this.issueApiService.getIssuesByProject(projectId));
       this._issues.set(issues);
     } catch (error) {
@@ -125,13 +138,16 @@ export class BoardStore {
    * Load sprints from backend API
    */
   async loadSprintsByProject(projectId: string): Promise<void> {
+    // Set loading immediately before any checks
+    this._loadingSprints.set(true);
+    
     // Skip if already loaded for this project and not loading
     if (projectId === this._loadedProjectId && this._sprints().length > 0) {
+      this._loadingSprints.set(false);
       return;
     }
     
     try {
-      this._loadingSprints.set(true);
       const sprints = await firstValueFrom(this.sprintApiService.getSprintsByProject(projectId));
       this._sprints.set(sprints);
       
@@ -392,10 +408,13 @@ export class BoardStore {
 
   // Load board context and apply board-specific settings
   loadBoard(boardId: string): boolean {
+    this._loadingColumns.set(true);
+    
     const board = this.boardService.getBoardById(boardId);
     
     if (!board) {
       console.warn(`Board with id ${boardId} not found`);
+      this._loadingColumns.set(false);
       return false;
     }
 
@@ -405,6 +424,8 @@ export class BoardStore {
     if (board.columns && board.columns.length > 0) {
       this.columns.set([...board.columns]);
     }
+    
+    this._loadingColumns.set(false);
     
     // Set sprint selection based on board type
     if (board.type === 'TEAM') {

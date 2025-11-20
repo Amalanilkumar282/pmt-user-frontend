@@ -28,7 +28,7 @@
               (input)="autoResizeTitleTextarea($event)"
               #titleTextarea
               rows="1"
-              class="w-full text-[14px] font-bold text-slate-600 mb-3 leading-snug px-1 -mx-1 border-2 border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none overflow-hidden"
+              class="w-full text-[14px] font-bold text-slate-600 mb-3 leading-snug px-1 -mx-1 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none overflow-hidden"
               autofocus></textarea>
           </div>
         }
@@ -96,7 +96,7 @@
               (keydown.escape)="cancelEditingDescription()"
               (keydown.meta.enter)="saveDescription()"
               (keydown.ctrl.enter)="saveDescription()"
-              class="w-full text-[13px] text-slate-600 leading-relaxed px-2 py-1 border-2 border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y min-h-[60px]"
+              class="w-full text-[13px] text-slate-600 leading-relaxed px-2 py-1 border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 resize-y min-h-[60px]"
               placeholder="Add a description..."
               autofocus
               rows="3"></textarea>
