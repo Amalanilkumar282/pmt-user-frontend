@@ -134,7 +134,7 @@ export class IssueApiService {
 
     const mappedStatus = this.mapStatusIdToStatus(apiIssue.statusId);
 
-    return {
+  return {
       id: apiIssue.id,                    // Now using real ID from API
       key: apiIssue.key,                  // Issue key (PROJ-123)
       title: apiIssue.title,
@@ -250,7 +250,8 @@ export class IssueApiService {
       storyPoints: issue.storyPoints || 0,
       epicId: issue.epicId || undefined,
       reporterId: reporterId,
-        statusId: (issue as any).statusId ?? undefined,
+      // Default newly created issues to 'To Do' (statusId = 1) unless caller provided a specific statusId
+      statusId: (issue as any).statusId ?? 1,
       attachmentUrl: undefined,
       labels: JSON.stringify(issue.labels || [])
     };

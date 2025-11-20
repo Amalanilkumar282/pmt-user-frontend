@@ -207,7 +207,9 @@ export class IssueService {
   }
 
   createIssue(issue: CreateIssueRequest): Observable<CreateIssueResponse> {
-    return this.http.post<CreateIssueResponse>(this.baseUrl, issue, { headers: this.getAuthHeaders() });
+    // Ensure new issues default to To Do (statusId = 1) when not provided
+    const payload = { ...issue, statusId: (issue as any).statusId ?? 1 };
+    return this.http.post<CreateIssueResponse>(this.baseUrl, payload, { headers: this.getAuthHeaders() });
   }
 
   /**
